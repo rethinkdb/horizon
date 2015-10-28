@@ -5,6 +5,9 @@ realtime, scalable web apps. It is built on top of RethinkDB, and
 allows app developers to get started with building modern, engaging
 apps without writing any backend code.
 
+__NOTE:__ "Fusion" is a codename that we'll likely change in the
+future. See https://github.com/rethinkdb/fusion/issues/7.
+
 Fusion consists of two components:
 
 - __Fusion server__ -- a middleware server that connects to/is built on
