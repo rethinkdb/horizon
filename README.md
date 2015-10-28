@@ -7,34 +7,34 @@ apps without writing any backend code.
 
 Fusion consists of two components:
 
-- Fusion server -- a middleware server that connects to/is built on
+- __Fusion server__ -- a middleware server that connects to/is built on
   top of RethinkDB, and exposes a simple API/protocol to front-end
   applications.
-- Fusion client library -- a JavaScript client library that wraps
+- __Fusion client library__ -- a JavaScript client library that wraps
   Fusion server's protocol in a convenient API for front-end
   developers.
 
 The first version of Fusion will expose the following services to
 developers:
 
-- Sync -- a streaming API for building realtime apps directly from the
+- __Sync__ -- a streaming API for building realtime apps directly from the
   browser without writing any backend code.
-- Auth -- an authentication API that connects to common auth providers
+- __Auth__ -- an authentication API that connects to common auth providers
   (e.g. Facebook, Google, GitHub).
-- Identity -- an API for listing and manipulating user accounts.
-- Permissions -- a security model that allows the developer to protect
+- __Identity__ -- an API for listing and manipulating user accounts.
+- __Permissions__ -- a security model that allows the developer to protect
   the data from unauthorized access.
-- Geolocation -- an API that makes it very easy to build
+- __Geolocation__ -- an API that makes it very easy to build
   location-aware apps.
-- Presence -- an API for detecting presence information for a given
+- __Presence__ -- an API for detecting presence information for a given
   user and sharing it with others.
 
 Upcoming versions of Fusion will likely expose the following
 additional services:
 
-- Plugins -- a system for extending Fusion with user-defined services
+- __Plugins__ -- a system for extending Fusion with user-defined services
   in a consistent, discoverable way.
-- Backend -- an API/protocol to integrate custom backend code with
+- __Backend__ -- an API/protocol to integrate custom backend code with
   Fusion server/client-libraries.
 
 ## Why Fusion?
