@@ -227,6 +227,10 @@ class Ordered {
     limit(num){
         return new Limit(this.fusion, this.path, num)
     }
+
+    between(minVal, maxVal, field: 'id'){
+        return new Between(this.fusion, this.path, minVal, maxVal, field)
+    }
 }
 
 class Limit extends TermBase {
