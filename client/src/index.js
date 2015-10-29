@@ -1,10 +1,10 @@
-import EventEmitter from "events";
+import EventEmitter from "events"
 
 class Fusion {
 
     constructor(hostString){
-        this.hostString = hostString;
-        this._socket = new Socket(hostString);
+        this.hostString = hostString
+        this._socket = new Socket(hostString)
         // Hack for fusion(collectionName) syntax
         self = (collectionName) => self.collection(collectionName)
         self.__proto__ = this.__proto__
@@ -16,91 +16,111 @@ class Fusion {
         return new Collection(this, name)
     }
 
-    _query(path) {
+    _query(path){
         return this.socket.send("QUERY", {path: path})
     }
 
-    _store(path, document) {
-        return this.socket.send("STORE", {path: path, data: document});
+    _store(path, document, conflict){
+        if(conflict === 'replace'){
+            return this.socket.send("STORE_REPLACE", {path: path, data: document})
+        }else if(conflict === 'error'){
+            return this.socket.send("STORE_ERROR", {path: path, data: document})
+        }else{
+            return Promise.reject(`value of conflict not understood: ${conflict}`)
+        }
     }
 
-    _update(path, document) {
-        return this.socket.send("UPDATE", {path: path, data: document});
+    _update(path, document){
+        return this.socket.send("UPDATE", {path: path, data: document})
     }
 
-    _remove(path, id) {
-        return this.socket.send("REMOVE", {path: path, data: id});
+    _remove(path, id){
+        return this.socket.send("REMOVE", {path: path, data: id})
     }
 
-    _subscribe(path) {
-        return this.socket.subscribe(path)
+    _subscribe(path, updates){
+        if(updates){
+            return this.socket.subscribe(path)
+        }else{
+            //Emulate subscription with one-shot query
+            var emitter = new EventEmitter()
+            this.socket.send("QUERY", path).then(
+                // Do we have continues etc like cursors?
+                // Right now assuming we get results back as an array
+                (results) =>
+                    for(result of results) {
+                        emitter.emit("added", {new_val: result, old_val: null})
+                    }
+            )
+            return emitter
+        }
     }
 
 }
 
 class Socket {
-    constructor(hostString) {
-        this.ws = new WebSocket(connection_string);
-        this.ws.onmessage = this._onMessage;
-        this.ws.onclose = this._onClose;
-        this.ws.onopen = this._onOpen;
-        this.promises = {};
-        this.emitters = {};
-        this.requestCounter = 0;
+    constructor(hostString){
+        this.ws = new WebSocket(connection_string)
+        this.ws.onmessage = this._onMessage
+        this.ws.onclose = this._onClose
+        this.ws.onopen = this._onOpen
+        this.promises = {}
+        this.emitters = {}
+        this.requestCounter = 0
     }
 
-    send(type, data) {
-        var requestId = this.requestCounter++;
+    send(type, data){
+        var requestId = this.requestCounter++
         var req = {type: type, data: data, requestId: requestId}
         return new Promise((resolve, reject) =>
             this.promises[requestId] = {resolve: resolve, reject:reject})
     }
 
-    subscribe(path) {
-        var requestId = this.requestCounter++;
-        var req = {type: "SUBSCRIBE", data: data, requestId: requestId};
+    subscribe(path){
+        var requestId = this.requestCounter++
+        var req = {type: "SUBSCRIBE", data: data, requestId: requestId}
         var emitter = new EventEmitter() // customize?
-        this.emitters[requestId] = emitter;
-        return emitter;
+        this.emitters[requestId] = emitter
+        return emitter
     }
 
-    _onClose(event) {
-        for (emitter of this.emitters) {
+    _onClose(event){
+        for (emitter of this.emitters){
             emitter.emit('disconnected', event)
         }
         // Do we do something with promises? What if we reconnect
     }
 
-    _onOpen(event) {
-        for(emitter of this.emitters) {
+    _onOpen(event){
+        for(emitter of this.emitters){
             emitter.emit('reconnected', event)
         }
     }
 
     _onMessage(event){
-        var resp = JSON.parse(event.data);
+        var resp = JSON.parse(event.data)
         if(this.promises.hasOwnProperty(resp.requestId)){
-            var promise = this.promises[resp.requestId];
+            var promise = this.promises[resp.requestId]
             delete this.promises[resp.requestId]
 
             if (resp.error !== undefined){
-                promise.reject(resp.error);
+                promise.reject(resp.error)
             } else {
-                promise.resolve(resp.value);
+                promise.resolve(resp.value)
             }
         }else if(this.emitters.hasOwnProperty(resp.requestId)){
-            var emitter = this.emitters[resp.requestId];
+            var emitter = this.emitters[resp.requestId]
             if(resp.error !== undefined){
-                emitter.emit("error", resp.error);
+                emitter.emit("error", resp.error)
             }else{
-                emitter.emit(classify(resp.data), resp.value);
+                emitter.emit(classify(resp.data), resp.value)
             }
         }else{
             console.error(`Unrecognized response: ${event}`)
         }
     }
 
-    classify(response) {
+    classify(response){
         // response -> responseType
         // this might need to go in another class and be given to this class
         if(response.new_val !== null && response.old_val !== null){
@@ -119,16 +139,16 @@ class Socket {
 
 class TermBase {
 
-    constructor(fusion) {
-        this.fusion = fusion;
+    constructor(fusion){
+        this.fusion = fusion
     }
 
     subscribe(updates: true){
         // should create a changefeed query, return eventemitter
-        return this.fusion._subscribe(this.path);
+        return this.fusion._subscribe(this.path)
     }
 
-    value() {
+    value(){
         // return promise with no changefeed
         return this.fusion._value(this.path)
     }
@@ -137,60 +157,58 @@ class TermBase {
 class Collection {
 
     constructor(fusion, collectionName){
-        this.collectionName = collectionName;
-        this.fusion = fusion;
+        this.collectionName = collectionName
+        this.fusion = fusion
     }
 
     findOne(id){
-        return new findOne(this.fusion, this.collectionName, id);
+        return new findOne(this.fusion, this.collectionName, id)
     }
 
-    find(fieldName, fieldValue) {
-        return new Find(this.fusion, this.collectionName, fieldName, fieldValue);
+    find(fieldName, fieldValue){
+        return new Find(this.fusion, this.collectionName, fieldName, fieldValue)
     }
 
-    between(minVal, maxVal, field: 'id') {
-        return new Between(this.fusion, this.collectionName, minVal, maxVal,field);
+    between(minVal, maxVal, field: 'id'){
+        return new Between(this.fusion, this.collectionName, minVal, maxVal,field)
     }
 
-    ordered(field: 'id') {
-        return new Ordered(this.fusion, this.collectionName, field);
+    ordered(field: 'id'){
+        return new Ordered(this.fusion, this.collectionName, field)
     }
 
-    store(document) {
-        this.fusion._store(path, document)
+    store(document, conflict: 'replace'){
+        return this.fusion._store(path, document, conflict)
     }
 
-    update(document) {
-        this.fusion._update(path, document)
+    update(document){
+        return this.fusion._update(path, document)
     }
 
-    remove(document) {
-        this.fusion._remove(path, document)
-    }
-}
-
-
-class FindOne extends TermBase {
-    constructor(fusion, path, docId) {
-        super(fusion);
-        this.id = docId;
-        this.path = `${path}/findOne:${docId}`;
+    remove(document){
+        return this.fusion._remove(path, document)
     }
 }
 
 class Find extends TermBase {
-    constructor(fusion, path, field, value) {
-        super(fusion);
+    constructor(fusion, path, field, value){
+        super(fusion)
         this.field
         this.value = value
         this.path = `${path}/find:${field}:${value}`
   }
 }
 
+class FindOne extends TermBase {
+    constructor(fusion, path, docId){
+        super(fusion)
+        this.id = docId
+        this.path = `${path}/findOne:${docId}`
+    }
+}
 
 class Between extends TermBase {
-    constructor(fusion, path, minVal, maxVal, field) {
+    constructor(fusion, path, minVal, maxVal, field){
         super(fusion)
         this.minVal = minVal
         this.maxVal = maxVal
@@ -199,20 +217,20 @@ class Between extends TermBase {
     }
 }
 
-class Ordered extends TermBase {
-    constructor(fusion, path, field) {
-        super(fusion)
-        this.field = field;
+class Ordered {
+    constructor(fusion, path, field){
+        this.fusion = fusion
+        this.field = field
         this.path = `${path}/ordered:${field}`
     }
 
-    limit(num) {
+    limit(num){
         return new Limit(this.fusion, this.path, num)
     }
 }
 
 class Limit extends TermBase {
-    constructor(fusion, path, field, num) {
+    constructor(fusion, path, field, num){
         super(fusion)
         this.field = field
         this.num = num
