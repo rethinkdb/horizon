@@ -12,7 +12,10 @@
     "vinyl-source-stream": "^1.1.0",
     "watchify": "^3.5.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "browserify": "^12.0.1",
+    "gulp-sourcemaps": "^1.6.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
