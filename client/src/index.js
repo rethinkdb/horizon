@@ -47,17 +47,16 @@ class Table {
     }
   }
 
-  _createRequestJSON(id, type){
-    return JSON.stringify({
-      "id": id,
-      "type": type,
-      request_id: this.requestCounter++;
-    });
+  _createRequestJSON(type, req){
+    req.type = type
+    req.request_id = this.requestCounter++;
+
+    return JSON.stringify(req);
   }
 
   get(id){
 
-    var data = this._createRequestJSON(id, "GET");
+    var data = this._createRequestJSON("GET", {id: id});
     var resp = this.ws.send(data);
 
     return new PromiseEventEmitter(
@@ -84,7 +83,11 @@ class Table {
   //
 
   on(event, callback){
-
+    var changefeed_req = this._createRequestJSON("SUBSCRIBE", {
+      table: this.table_name
+    })
+    this.ws.send(JSON.stringify(changefeed_req));
+    this.eventListener.on(event, callback);
   }
 
 }
