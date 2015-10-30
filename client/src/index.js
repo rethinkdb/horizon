@@ -63,10 +63,11 @@ class Fusion {
             this.socket.send("QUERY", path).then(
                 // Do we have continues etc like cursors?
                 // Right now assuming we get results back as an array
-                (results) =>
+                (results) => {
                     for(result of results) {
                         emitter.emit("added", {new_val: result, old_val: null})
                     }
+                }
             )
             return emitter
         }
@@ -76,7 +77,7 @@ class Fusion {
 
 class Socket {
     constructor(hostString, classifier){
-        this.ws = new WebSocket(connection_string)
+        this.ws = new WebSocket(`ws://${hostString}`)
         this.ws.onmessage = this._onMessage
         this.ws.onclose = this._onClose
         this.ws.onopen = this._onOpen
@@ -176,8 +177,8 @@ class Collection {
         return new Between(this.fusion, this.path, minVal, maxVal,field)
     }
 
-    ordered(field: 'id', descending: false){
-        return new Ordered(this.fusion, this.path, field, descending)
+    order(field: 'id', descending: false){
+        return new Order(this.fusion, this.path, field, descending)
     }
 
     store(document, conflict: 'replace'){
@@ -199,14 +200,22 @@ class Find extends TermBase {
         this.field
         this.value = value
         this.path = Object.assign({find: [field, value]}, path)
-  }
+    }
+
+    order(field: 'id', descending: false){
+        return new Order(this.fusion, this.path, field, descending)
+    }
+
+    limit(size){
+        return new Limit(this.fusion, this.path, size);
+    }
 }
 
 class FindOne extends TermBase {
     constructor(fusion, path, docId){
         super(fusion)
         this.id = docId
-        this.path = Object.assign({findOne: [docId]}, path)
+        this.path = Object.assign({findOne: docId}, path)
     }
 }
 
@@ -218,18 +227,22 @@ class Between extends TermBase {
         this.field = field
         this.path = Object.assign({between: [minVal, maxVal, field]}, path)
     }
+
+    limit(size){
+        return new Limit(this.fusion, this.path, size);
+    }
 }
 
-class Ordered {
+class Order {
     constructor(fusion, path, field, descending){
         this.fusion = fusion
         this.field = field
         this.direction = direction
-        this.path = Object.assign({ordered: [field, descending]}, path)
+        this.path = Object.assign({order: [field, descending]}, path)
     }
 
-    limit(num){
-        return new Limit(this.fusion, this.path, num)
+    limit(size){
+        return new Limit(this.fusion, this.path, size)
     }
 
     between(minVal, maxVal){
@@ -239,10 +252,9 @@ class Ordered {
 }
 
 class Limit extends TermBase {
-    constructor(fusion, path, field, num){
+    constructor(fusion, path, size){
         super(fusion)
-        this.field = field
-        this.num = num
-        this.path = Object.assign({limit: [field, num]}, path)
+        this.size = size
+        this.path = Object.assign({limit: size}, path)
     }
 }
