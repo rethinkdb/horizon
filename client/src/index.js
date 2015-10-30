@@ -33,7 +33,7 @@ class Fusion {
     }
 
     _query(path){
-        return this.socket.send("QUERY", {path: path})
+        return this.socket.send("QUERY", path)
     }
 
     _store(path, document, conflict){
@@ -199,7 +199,7 @@ class Find extends TermBase {
         super(fusion)
         this.field
         this.value = value
-        this.path = Object.assign({find: [field, value]}, path)
+        this.path = Object.assign({find: {field: field, value: value}}, path)
     }
 
     order(field: 'id', descending: false){
@@ -225,7 +225,7 @@ class Between extends TermBase {
         this.minVal = minVal
         this.maxVal = maxVal
         this.field = field
-        this.path = Object.assign({between: [minVal, maxVal, field]}, path)
+        this.path = Object.assign({between: {min: minVal, max: maxVal, field: field}}, path)
     }
 
     limit(size){
@@ -238,7 +238,7 @@ class Order {
         this.fusion = fusion
         this.field = field
         this.direction = direction
-        this.path = Object.assign({order: [field, descending]}, path)
+        this.path = Object.assign({order: {field: field, descending: descending}}, path)
     }
 
     limit(size){
