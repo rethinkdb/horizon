@@ -176,8 +176,8 @@ class Collection {
         return new Between(this.fusion, this.path, minVal, maxVal,field)
     }
 
-    ordered(field: 'id', direction: 'asc'){
-        return new Ordered(this.fusion, this.path, field, direction)
+    ordered(field: 'id', descending: false){
+        return new Ordered(this.fusion, this.path, field, descending)
     }
 
     store(document, conflict: 'replace'){
@@ -221,11 +221,11 @@ class Between extends TermBase {
 }
 
 class Ordered {
-    constructor(fusion, path, field, direction: 'asc'){
+    constructor(fusion, path, field, descending){
         this.fusion = fusion
         this.field = field
         this.direction = direction
-        this.path = Object.assign({ordered: [field, direction]}, path)
+        this.path = Object.assign({ordered: [field, descending]}, path)
     }
 
     limit(num){
