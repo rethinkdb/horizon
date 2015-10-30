@@ -4,16 +4,32 @@ class Fusion {
 
     constructor(hostString){
         this.hostString = hostString
-        this._socket = new Socket(hostString)
+        this._socket = new Socket(hostString, this.classify)
         // Hack for fusion(collectionName) syntax
         self = (collectionName) => self.collection(collectionName)
-        self.__proto__ = this.__proto__
+        Object.setPrototypeOf(self, Object.getPrototypeOf(this))
         return self
     }
 
     collection(name){
         //Check if collection exists?? Nope, EAFP let server handle it.
         return new Collection(this, name)
+    }
+
+    classify(response){
+        // response -> responseType
+        // this might need to go in another class and be given to this class
+        if(response.new_val !== null && response.old_val !== null){
+            return 'changed'
+        }else if(response.new_val !== null && response.old_val === null){
+            return 'added'
+        }else if(response.new_val === null && response.old_val !== null){
+            return 'removed'
+        }else if(response.state === 'synced'){
+            return 'synced'
+        }else{
+            return 'unknown'
+        }
     }
 
     _query(path){
@@ -59,11 +75,12 @@ class Fusion {
 }
 
 class Socket {
-    constructor(hostString){
+    constructor(hostString, classifier){
         this.ws = new WebSocket(connection_string)
         this.ws.onmessage = this._onMessage
         this.ws.onclose = this._onClose
         this.ws.onopen = this._onOpen
+        this.classifier = classifier
         this.promises = {}
         this.emitters = {}
         this.requestCounter = 0
@@ -113,29 +130,14 @@ class Socket {
             if(resp.error !== undefined){
                 emitter.emit("error", resp.error)
             }else{
-                emitter.emit(classify(resp.data), resp.value)
+                emitter.emit(this.classifier(resp.data), resp.value)
             }
         }else{
             console.error(`Unrecognized response: ${event}`)
         }
     }
-
-    classify(response){
-        // response -> responseType
-        // this might need to go in another class and be given to this class
-        if(response.new_val !== null && response.old_val !== null){
-            return 'changed'
-        }else if(response.new_val !== null && response.old_val === null){
-            return 'added'
-        }else if(response.new_val === null && response.old_val !== null){
-            return 'removed'
-        }else if(response.state === 'synced'){
-            return 'synced'
-        }else{
-            return 'unknown'
-        }
-    }
 }
+
 
 class TermBase {
 
@@ -158,35 +160,36 @@ class Collection {
 
     constructor(fusion, collectionName){
         this.collectionName = collectionName
+        this.path = {collection: collectionName}
         this.fusion = fusion
     }
 
     findOne(id){
-        return new findOne(this.fusion, this.collectionName, id)
+        return new findOne(this.fusion, this.path, id)
     }
 
     find(fieldName, fieldValue){
-        return new Find(this.fusion, this.collectionName, fieldName, fieldValue)
+        return new Find(this.fusion, this.path, fieldName, fieldValue)
     }
 
     between(minVal, maxVal, field: 'id'){
-        return new Between(this.fusion, this.collectionName, minVal, maxVal,field)
+        return new Between(this.fusion, this.path, minVal, maxVal,field)
     }
 
-    ordered(field: 'id'){
-        return new Ordered(this.fusion, this.collectionName, field)
+    ordered(field: 'id', direction: 'asc'){
+        return new Ordered(this.fusion, this.path, field, direction)
     }
 
     store(document, conflict: 'replace'){
-        return this.fusion._store(path, document, conflict)
+        return this.fusion._store(this.path, document, conflict)
     }
 
     update(document){
-        return this.fusion._update(path, document)
+        return this.fusion._update(this.path, document)
     }
 
     remove(document){
-        return this.fusion._remove(path, document)
+        return this.fusion._remove(this.path, document)
     }
 }
 
@@ -195,7 +198,7 @@ class Find extends TermBase {
         super(fusion)
         this.field
         this.value = value
-        this.path = `${path}/find:${field}:${value}`
+        this.path = Object.assign({find: [field, value]}, path)
   }
 }
 
@@ -203,7 +206,7 @@ class FindOne extends TermBase {
     constructor(fusion, path, docId){
         super(fusion)
         this.id = docId
-        this.path = `${path}/findOne:${docId}`
+        this.path = Object.assign({findOne: [docId]}, path)
     }
 }
 
@@ -213,15 +216,16 @@ class Between extends TermBase {
         this.minVal = minVal
         this.maxVal = maxVal
         this.field = field
-        this.path = `${path}/between:${minVal}:${maxVal}:${field}`
+        this.path = Object.assign({between: [minVal, maxVal, field]}, path)
     }
 }
 
 class Ordered {
-    constructor(fusion, path, field){
+    constructor(fusion, path, field, direction: 'asc'){
         this.fusion = fusion
         this.field = field
-        this.path = `${path}/ordered:${field}`
+        this.direction = direction
+        this.path = Object.assign({ordered: [field, direction]}, path)
     }
 
     limit(num){
@@ -229,6 +233,7 @@ class Ordered {
     }
 
     between(minVal, maxVal){
+        // between is forced to have the same field as this term
         return new Between(this.fusion, this.path, minVal, maxVal, this.field)
     }
 }
@@ -238,6 +243,6 @@ class Limit extends TermBase {
         super(fusion)
         this.field = field
         this.num = num
-        this.path = `${path}/limit:${field}:${num}`
+        this.path = Object.assign({limit: [field, num]}, path)
     }
 }
