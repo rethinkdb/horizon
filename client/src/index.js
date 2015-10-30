@@ -64,7 +64,7 @@ class Fusion {
                 // Do we have continues etc like cursors?
                 // Right now assuming we get results back as an array
                 (results) => {
-                    for(result of results) {
+                    for(let result of results) {
                         emitter.emit("added", {new_val: result, old_val: null})
                     }
                 }
@@ -103,14 +103,14 @@ class Socket {
     }
 
     _onClose(event){
-        for (emitter of this.emitters){
+        for(let emitter of this.emitters){
             emitter.emit('disconnected', event)
         }
         // Do we do something with promises? What if we reconnect
     }
 
     _onOpen(event){
-        for(emitter of this.emitters){
+        for(let emitter of this.emitters){
             emitter.emit('reconnected', event)
         }
     }
