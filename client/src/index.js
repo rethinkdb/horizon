@@ -75,8 +75,6 @@ export class Fusion {
 
 }
 
-//window.Fusion = Fusion; 
-
 class Socket {
     constructor(hostString, classifier){
         this.ws = new WebSocket(`ws://${hostString}`)
