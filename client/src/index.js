@@ -75,7 +75,7 @@ export class Fusion {
 
 }
 
-window.Fusion = Fusion; 
+//window.Fusion = Fusion; 
 
 class Socket {
     constructor(hostString, classifier){

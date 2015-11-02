@@ -7,7 +7,16 @@ var watchify = require('watchify');
 var babel = require('babelify');
 
 function compile(watch) {
-  var bundler = watchify(browserify('./src/index.js', { debug: true }).transform(babel));
+  var bundler = watchify(browserify({
+    entries: ['./src/index.js'],
+    debug: true,
+    sourceType: module,
+  })
+  .require(
+    "./src/index.js",
+    {expose: "Fusion"} 
+  )
+  .transform(babel));
 
 function rebundle() {
     bundler.bundle()
