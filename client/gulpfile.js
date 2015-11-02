@@ -9,14 +9,14 @@ var babel = require('babelify');
 function compile(watch) {
   var bundler = watchify(browserify('./src/index.js', { debug: true }).transform(babel));
 
-  function rebundle() {
+function rebundle() {
     bundler.bundle()
       .on('error', function(err) { console.error(err); this.emit('end'); })
       .pipe(source('build.js'))
       .pipe(buffer())
       .pipe(sourcemaps.init({ loadMaps: true }))
       .pipe(sourcemaps.write('./'))
-      .pipe(gulp.dest('./build'));
+      .pipe(gulp.dest('./dist'));
   }
 
   if (watch) {

@@ -8,6 +8,7 @@
     "browserify": "^12.0.1",
     "gulp": "^3.9.0",
     "gulp-sourcemaps": "^1.6.0",
+    "jasmine": "^2.3.2",
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.1.0",
     "watchify": "^3.5.0"

@@ -1,6 +1,6 @@
 import EventEmitter from "events"
 
-class Fusion {
+export class Fusion {
 
     constructor(hostString){
         this.hostString = hostString
@@ -74,6 +74,8 @@ class Fusion {
     }
 
 }
+
+window.Fusion = Fusion; 
 
 class Socket {
     constructor(hostString, classifier){
