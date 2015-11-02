@@ -13,7 +13,6 @@
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.1.0",
     "watchify": "^3.5.0",
-    "ws": "^0.8.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
