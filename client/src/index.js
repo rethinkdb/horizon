@@ -89,14 +89,14 @@ class Socket {
 
     send(type, data){
         var requestId = this.requestCounter++
-        var req = {type: type, data: data, requestId: requestId}
+        var req = {type: type, data: data, requestId: request_id}
         return new Promise((resolve, reject) =>
             this.promises[requestId] = {resolve: resolve, reject:reject})
     }
 
     subscribe(path){
         var requestId = this.requestCounter++
-        var req = {type: "SUBSCRIBE", data: data, requestId: requestId}
+        var req = {type: "SUBSCRIBE", data: data, request_id: requestId}
         var emitter = new EventEmitter() // customize?
         this.emitters[requestId] = emitter
         return emitter
@@ -117,17 +117,17 @@ class Socket {
 
     _onMessage(event){
         var resp = JSON.parse(event.data)
-        if(this.promises.hasOwnProperty(resp.requestId)){
-            var promise = this.promises[resp.requestId]
-            delete this.promises[resp.requestId]
+        if(this.promises.hasOwnProperty(resp.request_id)){
+            var promise = this.promises[resp.request_id]
+            delete this.promises[resp.request_id]
 
             if (resp.error !== undefined){
                 promise.reject(resp.error)
             } else {
                 promise.resolve(resp.value)
             }
-        }else if(this.emitters.hasOwnProperty(resp.requestId)){
-            var emitter = this.emitters[resp.requestId]
+        }else if(this.emitters.hasOwnProperty(resp.request_id)){
+            var emitter = this.emitters[resp.request_id]
             if(resp.error !== undefined){
                 emitter.emit("error", resp.error)
             }else{
