@@ -1,0 +1,23 @@
+{
+  "name": "fusion-server",
+  "version": "0.0.1",
+  "description": "Server for RethinkDB fusion",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rethinkdb/fusion.git"
+  },
+  "author": "RethinkDB",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rethinkdb/fusion/issues"
+  },
+  "homepage": "https://github.com/rethinkdb/fusion#readme",
+  "dependencies": {
+    "rethinkdb": "^2.1.1",
+    "ws": "^0.8.0"
+  }
+}

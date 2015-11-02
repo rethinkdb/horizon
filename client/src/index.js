@@ -75,7 +75,7 @@ export class Fusion {
 
 }
 
-//window.Fusion = Fusion; 
+//window.Fusion = Fusion;
 
 class Socket {
     constructor(hostString, classifier){
@@ -168,7 +168,7 @@ class Collection {
     }
 
     findOne(id){
-        return new findOne(this.fusion, this.path, id)
+        return new FindOne(this.fusion, this.path, id)
     }
 
     find(fieldName, fieldValue){
