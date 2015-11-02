@@ -1,7 +1,9 @@
 #*
 *.o
+*.pem
 *.pyc
 *~
+.jshintrc
 extern/
 node_modules/
 tmp
