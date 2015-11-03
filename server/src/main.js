@@ -1,4 +1,5 @@
 const websocket = require('ws'),
+ http = require('http'),
  https = require('https'),
  r = require('rethinkdb'),
  fs = require('fs'),
@@ -46,11 +47,11 @@ var get_endpoint = function (endpoints, request) {
   var type = request.type;
   var options = request.options;
 
-  check(type, `'type' must be specified.`);
-  check(options, `'options' must be specified.`);
+  check(type !== undefined, `'type' must be specified.`);
+  check(options !== undefined, `'options' must be specified.`);
 
   var endpoint = endpoints[type];
-  check(endpoint, `'${type}' is not a recognized endpoint`);
+  check(endpoint !== undefined, `'${type}' is not a recognized endpoint`);
   return endpoint;
 };
 
@@ -64,15 +65,15 @@ var check_read_request = function (request) {
   var limit = options.limit;
   var order = options.order;
 
-  check(collection, `'options.collection' must be specified.`);
+  check(collection !== undefined, `'options.collection' must be specified.`);
   check(collection.constructor.name === 'String',
         `'options.collection' must be a string.`)
 
   if (selection !== undefined) {
     var selection_type = selection.type;
     var selection_args = selection.args;
-    check(selection_type, `'options.selection.type' must be specified.`);
-    check(selection_args, `'options.selection.args' must be specified.`);
+    check(selection_type !== undefined, `'options.selection.type' must be specified.`);
+    check(selection_args !== undefined, `'options.selection.args' must be specified.`);
     check(selection_args.constructor.name === 'Array', `'options.selection.args' must be an array.`)
 
     if (selection_type === 'find_one') {
@@ -100,9 +101,9 @@ var check_write_request = function (request) {
   var collection = options.collection;
   var data = options.data;
 
-  check(collection, `'options.collection' must be specified.`);
-  check(data, `'options.data' must be specified.`);
-  check(data.id, `'options.data.id' must be specified.`);
+  check(collection !== undefined, `'options.collection' must be specified.`);
+  check(data !== undefined, `'options.data' must be specified.`);
+  check(data.id !== undefined, `'options.data.id' must be specified.`);
 
   check(collection.constructor.name === 'String',
         `'options.collection' must be a string.`)
@@ -171,7 +172,7 @@ var make_write_reql = function(request) {
 
 var handle_cursor = function(cursor, send_cb) {
     cursor.each((err, item) => {
-        if (err) {
+        if (err !== undefined) {
           send_cb({ 'error': `${err}` });
         } else {
           send_cb({ 'data': [item] });
@@ -181,7 +182,7 @@ var handle_cursor = function(cursor, send_cb) {
 
 var handle_feed = function(feed, send_cb) {
     feed.each((err, item) => {
-        if (err) {
+        if (err !== undefined) {
           send_cb({ 'error': `${err}` });
         } else if (item.state === 'initializing') {
           // Do nothing - we don't care
@@ -264,11 +265,11 @@ class Client {
   }
 
   handle_websocket_error(code, msg) {
-    console.log(`Client received error: ${msg} (${code})`);
+    console.log(`Received error from client: ${msg} (${code})`);
   }
 
   handle_request(data) {
-    console.log(`Client received request: ${data}`);
+    console.log(`Received request from client: ${data}`);
     var request;
     var query;
 
@@ -276,7 +277,7 @@ class Client {
       request = JSON.parse(data);
       check(request.request_id !== undefined, `'request_id' must be specified.`);
     } catch (err) {
-      console.log(`Client request resulted in error: ${err}`);
+      console.log(`Failed to parse client request: ${err}`);
       return this.socket.close(1002, `Unparseable request: ${data}`);
     }
 
@@ -293,7 +294,7 @@ class Client {
   run_query(query) {
       var conn = this.reql_conn.get_connection();
       check(conn !== undefined, `Connection to the database is down.`);
-      console.log(`Running ${JSON.stringify(query.reql.build())}`);
+      console.log(`Running ${r.Error.printQuery(query.reql)}`);
 
       query.reql.run(conn).then((res) => this.handle_response(query, res),
 		                (err) => this.handle_response_error(query, err));
@@ -302,7 +303,7 @@ class Client {
   run_query_prerequisite(query, root_term) {
       var conn = this.reql_conn.get_connection();
       check(conn !== undefined, `Connection to the database is down.`);
-      console.log(`Running [${root_term.build()}]`);
+      console.log(`Running ${r.Error.printQuery(root_term)}`);
 
       root_term.run(conn).then((res) => this.run_query(query),
                                (err) => this.handle_response_error(query, err));
@@ -441,23 +442,20 @@ var main = function() {
   var reql_conn = new ReqlConnection('newton.local', 59435, clients);
 
   // TODO: need some persistent configuration for hostname/ports to listen on, as well as certificate config
-  var https_server = new https.Server({
-      'key': fs.readFileSync('./key.pem'),
-      'cert': fs.readFileSync('./cert.pem')
-    },
+  var http_server = new http.Server(
     //Function which handles just the /fusion.js endpoint
-    function(req, res){
+    function(req, res) {
 
       const reqPath = url.parse(req.url).pathname;
       const filePath = path.resolve('../client/dist/build.js');
 
-      if (reqPath === '/fusion.js'){
+      if (reqPath === '/fusion.js') {
         fs.access(filePath,
         fs.R_OK | fs.F_OK,
-        function(exists){
+        function(exists) {
 
           //Check if file exists
-          if (exists){
+          if (exists) {
             res.writeHead('404', {'Content-Type': 'text/plain'});
             res.write('Client library not found\n');
             res.end();return;
@@ -467,7 +465,7 @@ var main = function() {
           fs.readFile(filePath, 'binary', function(err, file) {
 
             //Error while reading from file
-            if(err) {
+            if (err) {
               res.writeHead(500, {'Content-Type': 'text/plain'});
               res.write(err + '\n');
               res.end();return;
@@ -483,14 +481,14 @@ var main = function() {
       } else {
         res.writeHead('403', {'Content-Type': 'text/plain'});
         res.write('Forbidden');
-        res.end();return
+        res.end();
       }
+    });
 
-    }).listen(31420, 'localhost');
+  http_server.listen(31420, 'localhost');
 
   var websocket_server = new websocket.Server(
-    { 'server': https_server,
-      //'verifyClient': verify,
+    { 'server': http_server,
       'handleProtocols': accept_protocol });
 
   websocket_server.on('error', (error) => console.log(`Websocket server error: ${error}`));
