@@ -90,22 +90,43 @@ class Socket {
         this.promises = {}
         this.emitters = {}
         this.requestCounter = 0
-        this.ws = new WebSocket("wss://"+hostString, [PROTOCOL_VERSION])
-        this.ws.onmessage = this._onMessage.bind(this)
-        this.ws.onclose = this._onClose.bind(this)
-        this.ws.onopen = this._onOpen.bind(this)
+        this.wsPromise = new Promise((resolve, reject) => {
+            console.log("Creating websocket")
+            let ws = new WebSocket("wss://"+hostString, [PROTOCOL_VERSION])
+            ws.onopen = (event) => resolve(ws)
+            ws.onerror = (event) => reject(event)
+        }).then((ws) => {
+            console.log("Websocket created, sending handshake")
+            let handshake = {}
+            return new Promise((resolve, reject) => {
+                ws.send(JSON.stringify(handshake))
+                // TODO: check handshake response once it has something in it
+                ws.onmessage = (handshake_response) => resolve(ws)
+                ws.onerror = (event) => reject(event)
+            })
+        }).then((ws) => {
+            console.log("Handshake received. Binding message handlers")
+            ws.onmessage = this._onMessage.bind(this)
+            ws.onclose = this._onClose.bind(this)
+            ws.onopen = this._onOpen.bind(this)
+            ws.onerror = this._onError.bind(this)
+        })
     }
 
     send(type, data){
+        console.log("sending")
         var requestId = this.requestCounter++
         var req = {type: type, options: data, request_id: requestId}
+        this.wsPromise.then((ws) => ws.send(JSON.stringify(req)))
         return new Promise((resolve, reject) =>
             this.promises[requestId] = {resolve: resolve, reject:reject})
     }
 
     subscribe(query){
+        console.log("subscribing")
         var requestId = this.requestCounter++
         var req = {type: "subscribe", options: data, request_id: requestId}
+        this.wsPromise.then((ws) => ws.send(JSON.stringify(req)))
         var emitter = new EventEmitter() // customize?
         this.emitters[requestId] = emitter
         return emitter
@@ -116,6 +137,11 @@ class Socket {
             emitter.emit('disconnected', event)
         }
         // Do we do something with promises? What if we reconnect
+    }
+
+    _onError(event){
+        // TODO: What to do on websocket level errors?
+        console.log("Error received from websocket:", event)
     }
 
     _onOpen(event){
