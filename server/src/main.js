@@ -274,7 +274,7 @@ class Client {
 
     try {
       request = JSON.parse(data);
-      check(request.request_id, `'request_id' must be specified.`);
+      check(request.request_id !== undefined, `'request_id' must be specified.`);
     } catch (err) {
       console.log(`Client request resulted in error: ${err}`);
       return this.socket.close(1002, `Unparseable request: ${data}`);
