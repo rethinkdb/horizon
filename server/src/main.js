@@ -28,127 +28,188 @@ var check = function (pred, message) {
   }
 };
 
-var check_request = function (request) {
-  var args;
-  check(request.type, `"type" must be specified.`);
-  check(request.data, `"data" must be specified.`);
-  check(request.data.path, `"data.path" must be specified.`);
-  check(request.data.path.collection, `"data.path.collection" must be specified.`);
+var add_endpoint = function (endpoints, endpoint_name, check_fn, reql_fn, response_fn) {
+  var endpoint = endpoints[endpoint_name];
+  check(!endpoint);
 
-  var path = request.data.path;
+  endpoint = new Object();
+  endpoint.check_request = check_fn;
+  endpoint.make_reql = reql_fn;
+  endpoint.handle_response = response_fn;
 
-  if (args = path.findOne) {
-    check(args.constructor.name === 'Array',
-          `"findOne" must have an array of arguments.`);
-    check(args.length === 1 || args.length === 2,
-          `"findOne" has ${args.length} arguments, but it should have 1.`);
-    check(path.keys().length === 2,
-          `"findOne" cannot be used with other terms.`);
+  endpoints[endpoint_name] = endpoint;
+};
+
+var get_endpoint = function (endpoints, request) {
+  var type = request.type;
+  var options = request.options;
+
+  check(type, `"type" must be specified.`);
+  check(options, `"options" must be specified.`);
+
+  var endpoint = endpoints[type];
+  check(endpoint, `"${type}" is not a recognized endpoint"`);
+  return endpoint;
+};
+
+// TODO: check for unknown fields
+var check_read_request = function (request) {
+  var type = request.type;
+  var options = request.options;
+  var collection = options.collection;
+  var field_name = options.field_name;
+  var selection = options.selection;
+  var limit = options.limit;
+  var order = options.order;
+
+  check(collection, `"options.collection" must be specified.`);
+  check(selection, `"options.selection" must be specified.`);
+
+  check(collection.constructor.name === "String",
+        `"options.collection" must be a string.`)
+
+  var selection_type = selection.type;
+  var selection_args = selection.args;
+  check(selection_type, `"options.selection.type" must be specified.`);
+  check(selection_args, `"options.selection.args" must be specified.`);
+  check(selection_args.constructor.name === "Array", `"options.selection.args" must be an array.`)
+
+  if (selection_type === "find_one") {
+    check(selection_args.length === 1, `"options.selection.args" must have one argument for "find_one"`);
+  } else if (selection_type === "find") {
+  } else if (selection_type === "between") {
+    check(selection_args.length === 2, `"options.selection.args" must have two arguments for "between"`);
   } else {
-    var index;
+    check(false, `"options.selection.type" must be one of "find", "find_one", or "between".`)
+  }
 
-    if (args = path.find) {
-      check(args.constructor.name === 'Array',
-            `"find" must have an array of arguments.`);
-      check(args.length === 1 || args.length === 2,
-            `"find" has ${args.length} arguments, but it should have 1 or 2.`);
-      check(!path.between,
-            `Must specify zero or one of "find", "findOne", and "between".`);
-      if (args.length === 2) { index = args[0]; }
-    }
-
-    if (args = path.between) {
-      check(args.constructor.name === 'Array',
-            `"between" must have an array of arguments.`);
-      check(args.length === 2 || args.length === 3,
-            `"between" has ${args.length} arguments, but it should have 2 or 3.`);
-      check(!path.find,
-            `Must specify zero or one of "find", "findOne", and "between".`);
-      if (args.length === 3) { index = args[0]; }
-    }
-
-    if (args = path.order) {
-      check(args.constructor.name === 'Array',
-            `"order" must have an array of arguments.`);
-      check(args.length === 2,
-            `"order" has ${args.length} arguments, but it should have 2.`);
-      check(!index || index === args[0],
-            `"order" uses index ${args[0]}, but an earlier term uses ${index}.`);
-    }
-
-    if (args = path.limit) {
-      check(args.constructor.name === 'Array',
-            `"limit" must have an array of arguments.`);
-      check(args.length === 1,
-            `"limit" has ${args.length} arguments, but it should have 1.`);
-    }
+  if (limit !== undefined) {
+    check(ParseInt(limit) === limit, `"options.limit" must be an integer.`);
+  }
+  if (order !== undefined) {
+    check(order === "ascending" || order === "descending",
+          `"options.order" must be either "ascending" or "descending".`)
   }
 };
 
+var check_write_request = function (request) {
+  var type = request.type;
+  var options = request.options;
+  var collection = options.collection;
+  var data = options.data;
+
+  check(collection, `"options.collection" must be specified.`);
+  check(data, `"options.data" must be specified.`);
+  check(data.id, `"options.data.id" must be specified.`);
+
+  check(collection.constructor.name === "String",
+        `"options.collection" must be a string.`)
+};
+
 class Query {
-  constructor(request) {
+  constructor(request, endpoint) {
     this.request = request;
+    this.endpoint = endpoint;
+    endpoint.check_request(request);
+    this.reql = make_reql(request);
+  }
+};
 
-    check_request(request);
+var make_read_reql = function(type, options) {
+  var type = request.type;
+  var options = request.options;
+  var index = options.field_name || "id"; // TODO: possibly require this to be specified
+  var reql = r.table(options.collection);
 
-    var query = this.parse_path();
-    if (this.request.type === 'SUBSCRIBE') {
-      query = query.changes();
-    } else if (this.request.type === 'REMOVE') {
-      query = query.delete({ 'returnChanges': true });
-    } else if (this.request.type === 'STORE_REPLACE') {
-      query = query.insert(request.data.data, { 'conflict': 'replace', 'returnChanges': true });
-    } else if (this.request.type === 'STORE_ERROR') {
-      query = query.insert(request.data.data, { 'conflict': 'error', 'returnChanges': true });
-    } else if (this.request.type === 'UPDATE') {
-      query = query.insert(request.data.data, { 'conflict': 'update', 'returnChanges': true });
-    } else if (this.request.type === 'QUERY') {
-      // Do nothing
+  if (options.selection !== undefined) {
+    if (options.selection.type === "find_one") {
+      reql = reql.get(options.selection.args[0], {'index': index});
+    } else if (options.selection.type === "find") {
+      reql = reql.getAll.apply(reql, Array.concat(options.selection.args, {'index': index}));
+    } else if (options.selection.type === "between") {
+      reql = reql.between.apply(reql, Array.concat(options.selection.args, {'index': index}));
     }
-    this.reql_query = query;
   }
 
-  parse_path() {
-    var args;
-    var path = this.request.data.path
-    var query = r.table(path.collection);
+  if (options.order === "ascending") {
+    reql = reql.orderBy({'index': r.asc(index)})
+  } else if (options.order === "descending") {
+    reql = reql.orderBy({'index': r.desc(index)})
+  }
 
-    if (args = path.findOne) {
-      query = query.get(args);
-    }
-    if (args = path.find) {
-      query = query.getAll(args);
-    }
-    if (args = path.between) {
-      if (args.length === 2) {
-        query = query.between(args[0], args[1]);
-      } else {
-        query = query.between(args[0], args[1], { 'index': args[2] });
-      }
-    }
+  if (options.limit !== undefined) {
+    reql = reql.limit(options.limit);
+  }
 
-    if (args = path.order) {
-      if (args[1] === 'descending') {
-        query = query.orderBy({ 'index': r.desc(args[0]) });
-      } else {
-        query = query.orderBy({ 'index': args[0] });
-      }
-    }
+  if (type === "subscribe") {
+    reql = reql.changes();
+  }
 
-    if (args = path.limit) {
-      query = query.limit(args);
-    }
+  return reql;
+};
 
-    return query;
+var make_write_reql = function(type, options) {
+  var reql = r.table(options.collection);
+
+  // TODO: consider returnChanges: true
+  if (type === "store_update") {
+    reql = reql.insert(options.data, { 'conflict': 'update' });
+  } else if (type === "store_replace") {
+    reql = reql.insert(options.data, { 'conflict': 'replace' });
+  } else if (type === "store_error") {
+    reql = reql.insert(options.data, { 'conflict': 'error' });
+  } else {
+    reql = reql.get(options.data.id).delete();
+  }
+
+  return reql;
+};
+
+// TODO: separate handling for feeds - add 'synced' state
+var handle_read_response = function(request, response, send_cb) {
+  if (res.constructor.name == 'Cursor' ||
+      res.constructor.name == 'Feed') {
+    cursor.each((err, item) => {
+        console.log(`Cursor result: err ${JSON.stringify(err)}, item ${item}`);
+        if (err) {
+          send_cb({ 'error': `${err}` });
+        } else {
+          send_cb({ 'data': [item] });
+        }
+      }, () => send_cb(query, { 'data': [], 'state': 'complete' }));
+  } else if (res.constructor.name == 'Array') {
+    send_cb({ 'data': res });
+  } else {
+    send_cb({ "data": [res] });
   }
 }
 
+var handle_write_response = function(request, response, send_cb) {
+  if (response.errors !== 0) {
+    send_cb({ 'error': response.first_error });
+  }
+  check(response.inserted + response.replaced + response.unchanged + response.skipped + response.deleted === 1,
+        `Unexpected response counts: ${response}`);
+  if (response.inserted === 1) {
+    send_cb({ 'result': 'created' });
+  } else if (request.type === 'store_update') {
+    send_cb({ 'result': 'updated'});
+  } else if (request.type === 'store_replace') {
+    send_cb({ 'result': 'replaced'});
+  } else if (response.deleted === 1) {
+    send_cb({ 'result': 'removed' });
+  } else {
+    check(false, `Unexpected response counts: ${response}`)
+  }
+};
+
 class Client {
-  constructor(socket, reql_conn, clients) {
+  constructor(socket, reql_conn, endpoints, clients) {
     console.log('New client');
 
     this.socket = socket;
     this.reql_conn = reql_conn;
+    this.endpoints = endpoints;
     this.clients = clients;
     this.feeds = new Set();
 
@@ -180,19 +241,18 @@ class Client {
 
     try {
       request = JSON.parse(data);
-      check(request.requestId, `"requestId" must be specified.`);
+      check(request.request_id, `"request_id" must be specified.`);
     } catch (err) {
       console.log(`Client request resulted in error: ${err}`);
       return this.socket.close(1002, `Unparseable request: ${data}`);
     }
 
     try {
-      var query = new Query(request);
-
       check(this.check_permissions(request),
             `This session lacks the permissions to run ${data}.`);
 
-      this.run_query(query);
+      endpoint = get_endpoint(endpoints, request);
+      this.run_query(new Query(request, endpoint));
     } catch (err) {
       this.send_response({'request': request}, { 'error': `${err}` });
     }
@@ -201,8 +261,8 @@ class Client {
   run_query(query) {
       var conn = this.reql_conn.get_connection();
       check(conn, `Connection to the database is down.`);
-      console.log(`Running ${JSON.stringify(query.reql_query.build())}`);
-      query.reql_query.run(conn)
+      console.log(`Running ${JSON.stringify(query.reql.build())}`);
+      query.reql.run(conn)
         .then((res) => this.handle_response(query, res))
         .catch((err) => this.handle_response_error(query, err));
   }
@@ -212,64 +272,24 @@ class Client {
       check(conn, `Connection to the database is down.`);
       console.log(`Running [${root_term.build()}]`);
       root_term.run(conn)
-        .then((res) => this.run_query(query))
+        .then((res) => this.rundata(query))
         .catch((err) => this.handle_response_error(query, err));
-
   }
 
   handle_response(query, res) {
-    console.log(`Got result ${res} for ${query.request.requestId} - ${query.request.type}`);
+    console.log(`Got result ${res} for ${query.request.request_id} - ${query.request.type}`);
     try {
-      if (query.request.type === 'SUBSCRIBE') {
-        check(res.constructor.name === 'Feed', `Got a non-feed back for a subscribe query.`);
-        this.handle_cursor_response(query, res);
-      } else if (query.request.type === 'REMOVE') {
-        check(res.errors === 0, `Got an error result for a remove query: ${res}`);
-        this.send_response(query, { 'data': res.changes });
-      } else if (query.request.type === 'STORE_REPLACE') {
-        check(res.errors === 0, `Got an error result for a replace query: ${res}`);
-        this.send_response(query, { 'data': res.changes });
-      } else if (query.request.type === 'STORE_ERROR') {
-        if (res.errors === 0) {
-          this.send_response(query, { 'data': res.changes });
-        } else {
-          this.send_response(query, { 'data': res.first_error });
-        }
-      } else if (query.request.type === 'UPDATE') {
-        check(res.errors === 0, `Got an error result for an update query: ${res}`);
-        this.send_response(query, { 'data': res.changes });
-      } else if (query.request.type === 'QUERY') {
-        if (res.constructor.name == 'Cursor') {
-          this.handle_cursor_response(query, res);
-        } else if (res.constructor.name == 'Array') {
-          this.send_response(query, { 'data': res });
-        } else {
-          this.send_response(query, { 'data': [res] });
-        }
-      } else {
-        check(false, `Unknown query request type.`);
-      }
+      query.endpoint.handle_response(query.request, res, (data) => this.send_response(query, data));
     } catch (err) {
       console.log(`Error when handling response: ${res}`);
       this.send_response(query, { 'error': `${res}` });
     }
   }
 
-  handle_cursor_response(query, cursor) {
-    cursor.each((err, data) => {
-        console.log(`Cursor result: err ${JSON.stringify(err)}, data ${data}`);
-        if (err) {
-          this.send_response(query, { 'error': `${err}` });
-        } else {
-          this.send_response(query, { 'data': [data] })
-        }
-      }, () => this.send_response(query, { 'state': 'finished' }));
-  }
-
-  send_response(query, info) {
-    info.requestId = query.request.requestId;
-    console.log(`Sending response for ${query.request.requestId}: ${info}`);
-    this.socket.send(JSON.stringify(info));
+  send_response(query, data) {
+    data.request_id = query.request.request_id;
+    console.log(`Sending response for ${query.request.request_id}: ${data}`);
+    this.socket.send(JSON.stringify(data));
   }
 
   handle_response_error(query, info) {
@@ -323,8 +343,9 @@ class Client {
         r.table(String(matches[2])).indexCreate(String(matches[1])));
     }
 
-    var response = { 'requestId': query.request.requestId,
-                     'error': info.msg };
+    var response = { 'request_id': query.request.request_id,
+                     'error': info.msg,
+                     'error_code': 0 };
     this.socket.send(JSON.stringify(response));
   }
 
@@ -378,7 +399,16 @@ class ReqlConnection {
 }
 
 var main = function() {
+  var endpoints = new Object();
   var clients = new Set();
+
+  add_endpoint(endpoints, "subscribe", check_read_request, make_read_reql, handle_read_response);
+  add_endpoint(endpoints, "query", check_read_request, make_read_reql, handle_read_response);
+
+  add_endpoint(endpoints, "store_error", check_write_request, make_write_reql, handle_write_response);
+  add_endpoint(endpoints, "store_update", check_write_request, make_write_reql, handle_write_response);
+  add_endpoint(endpoints, "store_replace", check_write_request, make_write_reql, handle_write_response);
+  add_endpoint(endpoints, "remove", check_write_request, make_write_reql, handle_write_response);
 
   // TODO: need some persistent configuration of rethinkdb server(s) to connect to
   var reql_conn = new ReqlConnection('newton', 59435, clients);
@@ -395,7 +425,7 @@ var main = function() {
       'handleProtocols': accept_protocol });
 
   websocket_server.on('error', (error) => console.log(`Websocket server error: ${error}`));
-  websocket_server.on('connection', (socket) => new Client(socket, reql_conn, clients));
+  websocket_server.on('connection', (socket) => new Client(socket, reql_conn, endpoints, clients));
 };
 
 main();
