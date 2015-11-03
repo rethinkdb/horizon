@@ -3,7 +3,7 @@ const websocket = require('ws'),
  r = require('rethinkdb'),
  fs = require('fs'),
  url = require('url'),
- path = require("path");
+ path = require('path');
 
 //var accept_client = function (info, cb) {
   // TODO: parse out the auth parameters from info['req'], and pass them through the
@@ -46,11 +46,11 @@ var get_endpoint = function (endpoints, request) {
   var type = request.type;
   var options = request.options;
 
-  check(type, `"type" must be specified.`);
-  check(options, `"options" must be specified.`);
+  check(type, `'type' must be specified.`);
+  check(options, `'options' must be specified.`);
 
   var endpoint = endpoints[type];
-  check(endpoint, `"${type}" is not a recognized endpoint"`);
+  check(endpoint, `'${type}' is not a recognized endpoint`);
   return endpoint;
 };
 
@@ -64,33 +64,33 @@ var check_read_request = function (request) {
   var limit = options.limit;
   var order = options.order;
 
-  check(collection, `"options.collection" must be specified.`);
-  check(collection.constructor.name === "String",
-        `"options.collection" must be a string.`)
+  check(collection, `'options.collection' must be specified.`);
+  check(collection.constructor.name === 'String',
+        `'options.collection' must be a string.`)
 
   if (selection !== undefined) {
     var selection_type = selection.type;
     var selection_args = selection.args;
-    check(selection_type, `"options.selection.type" must be specified.`);
-    check(selection_args, `"options.selection.args" must be specified.`);
-    check(selection_args.constructor.name === "Array", `"options.selection.args" must be an array.`)
+    check(selection_type, `'options.selection.type' must be specified.`);
+    check(selection_args, `'options.selection.args' must be specified.`);
+    check(selection_args.constructor.name === 'Array', `'options.selection.args' must be an array.`)
 
-    if (selection_type === "find_one") {
-      check(selection_args.length === 1, `"options.selection.args" must have one argument for "find_one"`);
-    } else if (selection_type === "find") {
-    } else if (selection_type === "between") {
-      check(selection_args.length === 2, `"options.selection.args" must have two arguments for "between"`);
+    if (selection_type === 'find_one') {
+      check(selection_args.length === 1, `'options.selection.args' must have one argument for 'find_one'`);
+    } else if (selection_type === 'find') {
+    } else if (selection_type === 'between') {
+      check(selection_args.length === 2, `'options.selection.args' must have two arguments for 'between'`);
     } else {
-      check(false, `"options.selection.type" must be one of "find", "find_one", or "between".`)
+      check(false, `'options.selection.type' must be one of 'find', 'find_one', or 'between'.`)
     }
   }
 
   if (limit !== undefined) {
-    check(parseInt(limit) === limit, `"options.limit" must be an integer.`);
+    check(parseInt(limit) === limit, `'options.limit' must be an integer.`);
   }
   if (order !== undefined) {
-    check(order === "ascending" || order === "descending",
-          `"options.order" must be either "ascending" or "descending".`)
+    check(order === 'ascending' || order === 'descending',
+          `'options.order' must be either 'ascending' or 'descending'.`)
   }
 };
 
@@ -100,12 +100,12 @@ var check_write_request = function (request) {
   var collection = options.collection;
   var data = options.data;
 
-  check(collection, `"options.collection" must be specified.`);
-  check(data, `"options.data" must be specified.`);
-  check(data.id, `"options.data.id" must be specified.`);
+  check(collection, `'options.collection' must be specified.`);
+  check(data, `'options.data' must be specified.`);
+  check(data.id, `'options.data.id' must be specified.`);
 
-  check(collection.constructor.name === "String",
-        `"options.collection" must be a string.`)
+  check(collection.constructor.name === 'String',
+        `'options.collection' must be a string.`)
 };
 
 class Query {
@@ -120,22 +120,22 @@ class Query {
 var make_read_reql = function(request) {
   var type = request.type;
   var options = request.options;
-  var index = options.field_name || "id"; // TODO: possibly require this to be specified
+  var index = options.field_name || 'id'; // TODO: possibly require this to be specified
   var reql = r.table(options.collection);
 
   if (options.selection !== undefined) {
-    if (options.selection.type === "find_one") {
+    if (options.selection.type === 'find_one') {
       reql = reql.get(options.selection.args[0], {'index': index});
-    } else if (options.selection.type === "find") {
+    } else if (options.selection.type === 'find') {
       reql = reql.getAll.apply(reql, options.selection.args.concat({'index': index}));
-    } else if (options.selection.type === "between") {
+    } else if (options.selection.type === 'between') {
       reql = reql.between.apply(reql, options.selection.args.concat({'index': index}));
     }
   }
 
-  if (options.order === "ascending") {
+  if (options.order === 'ascending') {
     reql = reql.orderBy({'index': r.asc(index)})
-  } else if (options.order === "descending") {
+  } else if (options.order === 'descending') {
     reql = reql.orderBy({'index': r.desc(index)})
   }
 
@@ -143,8 +143,8 @@ var make_read_reql = function(request) {
     reql = reql.limit(options.limit);
   }
 
-  if (type === "subscribe") {
-    reql = reql.changes({ "include_states": true });
+  if (type === 'subscribe') {
+    reql = reql.changes({ 'include_states': true });
   }
 
   return reql;
@@ -156,11 +156,11 @@ var make_write_reql = function(request) {
   var reql = r.table(options.collection);
 
   // TODO: consider returnChanges: true
-  if (type === "store_update") {
+  if (type === 'store_update') {
     reql = reql.insert(options.data, { 'conflict': 'update' });
-  } else if (type === "store_replace") {
+  } else if (type === 'store_replace') {
     reql = reql.insert(options.data, { 'conflict': 'replace' });
-  } else if (type === "store_error") {
+  } else if (type === 'store_error') {
     reql = reql.insert(options.data, { 'conflict': 'error' });
   } else {
     reql = reql.get(options.data.id).delete();
@@ -183,9 +183,9 @@ var handle_feed = function(feed, send_cb) {
     feed.each((err, item) => {
         if (err) {
           send_cb({ 'error': `${err}` });
-        } else if (item.state === "initializing") {
+        } else if (item.state === 'initializing') {
           // Do nothing - we don't care
-        } else if (item.state === "ready") {
+        } else if (item.state === 'ready') {
           send_cb({ 'state': 'synced' });
         } else {
           send_cb({ 'data': [item] });
@@ -195,13 +195,13 @@ var handle_feed = function(feed, send_cb) {
 
 // TODO: separate handling for feeds - add 'synced' state
 var handle_read_response = function(request, response, send_cb) {
-  if (request.type === "query") {
+  if (request.type === 'query') {
     if (response.constructor.name === 'Cursor') {
       handle_cursor(response, send_cb);
     } else if (response.constructor.name === 'Array') {
       send_cb({ 'data': response });
     } else {
-      send_cb({ "data": [response] });
+      send_cb({ 'data': [response] });
     }
   } else {
     handle_feed(response, send_cb);
@@ -274,7 +274,7 @@ class Client {
 
     try {
       request = JSON.parse(data);
-      check(request.request_id, `"request_id" must be specified.`);
+      check(request.request_id, `'request_id' must be specified.`);
     } catch (err) {
       console.log(`Client request resulted in error: ${err}`);
       return this.socket.close(1002, `Unparseable request: ${data}`);
@@ -434,13 +434,13 @@ var main = function() {
   var clients = new Set();
   var endpoints = new Object();
 
-  add_endpoint(endpoints, "subscribe", check_read_request, make_read_reql, handle_read_response);
-  add_endpoint(endpoints, "query", check_read_request, make_read_reql, handle_read_response);
+  add_endpoint(endpoints, 'subscribe', check_read_request, make_read_reql, handle_read_response);
+  add_endpoint(endpoints, 'query', check_read_request, make_read_reql, handle_read_response);
 
-  add_endpoint(endpoints, "store_error", check_write_request, make_write_reql, handle_write_response);
-  add_endpoint(endpoints, "store_update", check_write_request, make_write_reql, handle_write_response);
-  add_endpoint(endpoints, "store_replace", check_write_request, make_write_reql, handle_write_response);
-  add_endpoint(endpoints, "remove", check_write_request, make_write_reql, handle_write_response);
+  add_endpoint(endpoints, 'store_error', check_write_request, make_write_reql, handle_write_response);
+  add_endpoint(endpoints, 'store_update', check_write_request, make_write_reql, handle_write_response);
+  add_endpoint(endpoints, 'store_replace', check_write_request, make_write_reql, handle_write_response);
+  add_endpoint(endpoints, 'remove', check_write_request, make_write_reql, handle_write_response);
 
   // TODO: need some persistent configuration of rethinkdb server(s) to connect to
   var reql_conn = new ReqlConnection('newton.local', 59435, clients);
@@ -454,40 +454,40 @@ var main = function() {
     function(req, res){
 
       const reqPath = url.parse(req.url).pathname;
-      const filePath = path.resolve("../client/dist/build.js");
+      const filePath = path.resolve('../client/dist/build.js');
 
-      if (reqPath === "/fusion.js"){
+      if (reqPath === '/fusion.js'){
         fs.access(filePath,
         fs.R_OK | fs.F_OK,
         function(exists){
 
           //Check if file exists
           if (exists){
-            res.writeHead("404", {"Content-Type": "text/plain"});
-            res.write("Client library not found\n");
+            res.writeHead('404', {'Content-Type': 'text/plain'});
+            res.write('Client library not found\n');
             res.end();return;
           }
 
           //filePath exists now just need to read from it.
-          fs.readFile(filePath, "binary", function(err, file) {
+          fs.readFile(filePath, 'binary', function(err, file) {
 
             //Error while reading from file
             if(err) {
-              res.writeHead(500, {"Content-Type": "text/plain"});
-              res.write(err + "\n");
+              res.writeHead(500, {'Content-Type': 'text/plain'});
+              res.write(err + '\n');
               res.end();return;
             }
 
             //File successfully read, write contents to response
             res.writeHead(200);
-            res.write(file, "binary");
+            res.write(file, 'binary');
             res.end();return;
           });
 
         });
       } else {
-        res.writeHead("403", {"Content-Type": "text/plain"});
-        res.write("Forbidden");
+        res.writeHead('403', {'Content-Type': 'text/plain'});
+        res.write('Forbidden');
         res.end();return
       }
 
