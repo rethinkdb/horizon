@@ -9,7 +9,7 @@
          var Fusion = new fusion.Fusion("localhost:31420");
          var blob = Fusion('blob')
          blob.value().then((data) => {
-             console.log("It works! Got back:" + data);
+             console.log("It works! Got back:" + JSON.stringify(data));
          }, function onError(err) {
              console.log("Dangit: ", err)
          });

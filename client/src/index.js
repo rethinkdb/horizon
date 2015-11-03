@@ -88,8 +88,8 @@ class Socket {
     constructor(hostString, classifier){
         // send handshake
         this.classifier = classifier
-        this.promises = {}
-        this.emitters = {}
+        this.promises = new Map()
+        this.emitters = new Map()
         this.requestCounter = 0
         this.wsPromise = (new Promise((resolve, reject) => {
             console.log("Creating websocket")
@@ -118,7 +118,9 @@ class Socket {
             ws.onopen = this._onOpen.bind(this)
             ws.onerror = this._onError.bind(this)
             return ws
-        }).catch(console.log.bind(console))
+        }).catch((event) => {
+            console.log("Got a connection error: ", event)
+        })
     }
 
     send(type, data){
@@ -128,8 +130,9 @@ class Socket {
             console.log("sending: ", JSON.stringify(req))
             ws.send(JSON.stringify(req))
         })
-        return new Promise((resolve, reject) =>
-            this.promises[requestId] = {resolve: resolve, reject:reject})
+        return new Promise((resolve, reject) => {
+            this.promises.set(requestId, {resolve: resolve, reject: reject})
+        })
     }
 
     subscribe(query){
@@ -138,14 +141,14 @@ class Socket {
         var req = {type: "subscribe", options: data, request_id: requestId}
         this.wsPromise.then((ws) => ws.send(JSON.stringify(req)))
         var emitter = new EventEmitter() // customize?
-        this.emitters[requestId] = emitter
+        this.emitters.set(requestId, emitter)
         return emitter
     }
 
     _onClose(event){
         console.log(`Got a close event. Reason: ${event.reason}`)
         Object.keys(this.emitters).forEach((requestId) => {
-            this.emitters[requestId].emit('disconnected', event)
+            this.emitters.get(requestId).emit('disconnected', event)
         })
         // Do we do something with promises? What if we reconnect
     }
@@ -157,23 +160,30 @@ class Socket {
 
     _onOpen(event){
         Object.keys(this.emitters).forEach((requestId) => {
-            this.emitters[requestId].emit('reconnected', event)
+            this.emitters.get(requestId).emit('reconnected', event)
         })
     }
 
     _onMessage(event){
+        console.log("Got a new message on the socket. Emitters is", this.emitters, "and promises is", this.promises)
         var resp = JSON.parse(event.data)
-        if(this.promises.hasOwnProperty(resp.request_id)){
-            var promise = this.promises[resp.request_id]
-            delete this.promises[resp.request_id]
+        if(this.promises.has(resp.request_id)){
+            console.log(`Found request id ${resp.request_id} in the emitters cache`)
+            let promise = this.promises.get(resp.request_id)
 
             if (resp.error !== undefined){
                 promise.reject(resp.error)
             } else {
-                promise.resolve(resp.value)
+                if(resp.result !== undefined){
+                    promise.resolve(resp.result)
+                }else if(resp.data !== undefined){
+                    promise.resolve(resp.data)
+                }else{
+                }
             }
-        }else if(this.emitters.hasOwnProperty(resp.request_id)){
-            var emitter = this.emitters[resp.request_id]
+        }else if(this.emitters.has(resp.request_id)){
+            console.log(`Found request id ${resp.request_id} in the emitters cache`)
+            let emitter = this.emitters.get(resp.request_id)
             if(resp.error !== undefined){
                 emitter.emit("error", resp.error_code, resp.error)
             }else if(resp.result !== undefined){
@@ -187,7 +197,7 @@ class Socket {
                 }
             }
         }else{
-            console.error(`Unrecognized response: ${JSON.stringify(event)}`)
+            console.log("Didn't find request id ", resp.request_id, " in emitters or promises", resp)
         }
     }
 }
