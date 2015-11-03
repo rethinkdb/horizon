@@ -23,4 +23,4 @@ serious:
 ## Launch the server
 TODO: add command-line options or configuration
 
-`node --use-strict server/src/main.js`
+`node --harmony --use-strict server/src/main.js`
