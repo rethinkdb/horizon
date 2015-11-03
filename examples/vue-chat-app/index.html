@@ -3,15 +3,16 @@
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <div id="app">
+  <div id="chat">
     <ul>
-      <li v-for="message in messages | orderBy 'id' -1 | limitBy 10 | orderBy 'id'" transition="expand">
+      <li v-for="message in messages | limitBy 10 | orderBy 'id'" transition="expand">
         {{ message.text }}
       </li>
     </ul>
     <input v-model="newMessage" v-on:keyup.enter="addMessage"></input>
   </div>
   <script src="http://cdnjs.cloudflare.com/ajax/libs/vue/1.0.4/vue.min.js"></script>
+  <script src="https://localhost:31420/fusion.js"></script>
   <script src="app.js"></script>
 </body>
 

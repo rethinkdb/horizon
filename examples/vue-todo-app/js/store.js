@@ -4,7 +4,7 @@
 	'use strict';
 
 	var f = require("Fusion");
-	var Fusion = new f.Fusion("localhost:31420");
+	var Fusion = new f.Fusion("localhost:31420", "");
 	var todos = Fusion("todos");
 	var STORAGE_KEY = 'todos-vuejs';
 
