@@ -5,15 +5,15 @@ const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 export class Fusion {
 
     constructor(hostString){
-        console.log("Constructing fusion object")
+        console.debug("Constructing fusion object")
         self = (collectionName) => self.collection(collectionName)
         Object.setPrototypeOf(self, Object.getPrototypeOf(this))
         if (typeof hostString == "object" && hostString.mock == true){
-            console.log("mocking the socket")
+            console.debug("mocking the socket")
             self.hostString = "mock"
             self._socket = new MockSocket(hostString, this.classify)
         } else {
-            console.log("Real websocket")
+            console.debug("Real websocket")
             self.hostString = hostString
             self._socket = new Socket(hostString, this.classify)
         }
@@ -42,7 +42,7 @@ export class Fusion {
     }
 
     _query(query){
-        console.log("Enqueueing query: ", JSON.stringify(query))
+        console.debug("Enqueueing query: ", JSON.stringify(query))
         return this._socket.send("query", query)
     }
 
@@ -92,34 +92,34 @@ class Socket {
         this.emitters = new Map()
         this.requestCounter = 0
         this.wsPromise = (new Promise((resolve, reject) => {
-            console.log("Creating websocket")
+            console.debug("Creating websocket")
             let ws = new WebSocket("ws://"+hostString, PROTOCOL_VERSION)
             ws.onopen = (event) => resolve(ws)
             ws.onerror = (event) => reject(event)
         })).then((ws) => {
-            console.log("Websocket created, sending handshake")
+            console.debug("Websocket created, sending handshake")
             let handshake = {}
             return new Promise((resolve, reject) => {
                 // TODO: check handshake response once it has something in it
                 ws.onmessage = (handshakeResponse) => {
-                    console.log("Received handshake response:", JSON.parse(handshakeResponse.data))
+                    console.debug("Received handshake response:", JSON.parse(handshakeResponse.data))
                     resolve(ws)
                 }
                 ws.onerror = (event) => {
-                    console.log("Received an error on websocket", handshakeResponse)
+                    console.debug("Received an error on websocket", handshakeResponse)
                     reject(event)
                 }
                 ws.send(JSON.stringify(handshake))
             })
         }).then((ws) => {
-            console.log("Handshake received. Binding message handlers")
+            console.debug("Handshake received. Binding message handlers")
             ws.onmessage = this._onMessage.bind(this)
             ws.onclose = this._onClose.bind(this)
             ws.onopen = this._onOpen.bind(this)
             ws.onerror = this._onError.bind(this)
             return ws
         }).catch((event) => {
-            console.log("Got a connection error: ", event)
+            console.debug("Got a connection error: ", event)
         })
     }
 
@@ -127,7 +127,7 @@ class Socket {
         var requestId = this.requestCounter++
         var req = {type: type, options: data, request_id: requestId}
         this.wsPromise.then((ws) => {
-            console.log("sending: ", JSON.stringify(req))
+            console.debug("sending: ", JSON.stringify(req))
             ws.send(JSON.stringify(req))
         })
         return new Promise((resolve, reject) => {
@@ -136,7 +136,7 @@ class Socket {
     }
 
     subscribe(query){
-        console.log("subscribing")
+        console.debug("subscribing")
         var requestId = this.requestCounter++
         var req = {type: "subscribe", options: data, request_id: requestId}
         this.wsPromise.then((ws) => ws.send(JSON.stringify(req)))
@@ -146,7 +146,7 @@ class Socket {
     }
 
     _onClose(event){
-        console.log(`Got a close event. Reason: ${event.reason}`)
+        console.debug(`Got a close event. Reason: ${event.reason}`)
         Object.keys(this.emitters).forEach((requestId) => {
             this.emitters.get(requestId).emit('disconnected', event)
         })
@@ -155,7 +155,7 @@ class Socket {
 
     _onError(event){
         // TODO: What to do on websocket level errors?
-        console.log("Error received from websocket:", event)
+        console.debug("Error received from websocket:", event)
     }
 
     _onOpen(event){
@@ -165,10 +165,10 @@ class Socket {
     }
 
     _onMessage(event){
-        console.log("Got a new message on the socket. Emitters is", this.emitters, "and promises is", this.promises)
+        console.debug("Got a new message on the socket. Emitters is", this.emitters, "and promises is", this.promises)
         var resp = JSON.parse(event.data)
         if(this.promises.has(resp.request_id)){
-            console.log(`Found request id ${resp.request_id} in the emitters cache`)
+            console.debug(`Found request id ${resp.request_id} in the emitters cache`)
             let promise = this.promises.get(resp.request_id)
 
             if (resp.error !== undefined){
@@ -182,7 +182,7 @@ class Socket {
                 }
             }
         }else if(this.emitters.has(resp.request_id)){
-            console.log(`Found request id ${resp.request_id} in the emitters cache`)
+            console.debug(`Found request id ${resp.request_id} in the emitters cache`)
             let emitter = this.emitters.get(resp.request_id)
             if(resp.error !== undefined){
                 emitter.emit("error", resp.error_code, resp.error)
@@ -197,7 +197,7 @@ class Socket {
                 }
             }
         }else{
-            console.log("Didn't find request id ", resp.request_id, " in emitters or promises", resp)
+            console.error("Didn't find request id ", resp.request_id, " in emitters or promises", resp)
         }
     }
 }
