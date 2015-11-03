@@ -1,3 +1,5 @@
+<img style="width:100%;" src="/github-banner.png">
+
 # RethinkDB Fusion
 
 RethinkDB Fusion is an open-source developer platform for building
