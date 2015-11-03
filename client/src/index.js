@@ -137,9 +137,16 @@ class Socket {
         }else if(this.emitters.hasOwnProperty(resp.request_id)){
             var emitter = this.emitters[resp.request_id]
             if(resp.error !== undefined){
-                emitter.emit("error", resp.error)
+                emitter.emit("error", resp.error_code, resp.error)
+            }else if(resp.result !== undefined){
+                emitter.emit(resp.result)
             }else{
-                emitter.emit(this.classifier(resp.data), resp.value)
+                emitter.emit(this.classifier(resp.data), resp.data)
+                if(resp.state === 'synced'){
+                    emitter.emit('synced')
+                }else if(resp.state === 'complete'){
+                    emitter.emit('end')
+                }
             }
         }else{
             console.error(`Unrecognized response: ${event}`)
@@ -159,18 +166,22 @@ class TermBase {
         return this.fusion._subscribe(this.query)
     }
 
+    unsubscribe(updates: true){
+        throw new Exception("Not implemented")
+    }
+
     value(){
         // return promise with no changefeed
         return this.fusion._value(this.query)
     }
 }
 
-class Collection {
+class Collection extends TermBase {
 
     constructor(fusion, collectionName){
+        super(fusion)
         this.collectionName = collectionName
         this.query = {collection: collectionName}
-        this.fusion = fusion
     }
 
     findOne(id){
@@ -230,7 +241,7 @@ class FindOne extends TermBase {
         super(fusion)
         this.id = docId
         this.query = Object.assign({
-            selection: {type: "findOne", args: [docId]}
+            selection: {type: "find_one", args: [docId]}
         }, query)
     }
 }
