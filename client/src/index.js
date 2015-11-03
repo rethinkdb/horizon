@@ -5,18 +5,18 @@ const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 export class Fusion {
 
     constructor(hostString){
-
-        if (typeof hostString == "object" && hostString.mock == true){
-          this.hostString = "mock"
-          this._socket = new MockSocket(hostString, this.classify)
-        } else {
-          this.hostString = hostString
-          this._socket = new Socket(hostString, this.classify)
-        }
-
-        // Hack for fusion(collectionName) syntax
+        console.log("Constructing fusion object")
         self = (collectionName) => self.collection(collectionName)
         Object.setPrototypeOf(self, Object.getPrototypeOf(this))
+        if (typeof hostString == "object" && hostString.mock == true){
+            console.log("mocking the socket")
+            self.hostString = "mock"
+            self._socket = new MockSocket(hostString, this.classify)
+        } else {
+            console.log("Real websocket")
+            self.hostString = hostString
+            self._socket = new Socket(hostString, this.classify)
+        }
         return self
     }
 
@@ -99,10 +99,10 @@ class Socket {
             console.log("Websocket created, sending handshake")
             let handshake = {}
             return new Promise((resolve, reject) => {
-                ws.send(JSON.stringify(handshake))
                 // TODO: check handshake response once it has something in it
                 ws.onmessage = (handshake_response) => resolve(ws)
                 ws.onerror = (event) => reject(event)
+                ws.send(JSON.stringify(handshake))
             })
         }).then((ws) => {
             console.log("Handshake received. Binding message handlers")
