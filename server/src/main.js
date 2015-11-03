@@ -63,24 +63,24 @@ var check_read_request = function (request) {
   var order = options.order;
 
   check(collection, `"options.collection" must be specified.`);
-  check(selection, `"options.selection" must be specified.`);
-
   check(collection.constructor.name === "String",
         `"options.collection" must be a string.`)
 
-  var selection_type = selection.type;
-  var selection_args = selection.args;
-  check(selection_type, `"options.selection.type" must be specified.`);
-  check(selection_args, `"options.selection.args" must be specified.`);
-  check(selection_args.constructor.name === "Array", `"options.selection.args" must be an array.`)
+  if (selection !== undefined) {
+    var selection_type = selection.type;
+    var selection_args = selection.args;
+    check(selection_type, `"options.selection.type" must be specified.`);
+    check(selection_args, `"options.selection.args" must be specified.`);
+    check(selection_args.constructor.name === "Array", `"options.selection.args" must be an array.`)
 
-  if (selection_type === "find_one") {
-    check(selection_args.length === 1, `"options.selection.args" must have one argument for "find_one"`);
-  } else if (selection_type === "find") {
-  } else if (selection_type === "between") {
-    check(selection_args.length === 2, `"options.selection.args" must have two arguments for "between"`);
-  } else {
-    check(false, `"options.selection.type" must be one of "find", "find_one", or "between".`)
+    if (selection_type === "find_one") {
+      check(selection_args.length === 1, `"options.selection.args" must have one argument for "find_one"`);
+    } else if (selection_type === "find") {
+    } else if (selection_type === "between") {
+      check(selection_args.length === 2, `"options.selection.args" must have two arguments for "between"`);
+    } else {
+      check(false, `"options.selection.type" must be one of "find", "find_one", or "between".`)
+    }
   }
 
   if (limit !== undefined) {
@@ -111,11 +111,11 @@ class Query {
     this.request = request;
     this.endpoint = endpoint;
     endpoint.check_request(request);
-    this.reql = make_reql(request);
+    this.reql = endpoint.make_reql(request);
   }
 };
 
-var make_read_reql = function(type, options) {
+var make_read_reql = function(request) {
   var type = request.type;
   var options = request.options;
   var index = options.field_name || "id"; // TODO: possibly require this to be specified
@@ -148,7 +148,9 @@ var make_read_reql = function(type, options) {
   return reql;
 };
 
-var make_write_reql = function(type, options) {
+var make_write_reql = function(request) {
+  var type = request.type;
+  var options = request.options;
   var reql = r.table(options.collection);
 
   // TODO: consider returnChanges: true
@@ -167,24 +169,26 @@ var make_write_reql = function(type, options) {
 
 // TODO: separate handling for feeds - add 'synced' state
 var handle_read_response = function(request, response, send_cb) {
-  if (res.constructor.name == 'Cursor' ||
-      res.constructor.name == 'Feed') {
-    cursor.each((err, item) => {
+  console.log(`Handling read response.`);
+  if (response.constructor.name == 'Cursor' ||
+      response.constructor.name == 'Feed') {
+    response.each((err, item) => {
         console.log(`Cursor result: err ${JSON.stringify(err)}, item ${item}`);
         if (err) {
           send_cb({ 'error': `${err}` });
         } else {
           send_cb({ 'data': [item] });
         }
-      }, () => send_cb(query, { 'data': [], 'state': 'complete' }));
-  } else if (res.constructor.name == 'Array') {
-    send_cb({ 'data': res });
+      }, () => send_cb({ 'data': [], 'state': 'complete' }));
+  } else if (response.constructor.name == 'Array') {
+    send_cb({ 'data': response });
   } else {
-    send_cb({ "data": [res] });
+    send_cb({ "data": [response] });
   }
 }
 
 var handle_write_response = function(request, response, send_cb) {
+  console.log(`Handling write response.`);
   if (response.errors !== 0) {
     send_cb({ 'error': response.first_error });
   }
@@ -251,8 +255,7 @@ class Client {
       check(this.check_permissions(request),
             `This session lacks the permissions to run ${data}.`);
 
-      endpoint = get_endpoint(endpoints, request);
-      this.run_query(new Query(request, endpoint));
+      this.run_query(new Query(request, get_endpoint(this.endpoints, request)));
     } catch (err) {
       this.send_response({'request': request}, { 'error': `${err}` });
     }
@@ -281,12 +284,13 @@ class Client {
     try {
       query.endpoint.handle_response(query.request, res, (data) => this.send_response(query, data));
     } catch (err) {
-      console.log(`Error when handling response: ${res}`);
-      this.send_response(query, { 'error': `${res}` });
+      console.log(`Error when handling response: ${err}`);
+      this.send_response(query, { 'error': `${err}` });
     }
   }
 
   send_response(query, data) {
+    console.log(`Sending response for ${query}: ${data}.`);
     data.request_id = query.request.request_id;
     console.log(`Sending response for ${query.request.request_id}: ${data}`);
     this.socket.send(JSON.stringify(data));
