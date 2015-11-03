@@ -84,7 +84,7 @@ var check_read_request = function (request) {
   }
 
   if (limit !== undefined) {
-    check(ParseInt(limit) === limit, `"options.limit" must be an integer.`);
+    check(parseInt(limit) === limit, `"options.limit" must be an integer.`);
   }
   if (order !== undefined) {
     check(order === "ascending" || order === "descending",
@@ -125,9 +125,9 @@ var make_read_reql = function(request) {
     if (options.selection.type === "find_one") {
       reql = reql.get(options.selection.args[0], {'index': index});
     } else if (options.selection.type === "find") {
-      reql = reql.getAll.apply(reql, Array.concat(options.selection.args, {'index': index}));
+      reql = reql.getAll.apply(reql, options.selection.args.concat({'index': index}));
     } else if (options.selection.type === "between") {
-      reql = reql.between.apply(reql, Array.concat(options.selection.args, {'index': index}));
+      reql = reql.between.apply(reql, options.selection.args.concat({'index': index}));
     }
   }
 
@@ -173,7 +173,7 @@ var handle_read_response = function(request, response, send_cb) {
   if (response.constructor.name == 'Cursor' ||
       response.constructor.name == 'Feed') {
     response.each((err, item) => {
-        console.log(`Cursor result: err ${JSON.stringify(err)}, item ${item}`);
+        console.log(`Cursor result: err ${JSON.stringify(err)}, item ${JSON.stringify(item)}`);
         if (err) {
           send_cb({ 'error': `${err}` });
         } else {
@@ -191,19 +191,20 @@ var handle_write_response = function(request, response, send_cb) {
   console.log(`Handling write response.`);
   if (response.errors !== 0) {
     send_cb({ 'error': response.first_error });
-  }
-  check(response.inserted + response.replaced + response.unchanged + response.skipped + response.deleted === 1,
-        `Unexpected response counts: ${response}`);
-  if (response.inserted === 1) {
-    send_cb({ 'result': 'created' });
-  } else if (request.type === 'store_update') {
-    send_cb({ 'result': 'updated'});
-  } else if (request.type === 'store_replace') {
-    send_cb({ 'result': 'replaced'});
-  } else if (response.deleted === 1) {
-    send_cb({ 'result': 'removed' });
   } else {
-    check(false, `Unexpected response counts: ${response}`)
+    check(response.inserted + response.replaced + response.unchanged + response.skipped + response.deleted === 1,
+          `Unexpected response counts: ${JSON.stringify(response)}`);
+    if (response.inserted === 1) {
+      send_cb({ 'result': 'created' });
+    } else if (request.type === 'store_update') {
+      send_cb({ 'result': 'updated'});
+    } else if (request.type === 'store_replace') {
+      send_cb({ 'result': 'replaced'});
+    } else if (response.deleted === 1) {
+      send_cb({ 'result': 'removed' });
+    } else {
+      check(false, `Unexpected response counts: ${response}`)
+    }
   }
 };
 
@@ -220,12 +221,18 @@ class Client {
     this.socket.on('open', () => this.handle_open());
     this.socket.on('close', (code, msg) => this.handle_close(code, msg));
     this.socket.on('error', (error) => this.handle_websocket_error(error));
-    this.socket.on('message', (data, flags) => this.handle_request(data));
+    this.socket.on('message', (data, flags) => this.handle_handshake(data));
   }
 
   handle_open() {
     console.log(`Client connection established.`);
     this.clients.add(this);
+  }
+
+  handle_handshake(data) {
+    // TODO: implement handshake
+    this.socket.removeAllListeners('message');
+    this.socket.on('message', (data, flags) => this.handle_request(data));
   }
 
   handle_close() {
@@ -290,9 +297,8 @@ class Client {
   }
 
   send_response(query, data) {
-    console.log(`Sending response for ${query}: ${data}.`);
     data.request_id = query.request.request_id;
-    console.log(`Sending response for ${query.request.request_id}: ${data}`);
+    console.log(`Sending response: ${JSON.stringify(data)}`);
     this.socket.send(JSON.stringify(data));
   }
 
@@ -403,8 +409,8 @@ class ReqlConnection {
 }
 
 var main = function() {
-  var endpoints = new Object();
   var clients = new Set();
+  var endpoints = new Object();
 
   add_endpoint(endpoints, "subscribe", check_read_request, make_read_reql, handle_read_response);
   add_endpoint(endpoints, "query", check_read_request, make_read_reql, handle_read_response);
