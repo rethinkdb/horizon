@@ -1,7 +1,9 @@
-var websocket = require('ws');
-var https = require('https');
-var r = require('rethinkdb');
-var fs = require('fs');
+const websocket = require('ws'),
+ https = require('https'),
+ r = require('rethinkdb'),
+ fs = require('fs'),
+ url = require('url'),
+ path = require("path");
 
 //var accept_client = function (info, cb) {
   // TODO: parse out the auth parameters from info['req'], and pass them through the
@@ -440,12 +442,54 @@ var main = function() {
   add_endpoint(endpoints, "remove", check_write_request, make_write_reql, handle_write_response);
 
   // TODO: need some persistent configuration of rethinkdb server(s) to connect to
-  var reql_conn = new ReqlConnection('newton', 59435, clients);
+  var reql_conn = new ReqlConnection('newton.local', 59435, clients);
 
   // TODO: need some persistent configuration for hostname/ports to listen on, as well as certificate config
-  var https_server = new https.Server(
-    { 'key': fs.readFileSync('./key.pem'),
+  var https_server = new https.Server({
+      'key': fs.readFileSync('./key.pem'),
       'cert': fs.readFileSync('./cert.pem')
+    },
+    //Function which handles just the /fusion.js endpoint
+    function(req, res){
+
+      const reqPath = url.parse(req.url).pathname;
+      const filePath = path.resolve("../client/dist/build.js");
+
+      if (reqPath === "/fusion.js"){
+        fs.access(filePath,
+        fs.R_OK | fs.F_OK,
+        function(exists){
+
+          //Check if file exists
+          if (exists){
+            res.writeHead("404", {"Content-Type": "text/plain"});
+            res.write("Client library not found\n");
+            res.end();return;
+          }
+
+          //filePath exists now just need to read from it.
+          fs.readFile(filePath, "binary", function(err, file) {
+
+            //Error while reading from file
+            if(err) {
+              res.writeHead(500, {"Content-Type": "text/plain"});
+              res.write(err + "\n");
+              res.end();return;
+            }
+
+            //File successfully read, write contents to response
+            res.writeHead(200);
+            res.write(file, "binary");
+            res.end();return;
+          });
+
+        });
+      } else {
+        res.writeHead("403", {"Content-Type": "text/plain"});
+        res.write("Forbidden");
+        res.end();return
+      }
+
     }).listen(31420, 'localhost');
 
   var websocket_server = new websocket.Server(
