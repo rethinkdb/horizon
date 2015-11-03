@@ -5,19 +5,19 @@ const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 export class Fusion {
 
     constructor(hostString){
-        console.log("Constructing fusion object")
-        self = (collectionName) => self.collection(collectionName)
-        Object.setPrototypeOf(self, Object.getPrototypeOf(this))
-        if (typeof hostString == "object" && hostString.mock == true){
-            console.log("mocking the socket")
-            self.hostString = "mock"
-            self._socket = new MockSocket(hostString, this.classify)
-        } else {
-            console.log("Real websocket")
-            self.hostString = hostString
-            self._socket = new Socket(hostString, this.classify)
-        }
-        return self
+      console.log("Constructing fusion object")
+      self = (collectionName) => self.collection(collectionName)
+      Object.setPrototypeOf(self, Object.getPrototypeOf(this))
+      if (typeof hostString == "object" && hostString.mock == true){
+          console.log("mocking the socket")
+          self.hostString = "mock"
+          self._socket = new MockSocket(hostString, this.classify)
+      } else {
+          console.log("Real websocket")
+          self.hostString = hostString
+          self._socket = new Socket(hostString, this.classify)
+      }
+      return self
     }
 
     collection(name){
@@ -66,7 +66,7 @@ export class Fusion {
     _subscribe(query, updates){
         if(updates){
             return this._socket.subscribe(query)
-        }else{
+        } else {
             //Emulate subscription with one-shot query
             var emitter = new EventEmitter()
             this._socket.send("query", query).then(
@@ -192,9 +192,8 @@ class Socket {
     }
 }
 
-class MockSocket extends Socket {
+class MockSocket {
   constructor(hostString, classifier){
-    super()
     this.hostString = hostString;
     this.docs = [];
     this.classifier = classifier;
@@ -206,6 +205,8 @@ class MockSocket extends Socket {
   send(type, data){
       //Basically, don't actually send anything just store it in an array,
       // inefficient search and no error handling but fine for mocking
+
+      var requestId = this.requestCounter++
 
       switch(type){
         case "update":
@@ -228,7 +229,8 @@ class MockSocket extends Socket {
           break;
       }
 
-      return Promise.resolve(true);
+      return new Promise((resolve, reject) =>
+          this.promises[requestId] = {resolve: Promise.resolve(resolve), reject:reject})
   }
 
   _onOpen(event){
