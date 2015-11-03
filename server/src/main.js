@@ -172,7 +172,7 @@ var make_write_reql = function(request) {
 
 var handle_cursor = function(cursor, send_cb) {
     cursor.each((err, item) => {
-        if (err !== undefined) {
+        if (err !== null) {
           send_cb({ 'error': `${err}` });
         } else {
           send_cb({ 'data': [item] });
@@ -182,7 +182,7 @@ var handle_cursor = function(cursor, send_cb) {
 
 var handle_feed = function(feed, send_cb) {
     feed.each((err, item) => {
-        if (err !== undefined) {
+        if (err !== null) {
           send_cb({ 'error': `${err}` });
         } else if (item.state === 'initializing') {
           // Do nothing - we don't care
@@ -427,7 +427,7 @@ class ReqlConnection {
   }
 }
 
-var main = function() {
+var main = function(http_host_port, rethinkdb_host_port) {
   var clients = new Set();
   var endpoints = new Object();
 
