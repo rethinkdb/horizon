@@ -329,7 +329,8 @@ class Client {
     var matches;
     // We may have already tried to create a table or index while it was already
     // being created, recognize those errors and retry.
-    if (info.msg.match(/Table `w+\.w+` already exists\./) ||
+    if (info.msg.match(/Database `w+` already exists\./) ||
+        info.msg.match(/Table `w+\.w+` already exists\./) ||
         info.msg.match(/Index `w+` already exists on table `w+\.w+`\./)) {
       this.run_query(query);
     }
