@@ -254,7 +254,7 @@ class Client {
     // TODO: implement handshake
     this.socket.removeAllListeners('message');
     this.socket.on('message', (data, flags) => this.handle_request(data));
-    this.socket.send({ 'user_id': 0 });
+    this.socket.send(JSON.stringify({ 'user_id': 0 }));
   }
 
   handle_close() {
