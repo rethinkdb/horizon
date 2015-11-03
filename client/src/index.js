@@ -42,19 +42,20 @@ export class Fusion {
     }
 
     _query(query){
-        console.log("Enqueueing query: ", query)
+        console.log("Enqueueing query: ", JSON.stringify(query))
         return this._socket.send("query", query)
     }
 
     _store(collection, document, conflict){
+        let command = Object.assign({data: document}, collection)
         if(conflict === 'replace'){
-            return this._socket.send("store_replace", {collection: collection, data: document})
+            return this._socket.send("store_replace", command)
         }else if(conflict === 'error'){
-            return this._socket.send("store_error", {collection: collection, data: document})
+            return this._socket.send("store_error", command)
         }else if(conflict === 'update'){
-            return this._socket.send("store_update", {collectionquery, data: document})
+            return this._socket.send("store_update", command)
         }else{
-            return Promise.reject(`value of conflict not understood: ${conflict}`)
+            return Promise.reject(`value cant store with conflict argument: ${conflict}`)
         }
     }
 
@@ -92,7 +93,7 @@ class Socket {
         this.requestCounter = 0
         this.wsPromise = (new Promise((resolve, reject) => {
             console.log("Creating websocket")
-            let ws = new WebSocket("wss://"+hostString, [PROTOCOL_VERSION])
+            let ws = new WebSocket("wss://"+hostString, PROTOCOL_VERSION)
             ws.onopen = (event) => resolve(ws)
             ws.onerror = (event) => reject(event)
         })).then((ws) => {
@@ -101,7 +102,7 @@ class Socket {
             return new Promise((resolve, reject) => {
                 // TODO: check handshake response once it has something in it
                 ws.onmessage = (handshakeResponse) => {
-                    console.log("Received handshake response:", handshakeResponse)
+                    console.log("Received handshake response:", JSON.parse(handshakeResponse.data))
                     resolve(ws)
                 }
                 ws.onerror = (event) => {
@@ -124,7 +125,7 @@ class Socket {
         var requestId = this.requestCounter++
         var req = {type: type, options: data, request_id: requestId}
         this.wsPromise.then((ws) => {
-            console.log("sending: ", req)
+            console.log("sending: ", JSON.stringify(req))
             ws.send(JSON.stringify(req))
         })
         return new Promise((resolve, reject) =>
@@ -142,10 +143,10 @@ class Socket {
     }
 
     _onClose(event){
-        console.log("Got a close event :(", event)
-        for(let emitter of this.emitters){
-            emitter.emit('disconnected', event)
-        }
+        console.log(`Got a close event. Reason: ${event.reason}`)
+        Object.keys(this.emitters).forEach((requestId) => {
+            this.emitters[requestId].emit('disconnected', event)
+        })
         // Do we do something with promises? What if we reconnect
     }
 
@@ -155,9 +156,9 @@ class Socket {
     }
 
     _onOpen(event){
-        for(let emitter of this.emitters){
-            emitter.emit('reconnected', event)
-        }
+        Object.keys(this.emitters).forEach((requestId) => {
+            this.emitters[requestId].emit('reconnected', event)
+        })
     }
 
     _onMessage(event){
@@ -186,7 +187,7 @@ class Socket {
                 }
             }
         }else{
-            console.error(`Unrecognized response: ${event}`)
+            console.error(`Unrecognized response: ${JSON.stringify(event)}`)
         }
     }
 }
