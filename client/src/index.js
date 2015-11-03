@@ -35,32 +35,33 @@ export class Fusion {
     }
 
     _query(query){
-        return this.socket.send("query", query)
+        console.log("Sending query: ", query)
+        return this._socket.send("query", query)
     }
 
     _store(collection, document, conflict){
         if(conflict === 'replace'){
-            return this.socket.send("store_replace", {collection: collection, data: document})
+            return this._socket.send("store_replace", {collection: collection, data: document})
         }else if(conflict === 'error'){
-            return this.socket.send("store_error", {collection: collection, data: document})
+            return this._socket.send("store_error", {collection: collection, data: document})
         }else if(conflict === 'update'){
-            return this.socket.send("store_update", {collectionquery, data: document})
+            return this._socket.send("store_update", {collectionquery, data: document})
         }else{
             return Promise.reject(`value of conflict not understood: ${conflict}`)
         }
     }
 
     _remove(collection, document){
-        return this.socket.send("remove", {collection: collection, data: document})
+        return this._socket.send("remove", {collection: collection, data: document})
     }
 
     _subscribe(query, updates){
         if(updates){
-            return this.socket.subscribe(query)
+            return this._socket.subscribe(query)
         }else{
             //Emulate subscription with one-shot query
             var emitter = new EventEmitter()
-            this.socket.send("query", query).then(
+            this._socket.send("query", query).then(
                 // Do we have continues etc like cursors?
                 // Right now assuming we get results back as an array
                 (results) => {
@@ -77,27 +78,20 @@ export class Fusion {
 
 class Socket {
     constructor(hostString, classifier){
-        this.ws = new WebSocket("ws://"+hostString, [PROTOCOL_VERSION])
         // send handshake
         this.classifier = classifier
         this.promises = {}
         this.emitters = {}
         this.requestCounter = 0
-        this.performHandshake()
-    }
-
-    _performHandshake(){
-        this.ws.onmessage = () => {
-            this.ws.onmessage = this._onMessage
-            this.ws.onclose = this._onClose
-            this.ws.onopen = this._onOpen
-        }
-        this.ws.send("{}")
+        this.ws = new WebSocket("wss://"+hostString, [PROTOCOL_VERSION])
+        this.ws.onmessage = this._onMessage.bind(this)
+        this.ws.onclose = this._onClose.bind(this)
+        this.ws.onopen = this._onOpen.bind(this)
     }
 
     send(type, data){
         var requestId = this.requestCounter++
-        var req = {type: type, options: data, requestId: request_id}
+        var req = {type: type, options: data, request_id: requestId}
         return new Promise((resolve, reject) =>
             this.promises[requestId] = {resolve: resolve, reject:reject})
     }
@@ -172,7 +166,7 @@ class TermBase {
 
     value(){
         // return promise with no changefeed
-        return this.fusion._value(this.query)
+        return this.fusion._query(this.query)
     }
 }
 
