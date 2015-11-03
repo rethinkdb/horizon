@@ -1,32 +1,32 @@
 /*jshint unused:false */
-var f = require("Fusion");
-var Fusion = new f.Fusion("ws://websocket");
-
 (function (exports) {
 
 	'use strict';
 
-	var fusion = new Fusion("localhost:8090");
-	var todos = fusion.collection("todos");
+	var f = require("Fusion");
+	var Fusion = new f.Fusion("localhost:31420");
+	var todos = Fusion("todos");
 	var STORAGE_KEY = 'todos-vuejs';
 
 	exports.todoStorage = {
 
 		fetchAll: function() {
-
-		},
-		fetchOne: function (id) {
-			//return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-			return JSON.parse(todos.findOne(STORAGE_KEY) || "[]");
+			return todos.value();
 		},
 		saveOne: function (todo) {
 			//localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
-			todos.findOne(STORAGE_KEY).update(STORAGE_KEY);
-		}
+			todos.update(todo);
+		},
 		saveAll: function(todos){
 			for(todo in todos){
 				this.saveOne(todo);
 			}
+		},
+		changes: function(added, updated, deleted){
+			todos
+				.on("added", added)
+				.on("updated", updated)
+				.on("deleted", deleted)
 		}
 	};
 

@@ -298,22 +298,22 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],"fusion":[function(require,module,exports){
-'use strict';
+},{}],"Fusion":[function(require,module,exports){
+"use strict";
 
-Object.defineProperty(exports, '__esModule', {
+Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _get = function get(_x2, _x3, _x4) { var _again = true; _function: while (_again) { var object = _x2, property = _x3, receiver = _x4; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x2 = parent; _x3 = property; _x4 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
 
-var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 
-function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var _events = require("events");
 
@@ -323,8 +323,14 @@ var Fusion = (function () {
     function Fusion(hostString) {
         _classCallCheck(this, Fusion);
 
-        this.hostString = hostString;
-        this._socket = new Socket(hostString, this.classify);
+        if (typeof hostString == "object" && hostString.mock == true) {
+            this.hostString = "mock";
+            this._socket = new MockSocket(hostString, this.classify);
+        } else {
+            this.hostString = hostString;
+            this._socket = new Socket(hostString, this.classify);
+        }
+
         // Hack for fusion(collectionName) syntax
         self = function (collectionName) {
             return self.collection(collectionName);
@@ -334,13 +340,13 @@ var Fusion = (function () {
     }
 
     _createClass(Fusion, [{
-        key: 'collection',
+        key: "collection",
         value: function collection(name) {
             //Check if collection exists?? Nope, EAFP let server handle it.
             return new Collection(this, name);
         }
     }, {
-        key: 'classify',
+        key: "classify",
         value: function classify(response) {
             // response -> responseType
             // this might need to go in another class and be given to this class
@@ -357,39 +363,39 @@ var Fusion = (function () {
             }
         }
     }, {
-        key: '_query',
+        key: "_query",
         value: function _query(path) {
             return this.socket.send("QUERY", path);
         }
     }, {
-        key: '_store',
+        key: "_store",
         value: function _store(path, document, conflict) {
             if (conflict === 'replace') {
                 return this.socket.send("STORE_REPLACE", { path: path, data: document });
             } else if (conflict === 'error') {
                 return this.socket.send("STORE_ERROR", { path: path, data: document });
             } else {
-                return Promise.reject('value of conflict not understood: ' + conflict);
+                return Promise.reject("value of conflict not understood: " + conflict);
             }
         }
     }, {
-        key: '_update',
+        key: "_update",
         value: function _update(path, document) {
             return this.socket.send("UPDATE", { path: path, data: document });
         }
     }, {
-        key: '_remove',
+        key: "_remove",
         value: function _remove(path, id) {
             return this.socket.send("REMOVE", { path: path, data: id });
         }
     }, {
-        key: '_subscribe',
+        key: "_subscribe",
         value: function _subscribe(path, updates) {
             if (updates) {
                 return this.socket.subscribe(path);
             } else {
                 //Emulate subscription with one-shot query
-                var emitter = new _events2['default']();
+                var emitter = new _events2["default"]();
                 this.socket.send("QUERY", path).then(
                 // Do we have continues etc like cursors?
                 // Right now assuming we get results back as an array
@@ -409,8 +415,8 @@ var Fusion = (function () {
                         _iteratorError = err;
                     } finally {
                         try {
-                            if (!_iteratorNormalCompletion && _iterator['return']) {
-                                _iterator['return']();
+                            if (!_iteratorNormalCompletion && _iterator["return"]) {
+                                _iterator["return"]();
                             }
                         } finally {
                             if (_didIteratorError) {
@@ -433,7 +439,7 @@ var Socket = (function () {
     function Socket(hostString, classifier) {
         _classCallCheck(this, Socket);
 
-        this.ws = new WebSocket('ws://' + hostString);
+        this.ws = new WebSocket("ws://" + hostString);
         this.ws.onmessage = this._onMessage;
         this.ws.onclose = this._onClose;
         this.ws.onopen = this._onOpen;
@@ -444,7 +450,7 @@ var Socket = (function () {
     }
 
     _createClass(Socket, [{
-        key: 'send',
+        key: "send",
         value: function send(type, data) {
             var _this = this;
 
@@ -455,16 +461,16 @@ var Socket = (function () {
             });
         }
     }, {
-        key: 'subscribe',
+        key: "subscribe",
         value: function subscribe(path) {
             var requestId = this.requestCounter++;
             var req = { type: "SUBSCRIBE", data: data, requestId: requestId };
-            var emitter = new _events2['default'](); // customize?
+            var emitter = new _events2["default"](); // customize?
             this.emitters[requestId] = emitter;
             return emitter;
         }
     }, {
-        key: '_onClose',
+        key: "_onClose",
         value: function _onClose(event) {
             var _iteratorNormalCompletion2 = true;
             var _didIteratorError2 = false;
@@ -482,8 +488,8 @@ var Socket = (function () {
                 _iteratorError2 = err;
             } finally {
                 try {
-                    if (!_iteratorNormalCompletion2 && _iterator2['return']) {
-                        _iterator2['return']();
+                    if (!_iteratorNormalCompletion2 && _iterator2["return"]) {
+                        _iterator2["return"]();
                     }
                 } finally {
                     if (_didIteratorError2) {
@@ -493,7 +499,7 @@ var Socket = (function () {
             }
         }
     }, {
-        key: '_onOpen',
+        key: "_onOpen",
         value: function _onOpen(event) {
             var _iteratorNormalCompletion3 = true;
             var _didIteratorError3 = false;
@@ -510,8 +516,8 @@ var Socket = (function () {
                 _iteratorError3 = err;
             } finally {
                 try {
-                    if (!_iteratorNormalCompletion3 && _iterator3['return']) {
-                        _iterator3['return']();
+                    if (!_iteratorNormalCompletion3 && _iterator3["return"]) {
+                        _iterator3["return"]();
                     }
                 } finally {
                     if (_didIteratorError3) {
@@ -521,7 +527,7 @@ var Socket = (function () {
             }
         }
     }, {
-        key: '_onMessage',
+        key: "_onMessage",
         value: function _onMessage(event) {
             var resp = JSON.parse(event.data);
             if (this.promises.hasOwnProperty(resp.requestId)) {
@@ -541,13 +547,90 @@ var Socket = (function () {
                     emitter.emit(this.classifier(resp.data), resp.value);
                 }
             } else {
-                console.error('Unrecognized response: ' + event);
+                console.error("Unrecognized response: " + event);
             }
         }
     }]);
 
     return Socket;
 })();
+
+var MockSocket = (function (_Socket) {
+    _inherits(MockSocket, _Socket);
+
+    function MockSocket(hostString, classifier) {
+        _classCallCheck(this, MockSocket);
+
+        _get(Object.getPrototypeOf(MockSocket.prototype), "constructor", this).call(this);
+        this.hostString = hostString;
+        this.docs = [];
+        this.classifier = classifier;
+        this.promises = {};
+        this.emitters = {};
+        this.requestCounter = 0;
+    }
+
+    _createClass(MockSocket, [{
+        key: "send",
+        value: function send(type, data) {
+            //Basically, don't actually send anything just store it in an array,
+            // inefficient search and no error handling but fine for mocking
+
+            switch (type) {
+                case "update":
+                    this.docs.forEach(function (doc, index) {
+                        if (doc.id == data.id) {
+                            this.data[index] = data;
+                        }
+                    });
+                    break;
+                case "remove":
+                    this.docs.forEach(function (doc, index) {
+                        if (doc.id == data.id) {
+                            this.data = this.data.splice(index);
+                        }
+                    });
+                    break;
+                case "store_replace":
+                case "store_error":
+                    this.docs.push(data);
+                    break;
+            }
+
+            return Promise.resolve(true);
+        }
+    }, {
+        key: "_onOpen",
+        value: function _onOpen(event) {
+            var _iteratorNormalCompletion4 = true;
+            var _didIteratorError4 = false;
+            var _iteratorError4 = undefined;
+
+            try {
+                for (var _iterator4 = this.emitters[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+                    var emitter = _step4.value;
+
+                    emitter.emit('reconnected', event);
+                }
+            } catch (err) {
+                _didIteratorError4 = true;
+                _iteratorError4 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion4 && _iterator4["return"]) {
+                        _iterator4["return"]();
+                    }
+                } finally {
+                    if (_didIteratorError4) {
+                        throw _iteratorError4;
+                    }
+                }
+            }
+        }
+    }]);
+
+    return MockSocket;
+})(Socket);
 
 var TermBase = (function () {
     function TermBase(fusion) {
@@ -557,13 +640,13 @@ var TermBase = (function () {
     }
 
     _createClass(TermBase, [{
-        key: 'subscribe',
+        key: "subscribe",
         value: function subscribe(updates) {
             // should create a changefeed query, return eventemitter
             return this.fusion._subscribe(this.path);
         }
     }, {
-        key: 'value',
+        key: "value",
         value: function value() {
             // return promise with no changefeed
             return this.fusion._value(this.path);
@@ -583,47 +666,37 @@ var Collection = (function () {
     }
 
     _createClass(Collection, [{
-        key: 'findOne',
-        value: (function (_findOne) {
-            function findOne(_x) {
-                return _findOne.apply(this, arguments);
-            }
-
-            findOne.toString = function () {
-                return _findOne.toString();
-            };
-
-            return findOne;
-        })(function (id) {
-            return new findOne(this.fusion, this.path, id);
-        })
+        key: "findOne",
+        value: function findOne(id) {
+            return new FindOne(this.fusion, this.path, id);
+        }
     }, {
-        key: 'find',
+        key: "find",
         value: function find(fieldName, fieldValue) {
             return new Find(this.fusion, this.path, fieldName, fieldValue);
         }
     }, {
-        key: 'between',
+        key: "between",
         value: function between(minVal, maxVal, field) {
             return new Between(this.fusion, this.path, minVal, maxVal, field);
         }
     }, {
-        key: 'order',
+        key: "order",
         value: function order(field, descending) {
             return new Order(this.fusion, this.path, field, descending);
         }
     }, {
-        key: 'store',
+        key: "store",
         value: function store(document, conflict) {
             return this.fusion._store(this.path, document, conflict);
         }
     }, {
-        key: 'update',
+        key: "update",
         value: function update(document) {
             return this.fusion._update(this.path, document);
         }
     }, {
-        key: 'remove',
+        key: "remove",
         value: function remove(document) {
             return this.fusion._remove(this.path, document);
         }
@@ -638,19 +711,19 @@ var Find = (function (_TermBase) {
     function Find(fusion, path, field, value) {
         _classCallCheck(this, Find);
 
-        _get(Object.getPrototypeOf(Find.prototype), 'constructor', this).call(this, fusion);
+        _get(Object.getPrototypeOf(Find.prototype), "constructor", this).call(this, fusion);
         this.field;
         this.value = value;
         this.path = Object.assign({ find: { field: field, value: value } }, path);
     }
 
     _createClass(Find, [{
-        key: 'order',
+        key: "order",
         value: function order(field, descending) {
             return new Order(this.fusion, this.path, field, descending);
         }
     }, {
-        key: 'limit',
+        key: "limit",
         value: function limit(size) {
             return new Limit(this.fusion, this.path, size);
         }
@@ -665,7 +738,7 @@ var FindOne = (function (_TermBase2) {
     function FindOne(fusion, path, docId) {
         _classCallCheck(this, FindOne);
 
-        _get(Object.getPrototypeOf(FindOne.prototype), 'constructor', this).call(this, fusion);
+        _get(Object.getPrototypeOf(FindOne.prototype), "constructor", this).call(this, fusion);
         this.id = docId;
         this.path = Object.assign({ findOne: docId }, path);
     }
@@ -679,7 +752,7 @@ var Between = (function (_TermBase3) {
     function Between(fusion, path, minVal, maxVal, field) {
         _classCallCheck(this, Between);
 
-        _get(Object.getPrototypeOf(Between.prototype), 'constructor', this).call(this, fusion);
+        _get(Object.getPrototypeOf(Between.prototype), "constructor", this).call(this, fusion);
         this.minVal = minVal;
         this.maxVal = maxVal;
         this.field = field;
@@ -687,7 +760,7 @@ var Between = (function (_TermBase3) {
     }
 
     _createClass(Between, [{
-        key: 'limit',
+        key: "limit",
         value: function limit(size) {
             return new Limit(this.fusion, this.path, size);
         }
@@ -707,12 +780,12 @@ var Order = (function () {
     }
 
     _createClass(Order, [{
-        key: 'limit',
+        key: "limit",
         value: function limit(size) {
             return new Limit(this.fusion, this.path, size);
         }
     }, {
-        key: 'between',
+        key: "between",
         value: function between(minVal, maxVal) {
             // between is forced to have the same field as this term
             return new Between(this.fusion, this.path, minVal, maxVal, this.field);
@@ -728,7 +801,7 @@ var Limit = (function (_TermBase4) {
     function Limit(fusion, path, size) {
         _classCallCheck(this, Limit);
 
-        _get(Object.getPrototypeOf(Limit.prototype), 'constructor', this).call(this, fusion);
+        _get(Object.getPrototypeOf(Limit.prototype), "constructor", this).call(this, fusion);
         this.size = size;
         this.path = Object.assign({ limit: size }, path);
     }
@@ -736,7 +809,7 @@ var Limit = (function (_TermBase4) {
     return Limit;
 })(TermBase);
 
-},{"events":1}]},{},["fusion"])
+},{"events":1}]},{},["Fusion"])
 
 
 //# sourceMappingURL=build.js.map

@@ -12,10 +12,7 @@ function compile(watch) {
     debug: true,
     sourceType: module,
   })
-  .require(
-    "./src/index.js",
-    {expose: "Fusion"} 
-  )
+  .require("./src/index.js", {expose: "Fusion"})
   .transform(babel));
 
 function rebundle() {

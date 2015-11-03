@@ -3,8 +3,15 @@ import EventEmitter from "events"
 export class Fusion {
 
     constructor(hostString){
-        this.hostString = hostString
-        this._socket = new Socket(hostString, this.classify)
+
+        if (typeof hostString == "object" && hostString.mock == true){
+          this.hostString = "mock"
+          this._socket = new MockSocket(hostString, this.classify)
+        } else {
+          this.hostString = hostString
+          this._socket = new Socket(hostString, this.classify)
+        }
+
         // Hack for fusion(collectionName) syntax
         self = (collectionName) => self.collection(collectionName)
         Object.setPrototypeOf(self, Object.getPrototypeOf(this))
@@ -137,6 +144,52 @@ class Socket {
             console.error(`Unrecognized response: ${event}`)
         }
     }
+}
+
+class MockSocket extends Socket {
+  constructor(hostString, classifier){
+    super()
+    this.hostString = hostString;
+    this.docs = [];
+    this.classifier = classifier;
+    this.promises = {};
+    this.emitters = {};
+    this.requestCounter = 0;
+  }
+
+  send(type, data){
+      //Basically, don't actually send anything just store it in an array,
+      // inefficient search and no error handling but fine for mocking
+
+      switch(type){
+        case "update":
+          this.docs.forEach(function(doc, index){
+            if (doc.id == data.id){
+              this.data[index] = data;
+            }
+          });
+          break;
+        case "remove":
+          this.docs.forEach(function(doc, index){
+            if (doc.id == data.id){
+              this.data = this.data.splice(index);
+            }
+          });
+          break;
+        case "store_replace":
+        case "store_error":
+          this.docs.push(data);
+          break;
+      }
+
+      return Promise.resolve(true);
+  }
+
+  _onOpen(event){
+      for(let emitter of this.emitters){
+          emitter.emit('reconnected', event);
+      }
+  }
 }
 
 
