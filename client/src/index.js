@@ -42,7 +42,7 @@ export class Fusion {
     }
 
     _query(query){
-        console.log("Sending query: ", query)
+        console.log("Enqueueing query: ", query)
         return this._socket.send("query", query)
     }
 
@@ -72,7 +72,7 @@ export class Fusion {
                 // Do we have continues etc like cursors?
                 // Right now assuming we get results back as an array
                 (results) => {
-                    for(let result of results) {
+                    for(let result of results){
                         emitter.emit("added", {new_val: result, old_val: null})
                     }
                 }
@@ -90,18 +90,24 @@ class Socket {
         this.promises = {}
         this.emitters = {}
         this.requestCounter = 0
-        this.wsPromise = new Promise((resolve, reject) => {
+        this.wsPromise = (new Promise((resolve, reject) => {
             console.log("Creating websocket")
             let ws = new WebSocket("wss://"+hostString, [PROTOCOL_VERSION])
             ws.onopen = (event) => resolve(ws)
             ws.onerror = (event) => reject(event)
-        }).then((ws) => {
+        })).then((ws) => {
             console.log("Websocket created, sending handshake")
             let handshake = {}
             return new Promise((resolve, reject) => {
                 // TODO: check handshake response once it has something in it
-                ws.onmessage = (handshake_response) => resolve(ws)
-                ws.onerror = (event) => reject(event)
+                ws.onmessage = (handshakeResponse) => {
+                    console.log("Received handshake response:", handshakeResponse)
+                    resolve(ws)
+                }
+                ws.onerror = (event) => {
+                    console.log("Received an error on websocket", handshakeResponse)
+                    reject(event)
+                }
                 ws.send(JSON.stringify(handshake))
             })
         }).then((ws) => {
@@ -110,14 +116,17 @@ class Socket {
             ws.onclose = this._onClose.bind(this)
             ws.onopen = this._onOpen.bind(this)
             ws.onerror = this._onError.bind(this)
-        })
+            return ws
+        }).catch(console.log.bind(console))
     }
 
     send(type, data){
-        console.log("sending")
         var requestId = this.requestCounter++
         var req = {type: type, options: data, request_id: requestId}
-        this.wsPromise.then((ws) => ws.send(JSON.stringify(req)))
+        this.wsPromise.then((ws) => {
+            console.log("sending: ", req)
+            ws.send(JSON.stringify(req))
+        })
         return new Promise((resolve, reject) =>
             this.promises[requestId] = {resolve: resolve, reject:reject})
     }
@@ -133,6 +142,7 @@ class Socket {
     }
 
     _onClose(event){
+        console.log("Got a close event :(", event)
         for(let emitter of this.emitters){
             emitter.emit('disconnected', event)
         }
