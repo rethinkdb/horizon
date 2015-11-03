@@ -32,7 +32,7 @@ var check = function (pred, message) {
 
 var add_endpoint = function (endpoints, endpoint_name, check_fn, reql_fn, response_fn) {
   var endpoint = endpoints[endpoint_name];
-  check(!endpoint);
+  check(endpoint === undefined);
 
   endpoint = new Object();
   endpoint.check_request = check_fn;
@@ -292,20 +292,20 @@ class Client {
 
   run_query(query) {
       var conn = this.reql_conn.get_connection();
-      check(conn, `Connection to the database is down.`);
+      check(conn !== undefined, `Connection to the database is down.`);
       console.log(`Running ${JSON.stringify(query.reql.build())}`);
-      query.reql.run(conn)
-        .then((res) => this.handle_response(query, res))
-        .catch((err) => this.handle_response_error(query, err));
+
+      query.reql.run(conn).then((res) => this.handle_response(query, res),
+		                (err) => this.handle_response_error(query, err));
   }
 
   run_query_prerequisite(query, root_term) {
       var conn = this.reql_conn.get_connection();
-      check(conn, `Connection to the database is down.`);
+      check(conn !== undefined, `Connection to the database is down.`);
       console.log(`Running [${root_term.build()}]`);
-      root_term.run(conn)
-        .then((res) => this.rundata(query))
-        .catch((err) => this.handle_response_error(query, err));
+
+      root_term.run(conn).then((res) => this.run_query(query),
+                               (err) => this.handle_response_error(query, err));
   }
 
   handle_response(query, res) {
@@ -335,42 +335,37 @@ class Client {
 
     // If the index or table is still building, wait on them
     matches = info.msg.match(/Table `\w+\.(\w+)` is not ready\./); // TODO: get real error message
-    console.log(`Error matches table not ready: ${matches}`);
     if (matches !== null && matches.length === 2) {
-      console.log(`Waiting for table '${matches[1]}'`);
+      console.log(`WARNING: waiting for table to be ready: '${matches[1]}'`);
       return this.run_query_prerequisite(query,
         r.table(String(matches[1])).wait());
     }
 
     matches = info.msg.match(/Index `(\w+)` on table `\w+\.(\w+)` was accessed before its construction was finished\./);
-    console.log(`Error matches index not ready: ${matches}`);
     if (matches !== null && matches.length === 3) {
-      console.log(`Waiting for index '${matches[2]}:${matches[1]}'`);
+      console.log(`WARNING: waiting for index to be ready: '${matches[2]}:${matches[1]}'`);
       return this.run_query_prerequisite(query,
         r.table(String(matches[2])).indexWait(String(matches[1])));
     }
 
     // If a db, table, or index used does not exist, we must create them
     matches = info.msg.match(/Database `(\w+)` does not exist\./);
-    console.log(`Error matches database missing: ${matches}`);
     if (matches != null && matches.length == 2) {
-      console.log(`Creating missing db '${matches[1]}'`);
+      console.log(`WARNING: creating missing db: '${matches[1]}'`);
       return this.run_query_prerequisite(query,
         r.dbCreate(String(matches[1])));
     }
 
     matches = info.msg.match(/Table `\w+\.(\w+)` does not exist\./);
-    console.log(`Error matches table missing: ${matches}`);
     if (matches !== null && matches.length === 2) {
-      console.log(`Creating missing table '${matches[1]}'`);
+      console.log(`WARNING: creating missing table: '${matches[1]}'`);
       return this.run_query_prerequisite(query,
         r.tableCreate(String(matches[1])));
     }
 
     matches = info.msg.match(/Index `(\w+)` was not found on table `\w+\.(\w+)`\./);
-    console.log(`Error matches index missing: ${matches}`);
     if (matches !== null && matches.length === 3) {
-      console.log(`Creating missing index '${matches[2]}:${matches[1]}'`);
+      console.log(`WARNING: creating missing index: '${matches[2]}:${matches[1]}'`);
       return this.run_query_prerequisite(query,
         r.table(String(matches[2])).indexCreate(String(matches[1])));
     }
