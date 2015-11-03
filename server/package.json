@@ -19,5 +19,8 @@
   "dependencies": {
     "rethinkdb": "^2.1.1",
     "ws": "^0.8.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.8.1"
   }
 }
