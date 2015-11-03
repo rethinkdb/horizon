@@ -93,7 +93,7 @@ class Socket {
         this.requestCounter = 0
         this.wsPromise = (new Promise((resolve, reject) => {
             console.log("Creating websocket")
-            let ws = new WebSocket("wss://"+hostString, PROTOCOL_VERSION)
+            let ws = new WebSocket("ws://"+hostString, PROTOCOL_VERSION)
             ws.onopen = (event) => resolve(ws)
             ws.onerror = (event) => reject(event)
         })).then((ws) => {
