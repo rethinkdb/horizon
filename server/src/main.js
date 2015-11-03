@@ -142,7 +142,7 @@ var make_read_reql = function(request) {
   }
 
   if (type === "subscribe") {
-    reql = reql.changes();
+    reql = reql.changes({ "include_states": true });
   }
 
   return reql;
@@ -167,23 +167,42 @@ var make_write_reql = function(request) {
   return reql;
 };
 
-// TODO: separate handling for feeds - add 'synced' state
-var handle_read_response = function(request, response, send_cb) {
-  console.log(`Handling read response.`);
-  if (response.constructor.name == 'Cursor' ||
-      response.constructor.name == 'Feed') {
-    response.each((err, item) => {
-        console.log(`Cursor result: err ${JSON.stringify(err)}, item ${JSON.stringify(item)}`);
+var handle_cursor = function(cursor, send_cb) {
+    cursor.each((err, item) => {
         if (err) {
           send_cb({ 'error': `${err}` });
         } else {
           send_cb({ 'data': [item] });
         }
       }, () => send_cb({ 'data': [], 'state': 'complete' }));
-  } else if (response.constructor.name == 'Array') {
-    send_cb({ 'data': response });
+};
+
+var handle_feed = function(feed, send_cb) {
+    feed.each((err, item) => {
+        if (err) {
+          send_cb({ 'error': `${err}` });
+        } else if (item.state === "initializing") {
+          // Do nothing - we don't care
+        } else if (item.state === "ready") {
+          send_cb({ 'state': 'synced' });
+        } else {
+          send_cb({ 'data': [item] });
+        }
+      }, () => send_cb({ 'data': [], 'state': 'complete' }));
+};
+
+// TODO: separate handling for feeds - add 'synced' state
+var handle_read_response = function(request, response, send_cb) {
+  if (request.type === "query") {
+    if (response.constructor.name === 'Cursor') {
+      handle_cursor(response, send_cb);
+    } else if (response.constructor.name === 'Array') {
+      send_cb({ 'data': response });
+    } else {
+      send_cb({ "data": [response] });
+    }
   } else {
-    send_cb({ "data": [response] });
+    handle_feed(response, send_cb);
   }
 }
 
