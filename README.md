@@ -31,6 +31,8 @@ developers:
   the data from unauthorized access.
 - __Geolocation__ -- an API that makes it very easy to build
   location-aware apps.
+- __Session management__ -- manage browser session and session
+  information.
 - __Presence__ -- an API for detecting presence information for a given
   user and sharing it with others.
 
