@@ -100,7 +100,7 @@ var make_read_reql = function(request) {
     reql = reql.orderBy({'index': r.asc(index)})
   } else if (order === 'descending') {
     reql = reql.orderBy({'index': r.desc(index)})
-  } else {
+  } else if (order !== undefined) {
     fail(`'options.order' must be either 'ascending' or 'descending'.`);
   }
 
