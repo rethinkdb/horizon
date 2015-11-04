@@ -28,11 +28,11 @@ export class Fusion {
     classify(response){
         // response -> responseType
         // this might need to go in another class and be given to this class
-        if(response.new_val !== null && response.data.old_val !== null){
+        if(response.new_val !== null && response.old_val !== null){
             return 'changed'
-        }else if(response.data.new_val !== null && response.data.old_val === null){
+        }else if(response.new_val !== null && response.old_val === null){
             return 'added'
-        }else if(response.data.new_val === null && response.data.old_val !== null){
+        }else if(response.new_val === null && response.old_val !== null){
             return 'removed'
         }else{
             return 'unknown'
@@ -328,7 +328,7 @@ class Collection extends TermBase {
 class Find extends TermBase {
     constructor(fusion, query, field, value){
         super(fusion)
-        this.field
+        this.field = field
         this.value = value
         this.query = Object.assign({
             selection: {type: 'find', args: [value]},
