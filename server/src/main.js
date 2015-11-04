@@ -452,7 +452,7 @@ var main = function(http_host_port, rethinkdb_host_port) {
 
       if (reqPath === '/fusion.js') {
         fs.access(filePath,
-        fs.R_OK | fs.F_OK,
+        fs.R_OK,
         function(exists) {
 
           //Check if file exists
