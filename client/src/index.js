@@ -64,6 +64,7 @@ export class Fusion {
     }
 
     _subscribe(query, updates){
+        console.debug("For query", query, "updates is", updates)
         if(updates){
             return this._socket.subscribe(query)
         }else{
@@ -136,11 +137,11 @@ class Socket {
     }
 
     subscribe(query){
-        console.debug("subscribing")
-        var requestId = this.requestCounter++
-        var req = {type: "subscribe", options: data, request_id: requestId}
+        let requestId = this.requestCounter++
+        let req = {type: "subscribe", options: query, request_id: requestId}
         this.wsPromise.then((ws) => ws.send(JSON.stringify(req)))
-        var emitter = new EventEmitter() // customize?
+        console.debug(`Creating and stashing emitter for request id ${requestId}`)
+        let emitter = new EventEmitter() // customize?
         this.emitters.set(requestId, emitter)
         return emitter
     }
@@ -166,10 +167,11 @@ class Socket {
 
     _onMessage(event){
         console.debug("Got a new message on the socket. Emitters is", this.emitters, "and promises is", this.promises)
-        var resp = JSON.parse(event.data)
+        let resp = JSON.parse(event.data)
         if(this.promises.has(resp.request_id)){
-            console.debug(`Found request id ${resp.request_id} in the emitters cache`)
+            console.debug(`Found request id ${resp.request_id} in the promises cache`)
             let promise = this.promises.get(resp.request_id)
+            this.promises.delete(resp.request_id)
 
             if (resp.error !== undefined){
                 promise.reject(resp.error)
@@ -196,6 +198,7 @@ class Socket {
                     emitter.emit('end')
                 }
             }
+            console.debug("Emitters after emitting is", this.emitters)
         }else{
             console.error("Didn't find request id ", resp.request_id, " in emitters or promises", resp)
         }
@@ -255,12 +258,12 @@ class TermBase {
         this.fusion = fusion
     }
 
-    subscribe(updates: true){
+    subscribe(updates=true){
         // should create a changefeed query, return eventemitter
-        return this.fusion._subscribe(this.query)
+        return this.fusion._subscribe(this.query, updates)
     }
 
-    unsubscribe(updates: true){
+    unsubscribe(updates=true){
         throw new Exception("Not implemented")
     }
 
@@ -294,7 +297,7 @@ class Collection extends TermBase {
         return new Order(this.fusion, this.query, field, ascending)
     }
 
-    store(document, conflict: 'replace'){
+    store(document, conflict='replace'){
         return this.fusion._store(this.query, document, conflict)
     }
 

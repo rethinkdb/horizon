@@ -10,14 +10,16 @@
          var blob = Fusion('blob')
          blob.value().then((data) => {
              console.log("Application got back:" + JSON.stringify(data));
-         }, function onError(err) {
-             console.log("Dangit: ", err)
+         }, (err) => {
+             console.log("Dangit: ", err);
          }).then((data) => {
              blob.subscribe().on("added", (value) => console.log("Item added: ", value))
+         }).then((data) => {
+             return blob.store({"some": "data", 'id': 1}, 'replace');
+         }).then((resp) => {
+             console.log(`Got back store response: ${resp}`);
          })
-         blob.store({"some": "data", 'id': 1}, 'replace').then((resp) => {
-             console.log(`Got back store response: ${resp}`)
-         })
+
 
 
         </script>
