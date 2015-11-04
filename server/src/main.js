@@ -187,7 +187,7 @@ var handle_write_response = function(request, response, send_cb) {
   console.log(`Handling write response.`);
   if (response.errors !== 0) {
     send_cb({ 'error': response.first_error });
-  } else if (response.changes.length !== 1) {
+  } else if (response.changes.length === 1) {
     send_cb(response.changes[0]);
   } else if (response.unchanged === 1) {
     send_cb({ 'old_val': request.data, 'new_val': request.data });
