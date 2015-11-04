@@ -28,14 +28,14 @@ export class Fusion {
     classify(response){
         // response -> responseType
         // this might need to go in another class and be given to this class
-        if(response.new_val !== null && response.old_val !== null){
-            return 'changed'
-        }else if(response.new_val !== null && response.old_val === null){
-            return 'added'
-        }else if(response.new_val === null && response.old_val !== null){
-            return 'removed'
-        }else if(response.state === 'synced'){
+        if(response.state === 'synced'){
             return 'synced'
+        }else if(response.data.new_val !== null && response.data.old_val !== null){
+            return 'changed'
+        }else if(response.data.new_val !== null && response.data.old_val === null){
+            return 'added'
+        }else if(response.data.new_val === null && response.data.old_val !== null){
+            return 'removed'
         }else{
             return 'unknown'
         }
@@ -43,17 +43,20 @@ export class Fusion {
 
     _query(query){
         console.debug("Enqueueing query: ", JSON.stringify(query))
-        return this._socket.send("query", query)
+        // determine if the query is a find_one
+        let pointQuery = (query.selection !== undefined &&
+                          query.selection.type === 'find_one')
+        return this._socket.send("query", query, pointQuery)
     }
 
     _store(collection, document, conflict){
         let command = Object.assign({data: document}, collection)
         if(conflict === 'replace'){
-            return this._socket.send("store_replace", command)
+            return this._socket.send("store_replace", command, true)
         }else if(conflict === 'error'){
-            return this._socket.send("store_error", command)
+            return this._socket.send("store_error", command, true)
         }else if(conflict === 'update'){
-            return this._socket.send("store_update", command)
+            return this._socket.send("store_update", command, true)
         }else{
             return Promise.reject(`value cant store with conflict argument: ${conflict}`)
         }
@@ -64,7 +67,6 @@ export class Fusion {
     }
 
     _subscribe(query, updates){
-        console.debug("For query", query, "updates is", updates)
         if(updates){
             return this._socket.subscribe(query)
         }else{
@@ -74,9 +76,9 @@ export class Fusion {
                 // Do we have continues etc like cursors?
                 // Right now assuming we get results back as an array
                 (results) => {
-                    for(let result of results){
+                    results.forEach((result) => {
                         emitter.emit("added", {new_val: result, old_val: null})
-                    }
+                    })
                 }
             )
             return emitter
@@ -124,7 +126,7 @@ class Socket {
         })
     }
 
-    send(type, data){
+    send(type, data, pointQuery=false){
         var requestId = this.requestCounter++
         var req = {type: type, options: data, request_id: requestId}
         this.wsPromise.then((ws) => {
@@ -132,7 +134,12 @@ class Socket {
             ws.send(JSON.stringify(req))
         })
         return new Promise((resolve, reject) => {
-            this.promises.set(requestId, {resolve: resolve, reject: reject})
+            this.promises.set(requestId, {
+                resolve: resolve,
+                reject: reject,
+                partialResult: [],
+                pointQuery: pointQuery,
+            })
         })
     }
 
@@ -170,17 +177,20 @@ class Socket {
         let resp = JSON.parse(event.data)
         if(this.promises.has(resp.request_id)){
             console.debug(`Found request id ${resp.request_id} in the promises cache`)
-            let promise = this.promises.get(resp.request_id)
-            this.promises.delete(resp.request_id)
+            let promObj = this.promises.get(resp.request_id)
 
             if (resp.error !== undefined){
-                promise.reject(resp.error)
-            } else {
-                if(resp.result !== undefined){
-                    promise.resolve(resp.result)
-                }else if(resp.data !== undefined){
-                    promise.resolve(resp.data)
+                promObj.reject(resp.error)
+            }else if(resp.data !== undefined){
+                let partialResult = promObj.partialResult
+                partialResult.push.apply(partialResult, resp.data)
+            }
+            if(resp.state === 'complete'){
+                this.promises.delete(resp.request_id)
+                if(promObj.pointQuery){
+                    promObj.resolve(promObj.partialResult[0])
                 }else{
+                    promObj.resolve(promObj.partialResult)
                 }
             }
         }else if(this.emitters.has(resp.request_id)){
@@ -191,14 +201,15 @@ class Socket {
             }else if(resp.result !== undefined){
                 emitter.emit(resp.result)
             }else{
-                emitter.emit(this.classifier(resp.data), resp.data)
+                console.debug("Classifying response:", resp)
+                let respType = this.classifier(resp)
+                emitter.emit(respType, resp.data)
                 if(resp.state === 'synced'){
                     emitter.emit('synced')
                 }else if(resp.state === 'complete'){
                     emitter.emit('end')
                 }
             }
-            console.debug("Emitters after emitting is", this.emitters)
         }else{
             console.error("Didn't find request id ", resp.request_id, " in emitters or promises", resp)
         }
