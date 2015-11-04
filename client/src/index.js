@@ -28,9 +28,7 @@ export class Fusion {
     classify(response){
         // response -> responseType
         // this might need to go in another class and be given to this class
-        if(response.state === 'synced'){
-            return 'synced'
-        }else if(response.data.new_val !== null && response.data.old_val !== null){
+        if(response.new_val !== null && response.data.old_val !== null){
             return 'changed'
         }else if(response.data.new_val !== null && response.data.old_val === null){
             return 'added'
@@ -202,8 +200,11 @@ class Socket {
                 emitter.emit(resp.result)
             }else{
                 console.debug("Classifying response:", resp)
-                let respType = this.classifier(resp)
-                emitter.emit(respType, resp.data)
+                if(Array.isArray(resp.data)){
+                    resp.data.forEach((subResp) => {
+                        emitter.emit(this.classifier(subResp), subResp)
+                    })
+                }
                 if(resp.state === 'synced'){
                     emitter.emit('synced')
                 }else if(resp.state === 'complete'){
