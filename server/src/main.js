@@ -4,7 +4,8 @@ const websocket = require('ws'),
  r = require('rethinkdb'),
  fs = require('fs'),
  url = require('url'),
- path = require('path');
+ path = require('path'),
+ nopt = require('nopt');
 
 //var accept_client = function (info, cb) {
   // TODO: parse out the auth parameters from info['req'], and pass them through the
@@ -31,16 +32,13 @@ var check = function (pred, message) {
   }
 };
 
-var add_endpoint = function (endpoints, endpoint_name, check_fn, reql_fn, response_fn) {
-  var endpoint = endpoints[endpoint_name];
-  check(endpoint === undefined);
+var fail = function (message) {
+  check(false, message);
+};
 
-  endpoint = new Object();
-  endpoint.check_request = check_fn;
-  endpoint.make_reql = reql_fn;
-  endpoint.handle_response = response_fn;
-
-  endpoints[endpoint_name] = endpoint;
+var add_endpoint = function (endpoints, endpoint_name, make_reql, handle_response) {
+  check(endpoints.get(endpoint_name) === undefined);
+  endpoints.set(endpoint_name, { make_reql: make_reql, handle_response: handle_response });
 };
 
 var get_endpoint = function (endpoints, request) {
@@ -55,20 +53,28 @@ var get_endpoint = function (endpoints, request) {
   return endpoint;
 };
 
+class Query {
+  constructor(request, endpoint) {
+    this.request = request;
+    this.endpoint = endpoint;
+    this.reql = endpoint.make_reql(request);
+  }
+};
+
 // TODO: check for unknown fields
-var check_read_request = function (request) {
+var make_read_reql = function(request) {
   var type = request.type;
   var options = request.options;
   var collection = options.collection;
-  var field_name = options.field_name;
-  var selection = options.selection;
-  var limit = options.limit;
-  var order = options.order;
+  var index = options.field_name || 'id'; // TODO: possibly require this to be specified
 
   check(collection !== undefined, `'options.collection' must be specified.`);
   check(collection.constructor.name === 'String',
         `'options.collection' must be a string.`)
 
+  var reql = r.table(collection);
+
+  var selection = options.selection;
   if (selection !== undefined) {
     var selection_type = selection.type;
     var selection_args = selection.args;
@@ -78,93 +84,34 @@ var check_read_request = function (request) {
 
     if (selection_type === 'find_one') {
       check(selection_args.length === 1, `'options.selection.args' must have one argument for 'find_one'`);
+      reql = reql.get(selection_args[0], {'index': index});
     } else if (selection_type === 'find') {
+      reql = reql.getAll.apply(reql, selection_args.concat({'index': index}));
     } else if (selection_type === 'between') {
       check(selection_args.length === 2, `'options.selection.args' must have two arguments for 'between'`);
+      reql = reql.between.apply(reql, selection_args.concat({'index': index}));
     } else {
-      check(false, `'options.selection.type' must be one of 'find', 'find_one', or 'between'.`)
+      fail(`'options.selection.type' must be one of 'find', 'find_one', or 'between'.`)
     }
   }
 
+  var order = options.order;
+  if (order === 'ascending') {
+    reql = reql.orderBy({'index': r.asc(index)})
+  } else if (order === 'descending') {
+    reql = reql.orderBy({'index': r.desc(index)})
+  } else {
+    fail(`'options.order' must be either 'ascending' or 'descending'.`);
+  }
+
+  var limit = options.limit;
   if (limit !== undefined) {
     check(parseInt(limit) === limit, `'options.limit' must be an integer.`);
-  }
-  if (order !== undefined) {
-    check(order === 'ascending' || order === 'descending',
-          `'options.order' must be either 'ascending' or 'descending'.`)
-  }
-};
-
-var check_write_request = function (request) {
-  var type = request.type;
-  var options = request.options;
-  var collection = options.collection;
-  var data = options.data;
-
-  check(collection !== undefined, `'options.collection' must be specified.`);
-  check(data !== undefined, `'options.data' must be specified.`);
-  check(data.id !== undefined, `'options.data.id' must be specified.`);
-
-  check(collection.constructor.name === 'String',
-        `'options.collection' must be a string.`)
-};
-
-class Query {
-  constructor(request, endpoint) {
-    this.request = request;
-    this.endpoint = endpoint;
-    endpoint.check_request(request);
-    this.reql = endpoint.make_reql(request);
-  }
-};
-
-var make_read_reql = function(request) {
-  var type = request.type;
-  var options = request.options;
-  var index = options.field_name || 'id'; // TODO: possibly require this to be specified
-  var reql = r.table(options.collection);
-
-  if (options.selection !== undefined) {
-    if (options.selection.type === 'find_one') {
-      reql = reql.get(options.selection.args[0], {'index': index});
-    } else if (options.selection.type === 'find') {
-      reql = reql.getAll.apply(reql, options.selection.args.concat({'index': index}));
-    } else if (options.selection.type === 'between') {
-      reql = reql.between.apply(reql, options.selection.args.concat({'index': index}));
-    }
-  }
-
-  if (options.order === 'ascending') {
-    reql = reql.orderBy({'index': r.asc(index)})
-  } else if (options.order === 'descending') {
-    reql = reql.orderBy({'index': r.desc(index)})
-  }
-
-  if (options.limit !== undefined) {
-    reql = reql.limit(options.limit);
+    reql = reql.limit(limit);
   }
 
   if (type === 'subscribe') {
     reql = reql.changes({ 'include_states': true });
-  }
-
-  return reql;
-};
-
-var make_write_reql = function(request) {
-  var type = request.type;
-  var options = request.options;
-  var reql = r.table(options.collection);
-
-  // TODO: consider returnChanges: true
-  if (type === 'store_update') {
-    reql = reql.insert(options.data, { 'conflict': 'update' });
-  } else if (type === 'store_replace') {
-    reql = reql.insert(options.data, { 'conflict': 'replace' });
-  } else if (type === 'store_error') {
-    reql = reql.insert(options.data, { 'conflict': 'error' });
-  } else {
-    reql = reql.get(options.data.id).delete();
   }
 
   return reql;
@@ -209,24 +156,45 @@ var handle_read_response = function(request, response, send_cb) {
   }
 }
 
+var make_write_reql = function(request) {
+  var type = request.type;
+  var options = request.options;
+  var collection = options.collection;
+  var data = options.data;
+
+  check(data !== undefined, `'options.data' must be specified.`);
+  check(collection !== undefined, `'options.collection' must be specified.`);
+  check(collection.constructor.name === 'String',
+        `'options.collection' must be a string.`)
+
+  var reql = r.table(collection);
+
+  if (type === 'store_update') {
+    reql = reql.insert(data, { 'conflict': 'update', 'returnChanges': true });
+  } else if (type === 'store_replace') {
+    reql = reql.insert(data, { 'conflict': 'replace', 'returnChanges': true });
+  } else if (type === 'store_error') {
+    reql = reql.insert(data, { 'conflict': 'error', 'returnChanges': true });
+  } else {
+    check(data.id !== undefined, `'options.data.id' must be specified for 'remove'.`);
+    reql = reql.get(data.id).delete({ 'returnChanges': true });
+  }
+
+  return reql;
+};
+
 var handle_write_response = function(request, response, send_cb) {
   console.log(`Handling write response.`);
   if (response.errors !== 0) {
     send_cb({ 'error': response.first_error });
+  } else if (response.changes.length !== 1) {
+    send_cb(response.changes[0]);
+  } else if (response.unchanged === 1) {
+    send_cb({ 'old_val': request.data, 'new_val': request.data });
+  } else if (response.skipped === 1) {
+    send_cb({ 'old_val': null, 'new_val': null });
   } else {
-    check(response.inserted + response.replaced + response.unchanged + response.skipped + response.deleted === 1,
-          `Unexpected response counts: ${JSON.stringify(response)}`);
-    if (response.inserted === 1) {
-      send_cb({ 'result': 'created' });
-    } else if (request.type === 'store_update') {
-      send_cb({ 'result': 'updated'});
-    } else if (request.type === 'store_replace') {
-      send_cb({ 'result': 'replaced'});
-    } else if (response.deleted === 1) {
-      send_cb({ 'result': 'removed' });
-    } else {
-      check(false, `Unexpected response counts: ${response}`)
-    }
+    fail(`Unexpected response counts: ${JSON.stringify(response)}`);
   }
 };
 
@@ -396,12 +364,12 @@ class ReqlConnection {
     this.db = 'fusion'; // TODO: configurable DB
     this.clients = clients;
     this.connection = null;
-    this.reconnect_delay = 0.1;
+    this.reconnect_delay = 0;
     this.reconnect();
   }
 
   reconnect() {
-    console.log(`Connecting to RethinkDB: ${this.host}`);
+    console.log(`Connecting to RethinkDB: ${this.host}:${this.port}`);
     r.connect({ 'host': this.host, 'port': this.port, 'db': this.db })
      .then(conn => this.handle_conn_success(conn))
      .catch(err => this.handle_conn_error(err));
@@ -410,6 +378,7 @@ class ReqlConnection {
   handle_conn_success(conn) {
     console.log(`Connection to RethinkDB established.`);
     this.connection = conn;
+    this.reconnect_delay = 0;
     this.connection.on('error', (err) => this.handle_conn_error(err));
   }
 
@@ -419,6 +388,7 @@ class ReqlConnection {
       this.connection = null;
       this.clients.forEach((client) => client.reql_connection_lost());
       setTimeout(() => this.reconnect(), this.reconnect_delay);
+      this.reconnect_delay = Math.min(this.reconnect_delay + 100, 1000);
     }
   }
 
@@ -427,73 +397,142 @@ class ReqlConnection {
   }
 }
 
-var main = function(http_host_port, rethinkdb_host_port) {
-  var clients = new Set();
-  var endpoints = new Object();
+//Function which handles just the /fusion.js endpoint
+var handle_http_request = function(req, res) {
+  const reqPath = url.parse(req.url).pathname;
+  const filePath = path.resolve('../client/dist/build.js');
 
-  add_endpoint(endpoints, 'subscribe', check_read_request, make_read_reql, handle_read_response);
-  add_endpoint(endpoints, 'query', check_read_request, make_read_reql, handle_read_response);
+  if (reqPath === '/fusion.js') {
+    fs.access(filePath,
+    fs.R_OK | fs.F_OK,
+    function (exists) {
+        // Check if file exists
+        if (exists) {
+          res.writeHead('404', {'Content-Type': 'text/plain'});
+          res.write('Client library not found\n');
+          res.end();return;
+        }
 
-  add_endpoint(endpoints, 'store_error', check_write_request, make_write_reql, handle_write_response);
-  add_endpoint(endpoints, 'store_update', check_write_request, make_write_reql, handle_write_response);
-  add_endpoint(endpoints, 'store_replace', check_write_request, make_write_reql, handle_write_response);
-  add_endpoint(endpoints, 'remove', check_write_request, make_write_reql, handle_write_response);
-
-  // TODO: need some persistent configuration of rethinkdb server(s) to connect to
-  var reql_conn = new ReqlConnection('newton.local', 59435, clients);
-
-  // TODO: need some persistent configuration for hostname/ports to listen on, as well as certificate config
-  var http_server = new http.Server(
-    //Function which handles just the /fusion.js endpoint
-    function(req, res) {
-
-      const reqPath = url.parse(req.url).pathname;
-      const filePath = path.resolve('../client/dist/build.js');
-
-      if (reqPath === '/fusion.js') {
-        fs.access(filePath,
-        fs.R_OK | fs.F_OK,
-        function(exists) {
-
-          //Check if file exists
-          if (exists) {
-            res.writeHead('404', {'Content-Type': 'text/plain'});
-            res.write('Client library not found\n');
-            res.end();return;
-          }
-
-          //filePath exists now just need to read from it.
-          fs.readFile(filePath, 'binary', function(err, file) {
-
-            //Error while reading from file
+        // filePath exists now just need to read from it.
+        fs.readFile(filePath, 'binary', function (err, file) {
+            // Error while reading from file
             if (err) {
               res.writeHead(500, {'Content-Type': 'text/plain'});
               res.write(err + '\n');
               res.end();return;
             }
 
-            //File successfully read, write contents to response
+            // File successfully read, write contents to response
             res.writeHead(200);
             res.write(file, 'binary');
             res.end();return;
           });
 
-        });
-      } else {
-        res.writeHead('403', {'Content-Type': 'text/plain'});
-        res.write('Forbidden');
-        res.end();
-      }
-    });
-
-  http_server.listen(31420, 'localhost');
-
-  var websocket_server = new websocket.Server(
-    { 'server': http_server,
-      'handleProtocols': accept_protocol });
-
-  websocket_server.on('error', (error) => console.log(`Websocket server error: ${error}`));
-  websocket_server.on('connection', (socket) => new Client(socket, reql_conn, endpoints, clients));
+      });
+  } else {
+    res.writeHead('403', {'Content-Type': 'text/plain'});
+    res.write('Forbidden');
+    res.end();
+  }
 };
 
-main();
+var main = function(local_hosts, local_port, rdb_host, rdb_port, unsafe, key_file, cert_file) {
+  var clients = new Set();
+  var endpoints = new Map();
+
+  add_endpoint(endpoints, 'subscribe', make_read_reql, handle_read_response);
+  add_endpoint(endpoints, 'query', make_read_reql, handle_read_response);
+
+  add_endpoint(endpoints, 'store_error', make_write_reql, handle_write_response);
+  add_endpoint(endpoints, 'store_update', make_write_reql, handle_write_response);
+  add_endpoint(endpoints, 'store_replace', make_write_reql, handle_write_response);
+  add_endpoint(endpoints, 'remove', make_write_reql, handle_write_response);
+
+  var reql_conn = new ReqlConnection(rdb_host, rdb_port, clients);
+
+  var websocket_servers = new Set();
+
+  local_hosts.forEach((host) => {
+      var http_server;
+      if (unsecure) {
+         http_server = new http.Server(handle_http_request);
+      } else {
+         http_server = new https.Server({ key: fs.readFileSync(key_file),
+                                          cert: fs.readFileSync(cert_file) }, handle_http_request);
+      }
+      http_server.listen(local_port, host);
+
+      var websocket_server = new websocket.Server(
+        { 'server': http_server,
+          'handleProtocols': accept_protocol });
+
+      websocket_server.on('error', (error) => console.log(`Websocket server error: ${error}`));
+      websocket_server.on('connection', (socket) => new Client(socket, reql_conn, endpoints, clients));
+
+      websocket_servers.add(websocket_server);
+    });
+};
+
+// TODO: persistent config
+var parsed = new nopt({ bind: [String, Array], port: Number, connect: String, unsecure: Boolean, key_file: path, cert_file: path });
+var print_usage = function () {
+  console.log('Usage: node fusion.js [OPTIONS]');
+  console.log('');
+  console.log('  --bind HOST            local hostname to serve fusion on (repeatable)');
+  console.log('  --port PORT            local port to serve fusion on');
+  console.log('  --connect HOST:PORT    host and port of the RethinkDB server to connect to');
+  console.log('  --unsecure             serve unsecure websockets, ignore --key-file and --cert-file');
+  console.log('  --key-file PATH        path to the key file to use, defaults to ./key.pem');
+  console.log('  --cert-file PATH       path to the cert file to use, defaults to ./cert.pem');
+  console.log('');
+};
+
+if (parsed.help) {
+  print_usage();
+  process.exit(0);
+} else if (parsed.argv.remain.length !== 0) {
+  // TODO: nopt doesn't let us discover extra '--flag' options - choose a new library
+  console.log(`Unrecognized argument: ${parsed.argv.remain[0]}`);
+  print_usage();
+  process.exit(0);
+}
+
+var local_hosts = new Set(['localhost']);
+var local_port = 31420;
+var rdb_host = 'localhost';
+var rdb_port = 28015;
+var unsecure = !!parsed.unsecure;
+var key_file = './key.pem';
+var cert_file = './cert.pem';
+
+if (parsed.bind !== undefined) {
+  parsed.bind.forEach((item) => local_hosts.add(item));
+}
+
+if (parsed.port !== undefined) {
+  local_port = parsed.port;
+}
+
+if (parsed.connect !== undefined) {
+  var host_port = parsed.connect.split(':');
+  if (host_port.length === 1) {
+    rdb_host = host_port[0];
+  } else if (host_port.length === 2) {
+    rdb_host = host_port[0];
+    rdb_port = host_port[1];
+  } else {
+    console.log(`Expected --connect HOST:PORT, but found "${parsed.connect}"`);
+    print_usage();
+    process.exit(1);
+  }
+}
+
+if (parsed.key_file !== undefined) {
+  key_file = parsed.key_file;
+}
+
+if (parsed.cert_file !== undefined) {
+  cert_file = parsed.cert_file;
+}
+
+main(local_hosts, local_port, rdb_host, rdb_port, unsecure, key_file, cert_file);
