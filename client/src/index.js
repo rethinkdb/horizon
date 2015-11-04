@@ -300,7 +300,7 @@ class Collection extends TermBase {
 
     constructor(fusion, collectionName){
         super(fusion)
-        this.collectionName = collectionName
+        this._collectionName = collectionName
         this.query = {collection: collectionName}
     }
 
@@ -339,8 +339,8 @@ class Collection extends TermBase {
 class Find extends TermBase {
     constructor(fusion, query, field, value){
         super(fusion)
-        this.field = field
-        this.value = value
+        this._field = field
+        this._value = value
         this.query = Object.assign({
             selection: {type: 'find', args: [value]},
             field_name: field
@@ -407,7 +407,7 @@ class Order {
 class Limit extends TermBase {
     constructor(fusion, query, size){
         super(fusion)
-        this.size = size
+        this._size = size
         this.query = Object.assign({limit: size}, query)
     }
 }
