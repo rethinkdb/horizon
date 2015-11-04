@@ -176,38 +176,49 @@ class Socket {
         if(this.promises.has(resp.request_id)){
             console.debug(`Found request id ${resp.request_id} in the promises cache`)
             let promObj = this.promises.get(resp.request_id)
+            console.debug("classifying promise response", resp, "with", promObj)
 
             if (resp.error !== undefined){
+                console.debug("  error was not undefined")
                 promObj.reject(resp.error)
-            }else if(resp.data !== undefined){
+            }else if(Array.isArray(resp.data)){
+                console.debug("  resp.data was an array")
                 let partialResult = promObj.partialResult
                 partialResult.push.apply(partialResult, resp.data)
+            }else if(resp.data !== undefined) {
+                console.debug("  resp.data wasn't an array", resp.data)
+                promObj.partialResult.push(resp.data)
+            }else{
+                console.debug("  couldn't figure out what ", resp.data)
             }
-            if(resp.state === 'complete'){
+            if(promObj.pointQuery){
+                console.debug("  promise was for a point query")
+                // this assumes no batch inserts etc
                 this.promises.delete(resp.request_id)
-                if(promObj.pointQuery){
-                    promObj.resolve(promObj.partialResult[0])
-                }else{
-                    promObj.resolve(promObj.partialResult)
-                }
+                promObj.resolve(promObj.partialResult[0])
+            }else if(resp.state === 'complete'){
+                console.debug("  state is complete")
+                promObj.resolve(promObj.partialResult)
             }
         }else if(this.emitters.has(resp.request_id)){
             console.debug(`Found request id ${resp.request_id} in the emitters cache`)
             let emitter = this.emitters.get(resp.request_id)
             if(resp.error !== undefined){
+                console.debug("response had an error")
                 emitter.emit("error", resp.error_code, resp.error)
-            }else if(resp.result !== undefined){
-                emitter.emit(resp.result)
             }else{
-                console.debug("Classifying response:", resp)
+                console.debug("Classifying emitter response:", resp)
                 if(Array.isArray(resp.data)){
+                    console.debug("response data is an array")
                     resp.data.forEach((subResp) => {
                         emitter.emit(this.classifier(subResp), subResp)
                     })
                 }
                 if(resp.state === 'synced'){
+                    console.debug("response state is synced")
                     emitter.emit('synced')
                 }else if(resp.state === 'complete'){
+                    console.debug("response state is complete")
                     emitter.emit('end')
                 }
             }

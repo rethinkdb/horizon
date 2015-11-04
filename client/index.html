@@ -15,7 +15,7 @@
          }).then((data) => {
              blob.subscribe().on("added", (value) => console.log("Item added: ", value))
          }).then((data) => {
-             return blob.store({"some": "data", 'id': 1}, 'replace');
+             return blob.store({"some": "data", 'id': 45}, 'replace');
          }).then((resp) => {
              console.log(`Got back store response: ${resp}`);
          })
