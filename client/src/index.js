@@ -312,11 +312,11 @@ class Collection extends TermBase {
         return new Find(this.fusion, this.query, fieldName, fieldValue)
     }
 
-    between(minVal, maxVal, field: 'id'){
+    between(minVal, maxVal, field='id'){
         return new Between(this.fusion, this.query, minVal, maxVal,field)
     }
 
-    order(field: 'id', ascending: true){
+    order(field= 'id', ascending=true){
         return new Order(this.fusion, this.query, field, ascending)
     }
 
@@ -347,7 +347,7 @@ class Find extends TermBase {
         }, query)
     }
 
-    order(field: 'id', ascending: true){
+    order(field= 'id', ascending= true){
         return new Order(this.fusion, this.query, field, ascending)
     }
 
