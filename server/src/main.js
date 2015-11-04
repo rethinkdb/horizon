@@ -117,42 +117,43 @@ var make_read_reql = function(request) {
   return reql;
 };
 
-var handle_cursor = function(cursor, send_cb) {
-    cursor.each((err, item) => {
-        if (err !== null) {
-          send_cb({ 'error': `${err}` });
-        } else {
-          send_cb({ 'data': [item] });
-        }
-      }, () => send_cb({ 'data': [], 'state': 'complete' }));
+var handle_cursor = function(client, cursor, send_cb) {
+  client.cursors.add(cursor);
+  cursor.each((err, item) => {
+      if (err !== null) {
+        send_cb({ 'error': `${err}` });
+      } else {
+        send_cb({ 'data': [item] });
+      }
+    }, () => send_cb({ 'data': [], 'state': 'complete' }));
 };
 
-var handle_feed = function(feed, send_cb) {
-    feed.each((err, item) => {
-        if (err !== null) {
-          send_cb({ 'error': `${err}` });
-        } else if (item.state === 'initializing') {
-          // Do nothing - we don't care
-        } else if (item.state === 'ready') {
-          send_cb({ 'state': 'synced' });
-        } else {
-          send_cb({ 'data': [item] });
-        }
-      }, () => send_cb({ 'data': [], 'state': 'complete' }));
+var handle_feed = function(client, feed, send_cb) {
+  client.cursors.add(feed);
+  feed.each((err, item) => {
+      if (err !== null) {
+        send_cb({ 'error': `${err}` });
+      } else if (item.state === 'initializing') {
+        // Do nothing - we don't care
+      } else if (item.state === 'ready') {
+        send_cb({ 'state': 'synced' });
+      } else {
+        send_cb({ 'data': [item] });
+      }
+    }, () => send_cb({ 'data': [], 'state': 'complete' }));
 };
 
-// TODO: separate handling for feeds - add 'synced' state
-var handle_read_response = function(request, response, send_cb) {
+var handle_read_response = function(client, request, response, send_cb) {
   if (request.type === 'query') {
     if (response.constructor.name === 'Cursor') {
-      handle_cursor(response, send_cb);
+      handle_cursor(client, response, send_cb);
     } else if (response.constructor.name === 'Array') {
       send_cb({ 'data': response });
     } else {
       send_cb({ 'data': [response] });
     }
   } else {
-    handle_feed(response, send_cb);
+    handle_feed(client, response, send_cb);
   }
 }
 
@@ -183,16 +184,16 @@ var make_write_reql = function(request) {
   return reql;
 };
 
-var handle_write_response = function(request, response, send_cb) {
+var handle_write_response = function(client, request, response, send_cb) {
   console.log(`Handling write response.`);
   if (response.errors !== 0) {
     send_cb({ 'error': response.first_error });
   } else if (response.changes.length === 1) {
-    send_cb(response.changes[0]);
+    send_cb({ 'data': response.changes[0] });
   } else if (response.unchanged === 1) {
-    send_cb({ 'old_val': request.data, 'new_val': request.data });
+    send_cb({ 'data': { 'old_val': request.data, 'new_val': request.data } });
   } else if (response.skipped === 1) {
-    send_cb({ 'old_val': null, 'new_val': null });
+    send_cb({ 'data': { 'old_val': null, 'new_val': null } });
   } else {
     fail(`Unexpected response counts: ${JSON.stringify(response)}`);
   }
@@ -206,7 +207,7 @@ class Client {
     this.reql_conn = reql_conn;
     this.endpoints = endpoints;
     this.clients = clients;
-    this.feeds = new Set();
+    this.cursors = new Set();
 
     this.socket.on('open', () => this.handle_open());
     this.socket.on('close', (code, msg) => this.handle_close(code, msg));
@@ -229,7 +230,7 @@ class Client {
   handle_close() {
     console.log(`Client connection terminated.`);
     this.clients.delete(this);
-    this.feeds.forEach((feed) => feed.close());
+    this.cursors.forEach((cursor) => cursor.close());
   }
 
   handle_websocket_error(code, msg) {
@@ -280,7 +281,7 @@ class Client {
   handle_response(query, res) {
     console.log(`Got result ${res} for ${query.request.request_id} - ${query.request.type}`);
     try {
-      query.endpoint.handle_response(query.request, res, (data) => this.send_response(query, data));
+      query.endpoint.handle_response(this, query.request, res, (data) => this.send_response(query, data));
     } catch (err) {
       console.log(`Error when handling response: ${err}`);
       this.send_response(query, { 'error': `${err}` });
@@ -356,7 +357,7 @@ class Client {
 }
 
 // TODO: have a pool of connections to different servers?
-// This will require tying feeds to certain connections
+// This will require tying cursors to certain connections
 class ReqlConnection {
   constructor(host, port, clients) {
     this.host = host;
@@ -437,20 +438,17 @@ var handle_http_request = function(req, res) {
 };
 
 var main = function(local_hosts, local_port, rdb_host, rdb_port, unsafe, key_file, cert_file) {
-  var clients = new Set();
   var endpoints = new Map();
+  var servers = new Set();
+  var clients = new Set();
+  var reql_conn = new ReqlConnection(rdb_host, rdb_port, clients);
 
   add_endpoint(endpoints, 'subscribe', make_read_reql, handle_read_response);
   add_endpoint(endpoints, 'query', make_read_reql, handle_read_response);
-
   add_endpoint(endpoints, 'store_error', make_write_reql, handle_write_response);
   add_endpoint(endpoints, 'store_update', make_write_reql, handle_write_response);
   add_endpoint(endpoints, 'store_replace', make_write_reql, handle_write_response);
   add_endpoint(endpoints, 'remove', make_write_reql, handle_write_response);
-
-  var reql_conn = new ReqlConnection(rdb_host, rdb_port, clients);
-
-  var websocket_servers = new Set();
 
   local_hosts.forEach((host) => {
       var http_server;
@@ -462,14 +460,10 @@ var main = function(local_hosts, local_port, rdb_host, rdb_port, unsafe, key_fil
       }
       http_server.listen(local_port, host);
 
-      var websocket_server = new websocket.Server(
-        { 'server': http_server,
-          'handleProtocols': accept_protocol });
-
-      websocket_server.on('error', (error) => console.log(`Websocket server error: ${error}`));
-      websocket_server.on('connection', (socket) => new Client(socket, reql_conn, endpoints, clients));
-
-      websocket_servers.add(websocket_server);
+      servers.add(new websocket.Server({ server: http_server,
+                                         handleProtocols: accept_protocol })
+        .on('error', (error) => console.log(`Websocket server error: ${error}`))
+        .on('connection', (socket) => new Client(socket, reql_conn, endpoints, clients)));
     });
 };
 
