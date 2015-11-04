@@ -30,6 +30,7 @@ describe("Should be able to successfully load client lib from server", () => {
 
     it("Response body should == actual code from file", () => {
       https.get("https://localhost:31420/fusion.js", (res) => {
+        const code = fs.readFileSync("../client/dist/build.js");
         assert.equal(res.data, code);
       });
     });
