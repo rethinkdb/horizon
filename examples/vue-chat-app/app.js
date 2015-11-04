@@ -7,10 +7,22 @@ const app = new Vue({
   data: {
     newMessage: "",
     id: 1,
-    messages: messages.value(),
-    users: users.value()
+    messages: this.messagesPopulate(),
+    users: this.usersPopulate()
   },
   methods: {
+    messagesPopulate: function(){
+      let allMessages = [];
+      messages.value()
+        .then(result => allMessages.unshift(result))
+        .finally(return allMessages);
+    },
+    usersPopulate: function(){
+      let allUsers = [];
+      users.value()
+        .then(result => allUsers.unshift(result))
+        .finally(return allUsers);
+    },
     addMessage: function(){
       var text = this.newMessage.trim();
       if (text){
