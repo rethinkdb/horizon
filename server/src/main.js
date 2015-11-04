@@ -84,12 +84,13 @@ var make_read_reql = function(request) {
 
     if (selection_type === 'find_one') {
       check(selection_args.length === 1, `'options.selection.args' must have one argument for 'find_one'`);
-      reql = reql.get(selection_args[0], {'index': index});
+      check(index === 'id', `'options.field_name' must be 'id' for 'find_one'`);
+      reql = reql.get(selection_args[0], { index: index });
     } else if (selection_type === 'find') {
-      reql = reql.getAll.apply(reql, selection_args.concat({'index': index}));
+      reql = reql.getAll.apply(reql, selection_args.concat({ index: index }));
     } else if (selection_type === 'between') {
       check(selection_args.length === 2, `'options.selection.args' must have two arguments for 'between'`);
-      reql = reql.between.apply(reql, selection_args.concat({'index': index}));
+      reql = reql.between.apply(reql, selection_args.concat({ index: index }));
     } else {
       fail(`'options.selection.type' must be one of 'find', 'find_one', or 'between'.`)
     }
@@ -97,9 +98,9 @@ var make_read_reql = function(request) {
 
   var order = options.order;
   if (order === 'ascending') {
-    reql = reql.orderBy({'index': r.asc(index)})
+    reql = reql.orderBy({ index: r.asc(index) })
   } else if (order === 'descending') {
-    reql = reql.orderBy({'index': r.desc(index)})
+    reql = reql.orderBy({ index: r.desc(index) })
   } else if (order !== undefined) {
     fail(`'options.order' must be either 'ascending' or 'descending'.`);
   }
@@ -111,7 +112,7 @@ var make_read_reql = function(request) {
   }
 
   if (type === 'subscribe') {
-    reql = reql.changes({ 'include_states': true });
+    reql = reql.changes({ include_states: true });
   }
 
   return reql;
@@ -121,26 +122,32 @@ var handle_cursor = function(client, cursor, send_cb) {
   client.cursors.add(cursor);
   cursor.each((err, item) => {
       if (err !== null) {
-        send_cb({ 'error': `${err}` });
+        send_cb({ error: `${err}` });
       } else {
-        send_cb({ 'data': [item] });
+        send_cb({ data: [item] });
       }
-    }, () => send_cb({ 'data': [], 'state': 'complete' }));
+    }, () => {
+      client.cursors.remove(cursor);
+      send_cb({ data: [], state: 'complete' });
+    });
 };
 
 var handle_feed = function(client, feed, send_cb) {
   client.cursors.add(feed);
   feed.each((err, item) => {
       if (err !== null) {
-        send_cb({ 'error': `${err}` });
+        send_cb({ error: `${err}` });
       } else if (item.state === 'initializing') {
         // Do nothing - we don't care
       } else if (item.state === 'ready') {
-        send_cb({ 'state': 'synced' });
+        send_cb({ state: 'synced' });
       } else {
-        send_cb({ 'data': [item] });
+        send_cb({ data: [item] });
       }
-    }, () => send_cb({ 'data': [], 'state': 'complete' }));
+    }, () => {
+      client.cursors.remove(cursor);
+      send_cb({ data: [], state: 'complete' });
+    });
 };
 
 var handle_read_response = function(client, request, response, send_cb) {
@@ -148,9 +155,9 @@ var handle_read_response = function(client, request, response, send_cb) {
     if (response.constructor.name === 'Cursor') {
       handle_cursor(client, response, send_cb);
     } else if (response.constructor.name === 'Array') {
-      send_cb({ 'data': response });
+      send_cb({ data: response });
     } else {
-      send_cb({ 'data': [response] });
+      send_cb({ data: [response] });
     }
   } else {
     handle_feed(client, response, send_cb);
@@ -171,14 +178,14 @@ var make_write_reql = function(request) {
   var reql = r.table(collection);
 
   if (type === 'store_update') {
-    reql = reql.insert(data, { 'conflict': 'update', 'returnChanges': true });
+    reql = reql.insert(data, { conflict: 'update', returnChanges: true });
   } else if (type === 'store_replace') {
-    reql = reql.insert(data, { 'conflict': 'replace', 'returnChanges': true });
+    reql = reql.insert(data, { conflict: 'replace', returnChanges: true });
   } else if (type === 'store_error') {
-    reql = reql.insert(data, { 'conflict': 'error', 'returnChanges': true });
+    reql = reql.insert(data, { conflict: 'error', returnChanges: true });
   } else {
     check(data.id !== undefined, `'options.data.id' must be specified for 'remove'.`);
-    reql = reql.get(data.id).delete({ 'returnChanges': true });
+    reql = reql.get(data.id).delete({ returnChanges: true });
   }
 
   return reql;
@@ -187,13 +194,13 @@ var make_write_reql = function(request) {
 var handle_write_response = function(client, request, response, send_cb) {
   console.log(`Handling write response.`);
   if (response.errors !== 0) {
-    send_cb({ 'error': response.first_error });
+    send_cb({ error: response.first_error });
   } else if (response.changes.length === 1) {
-    send_cb({ 'data': response.changes[0] });
+    send_cb({ data: response.changes[0] });
   } else if (response.unchanged === 1) {
-    send_cb({ 'data': { 'old_val': request.data, 'new_val': request.data } });
+    send_cb({ data: { old_val: request.data, new_val: request.data } });
   } else if (response.skipped === 1) {
-    send_cb({ 'data': { 'old_val': null, 'new_val': null } });
+    send_cb({ data: { old_val: null, new_val: null } });
   } else {
     fail(`Unexpected response counts: ${JSON.stringify(response)}`);
   }
@@ -224,7 +231,7 @@ class Client {
     // TODO: implement handshake
     this.socket.removeAllListeners('message');
     this.socket.on('message', (data, flags) => this.handle_request(data));
-    this.socket.send(JSON.stringify({ 'user_id': 0 }));
+    this.socket.send(JSON.stringify({ user_id: 0 }));
   }
 
   handle_close() {
@@ -256,7 +263,7 @@ class Client {
 
       this.run_query(new Query(request, get_endpoint(this.endpoints, request)));
     } catch (err) {
-      this.send_response({'request': request}, { 'error': `${err}` });
+      this.send_response({ request: request }, { error: `${err}` });
     }
   }
 
@@ -284,7 +291,7 @@ class Client {
       query.endpoint.handle_response(this, query.request, res, (data) => this.send_response(query, data));
     } catch (err) {
       console.log(`Error when handling response: ${err}`);
-      this.send_response(query, { 'error': `${err}` });
+      this.send_response(query, { error: `${err}` });
     }
   }
 
@@ -341,9 +348,9 @@ class Client {
         r.table(String(matches[2])).indexCreate(String(matches[1])));
     }
 
-    var response = { 'request_id': query.request.request_id,
-                     'error': info.msg,
-                     'error_code': 0 };
+    var response = { request_id: query.request.request_id,
+                     error: info.msg,
+                     error_code: 0 };
     this.socket.send(JSON.stringify(response));
   }
 
@@ -371,7 +378,7 @@ class ReqlConnection {
 
   reconnect() {
     console.log(`Connecting to RethinkDB: ${this.host}:${this.port}`);
-    r.connect({ 'host': this.host, 'port': this.port, 'db': this.db })
+    r.connect({ host: this.host, port: this.port, db: this.db })
      .then(conn => this.handle_conn_success(conn))
      .catch(err => this.handle_conn_error(err));
   }
@@ -398,42 +405,32 @@ class ReqlConnection {
   }
 }
 
-//Function which handles just the /fusion.js endpoint
-var handle_http_request = function(req, res) {
-  const reqPath = url.parse(req.url).pathname;
-  const filePath = path.resolve('../client/dist/build.js');
+// Function which handles just the /fusion.js endpoint
+var handle_http_request = function (req, res) {
+  const req_path = url.parse(req.url).pathname;
+  const file_path = path.resolve('../client/dist/build.js');
+  console.log(`HTTP request for '${req_path}'`);
 
-  if (reqPath === '/fusion.js') {
-    fs.access(filePath,
-    fs.R_OK | fs.F_OK,
-    function (exists) {
-        // Check if file exists
+  if (req_path === '/fusion.js') {
+    fs.access(file_path, fs.R_OK | fs.F_OK, (exists) => {
         if (exists) {
-          res.writeHead('404', {'Content-Type': 'text/plain'});
-          res.write('Client library not found\n');
-          res.end();return;
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          res.end('Client library not found\n');
+        } else {
+          fs.readFile(file_path, 'binary', (err, file) => {
+              if (err) {
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end(`${err}\n`);
+              } else {
+                res.writeHead(200);
+                res.end(file, 'binary');
+              }
+            });
         }
-
-        // filePath exists now just need to read from it.
-        fs.readFile(filePath, 'binary', function (err, file) {
-            // Error while reading from file
-            if (err) {
-              res.writeHead(500, {'Content-Type': 'text/plain'});
-              res.write(err + '\n');
-              res.end();return;
-            }
-
-            // File successfully read, write contents to response
-            res.writeHead(200);
-            res.write(file, 'binary');
-            res.end();return;
-          });
-
       });
   } else {
-    res.writeHead('403', {'Content-Type': 'text/plain'});
-    res.write('Forbidden');
-    res.end();
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden\n');
   }
 };
 
@@ -453,10 +450,13 @@ var main = function(local_hosts, local_port, rdb_host, rdb_port, unsafe, key_fil
   local_hosts.forEach((host) => {
       var http_server;
       if (unsecure) {
-         http_server = new http.Server(handle_http_request);
+        console.log('WARNING: creating unsecure HTTP server.');
+        http_server = new http.Server(handle_http_request);
       } else {
-         http_server = new https.Server({ key: fs.readFileSync(key_file),
-                                          cert: fs.readFileSync(cert_file) }, handle_http_request);
+        console.log('Creating HTTPS server.');
+        http_server = new https.Server({ key: fs.readFileSync(key_file),
+                                         cert: fs.readFileSync(cert_file) },
+                                       handle_http_request);
       }
       http_server.listen(local_port, host);
 
