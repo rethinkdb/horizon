@@ -1,10 +1,17 @@
 var gulp = require('gulp');
+var babel = require("gulp-babel")
 var sourcemaps = require('gulp-sourcemaps');
 var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var browserify = require('browserify');
 var watchify = require('watchify');
-var babel = require('babelify');
+var babelify = require('babelify');
+
+function compileTestClient(){
+  return gulp.src("src/index.js")
+    .pipe(babel())
+    .pipe(gulp.dest("dist/test.js"));
+}
 
 function compile(watch) {
   var bundler = watchify(browserify({
@@ -13,7 +20,7 @@ function compile(watch) {
     sourceType: module,
   })
   .require("./src/index.js", {expose: "Fusion"})
-  .transform(babel));
+  .transform(babelify));
 
 function rebundle() {
     bundler.bundle()
@@ -41,5 +48,6 @@ function watch() {
 
 gulp.task('build', function() { return compile(); });
 gulp.task('watch', function() { return watch(); });
+gulp.task('test', function() { return compileTestClient(); });
 
 gulp.task('default', ['watch']);
