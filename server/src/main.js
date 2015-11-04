@@ -85,7 +85,7 @@ var make_read_reql = function(request) {
     if (selection_type === 'find_one') {
       check(selection_args.length === 1, `'options.selection.args' must have one argument for 'find_one'`);
       check(index === 'id', `'options.field_name' must be 'id' for 'find_one'`);
-      reql = reql.get(selection_args[0], { index: index });
+      reql = reql.get(selection_args[0]);
     } else if (selection_type === 'find') {
       reql = reql.getAll.apply(reql, selection_args.concat({ index: index }));
     } else if (selection_type === 'between') {
@@ -127,7 +127,7 @@ var handle_cursor = function(client, cursor, send_cb) {
         send_cb({ data: [item] });
       }
     }, () => {
-      client.cursors.remove(cursor);
+      client.cursors.delete(cursor);
       send_cb({ data: [], state: 'complete' });
     });
 };
@@ -145,7 +145,7 @@ var handle_feed = function(client, feed, send_cb) {
         send_cb({ data: [item] });
       }
     }, () => {
-      client.cursors.remove(cursor);
+      client.cursors.delete(cursor);
       send_cb({ data: [], state: 'complete' });
     });
 };
