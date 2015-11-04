@@ -5,15 +5,15 @@ const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 export class Fusion {
 
     constructor(hostString){
-        console.debug("Constructing fusion object")
+        console.log("Constructing fusion object")
         self = (collectionName) => self.collection(collectionName)
         Object.setPrototypeOf(self, Object.getPrototypeOf(this))
         if (typeof hostString == "object" && hostString.mock == true){
-            console.debug("mocking the socket")
+            console.log("mocking the socket")
             self.hostString = "mock"
             self._socket = new MockSocket(hostString, this.classify)
         } else {
-            console.debug("Real websocket")
+            console.log("Real websocket")
             self.hostString = hostString
             self._socket = new Socket(hostString, this.classify)
         }
@@ -40,7 +40,7 @@ export class Fusion {
     }
 
     _query(query){
-        console.debug("Enqueueing query: ", JSON.stringify(query))
+        console.log("Enqueueing query: ", JSON.stringify(query))
         // determine if the query is a find_one
         let pointQuery = (query.selection !== undefined &&
                           query.selection.type === 'find_one')
@@ -93,34 +93,34 @@ class Socket {
         this.emitters = new Map()
         this.requestCounter = 0
         this.wsPromise = (new Promise((resolve, reject) => {
-            console.debug("Creating websocket")
+            console.log("Creating websocket")
             let ws = new WebSocket("ws://"+hostString, PROTOCOL_VERSION)
             ws.onopen = (event) => resolve(ws)
             ws.onerror = (event) => reject(event)
         })).then((ws) => {
-            console.debug("Websocket created, sending handshake")
+            console.log("Websocket created, sending handshake")
             let handshake = {}
             return new Promise((resolve, reject) => {
                 // TODO: check handshake response once it has something in it
                 ws.onmessage = (handshakeResponse) => {
-                    console.debug("Received handshake response:", JSON.parse(handshakeResponse.data))
+                    console.log("Received handshake response:", JSON.parse(handshakeResponse.data))
                     resolve(ws)
                 }
                 ws.onerror = (event) => {
-                    console.debug("Received an error on websocket", handshakeResponse)
+                    console.log("Received an error on websocket", handshakeResponse)
                     reject(event)
                 }
                 ws.send(JSON.stringify(handshake))
             })
         }).then((ws) => {
-            console.debug("Handshake received. Binding message handlers")
+            console.log("Handshake received. Binding message handlers")
             ws.onmessage = this._onMessage.bind(this)
             ws.onclose = this._onClose.bind(this)
             ws.onopen = this._onOpen.bind(this)
             ws.onerror = this._onError.bind(this)
             return ws
         }).catch((event) => {
-            console.debug("Got a connection error: ", event)
+            console.log("Got a connection error: ", event)
         })
     }
 
@@ -128,7 +128,7 @@ class Socket {
         var requestId = this.requestCounter++
         var req = {type: type, options: data, request_id: requestId}
         this.wsPromise.then((ws) => {
-            console.debug("sending: ", JSON.stringify(req))
+            console.log("sending: ", JSON.stringify(req))
             ws.send(JSON.stringify(req))
         })
         return new Promise((resolve, reject) => {
@@ -145,14 +145,14 @@ class Socket {
         let requestId = this.requestCounter++
         let req = {type: "subscribe", options: query, request_id: requestId}
         this.wsPromise.then((ws) => ws.send(JSON.stringify(req)))
-        console.debug(`Creating and stashing emitter for request id ${requestId}`)
+        console.log(`Creating and stashing emitter for request id ${requestId}`)
         let emitter = new EventEmitter() // customize?
         this.emitters.set(requestId, emitter)
         return emitter
     }
 
     _onClose(event){
-        console.debug(`Got a close event. Reason: ${event.reason}`)
+        console.log(`Got a close event. Reason: ${event.reason}`)
         Object.keys(this.emitters).forEach((requestId) => {
             this.emitters.get(requestId).emit('disconnected', event)
         })
@@ -161,7 +161,7 @@ class Socket {
 
     _onError(event){
         // TODO: What to do on websocket level errors?
-        console.debug("Error received from websocket:", event)
+        console.log("Error received from websocket:", event)
     }
 
     _onOpen(event){
@@ -171,54 +171,54 @@ class Socket {
     }
 
     _onMessage(event){
-        console.debug("Got a new message on the socket. Emitters is", this.emitters, "and promises is", this.promises)
+        console.log("Got a new message on the socket. Emitters is", this.emitters, "and promises is", this.promises)
         let resp = JSON.parse(event.data)
         if(this.promises.has(resp.request_id)){
-            console.debug(`Found request id ${resp.request_id} in the promises cache`)
+            console.log(`Found request id ${resp.request_id} in the promises cache`)
             let promObj = this.promises.get(resp.request_id)
-            console.debug("classifying promise response", resp, "with", promObj)
+            console.log("classifying promise response", resp, "with", promObj)
 
             if (resp.error !== undefined){
-                console.debug("  error was not undefined")
+                console.log("  error was not undefined")
                 promObj.reject(resp.error)
             }else if(Array.isArray(resp.data)){
-                console.debug("  resp.data was an array")
+                console.log("  resp.data was an array")
                 let partialResult = promObj.partialResult
                 partialResult.push.apply(partialResult, resp.data)
             }else if(resp.data !== undefined) {
-                console.debug("  resp.data wasn't an array", resp.data)
+                console.log("  resp.data wasn't an array", resp.data)
                 promObj.partialResult.push(resp.data)
             }else{
-                console.debug("  couldn't figure out what ", resp.data)
+                console.log("  couldn't figure out what ", resp.data)
             }
             if(promObj.pointQuery){
-                console.debug("  promise was for a point query")
+                console.log("  promise was for a point query")
                 // this assumes no batch inserts etc
                 this.promises.delete(resp.request_id)
                 promObj.resolve(promObj.partialResult[0])
             }else if(resp.state === 'complete'){
-                console.debug("  state is complete")
+                console.log("  state is complete")
                 promObj.resolve(promObj.partialResult)
             }
         }else if(this.emitters.has(resp.request_id)){
-            console.debug(`Found request id ${resp.request_id} in the emitters cache`)
+            console.log(`Found request id ${resp.request_id} in the emitters cache`)
             let emitter = this.emitters.get(resp.request_id)
             if(resp.error !== undefined){
-                console.debug("response had an error")
+                console.log("response had an error")
                 emitter.emit("error", resp.error_code, resp.error)
             }else{
-                console.debug("Classifying emitter response:", resp)
+                console.log("Classifying emitter response:", resp)
                 if(Array.isArray(resp.data)){
-                    console.debug("response data is an array")
+                    console.log("response data is an array")
                     resp.data.forEach((subResp) => {
                         emitter.emit(this.classifier(subResp), subResp)
                     })
                 }
                 if(resp.state === 'synced'){
-                    console.debug("response state is synced")
+                    console.log("response state is synced")
                     emitter.emit('synced')
                 }else if(resp.state === 'complete'){
-                    console.debug("response state is complete")
+                    console.log("response state is complete")
                     emitter.emit('end')
                 }
             }
