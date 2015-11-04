@@ -48,7 +48,7 @@ var get_endpoint = function (endpoints, request) {
   check(type !== undefined, `'type' must be specified.`);
   check(options !== undefined, `'options' must be specified.`);
 
-  var endpoint = endpoints[type];
+  var endpoint = endpoints.get(type);
   check(endpoint !== undefined, `'${type}' is not a recognized endpoint`);
   return endpoint;
 };
