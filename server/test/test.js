@@ -7,7 +7,7 @@ const assert = require("assert"),
   //Can import client library this way, but `new WebSocket` will not work"
   // as well, you need to run `gulp test` to compile a non-browserified  of
   // version the client library.
-  // fusion = require("/Users/dalanmiller/repos/fusion/client/test/index.js");
+  // fusion = require("/Users/dalanmiller/repos/fusion/client/dist/test.js");
 
 //Is my head screwed on correctly
 describe('Array', function() {

@@ -10,7 +10,7 @@ var babelify = require('babelify');
 function compileTestClient(){
   return gulp.src("src/index.js")
     .pipe(babel())
-    .pipe(gulp.dest("test"));
+    .pipe(gulp.dest("dist/test.js"));
 }
 
 function compile(watch) {
