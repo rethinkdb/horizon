@@ -1,0 +1,9 @@
+{
+  // I want to use babel-eslint for parsing!
+  "parser": "babel-eslint",
+
+  "env": {
+    "browser": true,
+    "node": true
+  },
+}

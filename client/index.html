@@ -6,7 +6,7 @@
         <script>
          "use strict";
          var fusion = require('Fusion');
-         var Fusion = new fusion.Fusion("localhost:31420");
+         var Fusion = new fusion.Fusion("localhost:31420", false);
          var blob = Fusion('blob')
          blob.value().then((data) => {
              console.log("Application got back:" + JSON.stringify(data));
