@@ -85,7 +85,7 @@ var make_read_reql = function(request) {
     if (selection_type === 'find_one') {
       check(selection_args.length === 1, `'options.selection.args' must have one argument for 'find_one'`);
       check(index === 'id', `'options.field_name' must be 'id' for 'find_one'`);
-      reql = reql.get(selection_args[0], { index: index });
+      reql = reql.get(selection_args[0]);
     } else if (selection_type === 'find') {
       reql = reql.getAll.apply(reql, selection_args.concat({ index: index }));
     } else if (selection_type === 'between') {
@@ -127,7 +127,7 @@ var handle_cursor = function(client, cursor, send_cb) {
         send_cb({ data: [item] });
       }
     }, () => {
-      client.cursors.remove(cursor);
+      client.cursors.delete(cursor);
       send_cb({ data: [], state: 'complete' });
     });
 };
@@ -145,7 +145,7 @@ var handle_feed = function(client, feed, send_cb) {
         send_cb({ data: [item] });
       }
     }, () => {
-      client.cursors.remove(cursor);
+      client.cursors.delete(cursor);
       send_cb({ data: [], state: 'complete' });
     });
 };
@@ -155,9 +155,9 @@ var handle_read_response = function(client, request, response, send_cb) {
     if (response.constructor.name === 'Cursor') {
       handle_cursor(client, response, send_cb);
     } else if (response.constructor.name === 'Array') {
-      send_cb({ data: response });
+      send_cb({ data: response, state: 'complete' });
     } else {
-      send_cb({ data: [response] });
+      send_cb({ data: [response], state: 'complete' });
     }
   } else {
     handle_feed(client, response, send_cb);
@@ -196,11 +196,11 @@ var handle_write_response = function(client, request, response, send_cb) {
   if (response.errors !== 0) {
     send_cb({ error: response.first_error });
   } else if (response.changes.length === 1) {
-    send_cb({ data: response.changes[0] });
+    send_cb({ data: response.changes, state: 'complete' });
   } else if (response.unchanged === 1) {
-    send_cb({ data: { old_val: request.data, new_val: request.data } });
+    send_cb({ data: [ { old_val: request.data, new_val: request.data } ], state: 'complete' });
   } else if (response.skipped === 1) {
-    send_cb({ data: { old_val: null, new_val: null } });
+    send_cb({ data: [ { old_val: null, new_val: null } ], state: 'complete' });
   } else {
     fail(`Unexpected response counts: ${JSON.stringify(response)}`);
   }
