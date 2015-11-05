@@ -92,8 +92,10 @@ class FusionSocket extends EventEmitter {
             message = JSON.stringify(message)
         }
         if(this._ws.readyState !== WebSocket.OPEN){
+            console.log("Socket isn't open yet, enqueueing send")
             this.once('connected', (event) => this._ws.send(message))
         }else{
+            console.log("Socket is open, sending")
             this._ws.send(message)
         }
     }
@@ -104,20 +106,23 @@ class FusionSocket extends EventEmitter {
 
     toPromise(resolveEvent, rejectEvent='disconnected'){
         return new Promise((resolve, reject) => {
-            var resolver = (event) => {
+            var removeAllListeners = () => {
                 this.removeListener(rejectEvent, rejecter)
                     .removeListener('socketError', rejecter)
                     .removeListener('disconnected', rejecter)
+            }
+            var resolver = (event) => {
+                removeAllListeners()
                 resolve(event)
             }
             var rejecter = (event) => {
-                this.removeListener(resolveEvent, resolver)
-                    .removeListener('socketError', rejecter)
-                    .removeListener('disconnected', rejecter)
+                removeAllListeners()
                 reject(event)
             }
             this.once(resolveEvent, resolver)
                 .once(rejectEvent, rejecter)
+                .once('socketError', rejecter)
+                .once('disconnected', rejecter)
             if(rejectEvent !== 'socketError'){
                 this.once('socketError', rejecter)
             }
