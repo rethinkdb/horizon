@@ -5,20 +5,23 @@
         <script src="http://localhost:31420/fusion.js"></script>
         <script>
          "use strict";
-         var fusion = require('Fusion');
-         var Fusion = new fusion.Fusion("localhost:31420");
-         var blob = Fusion('blob')
+         var Fusion = require('Fusion');
+         var fusion = new Fusion("localhost:31420", false);
+         var blob = fusion('blob');
+         var subscription;
          blob.value().then((data) => {
              console.log("Application got back:" + JSON.stringify(data));
          }, (err) => {
-             console.log("Dangit: ", err);
+             console.error("Application value got an error: ", err);
          }).then((data) => {
-             blob.subscribe().on("added", (value) => console.log("Item added: ", value))
+             subscription = blob.subscribe()
+                 .on("added", (value) => console.log("Item added: ", value))
+                 .on("error", (event) => console.error("Error on subscription", event))
          }).then((data) => {
              return blob.store({"some": "data", 'id': 45}, 'replace');
          }).then((resp) => {
              console.log(`Got back store response:`, resp);
-         })
+         }).catch((error) => console.log("App caught", error))
         </script>
     </head>
     <body>
