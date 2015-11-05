@@ -196,11 +196,11 @@ var handle_write_response = function(client, request, response, send_cb) {
   if (response.errors !== 0) {
     send_cb({ error: response.first_error });
   } else if (response.changes.length === 1) {
-    send_cb({ data: response.changes[0], state: 'complete' });
+    send_cb({ data: response.changes, state: 'complete' });
   } else if (response.unchanged === 1) {
-    send_cb({ data: { old_val: request.data, new_val: request.data }, state: 'complete' });
+    send_cb({ data: [ { old_val: request.data, new_val: request.data } ], state: 'complete' });
   } else if (response.skipped === 1) {
-    send_cb({ data: { old_val: null, new_val: null }, state: 'complete' });
+    send_cb({ data: [ { old_val: null, new_val: null } ], state: 'complete' });
   } else {
     fail(`Unexpected response counts: ${JSON.stringify(response)}`);
   }
