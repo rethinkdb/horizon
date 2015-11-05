@@ -18,7 +18,7 @@ function oneOf(val, ...values){
     return (new Set(values)).has(val)
 }
 
-export class Fusion {
+class Fusion {
 
     constructor(hostString, secure=true, connectionClass=Connection){
         console.debug('Constructing fusion object')
@@ -63,6 +63,60 @@ export class Fusion {
 
 }
 
+class Connection {
+    constructor(host, secure=true){
+        // send handshake
+        this.host = host
+        this.secure = secure
+        this.requestCounter = 0
+        this.socket = new FusionSocket(host, secure)
+        this.handshakenSocket = this.socket.toPromise('connected').then(() => {
+            this.socket.send({})
+            return this.socket.toPromise('handshake-complete')
+        }).catch((event) => console.debug('Got a connection error:', event))
+    }
+
+    send(type, data, forEmitter=false){
+        let requestId = this.requestCounter++
+        let req = {type: type, options: data, request_id: requestId}
+        console.debug('sending: ', req)
+        this.handshakenSocket.then(() => {
+            this.socket.send(req)
+        })
+        if(forEmitter){
+            return this.socket.responseEmitter(requestId, classifyChange)
+        }else{
+            return this.socket.responsePromise(requestId)
+        }
+    }
+
+    subscribe(query){
+        let requestId = this.requestCounter++
+        let req = {type: 'subscribe', options: query, request_id: requestId}
+        console.debug('Sending subscription request', req)
+        this.handshakenSocket.then(() => this.socket.send(req))
+
+        let emitter = new CloseableEmitter(requestId, this.socket)
+        let responder = (response) => {
+            let eventArgs = classifyChange(response.data)
+            emitter.emit(...eventArgs)
+            if(response.state === 'synced'){
+                emitter.emit('synced')
+            }
+        }
+        let errorer = (event) => {
+            this.socket.removeListener({response: requestId}, responder)
+                .removeListener({error: requestId}, errorer)
+                .removeListener('socketError', errorer)
+            emitter.emit('error', event)
+        }
+        this.socket.on({response: requestId}, responder)
+            .once({error: requestId}, errorer)
+            .once('socketError', errorer)
+        return emitter
+    }
+}
+
 class FusionSocket extends EventEmitter {
     // Wraps native websockets in an EventEmitter, and deals with some
     // simple protocol level things like serializing from/to JSON, and
@@ -71,17 +125,34 @@ class FusionSocket extends EventEmitter {
         super()
         let hostString = (secure ? 'wss://' : 'ws://') + host
         this._ws = new WebSocket(hostString, PROTOCOL_VERSION)
-        this._ws.onopen = (event) => this.emit('connected', event)
-        this._ws.onerror = (event) => this.emit('socketError', event)
-        this._ws.onclose = (event) => this.emit('disconnected', event)
+        this._openWs = new Promise((resolve, reject) => {
+            this._ws.onopen = (event) => {
+                console.debug("Socket connected", event)
+                this.emit('connected', event)
+                resolve(this._ws)
+            }
+            this._ws.onerror = (event) => {
+                console.debug("Socket error", event)
+                this.emit('socketError', event)
+                reject(event)
+            }
+            this._ws.onclose = (event) => {
+                console.debug("Socket disconnected", event)
+                this.emit('disconnected', event)
+                reject(event)
+            }
+        })
         this._ws.onmessage = (event) => {
-            console.log("Got raw socket event", event)
+            //console.log("Got raw socket event", event)
             let data = JSON.parse(event.data)
             if(data.request_id === undefined){
+                console.debug("Handshake complete", event)
                 this.emit('handshake-complete', data)
             }else if(data.error !== undefined){
+                console.debug("Got error:", event)
                 this.emit({error: data.request_id}, data)
             }else{
+                console.debug("Got message:")
                 this.emit({response: data.request_id}, data)
             }
         }
@@ -91,17 +162,11 @@ class FusionSocket extends EventEmitter {
         if(typeof message !== 'string'){
             message = JSON.stringify(message)
         }
-        if(this._ws.readyState !== WebSocket.OPEN){
-            console.log("Socket isn't open yet, enqueueing send")
-            this.once('connected', (event) => this._ws.send(message))
-        }else{
-            console.log("Socket is open, sending")
-            this._ws.send(message)
-        }
+        this._openWs.then((ws) => ws.send(message))
     }
 
     close(code, reason){
-        this._ws.close(code, reason)
+        this._openWs.then((ws) => ws.close(code, reason))
     }
 
     toPromise(resolveEvent, rejectEvent='disconnected'){
@@ -194,65 +259,8 @@ class CloseableEmitter extends EventEmitter {
     }
 }
 
-class Connection {
-    constructor(host, secure=true){
-        // send handshake
-        this.host = host
-        this.secure = secure
-        this.requestCounter = 0
-        this.socket = new FusionSocket(host, secure)
-        this.socket.toPromise('connected').then(() => {
-            console.log("Sending handshake")
-            this.socket.send({})
-            return this.socket.toPromise('handshake-complete')
-        }).then((handshake) => {
-            // TODO: check handshake result
-            console.debug('Handshake received.')
-        }).catch((event) => {
-            console.debug('Got a connection error: ', event)
-        })
-    }
 
-    send(type, data, forEmitter=false){
-        let requestId = this.requestCounter++
-        let req = {type: type, options: data, request_id: requestId}
-        console.debug('sending: ', req)
-        this.socket.send(req)
-        if(forEmitter){
-            return this.socket.responseEmitter(requestId, classifyChange)
-        }else{
-            return this.socket.responsePromise(requestId)
-        }
-    }
-
-    subscribe(query){
-        let requestId = this.requestCounter++
-        let req = {type: 'subscribe', options: query, request_id: requestId}
-        console.debug('Sending subscription request', req)
-        this.socket.send(req)
-
-        let emitter = new CloseableEmitter(requestId, this.socket)
-        let responder = (response) => {
-            let eventArgs = classifyChange(response.data)
-            emitter.emit(...eventArgs)
-            if(response.state === 'synced'){
-                emitter.emit('synced')
-            }
-        }
-        let errorer = (event) => {
-            this.socket.removeListener({response: requestId}, responder)
-                .socket.removeListener({error: requestId}, errorer)
-                .socket.removeListener('socketError', errorer)
-            emitter.emit('error', event)
-        }
-        this.socket.on({response: requestId}, responder)
-        this.socket.once({error: requestId}, errorer)
-        this.socket.once('socketError', errorer)
-        return emitter
-    }
-}
-
-export class MockSocket extends Connection {
+class MockConnection extends Connection {
   constructor(hostString){
     super()
     this.hostString = hostString;
@@ -430,3 +438,8 @@ class Limit extends TermBase {
         this.query = Object.assign({limit: size}, query)
     }
 }
+
+module.exports = Fusion
+Fusion.MockConnection = MockConnection
+Fusion.Connection = Connection
+Fusion.CloseableEmitter = CloseableEmitter
