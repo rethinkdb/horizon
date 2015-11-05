@@ -24,3 +24,7 @@ serious:
 TODO: add command-line options or configuration
 
 `node --harmony --use-strict server/src/main.js`
+
+## Running tests
+
+`mocha` or maybe `mocha --harmony`
