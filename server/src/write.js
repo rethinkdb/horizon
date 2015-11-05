@@ -34,7 +34,6 @@ module.exports.make_write_reql = function (request) {
 };
 
 module.exports.handle_write_response = function (client, request, response, send_cb) {
-  console.log(`Handling write response.`);
   if (response.errors !== 0) {
     send_cb({ error: response.first_error });
   } else if (response.changes.length === 1) {

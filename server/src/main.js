@@ -53,16 +53,20 @@ if (parsed.connect !== undefined) {
   }
 }
 
-if (parsed.key_file !== undefined) {
-  opts.key_file = parsed.key_file;
-}
+if (!parsed.unsecure) {
+  if (parsed.key_file !== undefined) {
+    opts.key = fs.readFileSync(key_file);
+  } else {
+    opts.key = fs.readFileSync('./key.pem');
+  }
 
-if (parsed.cert_file !== undefined) {
-  opts.cert_file = parsed.cert_file;
-}
+  if (parsed.cert_file !== undefined) {
+    opts.cert = fs.readFileSync(parsed.cert_file);
+  } else {
+    opts.cert = fs.readFileSync('./cert.pem');
+  }
 
-if (!!parsed.unsecure) {
-  new fusion.UnsecureServer(opts);
-} else {
   new fusion.Server(opts);
+} else {
+  new fusion.UnsecureServer(opts);
 }

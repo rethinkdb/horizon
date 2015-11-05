@@ -1,5 +1,6 @@
 'use strict';
 
+const logger = require('./logger.js');
 const error = require('./error.js');
 const r = require('rethinkdb');
 
@@ -15,8 +16,6 @@ class Query {
 
 module.exports.Client = class Client {
   constructor(socket, parent_server) {
-    console.log('New client');
-
     this.socket = socket;
     this.parent = parent_server;
     this.cursors = new Set();
@@ -28,7 +27,7 @@ module.exports.Client = class Client {
   }
 
   handle_open() {
-    console.log(`Client connection established.`);
+    logger.debug(`Client connection established.`);
     this.parent._clients.add(this);
   }
 
@@ -40,17 +39,17 @@ module.exports.Client = class Client {
   }
 
   handle_close() {
-    console.log(`Client connection terminated.`);
+    logger.debug(`Client connection terminated.`);
     this.parent._clients.delete(this);
     this.cursors.forEach((cursor) => cursor.close());
   }
 
   handle_websocket_error(code, msg) {
-    console.log(`Received error from client: ${msg} (${code})`);
+    logger.error(`Received error from client: ${msg} (${code})`);
   }
 
   handle_request(data) {
-    console.log(`Received request from client: ${data}`);
+    logger.debug(`Received request from client: ${data}`);
     var request;
     var query;
 
@@ -58,7 +57,7 @@ module.exports.Client = class Client {
       request = JSON.parse(data);
       check(request.request_id !== undefined, `'request_id' must be specified.`);
     } catch (err) {
-      console.log(`Failed to parse client request: ${err}`);
+      logger.debug(`Failed to parse client request: ${err}`);
       return this.socket.close(1002, `Unparseable request: ${data}`);
     }
 
@@ -75,7 +74,7 @@ module.exports.Client = class Client {
   run_query(query) {
       var conn = this.parent._reql_conn.get_connection();
       check(conn !== undefined, `Connection to the database is down.`);
-      console.log(`Running ${r.Error.printQuery(query.reql)}`);
+      logger.debug(`Running ${r.Error.printQuery(query.reql)}`);
 
       query.reql.run(conn).then((res) => this.handle_response(query, res),
 		                (err) => this.handle_response_error(query, err));
@@ -84,25 +83,25 @@ module.exports.Client = class Client {
   run_query_prerequisite(query, root_term) {
       var conn = this.parent._reql_conn.get_connection();
       check(conn !== undefined, `Connection to the database is down.`);
-      console.log(`Running ${r.Error.printQuery(root_term)}`);
+      logger.debug(`Running ${r.Error.printQuery(root_term)}`);
 
       root_term.run(conn).then((res) => this.run_query(query),
                                (err) => this.handle_response_error(query, err));
   }
 
   handle_response(query, res) {
-    console.log(`Got result ${res} for ${query.request.request_id} - ${query.request.type}`);
+    logger.debug(`Got result ${res} for ${query.request.request_id} - ${query.request.type}`);
     try {
       query.endpoint.handle_response(this, query.request, res, (data) => this.send_response(query, data));
     } catch (err) {
-      console.log(`Error when handling response: ${err}`);
+      logger.debug(`Error when handling response: ${err}`);
       this.send_response(query, { error: `${err}` });
     }
   }
 
   send_response(query, data) {
     data.request_id = query.request.request_id;
-    console.log(`Sending response: ${JSON.stringify(data)}`);
+    logger.debug(`Sending response: ${JSON.stringify(data)}`);
     this.socket.send(JSON.stringify(data));
   }
 
@@ -119,14 +118,14 @@ module.exports.Client = class Client {
     // If the index or table is still building, wait on them
     matches = info.msg.match(/Table `\w+\.(\w+)` is not ready\./); // TODO: get real error message
     if (matches !== null && matches.length === 2) {
-      console.log(`WARNING: waiting for table to be ready: '${matches[1]}'`);
+      logger.warn(`Waiting for table '${matches[1]}' to be ready.`);
       return this.run_query_prerequisite(query,
         r.table(String(matches[1])).wait());
     }
 
     matches = info.msg.match(/Index `(\w+)` on table `\w+\.(\w+)` was accessed before its construction was finished\./);
     if (matches !== null && matches.length === 3) {
-      console.log(`WARNING: waiting for index to be ready: '${matches[2]}:${matches[1]}'`);
+      logger.warn(`Waiting for index '${matches[2]}:${matches[1]}' to be ready.`);
       return this.run_query_prerequisite(query,
         r.table(String(matches[2])).indexWait(String(matches[1])));
     }
@@ -134,21 +133,21 @@ module.exports.Client = class Client {
     // If a db, table, or index used does not exist, we must create them
     matches = info.msg.match(/Database `(\w+)` does not exist\./);
     if (matches != null && matches.length == 2) {
-      console.log(`WARNING: creating missing db: '${matches[1]}'`);
+      logger.warn(`Creating missing db '${matches[1]}'.`);
       return this.run_query_prerequisite(query,
         r.dbCreate(String(matches[1])));
     }
 
     matches = info.msg.match(/Table `\w+\.(\w+)` does not exist\./);
     if (matches !== null && matches.length === 2) {
-      console.log(`WARNING: creating missing table: '${matches[1]}'`);
+      logger.warn(`Creating missing table '${matches[1]}'.`);
       return this.run_query_prerequisite(query,
         r.tableCreate(String(matches[1])));
     }
 
     matches = info.msg.match(/Index `(\w+)` was not found on table `\w+\.(\w+)`\./);
     if (matches !== null && matches.length === 3) {
-      console.log(`WARNING: creating missing index: '${matches[2]}:${matches[1]}'`);
+      logger.warn(`Creating missing index '${matches[2]}:${matches[1]}'.`);
       return this.run_query_prerequisite(query,
         r.table(String(matches[2])).indexCreate(String(matches[1])));
     }

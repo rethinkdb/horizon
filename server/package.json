@@ -21,6 +21,7 @@
     "mocha": "^2.3.3",
     "nopt": "^3.0.4",
     "rethinkdb": "^2.1.1",
+    "winston": "^2.1.0",
     "ws": "^0.8.0"
   },
   "devDependencies": {

@@ -3,6 +3,7 @@
 const fusion_client = require('./client.js');
 const fusion_read = require('./read.js');
 const fusion_write = require('./write.js');
+const logger = require('./logger.js');
 const error = require('./error.js');
 
 var check = error.check;
@@ -18,15 +19,15 @@ const https = require('https');
 
 var protocol_name = 'rethinkdb-fusion-v0';
 module.exports.protocol = protocol_name;
+module.exports.logger = logger;
 
 class BaseServer {
   constructor(opts, make_http_server_cb) {
+    assert(opts.rdb_port !== 0);
     opts.local_hosts = opts.local_hosts || ['localhost'];
-    opts.local_port = opts.local_port || 8181;
+    opts.local_port = opts.local_port !== undefined ? opts.local_port : 8181;
     opts.rdb_host = opts.rdb_host || 'localhost';
     opts.rdb_port = opts.rdb_port || 28015;
-    opts.key_file = opts.key_file || './key.pem';
-    opts.cert_file = opts.cert_file || './cert.pem';
 
     this._endpoints = new Map();
     this._http_servers = new Map();
@@ -54,7 +55,7 @@ class BaseServer {
           }));
         this._ws_servers.set(host, new websocket.Server({ server: http_server,
                                                           handleProtocols: accept_protocol })
-          .on('error', (error) => console.log(`Websocket server error: ${error}`))
+          .on('error', (error) => logger.error(`Websocket server error: ${error}`))
           .on('connection', (socket) => new fusion_client.Client(socket, this)));
       });
   }
@@ -89,7 +90,7 @@ class BaseServer {
 module.exports.UnsecureServer = class UnsecureServer extends BaseServer {
   constructor(user_opts) {
     super(user_opts, (opts) => {
-        console.log('WARNING: creating unsecure HTTP server.');
+        logger.warn('Creating unsecure HTTP server.');
         return new http.Server(handle_http_request);
       });
   }
@@ -98,8 +99,7 @@ module.exports.UnsecureServer = class UnsecureServer extends BaseServer {
 module.exports.Server = class Server extends BaseServer {
   constructor(user_opts) {
     super(user_opts, (opts) => {
-        return new https.Server({ key: fs.readFileSync(opts.key_file),
-                                  cert: fs.readFileSync(opts.cert_file) },
+        return new https.Server({ key: opts.key, cert: opts.cert },
                                 handle_http_request);
       });
   }
@@ -109,7 +109,7 @@ var accept_protocol = function (protocols, cb) {
   if (protocols.findIndex(x => x === protocol_name) != -1) {
     cb(true, protocol_name);
   } else {
-    console.log(`Rejecting client without '${protocol_name}' protocol: ${protocols}`);
+    logger.debug(`Rejecting client without '${protocol_name}' protocol: ${protocols}`);
     cb(false, null);
   }
 };
@@ -118,7 +118,7 @@ var accept_protocol = function (protocols, cb) {
 var handle_http_request = function (req, res) {
   const req_path = url.parse(req.url).pathname;
   const file_path = path.resolve('../client/dist/build.js');
-  console.log(`HTTP request for '${req_path}'`);
+  logger.debug(`HTTP request for '${req_path}'`);
 
   if (req_path === '/fusion.js') {
     fs.access(file_path, fs.R_OK | fs.F_OK, (exists) => {
@@ -155,21 +155,21 @@ class ReqlConnection {
   }
 
   reconnect() {
-    console.log(`Connecting to RethinkDB: ${this.host}:${this.port}`);
+    logger.info(`Connecting to RethinkDB: ${this.host}:${this.port}`);
     r.connect({ host: this.host, port: this.port, db: this.db })
      .then((conn) => this.handle_conn_success(conn),
            (err) => this.handle_conn_error(err));
   }
 
   handle_conn_success(conn) {
-    console.log(`Connection to RethinkDB established.`);
+    logger.info(`Connection to RethinkDB established.`);
     this.connection = conn;
     this.reconnect_delay = 0;
     this.connection.on('error', (err) => this.handle_conn_error(err));
   }
 
   handle_conn_error(err) {
-    console.log(`Connection to RethinkDB terminated: ${err}`);
+    logger.error(`Connection to RethinkDB terminated: ${err}`);
     if (!this.connection) {
       this.connection = null;
       this.clients.forEach((client) => client.reql_connection_lost());
