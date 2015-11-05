@@ -34,7 +34,6 @@ describe("Should be able to successfully load client lib from server", () => {
         assert.equal(res.data, code);
       });
     });
-
 });
 
 // describe("Should be able to make connection to server", () => {
