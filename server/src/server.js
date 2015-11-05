@@ -81,7 +81,7 @@ class BaseServer {
     check(options !== undefined, `'options' must be specified.`);
 
     var endpoint = this._endpoints.get(type);
-    check(endpoint !== undefined, `'${type}' is not a recognized endpoint`);
+    check(endpoint !== undefined, `'${type}' is not a recognized endpoint.`);
     return endpoint;
   }
 }
