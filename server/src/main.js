@@ -155,9 +155,9 @@ var handle_read_response = function(client, request, response, send_cb) {
     if (response.constructor.name === 'Cursor') {
       handle_cursor(client, response, send_cb);
     } else if (response.constructor.name === 'Array') {
-      send_cb({ data: response });
+      send_cb({ data: response, state: 'complete' });
     } else {
-      send_cb({ data: [response] });
+      send_cb({ data: [response], state: 'complete' });
     }
   } else {
     handle_feed(client, response, send_cb);
@@ -196,11 +196,11 @@ var handle_write_response = function(client, request, response, send_cb) {
   if (response.errors !== 0) {
     send_cb({ error: response.first_error });
   } else if (response.changes.length === 1) {
-    send_cb({ data: response.changes[0] });
+    send_cb({ data: response.changes[0], state: 'complete' });
   } else if (response.unchanged === 1) {
-    send_cb({ data: { old_val: request.data, new_val: request.data } });
+    send_cb({ data: { old_val: request.data, new_val: request.data }, state: 'complete' });
   } else if (response.skipped === 1) {
-    send_cb({ data: { old_val: null, new_val: null } });
+    send_cb({ data: { old_val: null, new_val: null }, state: 'complete' });
   } else {
     fail(`Unexpected response counts: ${JSON.stringify(response)}`);
   }
