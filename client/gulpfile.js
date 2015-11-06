@@ -1,11 +1,12 @@
-var gulp = require('gulp');
-var babel = require("gulp-babel")
-var sourcemaps = require('gulp-sourcemaps');
-var source = require('vinyl-source-stream');
-var buffer = require('vinyl-buffer');
-var browserify = require('browserify');
-var watchify = require('watchify');
-var babelify = require('babelify');
+const
+ babel = require("gulp-babel"),
+ babelify = require('babelify'),
+ browserify = require('browserify'),
+ buffer = require('vinyl-buffer'),
+ gulp = require('gulp'),
+ source = require('vinyl-source-stream'),
+ sourcemaps = require('gulp-sourcemaps'),
+ watchify = require('watchify');
 
 function compileTestClient(){
   return gulp.src("src/index.js")
