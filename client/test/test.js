@@ -68,9 +68,10 @@ describe("Collections methods", function(done) {
       int: 43,
       float: 43.0
     };
-    tests.update(testUpdateDoc);
-    tests.findOne(testUpdateDoc.id)
-      .value()
+    tests.update(testUpdateDoc)
+      .then(function(result) {
+        return tests.findOne(testUpdateDoc.id).value();
+      })
       .then(function(result) {
         assert.deepEqual(result, testUpdateDoc);
       })

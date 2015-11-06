@@ -14,6 +14,7 @@
     "gulp-babel": "^6.0.0",
     "gulp-sourcemaps": "^1.6.0",
     "jasmine": "^2.3.2",
+    "mocha": "^2.3.3",
     "mocha-phantomjs": "^4.0.1",
     "phantomjs": "^1.9.18",
     "vinyl-buffer": "^1.0.0",

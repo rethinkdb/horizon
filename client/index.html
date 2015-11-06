@@ -2,11 +2,11 @@
     <head>
         <title>Test Fusion</title>
         <meta charset="UTF-8">
-        <script src="http://localhost:31420/fusion.js"></script>
+        <script src="http://localhost:8181/fusion.js"></script>
         <script>
          "use strict";
          var Fusion = require('Fusion');
-         var fusion = new Fusion("localhost:31420", false);
+         var fusion = new Fusion("localhost:8181", false);
          var blob = fusion('blob');
          var subscription;
          blob.value().then((data) => {
