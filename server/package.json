@@ -17,8 +17,6 @@
   },
   "homepage": "https://github.com/rethinkdb/fusion#readme",
   "dependencies": {
-    "byline": "^4.2.1",
-    "mocha": "^2.3.3",
     "nopt": "^3.0.4",
     "rethinkdb": "^2.1.1",
     "winston": "^2.1.0",
@@ -26,6 +24,7 @@
   },
   "devDependencies": {
     "babel-core": "^6.0.20",
+    "mocha": "^2.3.3",
     "nodemon": "^1.8.1"
   }
 }

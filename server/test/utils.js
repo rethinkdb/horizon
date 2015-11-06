@@ -3,7 +3,6 @@
 const fusion        = require('../src/server.js');
 
 const assert        = require('assert');
-const byline        = require('byline');
 const child_process = require('child_process');
 const fs            = require('fs');
 const path          = require('path');
@@ -31,7 +30,6 @@ module.exports.start_rdb_server = (done) => {
                                                 '--cache-size', '10',
                                                 '--directory', data_dir ]);
   proc.once('error', (err) => assert.ifError(err));
-  proc.once('exit', (res) => logger.error(`rdb server exited: ${res}`));
 
   process.on('exit', () => {
       proc.kill('SIGKILL');
@@ -49,17 +47,25 @@ module.exports.start_rdb_server = (done) => {
       rmdirSync_recursive(data_dir);
     });
 
-  var line_stream = byline(proc.stdout);
-  line_stream.on('data', (line) => {
-      var matches = line.toString().match(/^Listening for client driver connections on port (\d+)$/);
+  // Error if we didn't get the port before the server exited
+  proc.stdout.once('end', () => assert(rdb_port !== undefined));
+
+  var buffer = '';
+  proc.stdout.on('data', (data) => {
+      buffer += data.toString();
+
+      var endline_pos = buffer.indexOf('\n');
+      if (endline_pos === -1) { return; }
+
+      var line = buffer.slice(0, endline_pos);
+      buffer = buffer.slice(endline_pos + 1);
+
+      var matches = line.match(/^Listening for client driver connections on port (\d+)$/);
       if (matches === null || matches.length !== 2) { return; }
 
-      line_stream.removeAllListeners('data');
+      proc.stdout.removeAllListeners('data');
       rdb_port = parseInt(matches[1]);
-      r.connect({ port: rdb_port }).then((c) => {
-          rdb_conn = c;
-          done();
-        });
+      r.connect({ port: rdb_port }).then((c) => (rdb_conn = c, done()));
     });
 };
 
