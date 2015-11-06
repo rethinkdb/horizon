@@ -36,7 +36,7 @@ class FusionEmitter extends EventEmitter {
   toPromise(event){
     console.debug(`Promise will accept on ${event} and reject on 'error'`)
     return new Promise((resolve, reject) => {
-      (new ListenerSet(this))
+      ListenerSet.fromEmitter(this)
         .on(event, resolve)
         .on('error', reject)
     })
@@ -49,6 +49,10 @@ class ListenerSet {
   constructor(emitter){
     this.emitter = emitter
     this.unregistry = []
+  }
+
+  static fromEmitter(emitter){
+    return new ListenerSet(emitter)
   }
 
   on(event, listener){
@@ -87,10 +91,12 @@ class ListenerSet {
 }
 
 class Fusion extends FusionEmitter {
-  constructor(host, secure=true){
+  constructor(host, {secure: secure=true}){
     super()
     var self = (collectionName) => self.collection(collectionName)
     Object.setPrototypeOf(self, Object.getPrototypeOf(this))
+
+    console.log("Security =", secure)
 
     self.host = host
     self.secure = secure
@@ -132,7 +138,8 @@ class Fusion extends FusionEmitter {
   }
 
   remove(collection, document){
-    return this._send('remove', {collection: collection, data: document})
+    let command = {collection: collection, data: document}
+    return this._send('remove', command).collectingPromise('response')
   }
 
   subscribe(query, updates=true){
@@ -227,7 +234,7 @@ class RequestEmitter extends FusionEmitter {
     console.debug("Creating emitter for request_id", requestId)
     this.fusion = fusion
     this.requestId = requestId
-    this.remoteListeners = new ListenerSet(this.fusion)
+    this.remoteListeners = ListenerSet.fromEmitter(this.fusion)
 
     //Forwards on fusion events to this emitter's listeners
     this.remoteListeners
@@ -269,7 +276,7 @@ class RequestEmitter extends FusionEmitter {
   //and rejects on the second event which defaults to 'error'
   toPromise(acceptEvent, rejectEvent='error'){
     return new Promise((resolve, reject) => {
-      (new ListenerSet(this))
+      ListenerSet.fromEmitter(this)
         .onceAndCleanup(acceptEvent, resolve)
         .onceAndCleanup(rejectEvent, reject)
     })
@@ -283,7 +290,7 @@ class RequestEmitter extends FusionEmitter {
   collectingPromise(addEvent='response', completeEvent='complete'){
     return new Promise((resolve, reject) => {
       let values = [];
-      (new ListenerSet(this))
+      ListenerSet.fromEmitter(this)
         .on(addEvent, item => values.push(item))
         .onceAndCleanup(completeEvent, () => resolve(values))
         .cleanupOn('error')
@@ -396,7 +403,7 @@ class Collection extends TermBase {
     if(typeof document === 'number' || typeof document === 'string'){
       document = {id: document}
     }
-    return this.fusion.remove(this.query, document)
+    return this.fusion.remove(this._collectionName, document)
   }
 }
 

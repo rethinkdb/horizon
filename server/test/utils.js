@@ -153,7 +153,7 @@ var dispatch_message = (raw) => {
   listener(msg);
 };
 
-module.exports.start_fusion_client = (done) => {
+module.exports.open_fusion_conn = (done) => {
   assert(fusion_server);
   assert(!fusion_conn);
   fusion_listeners = new Map();
@@ -164,7 +164,7 @@ module.exports.start_fusion_client = (done) => {
       .on('open', () => done())
 };
 
-module.exports.close_fusion_client = () => {
+module.exports.close_fusion_conn = () => {
   if (fusion_conn) { fusion_conn.close(); }
   fusion_conn = undefined;
   fusion_listeners = undefined;
