@@ -18,9 +18,9 @@ var common_tests = () => {
   describe('Subscribe Tests', subscribe_tests.all_tests);
 };
 
-describe('Fusion Server', function () {
+describe('Fusion Server', () => {
   before('Start RethinkDB Server', utils.start_rdb_server);
-  beforeEach(function () { logger.info(`Start test '${this.currentTest.title}'`); });
+  beforeEach(() => { logger.info(`Start test '${this.currentTest.title}'`); });
 
   describe('HTTP:', () => {
       before('Start Fusion Server', utils.start_unsecure_fusion_server);
