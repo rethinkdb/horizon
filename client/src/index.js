@@ -39,7 +39,7 @@ class FusionEmitter extends EventEmitter {
       (new ListenerSet(this))
         .on(event, resolve)
         .on('error', reject)
-    })
+    });
   }
 }
 
@@ -47,41 +47,41 @@ class FusionEmitter extends EventEmitter {
 // removing them all when certain events occur
 class ListenerSet {
   constructor(emitter){
-    this.emitter = emitter
-    this.unregistry = []
+    this.emitter = emitter;
+    this.unregistry = [];
   }
 
   on(event, listener){
-    this.unregistry.push(this.emitter.register(event, listener))
-    return this
+    this.unregistry.push(this.emitter.register(event, listener));
+    return this;
   }
 
   once(event, listener){
-    this.unregistry.push(this.emitter.registerOnce(event, listener))
-    return this
+    this.unregistry.push(this.emitter.registerOnce(event, listener));
+    return this;
   }
 
   fwd(srcEvent, dst, dstEvent=srcEvent){
-    this.unregistry.push(this.emitter.fwd(srcEvent, dst, dstEvent))
-    return this
+    this.unregistry.push(this.emitter.fwd(srcEvent, dst, dstEvent));
+    return this;
   }
 
   onceAndCleanup(event, listener){
     let wrappedListener = (...args) => {
-      listener(...args)
-      this.cleanup()
+      listener(...args);
+      this.cleanup();
     }
-    this.unregistry.push(this.emitter.registerOnce(event, wrappedListener))
-    return this
+    this.unregistry.push(this.emitter.registerOnce(event, wrappedListener));
+    return this;
   }
 
   cleanupOn(event){
-    this.unregistry.push(this.emitter.registerOnce(event, this.cleanup.bind(this)))
-    return this
+    this.unregistry.push(this.emitter.registerOnce(event, this.cleanup.bind(this)));
+    return this;
   }
 
   cleanup(){
-    this.unregistry.forEach(unregister => unregister())
+    this.unregistry.forEach(unregister => unregister());
   }
 
 }
