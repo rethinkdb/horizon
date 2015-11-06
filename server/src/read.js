@@ -20,6 +20,9 @@ module.exports.make_read_reql = function (request) {
   var reql = r.table(collection);
 
   var selection = options.selection;
+  var order = options.order;
+  var limit = options.limit;
+
   if (selection !== undefined) {
     var selection_type = selection.type;
     var selection_args = selection.args;
@@ -28,20 +31,22 @@ module.exports.make_read_reql = function (request) {
     check(selection_args.constructor.name === 'Array', `'options.selection.args' must be an array.`)
 
     if (selection_type === 'find_one') {
-      check(selection_args.length === 1, `'options.selection.args' must have one argument for 'find_one'`);
-      check(index === 'id', `'options.field_name' must be 'id' for 'find_one'`);
+      check(selection_args.length === 1, `'options.selection.args' must have one argument for 'find_one'.`);
+      check(index === 'id', `'options.field_name' must be 'id' for 'find_one'.`);
+      check(order === undefined, `'options.order' cannot be used with 'find_one'.`);
+      check(limit === undefined, `'options.limit' cannot be used with 'find_one'.`);
       reql = reql.get(selection_args[0]);
     } else if (selection_type === 'find') {
+      check(order === undefined, `'options.order' cannot be used with 'find'.`);
       reql = reql.getAll.apply(reql, selection_args.concat({ index: index }));
     } else if (selection_type === 'between') {
-      check(selection_args.length === 2, `'options.selection.args' must have two arguments for 'between'`);
+      check(selection_args.length === 2, `'options.selection.args' must have two arguments for 'between'.`);
       reql = reql.between.apply(reql, selection_args.concat({ index: index }));
     } else {
       fail(`'options.selection.type' must be one of 'find', 'find_one', or 'between'.`)
     }
   }
 
-  var order = options.order;
   if (order === 'ascending') {
     reql = reql.orderBy({ index: r.asc(index) })
   } else if (order === 'descending') {
@@ -50,7 +55,6 @@ module.exports.make_read_reql = function (request) {
     fail(`'options.order' must be either 'ascending' or 'descending'.`);
   }
 
-  var limit = options.limit;
   if (limit !== undefined) {
     check(parseInt(limit) === limit, `'options.limit' must be an integer.`);
     reql = reql.limit(limit);

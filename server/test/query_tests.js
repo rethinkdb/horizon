@@ -72,7 +72,7 @@ module.exports.all_tests = () => {
           },
         },
         (err, res) => {
-          assert.equal(err, '');
+          assert.equal(err, "'options.order' cannot be used with 'find_one'.");
           done();
         });
     });
@@ -92,7 +92,7 @@ module.exports.all_tests = () => {
           },
         },
         (err, res) => {
-          assert.equal(err, '');
+          assert.equal(err, "'options.limit' cannot be used with 'find_one'.");
           done();
         });
     });
@@ -113,7 +113,7 @@ module.exports.all_tests = () => {
           },
         },
         (err, res) => {
-          assert.equal(err, '');
+          assert.equal(err, "'options.order' cannot be used with 'find_one'.");
           done();
         });
     });
@@ -153,8 +153,7 @@ module.exports.all_tests = () => {
           },
         },
         (err, res) => {
-          assert.ifError(err);
-          assert.equal(res.length, 3);
+          assert.equal(err, "'options.order' cannot be used with 'find'.");
           done();
         });
     });
@@ -196,8 +195,7 @@ module.exports.all_tests = () => {
           },
         },
         (err, res) => {
-          assert.ifError(err);
-          assert.equal(res.length, 3);
+          assert.equal(err, "'options.order' cannot be used with 'find'.");
           done();
         });
     });
