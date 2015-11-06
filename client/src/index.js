@@ -36,7 +36,7 @@ class FusionEmitter extends EventEmitter {
   toPromise(event){
     console.debug(`Promise will accept on ${event} and reject on 'error'`)
     return new Promise((resolve, reject) => {
-      (new ListenerSet(this))
+      ListenerSet.fromEmitter(this)
         .on(event, resolve)
         .on('error', reject)
     })
@@ -49,6 +49,10 @@ class ListenerSet {
   constructor(emitter){
     this.emitter = emitter
     this.unregistry = []
+  }
+
+  static fromEmitter(emitter){
+    return new ListenerSet(emitter)
   }
 
   on(event, listener){
@@ -230,7 +234,7 @@ class RequestEmitter extends FusionEmitter {
     console.debug("Creating emitter for request_id", requestId)
     this.fusion = fusion
     this.requestId = requestId
-    this.remoteListeners = new ListenerSet(this.fusion)
+    this.remoteListeners = ListenerSet.fromEmitter(this.fusion)
 
     //Forwards on fusion events to this emitter's listeners
     this.remoteListeners
@@ -272,7 +276,7 @@ class RequestEmitter extends FusionEmitter {
   //and rejects on the second event which defaults to 'error'
   toPromise(acceptEvent, rejectEvent='error'){
     return new Promise((resolve, reject) => {
-      (new ListenerSet(this))
+      ListenerSet.fromEmitter(this)
         .onceAndCleanup(acceptEvent, resolve)
         .onceAndCleanup(rejectEvent, reject)
     })
@@ -286,7 +290,7 @@ class RequestEmitter extends FusionEmitter {
   collectingPromise(addEvent='response', completeEvent='complete'){
     return new Promise((resolve, reject) => {
       let values = [];
-      (new ListenerSet(this))
+      ListenerSet.fromEmitter(this)
         .on(addEvent, item => values.push(item))
         .onceAndCleanup(completeEvent, () => resolve(values))
         .cleanupOn('error')
