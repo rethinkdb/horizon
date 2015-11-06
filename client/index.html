@@ -6,7 +6,7 @@
         <script>
          "use strict";
          var Fusion = require('Fusion');
-         var fusion = new Fusion("localhost:8181", false);
+         var fusion = new Fusion("localhost:8181", {secure: false});
          var blob = fusion('blob');
          var subscription;
          blob.value().then((data) => {
@@ -18,9 +18,10 @@
                  .on("added", (value) => console.log("Item added: ", value))
                  .on("error", (event) => console.error("Error on subscription", event))
          }).then((data) => {
-             return blob.store({"some": "data", 'id': 45}, 'replace');
+             return blob.store({some: "data", id: 45}, 'replace');
          }).then((resp) => {
              console.log(`Got back store response:`, resp);
+             return blob.remove(45)
          }).catch((error) => console.log("App caught", error))
         </script>
     </head>

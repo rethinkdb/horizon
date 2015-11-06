@@ -87,10 +87,12 @@ class ListenerSet {
 }
 
 class Fusion extends FusionEmitter {
-  constructor(host, secure=true){
+  constructor(host, {secure: secure=true}){
     super()
     var self = (collectionName) => self.collection(collectionName)
     Object.setPrototypeOf(self, Object.getPrototypeOf(this))
+
+    console.log("Security =", secure)
 
     self.host = host
     self.secure = secure
@@ -132,7 +134,8 @@ class Fusion extends FusionEmitter {
   }
 
   remove(collection, document){
-    return this._send('remove', {collection: collection, data: document})
+    let command = {collection: collection, data: document}
+    return this._send('remove', command).collectingPromise('response')
   }
 
   subscribe(query, updates=true){
@@ -396,7 +399,7 @@ class Collection extends TermBase {
     if(typeof document === 'number' || typeof document === 'string'){
       document = {id: document}
     }
-    return this.fusion.remove(this.query, document)
+    return this.fusion.remove(this._collectionName, document)
   }
 }
 

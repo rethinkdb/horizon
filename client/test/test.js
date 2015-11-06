@@ -5,7 +5,7 @@ var Fusion = require("Fusion");
 //Doesn't actually do anything for now, need `isConnected` callback
 describe("Make a connection to the database", function() {
   it("new Fusion(...)", function(done) {
-    var fusion = new Fusion("localhost:8181", false);
+    var fusion = new Fusion("localhost:8181", {secure: false});
     assert.notEqual(fusion, undefined);
     fusion.toPromise('connected').then(() => done(), done)
   });
@@ -22,7 +22,7 @@ describe("Collections methods", function(done) {
     float: 42.0
   };
 
-  var fusion = new Fusion("localhost:8181", false);
+  var fusion = new Fusion("localhost:8181", {secure: false});
   var tests = fusion("tests");
 
   it("#.store(...)", function(done) {
