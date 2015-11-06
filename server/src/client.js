@@ -2,7 +2,9 @@
 
 const logger = require('./logger.js');
 const error = require('./error.js');
+
 const r = require('rethinkdb');
+const websocket = require('ws');
 
 var check = error.check;
 
@@ -100,12 +102,23 @@ module.exports.Client = class Client {
   }
 
   send_response(query, data) {
-    data.request_id = query.request.request_id;
-    logger.debug(`Sending response: ${JSON.stringify(data)}`);
-    this.socket.send(JSON.stringify(data));
+    // Ignore responses for disconnected clients
+    if (this.socket.readyState !== websocket.OPEN) {
+      logger.debug(`Disconnected client got a response: ${JSON.stringify(data)}.`);
+    } else {
+      data.request_id = query.request.request_id;
+      logger.debug(`Sending response: ${JSON.stringify(data)}`);
+      this.socket.send(JSON.stringify(data));
+    }
   }
 
   handle_response_error(query, info) {
+    // Ignore responses for disconnected clients
+    if (this.socket.readyState !== websocket.OPEN) {
+      logger.debug(`Disconnected client got an error: ${JSON.stringify(info)}.`);
+      return;
+    }
+
     var matches;
     // We may have already tried to create a table or index while it was already
     // being created, recognize those errors and retry.
