@@ -1,60 +1,61 @@
 'use strict';
 
-const child_process = require('child_process');
-const fs            = require('fs');
-const byline        = require('byline');
-const websocket     = require('ws');
-const assert        = require('assert');
-const r             = require('rethinkdb');
 const fusion        = require('../src/server.js');
 
-var db = `fusion`;
-var data_dir = `./rethinkdb_data_test`;
+const assert        = require('assert');
+const byline        = require('byline');
+const child_process = require('child_process');
+const fs            = require('fs');
+const path          = require('path');
+const r             = require('rethinkdb');
+const websocket     = require('ws');
 
-var log_file = `./fusion_test_${process.pid}.log`;
-var logger = fusion.logger;
+const db = `fusion`;
+const data_dir = `./rethinkdb_data_test`;
+
+const log_file = `./fusion_test_${process.pid}.log`;
+const logger = fusion.logger;
 logger.level = 'debug';
 logger.add(logger.transports.File, { filename: log_file });
 logger.remove(logger.transports.Console);
 
-// Variables used by different tests
+// Variables used by most tests
 var rdb_server, rdb_port, rdb_conn; // Instantiated once
 var fusion_server, fusion_port; // Instantiated for HTTP and HTTPS
 var fusion_conn; // Instantiated for every test
 
-// TODO: get rid of this class, we don't really need it
-class RethinkdbServer {
-  constructor() {
-    this.proc = child_process.spawn('rethinkdb', [ '--http-port', '0',
-                                                   '--cluster-port', '0',
-                                                   '--driver-port', '0',
-                                                   '--cache-size', '10',
-                                                   '--directory', data_dir ]);
-    this.proc.once('error', (err) => assert.ifError(err));
-    this.proc.once('exit', (res) => logger.error(`rdb server exited: ${res}`));
-
-    this.line_stream = byline(this.proc.stdout);
-    this.driver_port = new Promise((resolve, reject) => {
-        this.line_stream.on('data', (line) => {
-            var matches = line.toString().match(/^Listening for client driver connections on port (\d+)$/);
-            if (matches !== null && matches.length === 2) {
-              resolve(parseInt(matches[1]));
-              this.line_stream.removeAllListeners('data');
-            }
-          });
-      });
-
-    process.on('exit', () => {
-        this.proc.kill('SIGKILL');
-        try { fs.rmdirSync(data_dir); } catch (err) { /* Do nothing */ }
-      });
-  }
-};
-
 module.exports.start_rdb_server = (done) => {
-  rdb_server = new RethinkdbServer();
-  rdb_server.driver_port.then((p) => {
-      rdb_port = p;
+  var proc = child_process.spawn('rethinkdb', [ '--http-port', '0',
+                                                '--cluster-port', '0',
+                                                '--driver-port', '0',
+                                                '--cache-size', '10',
+                                                '--directory', data_dir ]);
+  proc.once('error', (err) => assert.ifError(err));
+  proc.once('exit', (res) => logger.error(`rdb server exited: ${res}`));
+
+  process.on('exit', () => {
+      proc.kill('SIGKILL');
+      var rmdirSync_recursive = (dir) => {
+          fs.readdirSync(dir).forEach((item) => {
+              var full_path = path.join(dir, item);
+              if (fs.statSync(full_path).isDirectory()) {
+                rmdirSync_recursive(full_path);
+              } else {
+                fs.unlinkSync(full_path);
+              }
+            });
+          fs.rmdirSync(dir);
+        };
+      rmdirSync_recursive(data_dir);
+    });
+
+  var line_stream = byline(proc.stdout);
+  line_stream.on('data', (line) => {
+      var matches = line.toString().match(/^Listening for client driver connections on port (\d+)$/);
+      if (matches === null || matches.length !== 2) { return; }
+
+      line_stream.removeAllListeners('data');
+      rdb_port = parseInt(matches[1]);
       r.connect({ port: rdb_port }).then((c) => {
           rdb_conn = c;
           done();
