@@ -23,31 +23,264 @@ module.exports.prepare_database = (done) => {
       });
 };
 
+// TODO: ensure each row is present in the results
 module.exports.all_tests = () => {
   beforeEach('Authenticate client', utils.fusion_default_auth);
 
   it('table scan', (done) => {
-      // TODO: function to collect all results for a given request_id into an array
       utils.stream_test(
         { request_id: 0, type: 'query', options: { collection: table } },
         (err, res) => {
           assert.ifError(err);
           assert.equal(res.length, num_rows);
-          // TODO: ensure each row is present in the results
           done();
         });
     });
 
-  it('find_one', (done) => { done(); });
-  it('find_one order', (done) => { done(); });
-  it('find_one limit', (done) => { done(); });
-  it('find_one order limit', (done) => { done(); });
-  it('find', (done) => { done(); });
-  it('find order', (done) => { done(); });
-  it('find limit', (done) => { done(); });
-  it('find order limit', (done) => { done(); });
-  it('between', (done) => { done(); });
-  it('between order', (done) => { done(); });
-  it('between limit', (done) => { done(); });
-  it('between order limit', (done) => { done(); });
+  it('find_one', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            selection: {
+              type: 'find_one',
+              args: [ 4 ],
+            },
+          },
+        },
+        (err, res) => {
+          assert.ifError(err);
+          assert.equal(res.length, 1);
+          done();
+        });
+    });
+
+  it('find_one order', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            selection: {
+              type: 'find_one',
+              args: [ 4 ],
+            },
+            order: 'ascending',
+          },
+        },
+        (err, res) => {
+          assert.equal(err, "'options.order' cannot be used with 'find_one'.");
+          done();
+        });
+    });
+
+  it('find_one limit', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            selection: {
+              type: 'find_one',
+              args: [ 4 ],
+            },
+            limit: 5,
+          },
+        },
+        (err, res) => {
+          assert.equal(err, "'options.limit' cannot be used with 'find_one'.");
+          done();
+        });
+    });
+
+  it('find_one order limit', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            selection: {
+              type: 'find_one',
+              args: [ 4 ],
+            },
+            order: 'descending',
+            limit: 3,
+          },
+        },
+        (err, res) => {
+          assert.equal(err, "'options.order' cannot be used with 'find_one'.");
+          done();
+        });
+    });
+
+  it('find', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            selection: {
+              type: 'find',
+              args: [ 4, 6, 9 ],
+            },
+          },
+        },
+        (err, res) => {
+          assert.ifError(err);
+          assert.equal(res.length, 3);
+          done();
+        });
+    });
+
+  it('find order', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            selection: {
+              type: 'find',
+              args: [ 1, 2, 4 ],
+            },
+            order: 'descending',
+          },
+        },
+        (err, res) => {
+          assert.equal(err, "'options.order' cannot be used with 'find'.");
+          done();
+        });
+    });
+
+  it('find limit', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            selection: {
+              type: 'find',
+              args: [ 4, 8, 2, 1 ],
+            },
+            limit: 3,
+          },
+        },
+        (err, res) => {
+          assert.ifError(err);
+          assert.equal(res.length, 3);
+          done();
+        });
+    });
+
+  it('find order limit', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            selection: {
+              type: 'find',
+              args: [ 4, 5, 1, 2 ],
+            },
+            order: 'descending',
+            limit: 3,
+          },
+        },
+        (err, res) => {
+          assert.equal(err, "'options.order' cannot be used with 'find'.");
+          done();
+        });
+    });
+
+  it('between', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            selection: {
+              type: 'between',
+              args: [ 4, 10 ],
+            },
+          },
+        },
+        (err, res) => {
+          assert.ifError(err);
+          assert.equal(res.length, 6);
+          done();
+        });
+    });
+
+  it('between order', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            selection: {
+              type: 'between',
+              args: [ 2, 5 ],
+            },
+            order: 'ascending',
+          },
+        },
+        (err, res) => {
+          assert.ifError(err);
+          assert.equal(res.length, 3);
+          done();
+        });
+    });
+
+  it('between limit', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            selection: {
+              type: 'between',
+              args: [ 1, 7 ],
+            },
+            limit: 1,
+          },
+        },
+        (err, res) => {
+          assert.ifError(err);
+          assert.equal(res.length, 1);
+          done();
+        });
+    });
+
+  it('between order limit', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            selection: {
+              type: 'between',
+              args: [ 6, 10 ],
+            },
+            order: 'ascending',
+            limit: 2,
+          },
+        },
+        (err, res) => {
+          assert.ifError(err);
+          assert.equal(res.length, 2);
+          done();
+        });
+    });
 };
