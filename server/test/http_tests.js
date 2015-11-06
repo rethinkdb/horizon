@@ -7,6 +7,10 @@ const fs     = require('fs');
 const http   = require('http');
 const https  = require('https');
 
+module.exports.name = 'Webserver';
+
+module.exports.prepare_database = (done) => done();
+
 module.exports.all_tests = () => {
   it('localhost/fusion.js', (done) => {
       var transport = utils.is_secure() ? https : http;

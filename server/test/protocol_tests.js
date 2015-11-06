@@ -3,16 +3,20 @@
 const utils = require('./utils.js');
 const assert = require('assert');
 
-module.exports.all_tests = function () {
-  beforeEach('Authenticate client', utils.temp_auth);
+module.exports.name = 'Protocol';
+
+module.exports.prepare_database = (done) => done();
+
+module.exports.all_tests = () => {
+  beforeEach('Authenticate client', utils.fusion_default_auth);
 
   it('unparseable', (done) => {
       var conn = utils.fusion_conn();
       conn.removeAllListeners('error');
       conn.send('foobar');
       conn.once('close', (code, msg) => {
-          assert.equal(code, 1002);
-          assert.equal(msg, 'Unparseable request: foobar');
+          assert.strictEqual(code, 1002);
+          assert.strictEqual(msg, 'Unparseable request: foobar');
           done();
         });
     });
@@ -22,27 +26,33 @@ module.exports.all_tests = function () {
       conn.removeAllListeners('error');
       conn.send('{ }');
       conn.once('close', (code, msg) => {
-          assert.equal(code, 1002);
-          assert.equal(msg, 'Unparseable request: { }');
+          assert.strictEqual(code, 1002);
+          assert.strictEqual(msg, 'Unparseable request: { }');
           done();
         });
     });
 
   it('no type', (done) => {
-      utils.simple_test(
-        { request_id: 0 },
-        { request_id: 0, error: "'type' must be specified." }, done)
+      utils.stream_test({ request_id: 0 }, (err, res) => {
+          assert.deepStrictEqual(res, []);
+          assert.strictEqual(err, "'type' must be specified.");
+          done();
+        });
     });
 
   it('no options', (done) => {
-      utils.simple_test(
-        { request_id: 1, type: "fake" },
-        { request_id: 1, error: "'options' must be specified." }, done)
+      utils.stream_test({ request_id: 1, type: "fake" }, (err, res) => {
+          assert.deepStrictEqual(res, []),
+          assert.strictEqual(err, "'options' must be specified."),
+          done();
+        });
     });
 
  it('invalid endpoint', (done) => {
-      utils.simple_test(
-        { request_id: 2, type: "fake", options: { } },
-        { request_id: 2, error: "'fake' is not a recognized endpoint." }, done)
+      utils.stream_test({ request_id: 2, type: "fake", options: { } }, (err, res) => {
+          assert.deepStrictEqual(res, []),
+          assert.strictEqual(err, "'fake' is not a recognized endpoint.");
+          done();
+        });
    });
 };

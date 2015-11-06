@@ -65,7 +65,13 @@ module.exports.start_rdb_server = (done) => {
 
       proc.stdout.removeAllListeners('data');
       rdb_port = parseInt(matches[1]);
-      r.connect({ port: rdb_port }).then((c) => (rdb_conn = c, done()));
+      r.connect({ port: rdb_port, db: db }).then((c) => {
+          rdb_conn = c;
+          return r.dbCreate(db).run(c);
+        }).then((res) => {
+          assert.strictEqual(res.dbs_created, 1);
+          done();
+        });
     });
 };
 
@@ -120,38 +126,88 @@ var is_secure = () => {
 
 module.exports.is_secure = is_secure;
 
+var fusion_listeners;
+
+var add_fusion_listener = (request_id, cb) => {
+  assert.notStrictEqual(request_id, undefined);
+  assert.notStrictEqual(fusion_listeners, undefined);
+  assert.strictEqual(fusion_listeners.get(request_id), undefined);
+  fusion_listeners.set(request_id, cb);
+};
+
+var remove_fusion_listener = (request_id) => {
+  assert.notStrictEqual(request_id, undefined);
+  assert.notStrictEqual(fusion_listeners, undefined);
+  fusion_listeners.delete(request_id);
+};
+
+module.exports.fusion_listeners = () => fusion_listeners;
+module.exports.add_fusion_listener = add_fusion_listener;
+module.exports.remove_fusion_listener = remove_fusion_listener;
+
+var dispatch_message = (raw) => {
+  var msg = JSON.parse(raw);
+  assert.notStrictEqual(msg.request_id, undefined);
+  var listener = fusion_listeners.get(msg.request_id);
+  assert.notStrictEqual(listener, undefined);
+  listener(msg);
+};
+
 module.exports.start_fusion_client = (done) => {
   assert(fusion_server);
   assert(!fusion_conn);
+  fusion_listeners = new Map();
   fusion_conn =
     new websocket(`${is_secure() ? 'wss' : 'ws'}://localhost:${fusion_port}`,
                   fusion.protocol, { rejectUnauthorized: false })
       .once('error', (err) => assert.ifError(err))
-      .on('open', () => done());
+      .on('open', () => done())
 };
 
 module.exports.close_fusion_client = () => {
   if (fusion_conn) { fusion_conn.close(); }
   fusion_conn = undefined;
+  fusion_listeners = undefined;
 };
 
-module.exports.temp_auth = function (done) {
+var fusion_auth = (req, cb) => {
   assert(fusion_conn && fusion_conn.readyState === websocket.OPEN);
-  var auth = { };
-  fusion_conn.send(JSON.stringify(auth));;
+  fusion_conn.send(JSON.stringify(req));;
   fusion_conn.once('message', (msg) => {
       var res = JSON.parse(msg);
-      assert(res && res.user_id !== undefined);
+      fusion_conn.on('message', (msg) => dispatch_message(msg));
+      cb(res);
+    });
+};
+
+module.exports.fusion_auth = fusion_auth;
+module.exports.fusion_default_auth = (done) => {
+  fusion_auth({ }, (res) => {
+      assert.deepEqual(res, { user_id: 0 });
       done();
     });
 };
 
-module.exports.simple_test = function (req, res, done) {
+// `stream_test` will send a request (containing a request_id), and call the
+// callback with (err, res), where `err` is the error string if an error
+// occurred, or `null` otherwise.  `res` will be an array, being the concatenation
+// of all `data` items returned by the server for the given request_id.
+// TODO: this doesn't allow for dealing with multiple states (like 'synced').
+module.exports.stream_test = function (req, cb) {
   assert(fusion_conn && fusion_conn.readyState === websocket.OPEN);
   fusion_conn.send(JSON.stringify(req));
-  fusion_conn.once('message', (msg) => {
-      assert.deepEqual(res, JSON.parse(msg));
-      done();
+  var results = [];
+  add_fusion_listener(req.request_id, (msg) => {
+      if (msg.data !== undefined) {
+        results.push.apply(results, msg.data);
+      }
+      if (msg.error !== undefined) {
+        remove_fusion_listener(req.request_id);
+        cb(msg.error, results);
+      } else if (msg.state === 'complete') {
+        remove_fusion_listener(req.request_id);
+        cb(null, results);
+      }
     });
 };
 

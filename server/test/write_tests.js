@@ -2,6 +2,8 @@
 
 const utils = require('./utils.js');
 
-module.exports.all_tests = function () {
+module.exports.name = 'Write';
 
-};
+module.exports.prepare_database = (done) => done();
+
+module.exports.all_tests = () => { };
