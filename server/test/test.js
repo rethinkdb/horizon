@@ -4,23 +4,28 @@ const utils = require('./utils.js');
 const logger = require('../src/server.js').logger;
 
 // Test cases
-const protocol_tests = require('./protocol_tests.js');
-const http_tests = require('./http_tests.js');
-const query_tests = require('./query_tests.js');
-const write_tests = require('./write_tests.js');
-const subscribe_tests = require('./subscribe_tests.js');
+const all_suites = [
+    require('./http_tests.js'),
+    require('./protocol_tests.js'),
+    require('./query_tests.js'),
+    require('./write_tests.js'),
+    require('./subscribe_tests.js'),
+    require('./prereq_tests.js'),
+  ];
 
-var common_tests = () => {
-  describe('Webserver Tests', http_tests.all_tests);
-  describe('Protocol Tests', protocol_tests.all_tests);
-  describe('Query Tests', query_tests.all_tests);
-  describe('Write Tests', write_tests.all_tests);
-  describe('Subscribe Tests', subscribe_tests.all_tests);
+// TODO: would be nice to only populate the database for tests being run - although
+// we want to avoid populating more than once
+var prepare_database = (done) => {
+  var num_done = 0;
+  var collector = () => ++num_done === all_suites.length ? done() : undefined;
+  all_suites.forEach((suite) => suite.prepare_database(collector));
 };
 
 describe('Fusion Server', () => {
   before('Start RethinkDB Server', utils.start_rdb_server);
-  beforeEach(() => { logger.info(`Start test '${this.currentTest.title}'`); });
+  before('Populating Fusion database', prepare_database); // TODO: this may need an increased timeout
+
+  beforeEach(function() { logger.info(`Start test '${this.currentTest.title}'`); });
 
   describe('HTTP:', () => {
       before('Start Fusion Server', utils.start_unsecure_fusion_server);
@@ -28,7 +33,7 @@ describe('Fusion Server', () => {
       beforeEach('Connect Fusion Client', utils.start_fusion_client);
       afterEach('Close Fusion Client', utils.close_fusion_client);
 
-      common_tests();
+      all_suites.forEach((suite) => describe(suite.name, suite.all_tests));
     });
 
   describe('HTTPS:', () => {
@@ -37,6 +42,6 @@ describe('Fusion Server', () => {
       beforeEach('Connect Fusion Client', utils.start_fusion_client);
       afterEach('Close Fusion Client', utils.close_fusion_client);
 
-      common_tests();
+      all_suites.forEach((suite) => describe(suite.name, suite.all_tests));
     });
 });

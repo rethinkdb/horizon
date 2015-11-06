@@ -1,5 +1,5 @@
-require("babel-polyfill");
-import EventEmitter from "events"
+require('babel-polyfill')
+const EventEmitter = require('events').EventEmitter
 
 //See https://babeljs.io/docs/learn-es2015/#proxies
 // Due to limitations of ES5 there is no transpiled
@@ -11,238 +11,305 @@ Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
 
 const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 
-export class Fusion {
+function oneOf(val, ...values){
+    return (new Set(values)).has(val)
+}
 
-    constructor(hostString){
-        console.log("Constructing fusion object")
-        self = (collectionName) => self.collection(collectionName)
-        Object.setPrototypeOf(self, Object.getPrototypeOf(this))
-        if (typeof hostString == "object" && hostString.mock == true){
-            console.log("mocking the socket")
-            self.hostString = "mock"
-            self._socket = new MockSocket(hostString, this.classify)
-        } else {
-            console.log("Real websocket")
-            self.hostString = hostString
-            self._socket = new Socket(hostString, this.classify)
+function responseEvent(id){
+    return `response:${id}`
+}
+
+class FusionEmitter extends EventEmitter {
+    // Returns a function that can be called to remove the listener
+    // Otherwise works the same as 'on' for the underlying socket
+    register(event, listener){
+        this.on(event, listener)
+        return () => this.removeListener(event, listener)
+    }
+
+    // Similar to `register` but wraps `once` instead of `on`
+    registerOnce(event, listener){
+        this.once(event, listener)
+        return () => this.removeListener(event, listener)
+    }
+
+    //Forwards events from the current emitter to another emitter,
+    //returning an unregistration function
+    fwd(srcEvent, dst, dstEvent=srcEvent){
+        return this.register(srcEvent, (...args) => dst.emit(dstEvent, ...args))
+    }
+
+    // A promise that accepts when the given event occurs, and rejects
+    // when an 'error' event is raised
+    toPromise(event){
+        console.debug(`Promise will accept on ${event} and reject on 'error'`)
+        return new Promise((resolve, reject) => {
+            (new ListenerSet(this))
+                .on(event, resolve)
+                .on('error', reject)
+        })
+    }
+}
+
+// Handles hooking up a group of listeners to a FusionEmitter, and
+// removing them all when certain events occur
+class ListenerSet {
+    constructor(emitter){
+        this.emitter = emitter
+        this.unregistry = []
+    }
+
+    on(event, listener){
+        this.unregistry.push(this.emitter.register(event, listener))
+        return this
+    }
+
+    once(event, listener){
+        this.unregistry.push(this.emitter.registerOnce(event, listener))
+        return this
+    }
+
+    fwd(srcEvent, dst, dstEvent=srcEvent){
+        this.unregistry.push(this.emitter.fwd(srcEvent, dst, dstEvent))
+        return this
+    }
+
+    onceAndCleanup(event, listener){
+        let wrappedListener = (...args) => {
+            listener(...args)
+            this.cleanup()
         }
+        this.unregistry.push(this.emitter.registerOnce(event, wrappedListener))
+        return this
+    }
+
+    cleanupOn(event){
+        this.unregistry.push(this.emitter.registerOnce(event, this.cleanup.bind(this)))
+        return this
+    }
+
+    cleanup(){
+        this.unregistry.forEach(unregister => unregister())
+    }
+
+}
+
+class Fusion extends FusionEmitter {
+    constructor(host, secure=true){
+        super()
+        var self = (collectionName) => self.collection(collectionName)
+        Object.setPrototypeOf(self, Object.getPrototypeOf(this))
+
+        self.host = host
+        self.secure = secure
+        self.requestCounter = 0
+        self.socket = new FusionSocket(host, secure)
+        self.socket.fwd('connected', self)
+        self.socket.fwd('disconnected', self)
+        self.socket.fwd('error', self, 'error')
+        // send handshake
+        self.handshakenSocket = self.socket.toPromise('connected').then(() => {
+            console.debug("Sending handshake {}")
+            self.socket.send({})
+            return self.socket.toPromise('handshake-complete')
+        }).then(handshake => {
+            console.debug("received handshake: ", handshake)
+        }).catch((event) => console.debug('Got a connection error:', event))
         return self
     }
 
-    collection(name){
-        //Check if collection exists?? Nope, EAFP let server handle it.
-        return new Collection(this, name)
+    close(){
+        this.socket.close('Fusion object closed')
     }
 
-    classify(response){
-        // response -> responseType
-        // this might need to go in another class and be given to this class
-        if(response.new_val !== null && response.old_val !== null){
-            return 'changed'
-        }else if(response.new_val !== null && response.old_val === null){
-            return 'added'
-        }else if(response.new_val === null && response.old_val !== null){
-            return 'removed'
-        }else{
-            return 'unknown'
-        }
+    collection(collectionName){
+        return new Collection(this, collectionName)
     }
 
-    _query(query){
-        console.log("Enqueueing query: ", JSON.stringify(query))
-        // determine if the query is a find_one
-        let pointQuery = (query.selection !== undefined &&
-                          query.selection.type === 'find_one')
-        return this._socket.send("query", query, pointQuery)
-    }
-
-    _store(collection, document, conflict){
+    store(collection, document, conflict){
         let command = Object.assign({data: document}, collection)
-        if(conflict === 'replace'){
-            return this._socket.send("store_replace", command, true)
-        }else if(conflict === 'error'){
-            return this._socket.send("store_error", command, true)
-        }else if(conflict === 'update'){
-            return this._socket.send("store_update", command, true)
+        if(oneOf(conflict, 'replace', 'error', 'update')){
+            return this._send(`store_${conflict}`, command)
         }else{
             return Promise.reject(`value cant store with conflict argument: ${conflict}`)
         }
     }
 
-    _remove(collection, document){
-        return this._socket.send("remove", {collection: collection, data: document})
+    query(data){
+        return this._send('query', data).collectingPromise('response')
     }
 
-    _subscribe(query, updates){
+    remove(collection, document){
+        return this._send('remove', {collection: collection, data: document})
+    }
+
+    subscribe(query, updates=true){
         if(updates){
-            return this._socket.subscribe(query)
+            return this._subscribe(query)
         }else{
-            //Emulate subscription with one-shot query
-            var emitter = new EventEmitter()
-            this._socket.send("query", query).then(
-                // Do we have continues etc like cursors?
-                // Right now assuming we get results back as an array
-                (results) => {
-                    results.forEach((result) => {
-                        emitter.emit("added", {new_val: result, old_val: null})
-                    })
-                }
-            )
-            return emitter
+            return this._send('query', query)
         }
     }
 
-}
-
-class Socket {
-    constructor(hostString, classifier){
-        // send handshake
-        this.classifier = classifier
-        this.promises = new Map()
-        this.emitters = new Map()
-        this.requestCounter = 0
-        this.wsPromise = (new Promise((resolve, reject) => {
-            console.log("Creating websocket")
-            let ws = new WebSocket("ws://"+hostString, PROTOCOL_VERSION)
-            ws.onopen = (event) => resolve(ws)
-            ws.onerror = (event) => reject(event)
-        })).then((ws) => {
-            console.log("Websocket created, sending handshake")
-            let handshake = {}
-            return new Promise((resolve, reject) => {
-                // TODO: check handshake response once it has something in it
-                ws.onmessage = (handshakeResponse) => {
-                    console.log("Received handshake response:", JSON.parse(handshakeResponse.data))
-                    resolve(ws)
-                }
-                ws.onerror = (event) => {
-                    console.log("Received an error on websocket", handshakeResponse)
-                    reject(event)
-                }
-                ws.send(JSON.stringify(handshake))
-            })
-        }).then((ws) => {
-            console.log("Handshake received. Binding message handlers")
-            ws.onmessage = this._onMessage.bind(this)
-            ws.onclose = this._onClose.bind(this)
-            ws.onopen = this._onOpen.bind(this)
-            ws.onerror = this._onError.bind(this)
-            return ws
-        }).catch((event) => {
-            console.log("Got a connection error: ", event)
-        })
-    }
-
-    send(type, data, pointQuery=false){
-        var requestId = this.requestCounter++
-        var req = {type: type, options: data, request_id: requestId}
-        this.wsPromise.then((ws) => {
-            console.log("sending: ", JSON.stringify(req))
-            ws.send(JSON.stringify(req))
-        })
-        return new Promise((resolve, reject) => {
-            this.promises.set(requestId, {
-                resolve: resolve,
-                reject: reject,
-                partialResult: [],
-                pointQuery: pointQuery,
-            })
-        })
-    }
-
-    subscribe(query){
+    _send(type, data){
         let requestId = this.requestCounter++
-        let req = {type: "subscribe", options: query, request_id: requestId}
-        this.wsPromise.then((ws) => ws.send(JSON.stringify(req)))
-        console.log(`Creating and stashing emitter for request id ${requestId}`)
-        let emitter = new EventEmitter() // customize?
-        this.emitters.set(requestId, emitter)
-        return emitter
-    }
-
-    _onClose(event){
-        console.log(`Got a close event. Reason: ${event.reason}`)
-        Object.keys(this.emitters).forEach((requestId) => {
-            this.emitters.get(requestId).emit('disconnected', event)
+        let req = {type: type, options: data, request_id: requestId}
+        this.handshakenSocket.then(() => {
+            console.debug(`sending: ${JSON.stringify(req)}`)
+            this.socket.send(req)
         })
-        // Do we do something with promises? What if we reconnect
+        return new RequestEmitter(requestId, this.socket)
     }
 
-    _onError(event){
-        // TODO: What to do on websocket level errors?
-        console.log("Error received from websocket:", event)
+    // Subscription queries, only handles returning an emitter
+    _subscribe(query){
+        let requestId = this.requestCounter++
+        let req = {type: 'subscribe', options: query, request_id: requestId}
+        console.debug('Sending subscription request', req)
+        this.handshakenSocket.then(() => this.socket.send(req))
+        return new RequestEmitter(requestId, this.socket)
     }
 
-    _onOpen(event){
-        Object.keys(this.emitters).forEach((requestId) => {
-            this.emitters.get(requestId).emit('reconnected', event)
+}
+
+class FusionSocket extends FusionEmitter {
+    // Wraps native websockets in an EventEmitter, and deals with some
+    // simple protocol level things like serializing from/to JSON, and
+    // emitting events on request_ids
+    constructor(host, secure=true){
+        super()
+        let hostString = (secure ? 'wss://' : 'ws://') + host
+        this._ws = new WebSocket(hostString, PROTOCOL_VERSION)
+        this._openWs = new Promise((resolve, reject) => {
+            this._ws.onopen = (event) => {
+                console.debug("Socket connected", event)
+                this.emit('connected', event)
+                resolve(this._ws)
+            }
+            this._ws.onerror = (event) => {
+                console.debug("Socket error", event)
+                this.emit('error', event)
+                reject(event)
+            }
+            this._ws.onclose = (event) => {
+                console.debug("Socket disconnected", event)
+                this.emit('disconnected', event)
+                reject(event)
+            }
         })
-    }
-
-    _onMessage(event){
-        console.log("Got a new message on the socket. Emitters is", this.emitters, "and promises is", this.promises)
-        let resp = JSON.parse(event.data)
-        if(this.promises.has(resp.request_id)){
-            console.log(`Found request id ${resp.request_id} in the promises cache`)
-            let promObj = this.promises.get(resp.request_id)
-            console.log("classifying promise response", resp, "with", promObj)
-
-            if (resp.error !== undefined){
-                console.log("  error was not undefined")
-                promObj.reject(resp.error)
-            }else if(Array.isArray(resp.data)){
-                console.log("  resp.data was an array")
-                let partialResult = promObj.partialResult
-                partialResult.push.apply(partialResult, resp.data)
-            }else if(resp.data !== undefined) {
-                console.log("  resp.data wasn't an array", resp.data)
-                promObj.partialResult.push(resp.data)
+        this._ws.onmessage = (event) => {
+            let data = JSON.parse(event.data)
+            if(data.request_id === undefined){
+                // Do validation / use user_id
+                this.emit('handshake-complete', data)
+            }else if(data.error !== undefined){
+                console.debug("Got error:", event)
+                this.emit({error: data.request_id}, data)
             }else{
-                console.log("  couldn't figure out what ", resp.data)
+                console.debug("Got message for request_id:", data.request_id, data)
+                this.emit(responseEvent(data.request_id), data)
             }
-            if(promObj.pointQuery){
-                console.log("  promise was for a point query")
-                // this assumes no batch inserts etc
-                this.promises.delete(resp.request_id)
-                promObj.resolve(promObj.partialResult[0])
-            }else if(resp.state === 'complete'){
-                console.log("  state is complete")
-                promObj.resolve(promObj.partialResult)
-            }
-        }else if(this.emitters.has(resp.request_id)){
-            console.log(`Found request id ${resp.request_id} in the emitters cache`)
-            let emitter = this.emitters.get(resp.request_id)
-            if(resp.error !== undefined){
-                console.log("response had an error")
-                emitter.emit("error", resp.error_code, resp.error)
-            }else{
-                console.log("Classifying emitter response:", resp)
-                if(Array.isArray(resp.data)){
-                    console.log("response data is an array")
-                    resp.data.forEach((subResp) => {
-                        emitter.emit(this.classifier(subResp), subResp)
-                    })
-                }
-                if(resp.state === 'synced'){
-                    console.log("response state is synced")
-                    emitter.emit('synced')
-                }else if(resp.state === 'complete'){
-                    console.log("response state is complete")
-                    emitter.emit('end')
-                }
-            }
-        }else{
-            console.error("Didn't find request id ", resp.request_id, " in emitters or promises", resp)
         }
+    }
+
+    send(message){
+        if(typeof message !== 'string'){
+            message = JSON.stringify(message)
+        }
+        return this._openWs.then((ws) => ws.send(message))
+    }
+
+    close(reason){
+        this._openWs.then((ws) => ws.close(1002, reason))
+    }
+
+}
+
+// These are created for requests, will only get messages for the
+// particular request id. Has extra methods for closing the request,
+// and for creating promises that resolve or reject based on events
+// from this emitter
+class RequestEmitter extends FusionEmitter {
+    constructor(requestId, fusion){
+        super()
+        console.debug("Creating emitter for request_id", requestId)
+        this.fusion = fusion
+        this.requestId = requestId
+        this.remoteListeners = new ListenerSet(this.fusion)
+
+        //Forwards on fusion events to this emitter's listeners
+        this.remoteListeners
+            .fwd('connected', this)
+            .fwd('disconnected', this)
+            .fwd({error: requestId}, this, 'error')
+            .on(responseEvent(requestId), (response) => {
+                console.debug("Emitter got response:", response)
+                if(Array.isArray(response.data)){
+                    response.data.forEach(changeObj => {
+                        if(changeObj.new_val !== null && changeObj.old_val !== null){
+                            this.emit('changed', changeObj.new_val, changeObj.old_val)
+                        }else if(changeObj.new_val !== null && changeObj.old_val === null){
+                            this.emit('added', changeObj.new_val)
+                        }else if(changeObj.new_val === null && changeObj.old_val !== null){
+                            this.emit('removed', changeObj.old_val)
+                        }else{
+                            this.emit('response', response.data)
+                        }
+                    })
+                }else if(response.data !== undefined){
+                    this.emit("response", response.data)
+                }
+                if(response.state === 'synced'){
+                    console.debug("emitting synced for", response.request_id)
+                    this.emit('synced')
+                }else if(response.state === 'complete'){
+                    console.debug("emitting complete for", response.request_id)
+                    this.emit('complete')
+                }
+            })
+            .cleanupOn('error')
+        //Add a hook for when the 'change' event is added. If the
+        //change isn't being listened for, added/removed events will
+        //be emitted for both
+    }
+
+    //Create a promise from this emitter, accepts on the given event
+    //and rejects on the second event which defaults to 'error'
+    toPromise(acceptEvent, rejectEvent='error'){
+        return new Promise((resolve, reject) => {
+            (new ListenerSet(this))
+                .onceAndCleanup(acceptEvent, resolve)
+                .onceAndCleanup(rejectEvent, reject)
+        })
+    }
+
+    // Listens for all 'added' events, adding them to an
+    // internal array. Once a response comes in that has state: the
+    // complete event, it resolves the promise with all of the values
+    // obtained so far.  The promise is rejected if an error event is
+    // raised.
+    collectingPromise(addEvent='response', completeEvent='complete'){
+        return new Promise((resolve, reject) => {
+            let values = [];
+            (new ListenerSet(this))
+                .on(addEvent, item => values.push(item))
+                .onceAndCleanup(completeEvent, () => resolve(values))
+                .cleanupOn('error')
+        })
+    }
+
+    close(){
+        //TODO: send some message to the server to stop this requestId
+        this.remoteListeners.cleanup()
     }
 }
 
-class MockSocket extends Socket {
-  constructor(hostString, classifier){
+
+class MockConnection extends Fusion {
+  constructor(hostString){
     super()
     this.hostString = hostString;
     this.docs = [];
-    this.classifier = classifier;
     this.promises = {};
     this.emitters = {};
     this.requestCounter = 0;
@@ -253,22 +320,22 @@ class MockSocket extends Socket {
       // inefficient search and no error handling but fine for mocking
 
       switch(type){
-        case "update":
+        case 'update':
           this.docs.forEach(function(doc, index){
             if (doc.id == data.id){
               this.data[index] = data;
             }
           });
           break;
-        case "remove":
+        case 'remove':
           this.docs.forEach(function(doc, index){
             if (doc.id == data.id){
               this.data = this.data.splice(index);
             }
           });
           break;
-        case "store_replace":
-        case "store_error":
+        case 'store_replace':
+        case 'store_error':
           this.docs.push(data);
           break;
       }
@@ -292,16 +359,12 @@ class TermBase {
 
     subscribe(updates=true){
         // should create a changefeed query, return eventemitter
-        return this.fusion._subscribe(this.query, updates)
-    }
-
-    unsubscribe(updates=true){
-        throw new Exception("Not implemented")
+        return this.fusion.subscribe(this.query, updates)
     }
 
     value(){
         // return promise with no changefeed
-        return this.fusion._query(this.query)
+        return this.fusion.query(this.query)
     }
 }
 
@@ -325,23 +388,23 @@ class Collection extends TermBase {
         return new Between(this.fusion, this.query, minVal, maxVal,field)
     }
 
-    order(field= 'id', ascending=true){
+    order(field='id', ascending=true){
         return new Order(this.fusion, this.query, field, ascending)
     }
 
     store(document, conflict='replace'){
-        return this.fusion._store(this.query, document, conflict)
+        return this.fusion.store(this.query, document, conflict)
     }
 
     update(document){
-        return this.fusion._store(this.query, document, 'update')
+        return this.fusion.store(this.query, document, 'update')
     }
 
     remove(document){
         if(typeof document === 'number' || typeof document === 'string'){
             document = {id: document}
         }
-        return this.fusion._remove(this.query, document)
+        return this.fusion.remove(this.query, document)
     }
 }
 
@@ -356,7 +419,7 @@ class Find extends TermBase {
         }, query)
     }
 
-    order(field= 'id', ascending= true){
+    order(field='id', ascending=true){
         return new Order(this.fusion, this.query, field, ascending)
     }
 
@@ -370,7 +433,7 @@ class FindOne extends TermBase {
         super(fusion)
         this.id = docId
         this.query = Object.assign({
-            selection: {type: "find_one", args: [docId]}
+            selection: {type: 'find_one', args: [docId]}
         }, query)
     }
 }
@@ -382,7 +445,7 @@ class Between extends TermBase {
         this.maxVal = maxVal
         this.field = field
         this.query = Object.assign({
-            selection: {type: "between", args: [minVal, maxVal]},
+            selection: {type: 'between', args: [minVal, maxVal]},
             field_name: field
         }, query)
     }
@@ -398,7 +461,7 @@ class Order {
         this.field = field
         this.direction = direction
         this.query = Object.assign({
-            order: ascending ? "ascending" : "descending",
+            order: ascending ? 'ascending' : 'descending',
             field_name: field
         }, query)
     }
@@ -420,3 +483,5 @@ class Limit extends TermBase {
         this.query = Object.assign({limit: size}, query)
     }
 }
+
+module.exports = Fusion
