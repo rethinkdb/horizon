@@ -10,6 +10,9 @@ function oneOf(val, ...values){
 function responseEvent(id){
   return `response:${id}`
 }
+function errorEvent(id){
+  return `error:${id}`
+}
 
 class FusionEmitter extends EventEmitter {
   // Returns a function that can be called to remove the listener
@@ -90,7 +93,7 @@ class ListenerSet {
 }
 
 class Fusion extends FusionEmitter {
-  constructor(host, {secure: secure=true}){
+  constructor(host, {secure: secure=true}={}){
     super()
     var self = (collectionName) => self.collection(collectionName)
     Object.setPrototypeOf(self, Object.getPrototypeOf(this))
@@ -191,7 +194,7 @@ class FusionSocket extends FusionEmitter {
         // Do validation / use user_id
         this.emit('handshake-complete', data)
       }else if(data.error !== undefined){
-        this.emit({error: data.request_id}, data)
+        this.emit(errorEvent(data.request_id), data)
       }else{
         this.emit(responseEvent(data.request_id), data)
       }
@@ -226,7 +229,7 @@ class RequestEmitter extends FusionEmitter {
     this.remoteListeners
       .fwd('connected', this)
       .fwd('disconnected', this)
-      .fwd({error: requestId}, this, 'error')
+      .fwd(errorEvent(requestId), this, 'error')
       .on(responseEvent(requestId), (response) => {
         if(Array.isArray(response.data)){
           response.data.forEach(changeObj => {
