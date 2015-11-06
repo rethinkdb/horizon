@@ -1,4 +1,13 @@
+require('babel-polyfill')
 const EventEmitter = require('events').EventEmitter
+
+//See https://babeljs.io/docs/learn-es2015/#proxies
+// Due to limitations of ES5 there is no transpiled
+// version of this.
+Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
+  obj.__proto__ = proto;
+  return obj;
+}
 
 const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 
