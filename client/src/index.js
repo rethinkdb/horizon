@@ -34,7 +34,6 @@ class FusionEmitter extends EventEmitter {
   // A promise that accepts when the given event occurs, and rejects
   // when an 'error' event is raised
   toPromise(event){
-    console.debug(`Promise will accept on ${event} and reject on 'error'`)
     return new Promise((resolve, reject) => {
       ListenerSet.fromEmitter(this)
         .on(event, resolve)
@@ -96,8 +95,6 @@ class Fusion extends FusionEmitter {
     var self = (collectionName) => self.collection(collectionName)
     Object.setPrototypeOf(self, Object.getPrototypeOf(this))
 
-    console.log("Security =", secure)
-
     self.host = host
     self.secure = secure
     self.requestCounter = 0
@@ -107,12 +104,9 @@ class Fusion extends FusionEmitter {
     self.socket.fwd('error', self, 'error')
     // send handshake
     self.handshakenSocket = self.socket.toPromise('connected').then(() => {
-      console.debug("Sending handshake {}")
       self.socket.send({})
       return self.socket.toPromise('handshake-complete')
-    }).then(handshake => {
-      console.debug("received handshake: ", handshake)
-    }).catch((event) => console.debug('Got a connection error:', event))
+    }).catch((event) => console.error('Got a connection error:', event))
     return self
   }
 
@@ -154,7 +148,6 @@ class Fusion extends FusionEmitter {
     let requestId = this.requestCounter++
     let req = {type: type, options: data, request_id: requestId}
     this.handshakenSocket.then(() => {
-      console.debug(`sending: ${JSON.stringify(req)}`)
       this.socket.send(req)
     })
     return new RequestEmitter(requestId, this.socket)
@@ -164,7 +157,6 @@ class Fusion extends FusionEmitter {
   _subscribe(query){
     let requestId = this.requestCounter++
     let req = {type: 'subscribe', options: query, request_id: requestId}
-    console.debug('Sending subscription request', req)
     this.handshakenSocket.then(() => this.socket.send(req))
     return new RequestEmitter(requestId, this.socket)
   }
@@ -181,17 +173,14 @@ class FusionSocket extends FusionEmitter {
     this._ws = new WebSocket(hostString, PROTOCOL_VERSION)
     this._openWs = new Promise((resolve, reject) => {
       this._ws.onopen = (event) => {
-        console.debug("Socket connected", event)
         this.emit('connected', event)
         resolve(this._ws)
       }
       this._ws.onerror = (event) => {
-        console.debug("Socket error", event)
         this.emit('error', event)
         reject(event)
       }
       this._ws.onclose = (event) => {
-        console.debug("Socket disconnected", event)
         this.emit('disconnected', event)
         reject(event)
       }
@@ -202,10 +191,8 @@ class FusionSocket extends FusionEmitter {
         // Do validation / use user_id
         this.emit('handshake-complete', data)
       }else if(data.error !== undefined){
-        console.debug("Got error:", event)
         this.emit({error: data.request_id}, data)
       }else{
-        console.debug("Got message for request_id:", data.request_id, data)
         this.emit(responseEvent(data.request_id), data)
       }
     }
@@ -231,7 +218,6 @@ class FusionSocket extends FusionEmitter {
 class RequestEmitter extends FusionEmitter {
   constructor(requestId, fusion){
     super()
-    console.debug("Creating emitter for request_id", requestId)
     this.fusion = fusion
     this.requestId = requestId
     this.remoteListeners = ListenerSet.fromEmitter(this.fusion)
@@ -242,7 +228,6 @@ class RequestEmitter extends FusionEmitter {
       .fwd('disconnected', this)
       .fwd({error: requestId}, this, 'error')
       .on(responseEvent(requestId), (response) => {
-        console.debug("Emitter got response:", response)
         if(Array.isArray(response.data)){
           response.data.forEach(changeObj => {
             if(changeObj.new_val !== null && changeObj.old_val !== null){
@@ -259,10 +244,8 @@ class RequestEmitter extends FusionEmitter {
           this.emit("response", response.data)
         }
         if(response.state === 'synced'){
-          console.debug("emitting synced for", response.request_id)
           this.emit('synced')
         }else if(response.state === 'complete'){
-          console.debug("emitting complete for", response.request_id)
           this.emit('complete')
         }
       })

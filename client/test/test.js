@@ -10,7 +10,7 @@ describe("Make a connection to the database", function() {
   it("new Fusion(...)", function(done) {
     var fusion = new Fusion("localhost:8181", {secure: false});
     assert.notEqual(fusion, undefined);
-    fusion.toPromise('connected').then(() => done(), done)
+    fusion.toPromise('connected').then(function(){done()}, done)
   });
 });
 
