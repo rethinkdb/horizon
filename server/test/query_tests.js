@@ -5,7 +5,7 @@ const utils = require('./utils.js');
 const assert = require('assert');
 const r      = require('rethinkdb');
 
-const table = 'test_query';
+const table = 'query_test';
 const num_rows = 10;
 
 module.exports.name = 'Query';

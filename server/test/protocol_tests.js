@@ -1,11 +1,22 @@
 'use strict';
 
-const utils = require('./utils.js');
+const utils  = require('./utils.js');
+
 const assert = require('assert');
+const r      = require('rethinkdb');
+
+const table = 'protocol_test';
 
 module.exports.name = 'Protocol';
 
-module.exports.prepare_database = (done) => done();
+module.exports.prepare_database = (done) => {
+  var c = utils.rdb_conn();
+  r.tableCreate(table).run(c)
+   .then((res) => {
+        assert.equal(res.tables_created, 1);
+        done();
+      });
+};
 
 module.exports.all_tests = () => {
   beforeEach('Authenticate client', utils.fusion_default_auth);
@@ -41,18 +52,42 @@ module.exports.all_tests = () => {
     });
 
   it('no options', (done) => {
-      utils.stream_test({ request_id: 1, type: "fake" }, (err, res) => {
+      utils.stream_test({ request_id: 1, type: 'fake' }, (err, res) => {
           assert.deepStrictEqual(res, []),
           assert.strictEqual(err, "'options' must be specified."),
           done();
         });
     });
 
- it('invalid endpoint', (done) => {
-      utils.stream_test({ request_id: 2, type: "fake", options: { } }, (err, res) => {
+  it('invalid endpoint', (done) => {
+      utils.stream_test({ request_id: 2, type: 'fake', options: { } }, (err, res) => {
           assert.deepStrictEqual(res, []),
           assert.strictEqual(err, "'fake' is not a recognized endpoint.");
           done();
         });
-   });
+    });
+
+  // Make sure the server properly cleans up a client connection when it
+  // disconnects. Open a changefeed, disconnect the client, then make sure the
+  // changefeed would have gotten an event.
+  // We don't check any results, we're just seeing if the server crashes.
+  it('client disconnect with changefeed', (done) => {
+      var msg = { request_id: 3, type: 'subscribe', options: { collection: table } };
+      utils.fusion_conn().send(JSON.stringify(msg));
+      utils.add_fusion_listener(3, (msg) => {
+          if (msg.state === 'synced') {
+            r.table(table).insert({}).run(utils.rdb_conn())
+             .then((res) => done());
+          }
+        });
+    });
+
+  // Make sure the server properly cleans up a client connection when it
+  // disconnects.  Close the connection immediately after sending the request.
+  // We don't check any results, we're just seeing if the server crashes.
+  it('client disconnect during query', (done) => {
+      var msg = { request_id: 3, type: 'query', options: { collection: table } };
+      utils.fusion_conn().send(JSON.stringify(msg),
+        () => (utils.close_fusion_conn(), done()));
+    });
 };
