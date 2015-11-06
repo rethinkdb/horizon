@@ -2,11 +2,11 @@
     <head>
         <title>Test Fusion</title>
         <meta charset="UTF-8">
-        <script src="http://localhost:31420/fusion.js"></script>
+        <script src="http://localhost:8181/fusion.js"></script>
         <script>
          "use strict";
          var fusion = require('Fusion');
-         var Fusion = new fusion.Fusion("localhost:31420");
+         var Fusion = new fusion.Fusion("localhost:8181");
          var blob = Fusion('blob')
          blob.value().then((data) => {
              console.log("Application got back:" + JSON.stringify(data));
