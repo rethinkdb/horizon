@@ -1,66 +1,45 @@
 'use strict';
 
-const error = require('./error.js');
-const r = require('rethinkdb');
+const Joi = require('joi')
+    , r = require('rethinkdb')
+    , protocol = require('./schema/protocol');
 
-var check = error.check;
-var fail = error.fail;
 
-// TODO: check for unknown fields
 module.exports.make_read_reql = function (request) {
-  var type = request.type;
-  var options = request.options;
-  var collection = options.collection;
-  var index = options.field_name || 'id'; // TODO: possibly require this to be specified
+  var options = Joi.attempt(request.options, protocol.query);
+  var { selection, order, limit } = options;
+  var index = options.field_name;
 
-  check(collection !== undefined, `'options.collection' must be specified.`);
-  check(collection.constructor.name === 'String',
-        `'options.collection' must be a string.`)
+  var reql = r.table(options.collection);
 
-  var reql = r.table(collection);
-
-  var selection = options.selection;
-  var order = options.order;
-  var limit = options.limit;
-
-  if (selection !== undefined) {
-    var selection_type = selection.type;
-    var selection_args = selection.args;
-    check(selection_type !== undefined, `'options.selection.type' must be specified.`);
-    check(selection_args !== undefined, `'options.selection.args' must be specified.`);
-    check(selection_args.constructor.name === 'Array', `'options.selection.args' must be an array.`)
-
-    if (selection_type === 'find_one') {
-      check(selection_args.length === 1, `'options.selection.args' must have one argument for 'find_one'.`);
-      check(index === 'id', `'options.field_name' must be 'id' for 'find_one'.`);
-      check(order === undefined, `'options.order' cannot be used with 'find_one'.`);
-      check(limit === undefined, `'options.limit' cannot be used with 'find_one'.`);
-      reql = reql.get(selection_args[0]);
-    } else if (selection_type === 'find') {
-      check(order === undefined, `'options.order' cannot be used with 'find'.`);
-      reql = reql.getAll.apply(reql, selection_args.concat({ index: index }));
-    } else if (selection_type === 'between') {
-      check(selection_args.length === 2, `'options.selection.args' must have two arguments for 'between'.`);
-      reql = reql.between.apply(reql, selection_args.concat({ index: index }));
-    } else {
-      fail(`'options.selection.type' must be one of 'find', 'find_one', or 'between'.`)
+  if (selection) {
+    switch (selection.type) {
+      case 'find_one':
+        reql = reql.getAll(selection.args[0], { index }).nth(0);
+        break;
+      case 'find':
+        reql = reql.getAll(r.args(selection.args), { index });
+        break;
+      case 'between':
+        reql = reql.between(selection.args[0], selection.args[1], { index });
+        break;
     }
   }
 
-  if (order === 'ascending') {
-    reql = reql.orderBy({ index: r.asc(index) })
-  } else if (order === 'descending') {
-    reql = reql.orderBy({ index: r.desc(index) })
-  } else if (order !== undefined) {
-    fail(`'options.order' must be either 'ascending' or 'descending'.`);
+  if (order) {
+    if (order === 'descending') {
+      reql = reql.orderBy({ index: r.desc(index) });
+    }
+    else {
+      reql = reql.orderBy({ index });
+    }
   }
 
-  if (limit !== undefined) {
-    check(parseInt(limit) === limit, `'options.limit' must be an integer.`);
+  if (limit) {
     reql = reql.limit(limit);
   }
 
-  if (type === 'subscribe') {
+  if (request.type === 'subscribe') {
     reql = reql.changes({ include_states: true });
   }
 
