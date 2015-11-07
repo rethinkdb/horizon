@@ -93,7 +93,7 @@ class ListenerSet {
 }
 
 class Fusion extends FusionEmitter {
-  constructor(host, {secure: secure=true}={}){
+  constructor(host, options={secure: secure=true}={}){
     super()
     var self = (collectionName) => self.collection(collectionName)
     Object.setPrototypeOf(self, Object.getPrototypeOf(this))
