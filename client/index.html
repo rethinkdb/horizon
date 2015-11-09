@@ -4,9 +4,11 @@
         <meta charset="UTF-8">
         <script src="https://localhost:8181/fusion.js"></script>
         <script>
-         "use strict";
+          "use strict";
          var Fusion = require('Fusion');
-         var fusion = new Fusion("localhost:8181");
+         console.debug("Require done");
+         var fusion = new Fusion("localhost:8181", {secure: true});
+         console.debug("Fusion object created");
          var blob = fusion('blob');
          var subscription;
          blob.value().then((data) => {
