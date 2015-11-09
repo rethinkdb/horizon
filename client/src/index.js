@@ -19,20 +19,16 @@ class FusionEmitter extends EventEmitter {
   // Otherwise works the same as 'on' for the underlying socket
   register(event, listener){
     this.on(event, listener)
-    console.debug(`Listeners for ${event} up to ${this.listenerCount(event)}`)
     return () => {
       this.removeListener(event, listener)
-      console.debug(`Listeners for ${event} down to ${this.listenerCount(event)}`)
     }
   }
 
   // Similar to `register` but wraps `once` instead of `on`
   registerOnce(event, listener){
     this.once(event, listener)
-    console.debug(`Listeners for ${event} up to ${this.listenerCount(event)}`)
     return () => {
       this.removeListener(event, listener)
-      console.debug(`Listeners for ${event} down to ${this.listenerCount(event)}`)
     }
   }
 
@@ -45,9 +41,7 @@ class FusionEmitter extends EventEmitter {
   //Create a promise from this emitter, accepts on the given event
   //and rejects on the second event which defaults to 'error'
   getPromise(acceptEvent, rejectEvent='error'){
-    console.debug("getPromise accept=", acceptEvent, "reject=", rejectEvent)
     let listenerSet = ListenerSet.onEmitter(this)
-    console.debug("listenerset created")
     return this._makePromise(listenerSet, acceptEvent, rejectEvent)
   }
 
@@ -60,7 +54,6 @@ class FusionEmitter extends EventEmitter {
   }
 
   _makePromise(listenerSet, acceptEvent, rejectEvent){
-    console.debug("making promise")
     return new Promise((resolve, reject) => {
       listenerSet
         .onceAndCleanup(acceptEvent, resolve)
@@ -104,7 +97,6 @@ class FusionEmitter extends EventEmitter {
 // removing them all when certain events occur
 class ListenerSet {
   constructor(emitter, {absorb: absorb=false}={}){
-    console.debug("Creating listenerSet ", absorb)
     this.emitter = emitter
     this.unregistry = []
     this.absorb = absorb
@@ -161,7 +153,6 @@ class Fusion extends FusionEmitter {
     super()
     var self = (collectionName) => self.collection(collectionName)
     Object.setPrototypeOf(self, Object.getPrototypeOf(this))
-    console.log("1")
 
     self.host = host
     self.secure = secure
@@ -171,17 +162,13 @@ class Fusion extends FusionEmitter {
       .fwd('connected', self)
       .fwd('disconnected', self)
       .fwd('error', self, 'error')
-    console.log("2")
     // send handshake
     self.handshakenSocket = self.socket.getPromise('connected').then(() => {
-      console.log("connected")
       self.socket.send({})
       return self.socket.getPromise('handshake-complete')
     }).then(() => {
-      console.log("got handshake")
       return true
     }).catch(event => console.error('Got a connection error:', event))
-    console.log("3")
     return self
   }
 
