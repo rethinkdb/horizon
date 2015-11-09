@@ -537,7 +537,7 @@ describe("Fusion Client Library API", () => {
     // But what happens if some of the documents are missing?
     it("#.find(missing, a, missing)", (done) => {
       data.find('abracadabra1', 1, 'abracadabra2').value().then((res) => {
-        assert.deepEqual(res, [null, { id: 1, a: 3 }, null]);
+        assert.deepEqual(res, [{ id: 1, a: 3 }]);
         done();
       });
     });
@@ -565,21 +565,6 @@ describe("Fusion Client Library API", () => {
     it("#.remove(missing)", (done) => {
       data.remove('abracadabra').then((res) => {
         assert.deepEqual(res, []);
-        done();
-      });
-    });
-
-    // The user can also remove documents based on an (indexed) field other than
-    // ID. The promise resolves to the array of ids of deleted documents.
-
-    // TODO: I'm not 100% sure we want to do this. If we allow this, why not
-    // allow `update` to operate on this same criteria? Why not allow `remove`
-    // to operate on all our selectors? We should probably either drop this (in
-    // which case we shouldn't bother returning the IDs of removed documents),
-    // or rework the API to allow mutations to operate on all selectors.
-    it("#.remove(a, field)", (done) => {
-      data.remove(3, { field: 'a' }).then((res) => {
-        assert.deepEqual(res, [1, 3]);
         done();
       });
     });
