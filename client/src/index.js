@@ -19,13 +19,17 @@ class FusionEmitter extends EventEmitter {
   // Otherwise works the same as 'on' for the underlying socket
   register(event, listener){
     this.on(event, listener)
-    return () => this.removeListener(event, listener)
+    return () => {
+      this.removeListener(event, listener)
+    }
   }
 
   // Similar to `register` but wraps `once` instead of `on`
   registerOnce(event, listener){
     this.once(event, listener)
-    return () => this.removeListener(event, listener)
+    return () => {
+      this.removeListener(event, listener)
+    }
   }
 
   //Forwards events from the current emitter to another emitter,
@@ -34,27 +38,76 @@ class FusionEmitter extends EventEmitter {
     return this.register(srcEvent, (...args) => dst.emit(dstEvent, ...args))
   }
 
-  // A promise that accepts when the given event occurs, and rejects
-  // when an 'error' event is raised
-  toPromise(event){
+  //Create a promise from this emitter, accepts on the given event
+  //and rejects on the second event which defaults to 'error'
+  getPromise(acceptEvent, rejectEvent='error'){
+    let listenerSet = ListenerSet.onEmitter(this)
+    return this._makePromise(listenerSet, acceptEvent, rejectEvent)
+  }
+
+  // The same as getPromise, but disposes the event emitter when it's
+  // resolved or rejected. The underlying EventEmitter shouldn't be
+  // used.
+  intoPromise(acceptEvent, rejectEvent='error'){
+    let listenerSet = ListenerSet.absorbEmitter(this)
+    return this._makePromise(listenerSet, acceptEvent, rejectEvent)
+  }
+
+  _makePromise(listenerSet, acceptEvent, rejectEvent){
     return new Promise((resolve, reject) => {
-      ListenerSet.fromEmitter(this)
-        .on(event, resolve)
-        .on('error', reject)
+      listenerSet
+        .onceAndCleanup(acceptEvent, resolve)
+        .onceAndCleanup(rejectEvent, reject)
     })
+  }
+
+  // Listens for all 'added' events, adding them to an
+  // internal array. Once a response comes in that has state: the
+  // complete event, it resolves the promise with all of the values
+  // obtained so far.  The promise is rejected if an error event is
+  // raised.
+  collectingPromise(addEvent='response', completeEvent='complete'){
+    let listenerSet = ListenerSet.onEmitter(this)
+    return this._collectPromise(listenerSet, addEvent, completeEvent)
+  }
+
+  // Same as collectingPromise except disposes the underlying
+  // EventEmitter when it is resolved or rejected
+  intoCollectingPromise(addEvent='response', completeEvent='complete'){
+    let listenerSet = ListenerSet.absorbEmitter(this)
+    return this._collectPromise(listenerSet, addEvent, completeEvent)
+  }
+
+  _collectPromise(listenerSet, addEvent, completeEvent){
+    return new Promise((resolve, reject) => {
+      let values = [];
+      listenerSet
+        .on(addEvent, item => values.push(item))
+        .onceAndCleanup(completeEvent, () => resolve(values))
+        .cleanupOn('error')
+    })
+  }
+
+  dispose(){
+    this.remoteListeners.cleanup()
   }
 }
 
 // Handles hooking up a group of listeners to a FusionEmitter, and
 // removing them all when certain events occur
 class ListenerSet {
-  constructor(emitter){
+  constructor(emitter, {absorb: absorb=false}={}){
     this.emitter = emitter
     this.unregistry = []
+    this.absorb = absorb
   }
 
-  static fromEmitter(emitter){
+  static onEmitter(emitter){
     return new ListenerSet(emitter)
+  }
+
+  static absorbEmitter(emitter){
+    return new ListenerSet(emitter, {absorb: true})
   }
 
   on(event, listener){
@@ -88,12 +141,15 @@ class ListenerSet {
 
   cleanup(){
     this.unregistry.forEach(unregister => unregister())
+    if(this.absorb){
+      this.emitter.dispose()
+    }
   }
 
 }
 
 class Fusion extends FusionEmitter {
-  constructor(host, options={secure: secure=true}={}){
+  constructor(host, {secure: secure=true}={}){
     super()
     var self = (collectionName) => self.collection(collectionName)
     Object.setPrototypeOf(self, Object.getPrototypeOf(this))
@@ -102,19 +158,22 @@ class Fusion extends FusionEmitter {
     self.secure = secure
     self.requestCounter = 0
     self.socket = new FusionSocket(host, secure)
-    self.socket.fwd('connected', self)
-    self.socket.fwd('disconnected', self)
-    self.socket.fwd('error', self, 'error')
+    self.listenerSet = ListenerSet.absorbEmitter(self.socket)
+      .fwd('connected', self)
+      .fwd('disconnected', self)
+      .fwd('error', self, 'error')
     // send handshake
-    self.handshakenSocket = self.socket.toPromise('connected').then(() => {
+    self.handshakenSocket = self.socket.getPromise('connected').then(() => {
       self.socket.send({})
-      return self.socket.toPromise('handshake-complete')
-    }).catch((event) => console.error('Got a connection error:', event))
+      return self.socket.getPromise('handshake-complete')
+    }).then(() => {
+      return true
+    }).catch(event => console.error('Got a connection error:', event))
     return self
   }
 
-  close(){
-    this.socket.close('Fusion object closed')
+  dispose(){
+    this.listenerSet.dispose('Fusion object disposed')
   }
 
   collection(collectionName){
@@ -124,19 +183,20 @@ class Fusion extends FusionEmitter {
   store(collection, document, conflict){
     let command = Object.assign({data: document}, collection)
     if(oneOf(conflict, 'replace', 'error', 'update')){
-      return this._send(`store_${conflict}`, command).collectingPromise('response')
+      return (this._send(`store_${conflict}`, command)
+              .intoCollectingPromise('response'))
     }else{
-      return Promise.reject(`value cant store with conflict argument: ${conflict}`)
+      return Promise.reject(`Bad argument for conflict: ${conflict}`)
     }
   }
 
   query(data){
-    return this._send('query', data).collectingPromise('response')
+    return this._send('query', data).intoCollectingPromise('response')
   }
 
   remove(collection, document){
     let command = {collection: collection, data: document}
-    return this._send('remove', command).collectingPromise('response')
+    return this._send('remove', command).intoCollectingPromise('response')
   }
 
   subscribe(query, updates=true){
@@ -208,7 +268,8 @@ class FusionSocket extends FusionEmitter {
     return this._openWs.then((ws) => ws.send(message))
   }
 
-  close(reason){
+  dispose(reason){
+    super.dispose()
     this._openWs.then((ws) => ws.close(1002, reason))
   }
 
@@ -223,7 +284,7 @@ class RequestEmitter extends FusionEmitter {
     super()
     this.fusion = fusion
     this.requestId = requestId
-    this.remoteListeners = ListenerSet.fromEmitter(this.fusion)
+    this.remoteListeners = ListenerSet.onEmitter(this.fusion)
 
     //Forwards on fusion events to this emitter's listeners
     this.remoteListeners
@@ -233,13 +294,7 @@ class RequestEmitter extends FusionEmitter {
       .on(responseEvent(requestId), (response) => {
         if(Array.isArray(response.data)){
           response.data.forEach(changeObj => {
-            if(changeObj.new_val !== null && changeObj.old_val !== null){
-              this.emit('changed', changeObj.new_val, changeObj.old_val)
-            }else if(changeObj.new_val !== null && changeObj.old_val === null){
-              this.emit('added', changeObj.new_val)
-            }else if(changeObj.new_val === null && changeObj.old_val !== null){
-              this.emit('removed', changeObj.old_val)
-            }else{
+            if(!this._emitChangeEvent(changeObj)){
               this.emit('response', response.data)
             }
           })
@@ -251,41 +306,33 @@ class RequestEmitter extends FusionEmitter {
         }else if(response.state === 'complete'){
           this.emit('complete')
         }
-      })
-      .cleanupOn('error')
-    //Add a hook for when the 'change' event is added. If the
-    //change isn't being listened for, added/removed events will
-    //be emitted for both
+      }).cleanupOn('error')
   }
 
-  //Create a promise from this emitter, accepts on the given event
-  //and rejects on the second event which defaults to 'error'
-  toPromise(acceptEvent, rejectEvent='error'){
-    return new Promise((resolve, reject) => {
-      ListenerSet.fromEmitter(this)
-        .onceAndCleanup(acceptEvent, resolve)
-        .onceAndCleanup(rejectEvent, reject)
-    })
+  // Emits an event depending on new_val old_val return value is
+  // whether an event was emitted
+  _emitChangeEvent(changeObj){
+    if(changeObj.new_val !== null && changeObj.old_val !== null){
+      if(this.listenerCount('changed') === 0){
+        this.emit('removed', changeObj.old_val)
+        this.emit('added', changeObj.new_val)
+      }else{
+        this.emit('changed', changeObj.new_val, changeObj.old_val)
+      }
+      return true
+    }else if(changeObj.new_val !== null && changeObj.old_val === null){
+      this.emit('added', changeObj.new_val)
+      return true
+    }else if(changeObj.new_val === null && changeObj.old_val !== null){
+      this.emit('removed', changeObj.old_val)
+      return true
+    }else{
+      return false
+    }
   }
-
-  // Listens for all 'added' events, adding them to an
-  // internal array. Once a response comes in that has state: the
-  // complete event, it resolves the promise with all of the values
-  // obtained so far.  The promise is rejected if an error event is
-  // raised.
-  collectingPromise(addEvent='response', completeEvent='complete'){
-    return new Promise((resolve, reject) => {
-      let values = [];
-      ListenerSet.fromEmitter(this)
-        .on(addEvent, item => values.push(item))
-        .onceAndCleanup(completeEvent, () => resolve(values))
-        .cleanupOn('error')
-    })
-  }
-
-  close(){
+  dispose(){
+    super.dispose()
     //TODO: send some message to the server to stop this requestId
-    this.remoteListeners.cleanup()
   }
 }
 
