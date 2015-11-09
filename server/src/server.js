@@ -16,6 +16,7 @@ const path = require('path');
 const websocket = require('ws');
 const http = require('http');
 const https = require('https');
+const zlib = require("zlib");
 
 var protocol_name = 'rethinkdb-fusion-v0';
 module.exports.protocol = protocol_name;
@@ -116,27 +117,45 @@ var accept_protocol = function (protocols, cb) {
 
 // Function which handles just the /fusion.js endpoint
 var handle_http_request = function (req, res) {
+
   const req_path = url.parse(req.url).pathname;
   const file_path = path.resolve('../client/dist/build.js');
   logger.debug(`HTTP request for '${req_path}'`);
 
   if (req_path === '/fusion.js') {
-    fs.access(file_path, fs.R_OK, (exists) => {
-        if (exists) {
-          res.writeHead(404, { 'Content-Type': 'text/plain' });
-          res.end('Client library not found\n');
-        } else {
-          fs.readFile(file_path, 'binary', (err, file) => {
-              if (err) {
-                res.writeHead(500, { 'Content-Type': 'text/plain' });
-                res.end(`${err}\n`);
-              } else {
-                res.writeHead(200);
-                res.end(file, 'binary');
-              }
-            });
+
+    fs.access(file_path, fs.R_OK, err => {
+      if(err) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Client library not found\n');
+      }
+
+      const rawStream = fs.createReadStream(file_path);
+      const headers = Object.keys(req.headers);
+      var headerEncodingString;
+
+      for (var i in headers){
+        if (headers[i].toLowerCase() === "accept-encoding"){
+          headerEncodingString = req.headers[headers[i]];
+          break;
         }
-      });
+      }
+
+      if (typeof headerEncodingString === "undefined"){
+        res.writeHead(200, { "Content-Type": "text/javascript"});
+        rawStream.pipe(res);
+      } else if (headerEncodingString.indexOf("gzip") !== -1){
+        res.writeHead(200, { "Content-Type": "text/javascript", "Content-Encoding": "gzip"});
+        rawStream.pipe(zlib.createGzip()).pipe(res);
+      } else if (headerEncodingString.indexOf("deflate") !== -1){
+        res.writeHead(200, { "Content-Type": "text/javascript", "Content-Encoding": "deflate"});
+        rawStream.pipe(zlib.createInflate()).pipe(res);
+      } else {
+        res.writeHead(200, { "Content-Type": "text/javascript"});
+        rawStream.pipe(res);
+      }
+    });
+
   } else {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
     res.end('Forbidden\n');
