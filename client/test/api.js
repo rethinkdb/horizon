@@ -247,10 +247,6 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // TODO: figure out how to return errors when the user inserts multiple
-    // documents. For example, what if they say to error on missing documents,
-    // but only a few documents in a batch are missing?
-
     // By the way, store can also update specific fields in documents instead of
     // overwriting them. Let's insert a more complex document to illustrate
     // this.
@@ -315,6 +311,18 @@ describe("Fusion Client Library API", () => {
     it("#.store(update_missing_error_no_id)", (done) => {
       data.store({ a: 11 },
                  { conflict: 'update', missing: 'error' }).catch((err) => {
+        assert.isDefined(err);
+        assert.isNotNull(err);
+        done();
+      });
+    });
+
+    // If the user tries to store multiple documents and anything errors, the
+    // whole thing resolves to an error. That's a bit of an unfortunate
+    // compromise, but that's what we'll do for simplicity, at least for V1.
+    it("#.store(some_docs_error_some_do_not)", (done) => {
+      data.store({}, { id: 6, b: 6 }, {},
+                 { missing: 'error' }).catch((err) => {
         assert.isDefined(err);
         assert.isNotNull(err);
         done();
@@ -435,7 +443,17 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // TODO: figure out how to return errors on batch updates.
+    // If the user tries to update multiple documents and anything errors, the
+    // whole thing resolves to an error. That's a bit of an unfortunate
+    // compromise, but that's what we'll do for simplicity, at least for V1.
+    it("#.update(some_docs_error_some_do_not)", (done) => {
+      data.update({}, { id: 6, c: 6 }, {},
+                 { missing: 'error' }).catch((err) => {
+        assert.isDefined(err);
+        assert.isNotNull(err);
+        done();
+      });
+    });
 
     // All right! If you're perceptive, you might have noticed that we've
     // created a total of 17 documents in the database. Let's make sure that's
@@ -460,8 +478,9 @@ describe("Fusion Client Library API", () => {
     });
 
     // We can also `findOne` by a different (indexed!) field. In that case,
-    // `findOne` will return the first match. It's deterministic because in
-    // Fusion collections are always ordered by the primary key by default.
+    // `findOne` will return the first match. In case there are multiple
+    // documents, the one returned isn't deterministic, so users should use this
+    // at their own risk.
     it("#.findOne(field)", (done) => {
       data.findOne(3, { field: 'a' }).value().then((res) => {
         assert.deepEqual(res, { id: 1, a: 3 });
@@ -523,8 +542,7 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // We can do it on a custom field, too. Did I mention everything is
-    // deterministic because Fusion orders by primary key by default?
+    // We can do it on a custom field, too.
     it("#.find(a, b, field)", (done) => {
       data.find(2, 3, { field: 'a' }).value().then((res) => {
         assert.deepEqual(res, [{ id: 1, a: 3 },
@@ -552,11 +570,11 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // All right, let's remove a document. The promise resolves to the IDs of
-    // removed docuemnts.
+    // All right, let's remove a document. The promise resolves with no
+    // arguments.
     it("#.remove(...)", (done) => {
       data.remove(2).then((res) => {
-        assert.deepEqual(res, [2]);
+        assert.isUndefined(res);
         done();
       });
     });
@@ -564,7 +582,7 @@ describe("Fusion Client Library API", () => {
     // Removing a missing document shouldn't generate an error.
     it("#.remove(missing)", (done) => {
       data.remove('abracadabra').then((res) => {
-        assert.deepEqual(res, []);
+        assert.isUndefined(res);
         done();
       });
     });
@@ -572,7 +590,7 @@ describe("Fusion Client Library API", () => {
     // It's also possible to remove multiple docuemnts
     it("#.remove(a, b)", (done) => {
       data.remove(8, 9).then((res) => {
-        assert.deepEqual(res, [8, 9]);
+        assert.isUndefined(res);
         done();
       });
     });
