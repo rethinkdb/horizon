@@ -82,9 +82,11 @@ class FusionEmitter extends EventEmitter {
     return new Promise((resolve, reject) => {
       let values = [];
       listenerSet
-        .on(addEvent, item => values.push(item))
-        .onceAndCleanup(completeEvent, () => resolve(values))
-        .cleanupOn('error')
+        .on(addEvent, item => {
+          values.push(item)
+        }).onceAndCleanup(completeEvent, () => {
+          resolve(values)
+        }).cleanupOn('error')
     })
   }
 
@@ -184,7 +186,7 @@ class Fusion extends FusionEmitter {
     let command = Object.assign({data: document}, collection)
     if(oneOf(conflict, 'replace', 'error', 'update')){
       return (this._send(`store_${conflict}`, command)
-              .intoCollectingPromise('response'))
+              .intoCollectingPromise('added'))
     }else{
       return Promise.reject(`Bad argument for conflict: ${conflict}`)
     }
@@ -312,6 +314,9 @@ class RequestEmitter extends FusionEmitter {
   // Emits an event depending on new_val old_val return value is
   // whether an event was emitted
   _emitChangeEvent(changeObj){
+    if(changeObj.new_val === undefined && changeObj.old_val === undefined){
+      return false
+    }
     if(changeObj.new_val !== null && changeObj.old_val !== null){
       if(this.listenerCount('changed') === 0){
         this.emit('removed', changeObj.old_val)
