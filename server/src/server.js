@@ -121,7 +121,7 @@ var handle_http_request = function (req, res) {
   logger.debug(`HTTP request for '${req_path}'`);
 
   if (req_path === '/fusion.js') {
-    fs.access(file_path, fs.R_OK | fs.F_OK, (exists) => {
+    fs.access(file_path, fs.R_OK, (exists) => {
         if (exists) {
           res.writeHead(404, { 'Content-Type': 'text/plain' });
           res.end('Client library not found\n');
