@@ -28,7 +28,7 @@ module.exports.all_tests = () => {
   beforeEach('Authenticate client', utils.fusion_default_auth);
 
   var assert_error = (err, expected) => {
-    assert(~err.indexOf(expected), err);
+    assert(err.indexOf(expected) !== -1, err);
   }
 
   it('table scan', (done) => {
@@ -97,26 +97,6 @@ module.exports.all_tests = () => {
         },
         (err, res) => {
           assert_error(err, '"limit" is not allowed');
-          done();
-        });
-    });
-
-  it('find_one order', (done) => {
-      utils.stream_test(
-        {
-          request_id: 0,
-          type: 'query',
-          options: {
-            collection: table,
-            selection: {
-              type: 'find_one',
-              args: [ 4 ],
-            },
-            order: 'descending',
-          },
-        },
-        (err, res) => {
-          assert_error(err, '"order" is not allowed');
           done();
         });
     });

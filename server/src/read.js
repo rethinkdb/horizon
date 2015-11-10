@@ -1,8 +1,8 @@
 'use strict';
 
-const Joi = require('joi')
-    , r = require('rethinkdb')
-    , protocol = require('./schema/protocol');
+const Joi = require('joi');
+const r = require('rethinkdb');
+const protocol = require('./schema/protocol');
 
 
 module.exports.make_read_reql = function (request) {
@@ -29,8 +29,7 @@ module.exports.make_read_reql = function (request) {
   if (order) {
     if (order === 'descending') {
       reql = reql.orderBy({ index: r.desc(index) });
-    }
-    else {
+    } else {
       reql = reql.orderBy({ index });
     }
   }
