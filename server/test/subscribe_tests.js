@@ -2,6 +2,6 @@
 
 const utils = require('./utils.js');
 
-module.exports.name = 'Subscribe';
+module.exports.suite = (table) => describe('Subscribe', () => all_tests(table));
 
-module.exports.all_tests = (table) => { };
+var all_tests = (table) => { };

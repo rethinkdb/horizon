@@ -5,10 +5,10 @@ const utils = require('./utils.js');
 const assert = require('assert');
 const r      = require('rethinkdb');
 
-module.exports.name = 'Query';
+module.exports.suite = (table) => describe('Query', () => all_tests(table));
 
 // TODO: ensure each row is present in the results
-module.exports.all_tests = (table) => {
+var all_tests = (table) => {
   const num_rows = 10;
 
   before('Clear table', (done) => utils.clear_table(table, done));

@@ -1,7 +1,6 @@
 const Joi = require('joi');
 
-
-const query = Joi.object({
+const read = Joi.object({
   collection: Joi.string().token().required(),
   field_name: Joi.string().default('id'), // TODO: possibly require this to be specified
   selection: Joi.object({
@@ -39,15 +38,18 @@ const query = Joi.object({
     // })
 });
 
+const write = Joi.object({
+});
+
 const request = Joi.object({
   request_id: Joi.number(),
   type: Joi.string().valid([
     'query',
     'subscribe',
 
-    'store_error',
-    'store_replace',
-    'store_update',
+    'store',
+    'store',
+    'store',
     'remove',
 
     'end_subscription'
@@ -56,4 +58,4 @@ const request = Joi.object({
 });
 
 
-module.exports = { request, query }
+module.exports = { request, read, write }

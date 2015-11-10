@@ -4,8 +4,7 @@ const utils = require('./utils.js');
 
 const assert = require('assert');
 
-module.exports.name = 'Write';
-
+module.exports.suite = (table) => describe('Write', () => all_tests(table));
 
 // Before each test, ids [0, 10) will be present in the table
 const num_rows = 10;
@@ -16,7 +15,7 @@ const conflict_row = { id: 0 };
 const conflict_batch = [ { id: 8 }, { id: 9 }, { id: 10 } ];
 
 // TODO: verify through reql that rows have been inserted/removed
-module.exports.all_tests = (table) => {
+var all_tests = (table) => {
   var check_table_size = (expected, done) => {
     done();
   };
