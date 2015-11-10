@@ -15,6 +15,10 @@ module.exports.all_tests = (table) => {
   before('Populate table', (done) => utils.populate_table(table, num_rows, done));
   beforeEach('Authenticate client', utils.fusion_default_auth);
 
+  var assert_error = (err, expected) => {
+    assert(err.message.indexOf(expected) !== -1, err);
+  }
+
   it('table scan', (done) => {
       utils.stream_test(
         { request_id: 0, type: 'query', options: { collection: table } },
@@ -36,7 +40,7 @@ module.exports.all_tests = (table) => {
               type: 'find_one',
               args: [ 4 ],
             },
-          },
+          }
         },
         (err, res) => {
           assert.ifError(err);
@@ -60,7 +64,7 @@ module.exports.all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert.strictEqual(err.message, "'options.order' cannot be used with 'find_one'.");
+          assert_error(err, '"order" is not allowed');
           done();
         });
     });
@@ -80,28 +84,7 @@ module.exports.all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert.strictEqual(err.message, "'options.limit' cannot be used with 'find_one'.");
-          done();
-        });
-    });
-
-  it('find_one order limit', (done) => {
-      utils.stream_test(
-        {
-          request_id: 0,
-          type: 'query',
-          options: {
-            collection: table,
-            selection: {
-              type: 'find_one',
-              args: [ 4 ],
-            },
-            order: 'descending',
-            limit: 3,
-          },
-        },
-        (err, res) => {
-          assert.strictEqual(err.message, "'options.order' cannot be used with 'find_one'.");
+          assert_error(err, '"limit" is not allowed');
           done();
         });
     });
@@ -141,7 +124,7 @@ module.exports.all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert.strictEqual(err.message, "'options.order' cannot be used with 'find'.");
+          assert_error(err, '"order" is not allowed');
           done();
         });
     });
@@ -183,7 +166,7 @@ module.exports.all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert.strictEqual(err.message, "'options.order' cannot be used with 'find'.");
+          assert_error(err, '"order" is not allowed');
           done();
         });
     });

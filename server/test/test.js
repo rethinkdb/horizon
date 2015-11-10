@@ -23,7 +23,7 @@ describe('Fusion Server', () => {
   beforeEach(function() { logger.info(`Start test '${this.currentTest.title}'`); });
   afterEach(function() { logger.info(`End test '${this.currentTest.title}'`); });
 
-  describe('HTTP:', () => {
+  describe('HTTP', () => {
       before('Start Fusion Server', utils.start_unsecure_fusion_server);
       after('Close Fusion Server', utils.close_fusion_server);
       beforeEach('Connect Fusion Client', utils.open_fusion_conn);
@@ -32,7 +32,7 @@ describe('Fusion Server', () => {
       all_suites.forEach((s) => describe(s.name, () => s.all_tests(table)));
     });
 
-  describe('HTTPS:', () => {
+  describe('HTTPS', () => {
       before('Start Fusion Server', utils.start_secure_fusion_server);
       after('Close Fusion Server', utils.close_fusion_server);
       beforeEach('Connect Fusion Client', utils.open_fusion_conn);
