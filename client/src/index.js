@@ -64,11 +64,13 @@ class FusionEmitter extends EventEmitter {
     return new Promise((resolve, reject) => {
       listenerSet
         .onceAndDispose(acceptEvent, resolve)
-        .onceAndDispose(rejectEvent, reject)
+        .onceAndDispose(rejectEvent, (err) => {
+          reject(new Error(err.error))
+        })
     })
   }
 
-  // Listens for all 'added' events, adding them to an
+  // Listens for all 'response' events, adding them to an
   // internal array. Once a response comes in that has state: the
   // complete event, it resolves the promise with all of the values
   // obtained so far.  The promise is rejected if an error event is
@@ -89,11 +91,13 @@ class FusionEmitter extends EventEmitter {
     return new Promise((resolve, reject) => {
       let values = [];
       listenerSet
-        .on(addEvent, item => {
-          values.push(item)
+        .on(addEvent, (items) => {
+          values.push(...items)
         }).onceAndDispose(completeEvent, () => {
           resolve(values)
-        }).disposeOn('error')
+        }).onceAndDispose('error', (err) => {
+          reject(new Error(err.error))
+        })
     })
   }
 }
@@ -191,7 +195,7 @@ class Fusion extends FusionEmitter {
   }
 
   store(collection, documents, options){
-    if(documents.length === 1 && Array.isArray(documents[0])){
+    if(Array.isArray(documents[0]) && documents.length === 1 ){
       //Unwrap if a user passed an array to a spread function
       documents = documents[0]
     }
@@ -304,8 +308,10 @@ class RequestEmitter extends FusionEmitter {
     this.remoteListeners
       .fwd('connected', this)
       .fwd('disconnected', this)
-      .fwd(errorEvent(requestId), this, 'error')
-      .on(responseEvent(requestId), (response) => {
+      //.fwd(errorEvent(requestId), this, 'error')
+      .on(errorEvent(requestId), (err) => {
+        this.emit('error', err)
+      }).on(responseEvent(requestId), (response) => {
         if(Array.isArray(response.data)){
           response.data.forEach(changeObj => {
             if(!this._emitChangeEvent(changeObj)){
