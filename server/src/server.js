@@ -6,8 +6,11 @@ const fusion_write = require('./write.js');
 const logger = require('./logger.js');
 const error = require('./error.js');
 
+const server_opts = require('./schema/server.js');
+
 const check = error.check;
 
+const Joi = require('joi');
 const r = require('rethinkdb');
 const assert = require('assert');
 const url = require('url');
@@ -23,11 +26,7 @@ module.exports.logger = logger;
 
 class BaseServer {
   constructor(opts, make_http_server_cb) {
-    assert(opts.rdb_port !== 0);
-    opts.local_hosts = opts.local_hosts || ['localhost'];
-    opts.local_port = opts.local_port !== undefined ? opts.local_port : 8181;
-    opts.rdb_host = opts.rdb_host || 'localhost';
-    opts.rdb_port = opts.rdb_port || 28015;
+    var opts = Joi.attempt(opts, server_opts);
 
     this._endpoints = new Map();
     this._http_servers = new Map();

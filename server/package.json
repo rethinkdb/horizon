@@ -4,7 +4,7 @@
   "description": "Server for RethinkDB fusion",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "./node_modules/.bin/mocha --compilers js:babel-core/register test/test.js test/schema.js"
   },
   "repository": {
     "type": "git",
@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/rethinkdb/fusion#readme",
   "dependencies": {
+    "joi": "^7.0.0",
     "nopt": "^3.0.4",
     "rethinkdb": "^2.1.1",
     "winston": "^2.1.0",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "babel-core": "^6.0.20",
+    "babel-preset-es2015": "^6.1.2",
     "mocha": "^2.3.3",
     "nodemon": "^1.8.1"
   }
