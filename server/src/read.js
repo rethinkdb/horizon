@@ -5,7 +5,7 @@ const r = require('rethinkdb');
 const protocol = require('./schema/protocol');
 
 module.exports.make_read_reql = function (request) {
-  var options = Joi.attempt(request.options, protocol.query);
+  var options = Joi.attempt(request.options, protocol.read);
   var { selection, order, limit } = options;
   var index = options.field_name;
 

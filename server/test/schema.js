@@ -1,7 +1,7 @@
 'use strict';
 
-const assert = require('assert'),
-      protocol = require('../src/schema/protocol');
+const assert = require('assert');
+const protocol = require('../src/schema/protocol');
 
 describe('Schema', () => {
 
@@ -31,7 +31,7 @@ describe('Schema', () => {
       // order: 'ascending'
     };
 
-    var { error, value } = protocol.query.validate(options);
+    var { error, value } = protocol.read.validate(options);
 
     assert.ifError(error);
     assert(value);

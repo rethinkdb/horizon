@@ -6,7 +6,7 @@ const fusion_write = require('./write.js');
 const logger = require('./logger.js');
 const error = require('./error.js');
 
-const server_opts = require('./schema/server.js');
+const schema = require('./schema/server.js');
 
 const check = error.check;
 
@@ -25,15 +25,16 @@ module.exports.protocol = protocol_name;
 module.exports.logger = logger;
 
 class BaseServer {
-  constructor(opts, make_http_server_cb) {
-    var opts = Joi.attempt(opts, server_opts);
-
+  constructor(opts, make_http_server) {
     this._endpoints = new Map();
     this._http_servers = new Map();
     this._ws_servers = new Map();
     this._local_ports = new Map();
     this._clients = new Set();
-    this._reql_conn = new ReqlConnection(opts.rdb_host, opts.rdb_port, this._clients);
+    this._reql_conn = new ReqlConnection(opts.rdb_host,
+                                         opts.rdb_port,
+                                         opts.db,
+                                         this._clients);
 
     this.add_endpoint('subscribe', fusion_read.make_read_reql, fusion_read.handle_read_response);
     this.add_endpoint('query', fusion_read.make_read_reql, fusion_read.handle_read_response);
@@ -42,7 +43,7 @@ class BaseServer {
 
     opts.local_hosts.forEach((host) => {
         assert(this._http_servers.get(host) === undefined);
-        this._http_servers.set(host, make_http_server_cb(opts));
+        this._http_servers.set(host, make_http_server());
       });
 
     this._http_servers.forEach((http_server, host) => {
@@ -86,7 +87,9 @@ class BaseServer {
 
 module.exports.UnsecureServer = class UnsecureServer extends BaseServer {
   constructor(user_opts) {
-    super(user_opts, (opts) => {
+    var opts = Joi.attempt(user_opts, schema.unsecure_server_options);
+
+    super(opts, () => {
         logger.warn('Creating unsecure HTTP server.');
         return new http.Server(handle_http_request);
       });
@@ -95,7 +98,9 @@ module.exports.UnsecureServer = class UnsecureServer extends BaseServer {
 
 module.exports.Server = class Server extends BaseServer {
   constructor(user_opts) {
-    super(user_opts, (opts) => {
+    var opts = Joi.attempt(user_opts, schema.secure_server_options);
+
+    super(opts, () => {
         return new https.Server({ key: opts.key, cert: opts.cert },
                                 handle_http_request);
       });
@@ -141,10 +146,10 @@ var handle_http_request = function (req, res) {
 };
 
 class ReqlConnection {
-  constructor(host, port, clients) {
+  constructor(host, port, db, clients) {
     this.host = host;
     this.port = port;
-    this.db = 'fusion'; // TODO: configurable DB
+    this.db = db;
     this.clients = clients;
     this.connection = null;
     this.reconnect_delay = 0;

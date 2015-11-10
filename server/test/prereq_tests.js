@@ -13,7 +13,7 @@ var all_tests = (table) => {
 
   // Launch simultaneous queries that depend on a non-existent table, then
   // verify that only one table exists with that name.
-  it('table create race', (done) => {
+  it('table create race on read', (done) => {
       const query_count = 5;
       var table_name = crypto.randomBytes(8).toString('hex');
 
@@ -27,6 +27,37 @@ var all_tests = (table) => {
             if (++finished == query_count) {
               r.table(table_name).count().run(utils.rdb_conn())
                .then((res) => (assert.strictEqual(res, 0), done()),
+                     (err) => done(err));
+            }
+          });
+      }
+    });
+
+  // Same as the previous test, but it exists because the ReQL error message
+  // is different for a read or a write when the table is unavailable.
+  it('table create race on write', (done) => {
+      const query_count = 5;
+      var table_name = crypto.randomBytes(8).toString('hex');
+
+      var finished = 0;
+      for (var i = 0; i < query_count; ++i) {
+        utils.stream_test(
+          {
+            request_id: i,
+            type: 'store',
+            options: {
+              collection: table_name,
+              data: [{}],
+              missing: 'insert',
+              conflict: 'error',
+            },
+          },
+          (err, res) => {
+            assert.ifError(err);
+            assert.strictEqual(res.length, 1);
+            if (++finished == query_count) {
+              r.table(table_name).count().run(utils.rdb_conn())
+               .then((res) => (assert.strictEqual(res, 5), done()),
                      (err) => done(err));
             }
           });
