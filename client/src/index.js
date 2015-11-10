@@ -165,7 +165,10 @@ class Fusion extends FusionEmitter {
       let reqId = self.requestCounter++
       self.socket.send({request_id: reqId})
       return self.socket.getPromise(responseEvent(reqId))
-    }).catch(event => console.error('Got a connection error:', event))
+    }).catch(event => {
+      console.error('Got a connection error:', event)
+      return self.dispose("Fusion got a Connection error")
+    })
     return self
   }
 
@@ -268,7 +271,7 @@ class FusionSocket extends FusionEmitter {
       message = JSON.stringify(message)
     }
     console.debug("Sending: ", message)
-    return this._openWs.then((ws) => ws.send(message))
+    this._openWs.then((ws) => ws.send(message))
   }
 
   dispose(reason='FusionSocket disposed'){
