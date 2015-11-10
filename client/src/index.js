@@ -161,7 +161,7 @@ class Fusion extends FusionEmitter {
     self.requestCounter = 0
     self.socket = new FusionSocket(host, secure)
     self.listenerSet = ListenerSet.absorbEmitter(self.socket)
-      .fwd('error', self)
+      .on('error', (err) => self.emit('error', err, self))
       .on('connected', () => self.emit('connected', self))
       .on('disconnected', () => self.emit('disconnected', self))
     // send handshake
