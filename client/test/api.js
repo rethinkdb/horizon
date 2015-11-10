@@ -1,4 +1,3 @@
-
 chai.config.showDiff = true;
 var assert = chai.assert;
 var Fusion = require("Fusion");
@@ -90,10 +89,10 @@ describe("Fusion Client Library API", () => {
         // document.
         assert.deepEqual(res, [1]);
         done();
-      });
+      }, done);
     });
 
-    // By default, `store` overwrites documents that already exist.
+    // `store` overwrites documents that already exist.
     it("#.store(overwrite_existing)", (done) => {
       data.store({ id: 1, a: 2 }).then((res) => {
         // The promise should return an array with an ID of the overwritten
@@ -104,9 +103,9 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // This is the same as passing `{conflict: 'replace'}`
-    it("#.store(overwrite_existing)", (done) => {
-      data.store({ id: 1, a: 3 }, { conflict: 'replace' }).then((res) => {
+    // This is the same as calling `replace` if the document already exists.
+    it("#.replace(overwrite_existing)", (done) => {
+      data.replace({ id: 1, a: 3 }).then((res) => {
         // The promise should return an array with an ID of the overwritten
         // document. We'll test the value of this document later, when we call
         // `find`.
@@ -115,9 +114,9 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // We can, however, ask `store` to error if the document already exists.
-    it("#.store(unique_conflict)", (done) => {
-      data.store({ id: 1, a: 4 }, { conflict: 'error' }).catch((err) => {
+    // To error if the document already exists, use `insert`.
+    it("#.insert(unique_conflict)", (done) => {
+      data.insert({ id: 1, a: 4 }).catch((err) => {
         // We should receive an error because the document with `id: 1` already
         // exists.
         assert.isDefined(err);
@@ -127,8 +126,8 @@ describe("Fusion Client Library API", () => {
     });
 
     // The following should work since there is no conflict.
-    it("#.store(unique_no_conflict)", (done) => {
-      data.store({ id: 2, a: 2 }, { conflict: 'error' }).then((res) => {
+    it("#.insert(unique_no_conflict)", (done) => {
+      data.insert({ id: 2, a: 2 }).then((res) => {
         // The promise should return an array with an ID of the inserted
         // document.
         assert.deepEqual(res, [2]);
@@ -136,10 +135,9 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // We can also tell `store` what to do if the document is missing. By
-    // default, it inserts the document. Let's do it explicitly.
-    it("#.store(missing_ok)", (done) => {
-      data.store({ id: 3, a: 3 }, { missing: 'insert' }).then((res) => {
+    // As you might have noticed, `insert` inserts a document if it's missing.
+    it("#.insert(missing_ok)", (done) => {
+      data.insert({ id: 3, a: 3 }).then((res) => {
         // The promise should return an array with an ID of the inserted
         // document.
         assert.deepEqual(res, [3]);
@@ -147,9 +145,9 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // Let's tell `store` to error on a missing document.
-    it("#.store(missing_error)", (done) => {
-      data.store({ id: 4, a: 4 }, { missing: 'error' }).catch((err) => {
+    // But what if we want to error on a missing document? We use `replace`.
+    it("#.replace(missing_error)", (done) => {
+      data.replace({ id: 4, a: 4 }).catch((err) => {
         // We should receive an error because the document with `id: 4` doesn't
         // already exist.
         assert.isDefined(err);
@@ -158,31 +156,7 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // We should inform the user if they pass an argument that doesn't make
-    // sense.
-    it("#.store(conflict_abracadabra)", (done) => {
-      data.store({}, { conflict: 'abracadabra' }).catch((err) => {
-        assert.isDefined(err);
-        assert.isNotNull(err);
-        done();
-      });
-    });
-    it("#.store(missing_abracadabra)", (done) => {
-      data.store({}, { missing: 'abracadabra' }).catch((err) => {
-        assert.isDefined(err);
-        assert.isNotNull(err);
-        done();
-      });
-    });
-    it("#.store(abracadabra_1)", (done) => {
-      data.store({}, { abracadabra: 1 }).catch((err) => {
-        assert.isDefined(err);
-        assert.isNotNull(err);
-        done();
-      });
-    });
-
-    // By the way, inserting `null` or `undefined` is also an error.
+    // Storing `null` or `undefined` is also an error.
     it("#.store(null)", (done) => {
       data.store(null).catch((err) => {
         assert.isDefined(err);
@@ -198,7 +172,7 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // But inserting an empty document is ok -- we get back an array with the
+    // But storing an empty document is ok -- we get back an array with the
     // generated ID.
     it("#.store(empty_no_id)", (done) => {
       data.store({}).then((res) => {
@@ -211,7 +185,7 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // We can insert all kinds of documents without an ID.
+    // We can store all kinds of documents without an ID.
     it("#.store(no_id)", (done) => {
       data.store({ a: 5 }).then((res) => {
         // The promise should return an array with a generated ID of the
@@ -247,13 +221,8 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // TODO: figure out how to return errors when the user inserts multiple
-    // documents. For example, what if they say to error on missing documents,
-    // but only a few documents in a batch are missing?
-
-    // By the way, store can also update specific fields in documents instead of
-    // overwriting them. Let's insert a more complex document to illustrate
-    // this.
+    // By the way, we can also update specific fields in documents instead of
+    // overwriting them. Let's store a more complex document to illustrate this.
     it("#.store(complex)", (done) => {
       data.store({ id: 8, a: { b: 1, c: 2 }, d: { e: 1, f: 2 } }).then((res) => {
         // The promise should return an array with an ID of the overwritten
@@ -264,11 +233,9 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // Now let's tell store to update the document on conflict instead of
-    // replacing it.
-    it("#.store(update)", (done) => {
-      data.store({ id: 8, a: { c: 3 }, d: { f: 3 } },
-                 { conflict: 'update' }).then((res) => {
+    // Now let's call `update` to update the document instead of replacing it.
+    it("#.update(doc)", (done) => {
+      data.update({ id: 8, a: { c: 3 }, d: { f: 3 } }).then((res) => {
         // The promise should return an array with an ID of the updated
         // document. We'll test the value of this document later, when we call
         // `find`, but FYI it should be
@@ -278,10 +245,10 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // Updating a missing document is the same as inserting it.
-    it("#.store(update_missing)", (done) => {
-      data.store({ id: 9, a: { c: 3 }, d: { f: 3 } },
-                 { conflict: 'update' }).then((res) => {
+    // We can call `upsert` if we want to update a document or insert it if it's
+    // missing.
+    it("#.upsert(update_missing)", (done) => {
+      data.upsert({ id: 9, a: { c: 3 }, d: { f: 3 } }).then((res) => {
         // The promise should return an array with an ID of the inserted
         // document. We'll test the value of this document later, when we call
         // `find`, but FYI it should be { id: 9, a: { c: 3 }, d: { f: 3 } }.
@@ -291,9 +258,8 @@ describe("Fusion Client Library API", () => {
     });
 
     // This also works if the user doesn't specify an ID.
-    it("#.store(update_missing_no_id)", (done) => {
-      data.store({ a: 10 },
-                 { conflict: 'update' }).then((res) => {
+    it("#.upsert(update_missing_no_id)", (done) => {
+      data.upsert({ a: 10 }).then((res) => {
         // The promise should return an array with the generated ID for the
         // inserted document.
         assert.isArray(res);
@@ -303,27 +269,35 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // Unless of course the user asked us to error on missing documents.
-    it("#.store(update_missing_error)", (done) => {
-      data.store({ id: 10, a: { c: 3 }, d: { f: 3 } },
-                 { conflict: 'update', missing: 'error' }).catch((err) => {
+    // Unless of course the user asked us to error on missing documents by
+    // calling `update` instead.
+    it("#.update(update_missing_error)", (done) => {
+      data.update({ id: 10, a: { c: 3 }, d: { f: 3 } }).catch((err) => {
         assert.isDefined(err);
         assert.isNotNull(err);
         done();
       });
     });
-    it("#.store(update_missing_error_no_id)", (done) => {
-      data.store({ a: 11 },
-                 { conflict: 'update', missing: 'error' }).catch((err) => {
+    it("#.update(update_missing_error_no_id)", (done) => {
+      data.update({ a: 11 }).catch((err) => {
         assert.isDefined(err);
         assert.isNotNull(err);
         done();
       });
     });
 
-    // Since updating documents is a very common operation, we have a special
-    // `update` command, which is equivalent to calling `store` with `conflict:
-    // 'update'`. Other than that, it behaves in exactly the same way.
+    // If the user tries to store multiple documents and anything errors, the
+    // whole thing resolves to an error. That's a bit of an unfortunate
+    // compromise, but that's what we'll do for simplicity, at least for V1.
+    it("#.store(some_docs_error_some_do_not)", (done) => {
+      data.replace({}, { id: 6, b: 6 }, {}).catch((err) => {
+        assert.isDefined(err);
+        assert.isNotNull(err);
+        done();
+      });
+    });
+
+    // We already mentioned the update command. Here it is again.
     it("#.update(...)", (done) => {
       data.update({ id: 11, a: 11 }).then((res) => {
         // The promise should return an array with an ID of the updated
@@ -333,9 +307,9 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // Users can also update documents without an id, just like with `store`
-    it("#.update(no_id)", (done) => {
-      data.update({ a: 12 }).then((res) => {
+    // `upsert` works if the user didn't specify an ID.
+    it("#.upsert(no_id)", (done) => {
+      data.upsert({ a: 12 }).then((res) => {
         // The promise should return an array with an ID of the updated
         // document. This is equivalent to just inserting.
         assert.isArray(res);
@@ -345,9 +319,9 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // This is the same as explicitly specifying `missing: 'insert'`
-    it("#.update(no_id_missing)", (done) => {
-      data.update({ a: 12 }, { missing: 'insert' }).then((res) => {
+    // `upsert` again
+    it("#.upsert(no_id_missing)", (done) => {
+      data.upsert({ a: 12 }).then((res) => {
         // The promise should return an array with an ID of the updated
         // document.
         assert.isArray(res);
@@ -357,27 +331,25 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // Unless they specify to error on missing documents
+    // What if they want to error on missing documents? Call `update` instead.
     it("#.update(missing)", (done) => {
-      data.update({ id: 12, a: 12 },
-                  { missing: 'error' }).catch((err) => {
+      data.update({ id: 12, a: 12 }).catch((err) => {
         assert.isDefined(err);
         assert.isNotNull(err);
         done();
       });
     });
     it("#.update(missing_no_id)", (done) => {
-      data.update({ a: 12 },
-                  { missing: 'error' }).catch((err) => {
+      data.update({ a: 12 }).catch((err) => {
         assert.isDefined(err);
         assert.isNotNull(err);
         done();
       });
     });
 
-    // And of course users can update multiple documents in one call
-    it("#.update(multiple)", (done) => {
-      data.update([{}, {}]).then((res) => {
+    // And of course users can `upsert` multiple documents in one call
+    it("#.upsert(multiple)", (done) => {
+      data.upsert([{}, {}]).then((res) => {
         // The promise should return an array with the generated IDs of the
         // inserted documents.
         assert.isArray(res);
@@ -398,28 +370,6 @@ describe("Fusion Client Library API", () => {
 
     // Like `store`, `update` has nice error handling to tell the user if they
     // passed invalid arguments.
-    it("#.update(conflict_error)", (done) => {
-      data.update({}, { conflict: 'error' }).catch((err) => {
-        // In `update` the user cannot pass a `conflict` optional argument.
-        assert.isDefined(err);
-        assert.isNotNull(err);
-        done();
-      });
-    });
-    it("#.update(missing_abracadabra)", (done) => {
-      data.update({}, { missing: 'abracadabra' }).catch((err) => {
-        assert.isDefined(err);
-        assert.isNotNull(err);
-        done();
-      });
-    });
-    it("#.update(abracadabra_1)", (done) => {
-      data.update({}, { abracadabra: 1 }).catch((err) => {
-        assert.isDefined(err);
-        assert.isNotNull(err);
-        done();
-      });
-    });
     it("#.update(null)", (done) => {
       data.update(null).catch((err) => {
         assert.isDefined(err);
@@ -435,7 +385,17 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // TODO: figure out how to return errors on batch updates.
+    // If the user tries to update multiple documents and anything errors, the
+    // whole thing resolves to an error. That's a bit of an unfortunate
+    // compromise, but that's what we'll do for simplicity, at least for V1.
+    it("#.update(some_docs_error_some_do_not)", (done) => {
+      data.update({}, { id: 6, c: 6 }, {},
+                 { missing: 'error' }).catch((err) => {
+        assert.isDefined(err);
+        assert.isNotNull(err);
+        done();
+      });
+    });
 
     // All right! If you're perceptive, you might have noticed that we've
     // created a total of 17 documents in the database. Let's make sure that's
@@ -460,8 +420,9 @@ describe("Fusion Client Library API", () => {
     });
 
     // We can also `findOne` by a different (indexed!) field. In that case,
-    // `findOne` will return the first match. It's deterministic because in
-    // Fusion collections are always ordered by the primary key by default.
+    // `findOne` will return the first match. In case there are multiple
+    // documents, the one returned isn't deterministic, so users should use this
+    // at their own risk.
     it("#.findOne(field)", (done) => {
       data.findOne(3, { field: 'a' }).value().then((res) => {
         assert.deepEqual(res, { id: 1, a: 3 });
@@ -523,8 +484,7 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // We can do it on a custom field, too. Did I mention everything is
-    // deterministic because Fusion orders by primary key by default?
+    // We can do it on a custom field, too.
     it("#.find(a, b, field)", (done) => {
       data.find(2, 3, { field: 'a' }).value().then((res) => {
         assert.deepEqual(res, [{ id: 1, a: 3 },
@@ -552,11 +512,11 @@ describe("Fusion Client Library API", () => {
       });
     });
 
-    // All right, let's remove a document. The promise resolves to the IDs of
-    // removed docuemnts.
+    // All right, let's remove a document. The promise resolves with no
+    // arguments.
     it("#.remove(...)", (done) => {
       data.remove(2).then((res) => {
-        assert.deepEqual(res, [2]);
+        assert.isUndefined(res);
         done();
       });
     });
@@ -564,7 +524,7 @@ describe("Fusion Client Library API", () => {
     // Removing a missing document shouldn't generate an error.
     it("#.remove(missing)", (done) => {
       data.remove('abracadabra').then((res) => {
-        assert.deepEqual(res, []);
+        assert.isUndefined(res);
         done();
       });
     });
@@ -572,7 +532,7 @@ describe("Fusion Client Library API", () => {
     // It's also possible to remove multiple docuemnts
     it("#.remove(a, b)", (done) => {
       data.remove(8, 9).then((res) => {
-        assert.deepEqual(res, [8, 9]);
+        assert.isUndefined(res);
         done();
       });
     });

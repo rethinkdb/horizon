@@ -2,13 +2,18 @@
     <head>
         <title>Test Fusion</title>
         <meta charset="UTF-8">
-        <script src="https://localhost:8181/fusion.js"></script>
+        <script src="http://localhost:8181/fusion.js"></script>
         <script>
           "use strict";
          var Fusion = require('Fusion');
          console.debug("Require done");
-         var fusion = new Fusion("localhost:8181", {secure: true});
+         var fusion = new Fusion("localhost:8181", {secure: false});
          console.debug("Fusion object created");
+         fusion.on("connected", (self) => {
+             console.log(`Got connected`, self);
+         }).on("disconnected", () => {
+             console.log("Got disconnected");
+         });
          var blob = fusion('blob');
          var subscription;
          blob.value().then((data) => {
@@ -20,10 +25,12 @@
                  .on("added", (value) => console.log("Item added: ", value))
                  .on("error", (event) => console.error("Error on subscription", event))
          }).then((data) => {
-             return blob.store({some: "data", id: 45}, 'replace');
+             return blob.store({some: "data", id: 45});
          }).then((resp) => {
              console.log(`Got back store response:`, resp);
              return blob.remove(45)
+         }).then(resp => {
+             fusion.dispose()
          }).catch((error) => console.log("App caught", error))
         </script>
     </head>

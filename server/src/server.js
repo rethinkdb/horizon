@@ -6,7 +6,7 @@ const fusion_write = require('./write.js');
 const logger = require('./logger.js');
 const error = require('./error.js');
 
-var check = error.check;
+const check = error.check;
 
 const r = require('rethinkdb');
 const assert = require('assert');
@@ -38,9 +38,7 @@ class BaseServer {
 
     this.add_endpoint('subscribe', fusion_read.make_read_reql, fusion_read.handle_read_response);
     this.add_endpoint('query', fusion_read.make_read_reql, fusion_read.handle_read_response);
-    this.add_endpoint('store_error', fusion_write.make_write_reql, fusion_write.handle_write_response);
-    this.add_endpoint('store_update', fusion_write.make_write_reql, fusion_write.handle_write_response);
-    this.add_endpoint('store_replace', fusion_write.make_write_reql, fusion_write.handle_write_response);
+    this.add_endpoint('store', fusion_write.make_write_reql, fusion_write.handle_write_response);
     this.add_endpoint('remove', fusion_write.make_write_reql, fusion_write.handle_write_response);
 
     opts.local_hosts.forEach((host) => {

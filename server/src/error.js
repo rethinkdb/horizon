@@ -1,9 +1,10 @@
-module.exports.check = function (pred, message) {
+var check = (pred, message) => {
   if (!pred) {
-    throw message;
+    throw new Error(message);
   }
 };
 
-module.exports.fail = function (message) {
-  check(false, message);
-};
+var fail = (message) => check(false, message);
+
+module.exports.check = check;
+module.exports.fail = fail;

@@ -5,26 +5,14 @@ const utils = require('./utils.js');
 const assert = require('assert');
 const r      = require('rethinkdb');
 
-const table = 'query_test';
-const num_rows = 10;
-
 module.exports.name = 'Query';
 
-module.exports.prepare_database = (done) => {
-  var c = utils.rdb_conn();
-  r.tableCreate(table).run(c)
-   .then((res) => {
-        assert.equal(res.tables_created, 1);
-        return r.table(table).insert(r.range(num_rows).map((row) => ({ id: row }))).run(c);
-      })
-   .then((res) => {
-        assert.equal(res.inserted, num_rows);
-        done();
-      });
-};
-
 // TODO: ensure each row is present in the results
-module.exports.all_tests = () => {
+module.exports.all_tests = (table) => {
+  const num_rows = 10;
+
+  before('Clear table', (done) => utils.clear_table(table, done));
+  before('Populate table', (done) => utils.populate_table(table, num_rows, done));
   beforeEach('Authenticate client', utils.fusion_default_auth);
 
   it('table scan', (done) => {
@@ -32,7 +20,7 @@ module.exports.all_tests = () => {
         { request_id: 0, type: 'query', options: { collection: table } },
         (err, res) => {
           assert.ifError(err);
-          assert.equal(res.length, num_rows);
+          assert.strictEqual(res.length, num_rows);
           done();
         });
     });
@@ -52,7 +40,7 @@ module.exports.all_tests = () => {
         },
         (err, res) => {
           assert.ifError(err);
-          assert.equal(res.length, 1);
+          assert.strictEqual(res.length, 1);
           done();
         });
     });
@@ -72,7 +60,7 @@ module.exports.all_tests = () => {
           },
         },
         (err, res) => {
-          assert.equal(err, "'options.order' cannot be used with 'find_one'.");
+          assert.strictEqual(err.message, "'options.order' cannot be used with 'find_one'.");
           done();
         });
     });
@@ -92,7 +80,7 @@ module.exports.all_tests = () => {
           },
         },
         (err, res) => {
-          assert.equal(err, "'options.limit' cannot be used with 'find_one'.");
+          assert.strictEqual(err.message, "'options.limit' cannot be used with 'find_one'.");
           done();
         });
     });
@@ -113,7 +101,7 @@ module.exports.all_tests = () => {
           },
         },
         (err, res) => {
-          assert.equal(err, "'options.order' cannot be used with 'find_one'.");
+          assert.strictEqual(err.message, "'options.order' cannot be used with 'find_one'.");
           done();
         });
     });
@@ -133,7 +121,7 @@ module.exports.all_tests = () => {
         },
         (err, res) => {
           assert.ifError(err);
-          assert.equal(res.length, 3);
+          assert.strictEqual(res.length, 3);
           done();
         });
     });
@@ -153,7 +141,7 @@ module.exports.all_tests = () => {
           },
         },
         (err, res) => {
-          assert.equal(err, "'options.order' cannot be used with 'find'.");
+          assert.strictEqual(err.message, "'options.order' cannot be used with 'find'.");
           done();
         });
     });
@@ -174,7 +162,7 @@ module.exports.all_tests = () => {
         },
         (err, res) => {
           assert.ifError(err);
-          assert.equal(res.length, 3);
+          assert.strictEqual(res.length, 3);
           done();
         });
     });
@@ -195,7 +183,7 @@ module.exports.all_tests = () => {
           },
         },
         (err, res) => {
-          assert.equal(err, "'options.order' cannot be used with 'find'.");
+          assert.strictEqual(err.message, "'options.order' cannot be used with 'find'.");
           done();
         });
     });
@@ -215,7 +203,7 @@ module.exports.all_tests = () => {
         },
         (err, res) => {
           assert.ifError(err);
-          assert.equal(res.length, 6);
+          assert.strictEqual(res.length, 6);
           done();
         });
     });
@@ -236,7 +224,7 @@ module.exports.all_tests = () => {
         },
         (err, res) => {
           assert.ifError(err);
-          assert.equal(res.length, 3);
+          assert.strictEqual(res.length, 3);
           done();
         });
     });
@@ -257,7 +245,7 @@ module.exports.all_tests = () => {
         },
         (err, res) => {
           assert.ifError(err);
-          assert.equal(res.length, 1);
+          assert.strictEqual(res.length, 1);
           done();
         });
     });
@@ -279,7 +267,7 @@ module.exports.all_tests = () => {
         },
         (err, res) => {
           assert.ifError(err);
-          assert.equal(res.length, 2);
+          assert.strictEqual(res.length, 2);
           done();
         });
     });

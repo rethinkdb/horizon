@@ -13,18 +13,15 @@ const all_suites = [
     require('./prereq_tests.js'),
   ];
 
-var prepare_database = function (done) {
-  this.timeout(10000); // Allow 10 seconds to create and populate tables
-  var num_done = 0;
-  var collector = () => ++num_done === all_suites.length ? done() : undefined;
-  all_suites.forEach((suite) => suite.prepare_database(collector));
-};
+const table = 'test';
 
 describe('Fusion Server', () => {
   before('Start RethinkDB Server', utils.start_rdb_server);
-  before('Populating Fusion database', prepare_database);
+  before(`Creating general-purpose table: '${table}'`,
+         (done) => utils.create_table(table, done));
 
   beforeEach(function() { logger.info(`Start test '${this.currentTest.title}'`); });
+  afterEach(function() { logger.info(`End test '${this.currentTest.title}'`); });
 
   describe('HTTP:', () => {
       before('Start Fusion Server', utils.start_unsecure_fusion_server);
@@ -32,7 +29,7 @@ describe('Fusion Server', () => {
       beforeEach('Connect Fusion Client', utils.open_fusion_conn);
       afterEach('Close Fusion Client', utils.close_fusion_conn);
 
-      all_suites.forEach((suite) => describe(suite.name, suite.all_tests));
+      all_suites.forEach((s) => describe(s.name, () => s.all_tests(table)));
     });
 
   describe('HTTPS:', () => {
@@ -41,6 +38,6 @@ describe('Fusion Server', () => {
       beforeEach('Connect Fusion Client', utils.open_fusion_conn);
       afterEach('Close Fusion Client', utils.close_fusion_conn);
 
-      all_suites.forEach((suite) => describe(suite.name, suite.all_tests));
+      all_suites.forEach((s) => describe(s.name, () => s.all_tests(table)));
     });
 });

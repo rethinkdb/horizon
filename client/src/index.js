@@ -3,10 +3,6 @@ const EventEmitter = require('events').EventEmitter
 
 const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 
-function oneOf(val, ...values){
-  return (new Set(values)).has(val)
-}
-
 function responseEvent(id){
   return `response:${id}`
 }
@@ -56,8 +52,8 @@ class FusionEmitter extends EventEmitter {
   _makePromise(listenerSet, acceptEvent, rejectEvent){
     return new Promise((resolve, reject) => {
       listenerSet
-        .onceAndCleanup(acceptEvent, resolve)
-        .onceAndCleanup(rejectEvent, reject)
+        .onceAndDispose(acceptEvent, resolve)
+        .onceAndDispose(rejectEvent, reject)
     })
   }
 
@@ -84,14 +80,10 @@ class FusionEmitter extends EventEmitter {
       listenerSet
         .on(addEvent, item => {
           values.push(item)
-        }).onceAndCleanup(completeEvent, () => {
+        }).onceAndDispose(completeEvent, () => {
           resolve(values)
-        }).cleanupOn('error')
+        }).disposeOn('error')
     })
-  }
-
-  dispose(){
-    this.remoteListeners.cleanup()
   }
 }
 
@@ -127,25 +119,29 @@ class ListenerSet {
     return this
   }
 
-  onceAndCleanup(event, listener){
+  onceAndDispose(event, listener){
     let wrappedListener = (...args) => {
-      listener(...args)
-      this.cleanup()
+      this.dispose("ListenerSet.onceAndDispose").then(() => listener(...args))
     }
     this.unregistry.push(this.emitter.registerOnce(event, wrappedListener))
     return this
   }
 
-  cleanupOn(event){
-    this.unregistry.push(this.emitter.registerOnce(event, this.cleanup.bind(this)))
+  disposeOn(event){
+    this.unregistry.push(this.emitter.registerOnce(
+      event, () => this.dispose("ListenerSet.disposeOn")))
     return this
   }
 
-  cleanup(){
-    this.unregistry.forEach(unregister => unregister())
-    if(this.absorb){
-      this.emitter.dispose()
-    }
+  dispose(reason){
+    return Promise.resolve(() => {
+      this.unregistry.forEach(unregister => unregister())
+      if(this.absorb){
+        return this.emitter.dispose(reason)
+      }else{
+        return this
+      }
+    })
   }
 
 }
@@ -161,44 +157,45 @@ class Fusion extends FusionEmitter {
     self.requestCounter = 0
     self.socket = new FusionSocket(host, secure)
     self.listenerSet = ListenerSet.absorbEmitter(self.socket)
-      .fwd('connected', self)
-      .fwd('disconnected', self)
-      .fwd('error', self, 'error')
+      .on('error', (err) => self.emit('error', err, self))
+      .on('connected', () => self.emit('connected', self))
+      .on('disconnected', () => self.emit('disconnected', self))
     // send handshake
-    self.handshakenSocket = self.socket.getPromise('connected').then(() => {
-      self.socket.send({})
-      return self.socket.getPromise('handshake-complete')
-    }).then(() => {
-      return true
-    }).catch(event => console.error('Got a connection error:', event))
+    self.handshakeResponse = self.socket.getPromise('connected').then(() => {
+      let reqId = self.requestCounter++
+      self.socket.send({request_id: reqId})
+      return self.socket.getPromise(responseEvent(reqId))
+    }).catch(event => {
+      console.error('Got a connection error:', event)
+      return self.dispose("Fusion got a Connection error")
+    })
     return self
   }
 
-  dispose(){
-    this.listenerSet.dispose('Fusion object disposed')
+  dispose(reason='Fusion object disposed'){
+    return this.socket.dispose(reason).then(() => this.listenerSet.dispose(reason))
   }
 
   collection(collectionName){
     return new Collection(this, collectionName)
   }
 
-  store(collection, document, conflict){
-    let command = Object.assign({data: document}, collection)
-    if(oneOf(conflict, 'replace', 'error', 'update')){
-      return (this._send(`store_${conflict}`, command)
-              .intoCollectingPromise('added'))
-    }else{
-      return Promise.reject(`Bad argument for conflict: ${conflict}`)
+  store(collection, documents, options){
+    if(documents.length === 1 && Array.isArray(documents[0])){
+      //Unwrap if a user passed an array to a spread function
+      documents = documents[0]
     }
+    let command = Object.assign({data: documents}, collection, options)
+    return this._send(`store`, command).intoCollectingPromise('response')
+  }
+
+  remove(collection, documents){
+    let command = {collection: collection, data: documents}
+    return this._send('remove', command).intoCollectingPromise('response')
   }
 
   query(data){
     return this._send('query', data).intoCollectingPromise('response')
-  }
-
-  remove(collection, document){
-    let command = {collection: collection, data: document}
-    return this._send('remove', command).intoCollectingPromise('response')
   }
 
   subscribe(query, updates=true){
@@ -209,10 +206,16 @@ class Fusion extends FusionEmitter {
     }
   }
 
+  endSubscription(requestId){
+    return this.handshakeResponse.then((handshake) => {
+      this.socket.send({request_id: requestId, type: 'end_subscription'})
+    })
+  }
+
   _send(type, data){
     let requestId = this.requestCounter++
     let req = {type: type, options: data, request_id: requestId}
-    this.handshakenSocket.then(() => {
+    this.handshakeResponse.then((handshake) => {
       this.socket.send(req)
     })
     return new RequestEmitter(requestId, this.socket)
@@ -222,7 +225,7 @@ class Fusion extends FusionEmitter {
   _subscribe(query){
     let requestId = this.requestCounter++
     let req = {type: 'subscribe', options: query, request_id: requestId}
-    this.handshakenSocket.then(() => this.socket.send(req))
+    this.handshakeResponse.then((handshake) => this.socket.send(req))
     return new RequestEmitter(requestId, this.socket)
   }
 
@@ -252,12 +255,12 @@ class FusionSocket extends FusionEmitter {
     })
     this._ws.onmessage = (event) => {
       let data = JSON.parse(event.data)
+      console.debug("Receiving: ", data)
       if(data.request_id === undefined){
-        // Do validation / use user_id
-        this.emit('handshake-complete', data)
+        this.emit("error", "Request id undefined", data)
       }else if(data.error !== undefined){
         this.emit(errorEvent(data.request_id), data)
-      }else{
+      }else {
         this.emit(responseEvent(data.request_id), data)
       }
     }
@@ -267,12 +270,13 @@ class FusionSocket extends FusionEmitter {
     if(typeof message !== 'string'){
       message = JSON.stringify(message)
     }
-    return this._openWs.then((ws) => ws.send(message))
+    console.debug("Sending: ", message)
+    this._openWs.then((ws) => ws.send(message))
   }
 
-  dispose(reason){
-    super.dispose()
-    this._openWs.then((ws) => ws.close(1002, reason))
+  dispose(reason='FusionSocket disposed'){
+    return this._openWs.then(
+      (ws) => ws.close(1000, reason))
   }
 
 }
@@ -308,7 +312,7 @@ class RequestEmitter extends FusionEmitter {
         }else if(response.state === 'complete'){
           this.emit('complete')
         }
-      }).cleanupOn('error')
+      }).disposeOn('error')
   }
 
   // Emits an event depending on new_val old_val return value is
@@ -335,9 +339,11 @@ class RequestEmitter extends FusionEmitter {
       return false
     }
   }
-  dispose(){
-    super.dispose()
-    //TODO: send some message to the server to stop this requestId
+  dispose(reason='RequestEmitter for ${this.requestId} disposed'){
+    return this.fusion.endSubscription(this.requestId)
+      .then(() => this.getPromise('complete'))
+      .then(() => this.remoteListeners.dispose())
+      .then(() => super.dispose(reason))
   }
 }
 
@@ -429,15 +435,32 @@ class Collection extends TermBase {
     return new Order(this.fusion, this.query, field, ascending)
   }
 
-  store(document, conflict='replace'){
-    return this.fusion.store(this.query, document, conflict)
+  store(...documents){
+    let args = {missing: 'insert', conflict: 'replace'}
+    return this.fusion.store(this.query, documents, args)
   }
 
-  update(document){
-    return this.fusion.store(this.query, document, 'update')
+  upsert(...documents){
+    let args =  {missing: 'insert', conflict: 'update'}
+    return this.fusion.store(this.query, documents, args)
   }
 
-  remove(document){
+  insert(...documents){
+    let args = {missing: 'insert', conflict: 'error'}
+    return this.fusion.store(this.query, documents, args)
+  }
+
+  replace(...documents){
+    let args = {missing: 'error', conflict: 'replace'}
+    return this.fusion.store(this.query, documents, args)
+  }
+
+  update(...documents){
+    let args = {missing: 'error', conflict: 'update'}
+    return this.fusion.store(this.query, documents, args)
+  }
+
+  remove(...documents){
     if(typeof document === 'number' || typeof document === 'string'){
       document = {id: document}
     }
