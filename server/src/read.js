@@ -3,8 +3,8 @@
 const error = require('./error.js');
 const r = require('rethinkdb');
 
-var check = error.check;
-var fail = error.fail;
+const check = error.check;
+const fail = error.fail;
 
 // TODO: check for unknown fields
 module.exports.make_read_reql = function (request) {

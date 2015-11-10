@@ -6,7 +6,7 @@ const error = require('./error.js');
 const r = require('rethinkdb');
 const websocket = require('ws');
 
-var check = error.check;
+const check = error.check;
 
 class Query {
   constructor(request, endpoint) {
@@ -72,7 +72,7 @@ module.exports.Client = class Client {
 
       this.run_query(new Query(request, this.parent._get_endpoint(request)));
     } catch (err) {
-      this.send_response({ request: request }, { error: `${err}` });
+      this.send_response({ request: request }, { error: err.message });
     }
   }
 
@@ -90,8 +90,8 @@ module.exports.Client = class Client {
     try {
       query.endpoint.handle_response(this, query.request, res, (data) => this.send_response(query, data));
     } catch (err) {
-      logger.debug(`Error when handling response: ${err}`);
-      this.send_response(query, { error: `${err}` });
+      logger.debug(`Error when handling response: ${err.message}`);
+      this.send_response(query, { error: err.message });
     }
   }
 

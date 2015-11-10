@@ -3,8 +3,8 @@
 const error = require('./error.js');
 const r = require('rethinkdb');
 
-var check = error.check;
-var fail = error.fail;
+const check = error.check;
+const fail = error.fail;
 
 module.exports.make_write_reql = function (request) {
   var type = request.type;
@@ -19,15 +19,35 @@ module.exports.make_write_reql = function (request) {
 
   var reql = r.table(collection);
 
-  if (type === 'store_update') {
-    reql = reql.insert(data, { conflict: 'update', returnChanges: true });
-  } else if (type === 'store_replace') {
-    reql = reql.insert(data, { conflict: 'replace', returnChanges: true });
-  } else if (type === 'store_error') {
-    reql = reql.insert(data, { conflict: 'error', returnChanges: true });
-  } else {
-    check(data.id !== undefined, `'options.data.id' must be specified for 'remove'.`);
-    reql = reql.get(data.id).delete({ returnChanges: true });
+  switch (type) {
+  case 'store':
+    var missing = options.missing;
+    var conflict = options.conflict;
+    check(missing !== undefined, `'options.missing' must be specified for a 'store' operation.`);
+    check(conflict !== undefined, `'options.conflict' must be specified for a 'store' operation.`);
+    check(conflict === 'update' || conflict === 'replace' || conflict === 'error',
+          `'options.conflict' must be one of 'update', 'replace', or 'error'.`);
+
+    if (missing === 'insert') {
+      reql = reql.insert(data, { conflict: conflict });
+    } else if (missing === 'error') {
+      if (conflict === 'update') {
+        reql = r.expr(data).forEach((row) => reql.get(row('id')).update(row));
+      } else if (conflict === 'replace') {
+        reql = r.expr(data).forEach((row) => reql.get(row('id')).replace(row));
+      } else {
+        fail(`'options.missing' and 'options.conflict' cannot both be 'error'.`);
+      }
+    } else {
+      fail(`'options.missing' must be one of 'insert' or 'error'.`);
+    }
+    break;
+  case 'remove':
+    var ids = data.map((row) => {
+        check(row.id !== undefined, `'options.data[i].id' must be specified for 'remove'.`);
+        return row.id;
+      });
+    reql = reql.getAll(ids, { index: 'id' }).delete();
   }
 
   return reql;
@@ -36,13 +56,15 @@ module.exports.make_write_reql = function (request) {
 module.exports.handle_write_response = function (client, request, response, send_cb) {
   if (response.errors !== 0) {
     send_cb({ error: response.first_error });
-  } else if (response.changes.length === 1) {
-    send_cb({ data: response.changes, state: 'complete' });
-  } else if (response.unchanged === 1) {
-    send_cb({ data: [ { old_val: request.data, new_val: request.data } ], state: 'complete' });
-  } else if (response.skipped === 1) {
-    send_cb({ data: [ { old_val: null, new_val: null } ], state: 'complete' });
+  } else if (request.options.missing !== undefined &&
+             request.options.missing === 'error' &&
+             response.skipped !== 0) {
+    fail(`'options.missing' was 'error' and a document was missing from the database.`);
   } else {
-    fail(`Unexpected response counts: ${JSON.stringify(response)}`);
+    var index = 0;
+    var ids = request.options.data.map((row) => {
+        return row.id === undefined ? response.generated_keys[index++] : row.id;
+      });
+    send_cb({ data: ids, state: 'complete' });
   }
 };

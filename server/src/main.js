@@ -5,7 +5,7 @@ const fs     = require('fs');
 const path   = require('path');
 const nopt   = require('nopt');
 
-var parsed = new nopt({ bind: [String, Array], port: Number, connect: String, unsecure: Boolean, key_file: path, cert_file: path });
+var parsed = new nopt({ bind: [String, Array], port: Number, connect: String, unsecure: Boolean, key_file: path, cert_file: path, debug: Boolean });
 var print_usage = function () {
   console.log('Usage: node fusion.js [OPTIONS]');
   console.log('');
@@ -15,6 +15,7 @@ var print_usage = function () {
   console.log('  --unsecure             serve unsecure websockets, ignore --key-file and --cert-file');
   console.log('  --key-file PATH        path to the key file to use, defaults to ./key.pem');
   console.log('  --cert-file PATH       path to the cert file to use, defaults to ./cert.pem');
+  console.log('  --debug                enable debug logging');
   console.log('');
 };
 
@@ -51,6 +52,10 @@ if (parsed.connect !== undefined) {
     print_usage();
     process.exit(1);
   }
+}
+
+if (parsed.debug) {
+  fusion.logger.level = 'debug';
 }
 
 if (!parsed.unsecure) {
