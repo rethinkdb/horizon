@@ -10,6 +10,17 @@ function errorEvent(id){
   return `error:${id}`
 }
 
+//Pass a function's 'arguments' object to this and a promise to return
+//if successful
+function rejectIfNoArgs(name, args, onSuccess){
+  if(args.length === 0){
+    return Promise.reject(
+      new Error(`${name} must receive at least one argument`))
+  }else{
+    return onSuccess
+  }
+}
+
 class FusionEmitter extends EventEmitter {
   // Returns a function that can be called to remove the listener
   // Otherwise works the same as 'on' for the underlying socket
@@ -166,7 +177,6 @@ class Fusion extends FusionEmitter {
       self.socket.send({request_id: reqId})
       return self.socket.getPromise(responseEvent(reqId))
     }).catch(event => {
-      console.error('Got a connection error:', event)
       return self.dispose("Fusion got a Connection error")
     })
     return self
@@ -255,7 +265,6 @@ class FusionSocket extends FusionEmitter {
     })
     this._ws.onmessage = (event) => {
       let data = JSON.parse(event.data)
-      console.debug("Receiving: ", data)
       if(data.request_id === undefined){
         this.emit("error", "Request id undefined", data)
       }else if(data.error !== undefined){
@@ -270,7 +279,6 @@ class FusionSocket extends FusionEmitter {
     if(typeof message !== 'string'){
       message = JSON.stringify(message)
     }
-    console.debug("Sending: ", message)
     this._openWs.then((ws) => ws.send(message))
   }
 
@@ -339,7 +347,7 @@ class RequestEmitter extends FusionEmitter {
       return false
     }
   }
-  dispose(reason='RequestEmitter for ${this.requestId} disposed'){
+  dispose(reason=`RequestEmitter for ${this.requestId} disposed`){
     return this.fusion.endSubscription(this.requestId)
       .then(() => this.getPromise('complete'))
       .then(() => this.remoteListeners.dispose())
@@ -437,34 +445,44 @@ class Collection extends TermBase {
 
   store(...documents){
     let args = {missing: 'insert', conflict: 'replace'}
-    return this.fusion.store(this.query, documents, args)
+    let promise = this.fusion.store(this.query, documents, args)
+    return rejectIfNoArgs('store', arguments, promise)
   }
 
   upsert(...documents){
     let args =  {missing: 'insert', conflict: 'update'}
-    return this.fusion.store(this.query, documents, args)
+    let promise = this.fusion.store(this.query, documents, args)
+    return rejectIfNoArgs('upsert', arguments, promise)
   }
 
   insert(...documents){
     let args = {missing: 'insert', conflict: 'error'}
-    return this.fusion.store(this.query, documents, args)
+    let promise = this.fusion.store(this.query, documents, args)
+    return rejectIfNoArgs('insert', arguments, promise)
   }
 
   replace(...documents){
     let args = {missing: 'error', conflict: 'replace'}
-    return this.fusion.store(this.query, documents, args)
+    let promise = this.fusion.store(this.query, documents, args)
+    return rejectIfNoArgs('replace', arguments, promise)
   }
 
   update(...documents){
     let args = {missing: 'error', conflict: 'update'}
-    return this.fusion.store(this.query, documents, args)
+    let promise = this.fusion.store(this.query, documents, args)
+    return rejectIfNoArgs('update', arguments, promise)
   }
 
   remove(...documents){
-    if(typeof document === 'number' || typeof document === 'string'){
-      document = {id: document}
-    }
-    return this.fusion.remove(this._collectionName, document)
+    documents = documents.map((doc) => {
+      if(typeof doc === 'number' || typeof doc === 'string'){
+        return {id: doc}
+      }else{
+        doc
+      }
+    })
+    let promise = this.fusion.remove(this._collectionName, documents)
+    return rejectIfNoArgs('remove', arguments, promise)
   }
 }
 
