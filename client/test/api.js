@@ -51,10 +51,7 @@ describe("Fusion Client Library API", () => {
         assert.isNotNull(err);
         assert.equal(fusion, _fusion);
 
-        // TODO: should `dispose` return a promise? May be it's inappropriate to
-        // expect `dipose` to fire the `disconnected` event?
         _fusion.dispose();
-
         done();
       });
     }); // "new Fusion(...).on('error')"
