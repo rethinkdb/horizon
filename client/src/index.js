@@ -56,8 +56,8 @@ class FusionEmitter extends EventEmitter {
   _makePromise(listenerSet, acceptEvent, rejectEvent){
     return new Promise((resolve, reject) => {
       listenerSet
-        .onceAndCleanup(acceptEvent, resolve)
-        .onceAndCleanup(rejectEvent, reject)
+        .onceAndDispose(acceptEvent, resolve)
+        .onceAndDispose(rejectEvent, reject)
     })
   }
 
@@ -84,14 +84,10 @@ class FusionEmitter extends EventEmitter {
       listenerSet
         .on(addEvent, item => {
           values.push(item)
-        }).onceAndCleanup(completeEvent, () => {
+        }).onceAndDispose(completeEvent, () => {
           resolve(values)
-        }).cleanupOn('error')
+        }).disposeOn('error')
     })
-  }
-
-  dispose(){
-    this.remoteListeners.cleanup()
   }
 }
 
@@ -127,25 +123,29 @@ class ListenerSet {
     return this
   }
 
-  onceAndCleanup(event, listener){
+  onceAndDispose(event, listener){
     let wrappedListener = (...args) => {
-      listener(...args)
-      this.cleanup()
+      this.dispose("ListenerSet.onceAndDispose").then(() => listener(...args))
     }
     this.unregistry.push(this.emitter.registerOnce(event, wrappedListener))
     return this
   }
 
-  cleanupOn(event){
-    this.unregistry.push(this.emitter.registerOnce(event, this.cleanup.bind(this)))
+  disposeOn(event){
+    this.unregistry.push(this.emitter.registerOnce(event,
+                                                   () => this.dispose("ListenerSet.disposeOn")))
     return this
   }
 
-  cleanup(){
-    this.unregistry.forEach(unregister => unregister())
-    if(this.absorb){
-      this.emitter.dispose()
-    }
+  dispose(reason){
+    return Promise.resolve(() => {
+      this.unregistry.forEach(unregister => unregister())
+      if(this.absorb){
+        return this.emitter.dispose(reason)
+      }else{
+        return this
+      }
+    })
   }
 
 }
@@ -161,9 +161,9 @@ class Fusion extends FusionEmitter {
     self.requestCounter = 0
     self.socket = new FusionSocket(host, secure)
     self.listenerSet = ListenerSet.absorbEmitter(self.socket)
-      .fwd('connected', self)
-      .fwd('disconnected', self)
-      .fwd('error', self, 'error')
+      .fwd('error', self)
+      .on('connected', () => self.emit('connected', self))
+      .on('disconnected', () => self.emit('disconnected', self))
     // send handshake
     self.handshakenSocket = self.socket.getPromise('connected').then(() => {
       self.socket.send({})
@@ -174,8 +174,8 @@ class Fusion extends FusionEmitter {
     return self
   }
 
-  dispose(){
-    this.listenerSet.dispose('Fusion object disposed')
+  dispose(reason='Fusion object disposed'){
+    return this.socket.dispose(reason).then(() => this.listenerSet.dispose(reason))
   }
 
   collection(collectionName){
@@ -270,9 +270,9 @@ class FusionSocket extends FusionEmitter {
     return this._openWs.then((ws) => ws.send(message))
   }
 
-  dispose(reason){
-    super.dispose()
-    this._openWs.then((ws) => ws.close(1002, reason))
+  dispose(reason='FusionSocket disposed'){
+    return this._openWs.then(
+      (ws) => ws.close(1000, reason))
   }
 
 }
@@ -308,7 +308,7 @@ class RequestEmitter extends FusionEmitter {
         }else if(response.state === 'complete'){
           this.emit('complete')
         }
-      }).cleanupOn('error')
+      }).disposeOn('error')
   }
 
   // Emits an event depending on new_val old_val return value is
@@ -335,8 +335,8 @@ class RequestEmitter extends FusionEmitter {
       return false
     }
   }
-  dispose(){
-    super.dispose()
+  dispose(reason='RequestEmitter for ${this.requestId} disposed'){
+    return this.remoteListeners.dispose().then(() => super.dispose(reason))
     //TODO: send some message to the server to stop this requestId
   }
 }
