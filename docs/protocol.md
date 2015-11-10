@@ -82,6 +82,7 @@ All requests match the following pattern:
   * `data.id` may be omitted in a `store_*` operation: a new row will be inserted in the collection
   * `options.missing` must be specified for `type: store`; whether to `insert` or `error` if a document doesn't exist
   * `options.conflict` must be specified for `type: store`; whether to `replace`, `update`, or `error` if a document with the given id already exists
+  * `options.missing` and `options.conflict` cannot both be `error`
 
 #### end_subscription
 Tells the fusion server to stop sending data for a given subscription.  Data may still be received until the server has processed this and sent a `"state": "complete"` response for the subscription.
