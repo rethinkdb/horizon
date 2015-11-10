@@ -75,7 +75,32 @@ module.exports.start_rdb_server = (done) => {
     });
 };
 
-var create_fusion_server = function (backend, opts) {
+// Creates a table, no-op if it already exists
+module.exports.create_table = (table, done) => {
+  assert.notStrictEqual(rdb_conn, undefined);
+  r.tableCreate(table).run(rdb_conn)
+   .then((res) => done(),
+         (err) => {
+           assert(/Table `\w+\.\w+` already exists\./.test(err.msg));
+           done();
+         });
+};
+
+// Removes all data from a table - does not remove indexes
+module.exports.clear_table = (table, done) => {
+  assert.notStrictEqual(rdb_conn, undefined);
+  r.table(table).delete().run(rdb_conn).then((res) => done());
+};
+
+// Populates a table with random rows with keys in the range [0, num_rows)
+module.exports.populate_table = (table, num_rows, done) => {
+  assert.notStrictEqual(rdb_conn, undefined);
+  r.table(table).insert(
+      r.range(num_rows).map(function (i) { return { id: i }; })
+    ).run(rdb_conn).then((res) => done());
+};
+
+var create_fusion_server = (backend, opts) => {
   opts.local_port = 0;
   opts.rdb_port = rdb_port;
   opts.db = db;
@@ -83,13 +108,13 @@ var create_fusion_server = function (backend, opts) {
 };
 
 module.exports.start_unsecure_fusion_server = (done) => {
-  assert(!fusion_server);
+  assert.strictEqual(fusion_server, undefined);
   fusion_server = create_fusion_server(fusion.UnsecureServer, { });
   fusion_server.local_port('localhost').then((p) => fusion_port = p, done());
 };
 
 module.exports.start_secure_fusion_server = (done) => {
-  assert(!fusion_server);
+  assert.strictEqual(fusion_server, undefined);
 
   // Generate key and cert
   var temp_file = `./tmp.pem`;
@@ -115,12 +140,12 @@ module.exports.start_secure_fusion_server = (done) => {
 };
 
 module.exports.close_fusion_server = () => {
-  if (fusion_server) { fusion_server.close(); }
+  if (fusion_server !== undefined) { fusion_server.close(); }
   fusion_server = undefined;
 };
 
 var is_secure = () => {
-  assert(fusion_server);
+  assert.notStrictEqual(fusion_server, undefined);
   return fusion_server.constructor.name !== 'UnsecureServer';
 };
 
@@ -129,6 +154,7 @@ module.exports.is_secure = is_secure;
 var fusion_listeners;
 
 var add_fusion_listener = (request_id, cb) => {
+  assert(fusion_authenticated, 'fusion_conn was not authenticated before making requests');
   assert.notStrictEqual(request_id, undefined);
   assert.notStrictEqual(fusion_listeners, undefined);
   assert.strictEqual(fusion_listeners.get(request_id), undefined);
@@ -154,8 +180,9 @@ var dispatch_message = (raw) => {
 };
 
 module.exports.open_fusion_conn = (done) => {
-  assert(fusion_server);
-  assert(!fusion_conn);
+  assert.notStrictEqual(fusion_server, undefined);
+  assert.strictEqual(fusion_conn, undefined);
+  fusion_authenticated = false;
   fusion_listeners = new Map();
   fusion_conn =
     new websocket(`${is_secure() ? 'wss' : 'ws'}://localhost:${fusion_port}`,
@@ -168,12 +195,15 @@ module.exports.close_fusion_conn = () => {
   if (fusion_conn) { fusion_conn.close(); }
   fusion_conn = undefined;
   fusion_listeners = undefined;
+  fusion_authenticated = false;
 };
 
+var fusion_authenticated = false;
 var fusion_auth = (req, cb) => {
   assert(fusion_conn && fusion_conn.readyState === websocket.OPEN);
   fusion_conn.send(JSON.stringify(req));;
   fusion_conn.once('message', (msg) => {
+      fusion_authenticated = true;
       var res = JSON.parse(msg);
       fusion_conn.on('message', (msg) => dispatch_message(msg));
       cb(res);
@@ -182,8 +212,8 @@ var fusion_auth = (req, cb) => {
 
 module.exports.fusion_auth = fusion_auth;
 module.exports.fusion_default_auth = (done) => {
-  fusion_auth({ }, (res) => {
-      assert.deepEqual(res, { user_id: 0 });
+  fusion_auth({ request_id: -1 }, (res) => {
+      assert.deepEqual(res, { request_id: -1, user_id: 0 });
       done();
     });
 };
@@ -203,7 +233,7 @@ module.exports.stream_test = function (req, cb) {
       }
       if (msg.error !== undefined) {
         remove_fusion_listener(req.request_id);
-        cb(msg.error, results);
+        cb(new Error(msg.error), results);
       } else if (msg.state === 'complete') {
         remove_fusion_listener(req.request_id);
         cb(null, results);

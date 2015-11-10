@@ -5,20 +5,9 @@ const utils  = require('./utils.js');
 const assert = require('assert');
 const r      = require('rethinkdb');
 
-const table = 'protocol_test';
-
 module.exports.name = 'Protocol';
 
-module.exports.prepare_database = (done) => {
-  var c = utils.rdb_conn();
-  r.tableCreate(table).run(c)
-   .then((res) => {
-        assert.equal(res.tables_created, 1);
-        done();
-      });
-};
-
-module.exports.all_tests = () => {
+module.exports.all_tests = (table) => {
   beforeEach('Authenticate client', utils.fusion_default_auth);
 
   it('unparseable', (done) => {
@@ -46,7 +35,7 @@ module.exports.all_tests = () => {
   it('no type', (done) => {
       utils.stream_test({ request_id: 0 }, (err, res) => {
           assert.deepStrictEqual(res, []);
-          assert.strictEqual(err, "'type' must be specified.");
+          assert.strictEqual(err.message, "'type' must be specified.");
           done();
         });
     });
@@ -54,7 +43,7 @@ module.exports.all_tests = () => {
   it('no options', (done) => {
       utils.stream_test({ request_id: 1, type: 'fake' }, (err, res) => {
           assert.deepStrictEqual(res, []),
-          assert.strictEqual(err, "'options' must be specified."),
+          assert.strictEqual(err.message, "'options' must be specified."),
           done();
         });
     });
@@ -62,7 +51,7 @@ module.exports.all_tests = () => {
   it('invalid endpoint', (done) => {
       utils.stream_test({ request_id: 2, type: 'fake', options: { } }, (err, res) => {
           assert.deepStrictEqual(res, []),
-          assert.strictEqual(err, "'fake' is not a recognized endpoint.");
+          assert.strictEqual(err.message, "'fake' is not a recognized endpoint.");
           done();
         });
     });
