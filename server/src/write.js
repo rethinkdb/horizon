@@ -58,7 +58,7 @@ module.exports.make_write_reql = function (request) {
         check(row.id !== undefined, `'options.data[i].id' must be specified for 'remove'.`);
         return row.id;
       });
-    reql = reql.getAll(ids, { index: 'id' }).delete();
+    reql = reql.getAll(r.args(ids), { index: 'id' }).delete();
   }
 
   return reql;
