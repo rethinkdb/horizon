@@ -8,11 +8,9 @@ describe("Fusion Client Library", function() {
   //Doesn't actually do anything for now, need `isConnected` callback
   describe("Make a connection to the database", function() {
     it("new Fusion(...)", function(done) {
-      var fusion = new Fusion("localhost:8181", {
-        secure: false
-      });
+      var fusion = new Fusion("localhost:8181", {secure: false});
       assert.notEqual(fusion, undefined);
-      fusion.toPromise('connected').then(function() {
+      fusion.getPromise('connected').then(function() {
         done()
       }, done)
     });

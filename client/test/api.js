@@ -1,4 +1,3 @@
-
 chai.config.showDiff = true;
 var assert = chai.assert;
 var Fusion = require("Fusion");
@@ -90,7 +89,7 @@ describe("Fusion Client Library API", () => {
         // document.
         assert.deepEqual(res, [1]);
         done();
-      });
+      }, done);
     });
 
     // `store` overwrites documents that already exist.

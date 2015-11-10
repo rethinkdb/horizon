@@ -3,10 +3,6 @@ const EventEmitter = require('events').EventEmitter
 
 const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 
-function oneOf(val, ...values){
-  return (new Set(values)).has(val)
-}
-
 function responseEvent(id){
   return `response:${id}`
 }
@@ -132,8 +128,8 @@ class ListenerSet {
   }
 
   disposeOn(event){
-    this.unregistry.push(this.emitter.registerOnce(event,
-                                                   () => this.dispose("ListenerSet.disposeOn")))
+    this.unregistry.push(this.emitter.registerOnce(
+      event, () => this.dispose("ListenerSet.disposeOn")))
     return this
   }
 
@@ -165,11 +161,10 @@ class Fusion extends FusionEmitter {
       .on('connected', () => self.emit('connected', self))
       .on('disconnected', () => self.emit('disconnected', self))
     // send handshake
-    self.handshakenSocket = self.socket.getPromise('connected').then(() => {
-      self.socket.send({})
-      return self.socket.getPromise('handshake-complete')
-    }).then(() => {
-      return true
+    self.handshakeResponse = self.socket.getPromise('connected').then(() => {
+      let reqId = self.requestCounter++
+      self.socket.send({request_id: reqId})
+      return self.socket.getPromise(responseEvent(reqId))
     }).catch(event => console.error('Got a connection error:', event))
     return self
   }
@@ -182,23 +177,18 @@ class Fusion extends FusionEmitter {
     return new Collection(this, collectionName)
   }
 
-  store(collection, document, conflict){
-    let command = Object.assign({data: document}, collection)
-    if(oneOf(conflict, 'replace', 'error', 'update')){
-      return (this._send(`store_${conflict}`, command)
-              .intoCollectingPromise('added'))
-    }else{
-      return Promise.reject(`Bad argument for conflict: ${conflict}`)
-    }
-  }
-
-  query(data){
-    return this._send('query', data).intoCollectingPromise('response')
+  store(collection, document, options){
+    let command = Object.assign({data: document}, collection, options)
+    return this._send(`store`, command).intoCollectingPromise('added')
   }
 
   remove(collection, document){
     let command = {collection: collection, data: document}
     return this._send('remove', command).intoCollectingPromise('response')
+  }
+
+  query(data){
+    return this._send('query', data).intoCollectingPromise('response')
   }
 
   subscribe(query, updates=true){
@@ -212,7 +202,7 @@ class Fusion extends FusionEmitter {
   _send(type, data){
     let requestId = this.requestCounter++
     let req = {type: type, options: data, request_id: requestId}
-    this.handshakenSocket.then(() => {
+    this.handshakeResponse.then((handshake) => {
       this.socket.send(req)
     })
     return new RequestEmitter(requestId, this.socket)
@@ -222,7 +212,7 @@ class Fusion extends FusionEmitter {
   _subscribe(query){
     let requestId = this.requestCounter++
     let req = {type: 'subscribe', options: query, request_id: requestId}
-    this.handshakenSocket.then(() => this.socket.send(req))
+    this.handshakeResponse.then((handshake) => this.socket.send(req))
     return new RequestEmitter(requestId, this.socket)
   }
 
@@ -252,12 +242,12 @@ class FusionSocket extends FusionEmitter {
     })
     this._ws.onmessage = (event) => {
       let data = JSON.parse(event.data)
+      console.debug("Receiving: ", data)
       if(data.request_id === undefined){
-        // Do validation / use user_id
-        this.emit('handshake-complete', data)
+        this.emit("error", "Request id undefined", data)
       }else if(data.error !== undefined){
         this.emit(errorEvent(data.request_id), data)
-      }else{
+      }else {
         this.emit(responseEvent(data.request_id), data)
       }
     }
@@ -267,6 +257,7 @@ class FusionSocket extends FusionEmitter {
     if(typeof message !== 'string'){
       message = JSON.stringify(message)
     }
+    console.debug("Sending: ", message)
     return this._openWs.then((ws) => ws.send(message))
   }
 
@@ -429,12 +420,29 @@ class Collection extends TermBase {
     return new Order(this.fusion, this.query, field, ascending)
   }
 
-  store(document, conflict='replace'){
-    return this.fusion.store(this.query, document, conflict)
+  store(document){
+    let args = {missing: 'insert', conflict: 'replace'}
+    return this.fusion.store(this.query, document, args)
+  }
+
+  upsert(document){
+    let args =  {missing: 'insert', conflict: 'update'}
+    return this.fusion.store(this.query, document, args)
+  }
+
+  insert(document){
+    let args = {missing: 'insert', conflict: 'error'}
+    return this.fusion.store(this.query, document, args)
+  }
+
+  replace(document){
+    let args = {missing: 'error', conflict: 'replace'}
+    return this.fusion.store(this.query, document, args)
   }
 
   update(document){
-    return this.fusion.store(this.query, document, 'update')
+    let args = {missing: 'error', conflict: 'update'}
+    return this.fusion.store(this.query, document, args)
   }
 
   remove(document){
