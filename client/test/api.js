@@ -100,7 +100,7 @@ describe("Fusion Client Library API", () => {
         // `find`.
         assert.deepEqual(res, [1]);
         done();
-      });
+      }).catch(done);
     });
 
     // This is the same as calling `replace` if the document already exists.
@@ -111,7 +111,7 @@ describe("Fusion Client Library API", () => {
         // `find`.
         assert.deepEqual(res, [1]);
         done();
-      });
+      }).catch(done);
     });
 
     // To error if the document already exists, use `insert`.
@@ -132,7 +132,7 @@ describe("Fusion Client Library API", () => {
         // document.
         assert.deepEqual(res, [2]);
         done();
-      });
+      }).catch(done);
     });
 
     // As you might have noticed, `insert` inserts a document if it's missing.
@@ -142,7 +142,7 @@ describe("Fusion Client Library API", () => {
         // document.
         assert.deepEqual(res, [3]);
         done();
-      });
+      }).catch(done);
     });
 
     // But what if we want to error on a missing document? We use `replace`.
@@ -182,7 +182,7 @@ describe("Fusion Client Library API", () => {
         assert.lengthOf(res, 1);
         assert.isString(res[0]);
         done();
-      });
+      }).catch(done);
     });
 
     // We can store all kinds of documents without an ID.
@@ -194,7 +194,7 @@ describe("Fusion Client Library API", () => {
         assert.lengthOf(res, 1);
         assert.isString(res[0]);
         done();
-      });
+      }).catch(done);
     });
 
     // Now is a good time to point out that `store` supports inserting multiple
@@ -208,7 +208,7 @@ describe("Fusion Client Library API", () => {
         assert.isString(res[0]);
         assert.isString(res[1]);
         done();
-      });
+      }).catch(done);
     });
 
     // Of course, IDs can also be specified explicitly.
@@ -218,7 +218,7 @@ describe("Fusion Client Library API", () => {
         // inserted documents.
         assert.deepEqual(res, [6, 7]);
         done();
-      });
+      }).catch(done);
     });
 
     // By the way, we can also update specific fields in documents instead of
@@ -230,7 +230,7 @@ describe("Fusion Client Library API", () => {
         // `find`.
         assert.deepEqual(res, [8]);
         done();
-      });
+      }).catch(done);
     });
 
     // Now let's call `update` to update the document instead of replacing it.
@@ -242,7 +242,7 @@ describe("Fusion Client Library API", () => {
         // { id: 8, a: { b: 1, c: 3 }, d: { e: 1, f: 3 } }.
         assert.deepEqual(res, [8]);
         done();
-      });
+      }).catch(done);
     });
 
     // We can call `upsert` if we want to update a document or insert it if it's
@@ -254,7 +254,7 @@ describe("Fusion Client Library API", () => {
         // `find`, but FYI it should be { id: 9, a: { c: 3 }, d: { f: 3 } }.
         assert.deepEqual(res, [9]);
         done();
-      });
+      }).catch(done);
     });
 
     // This also works if the user doesn't specify an ID.
@@ -266,7 +266,7 @@ describe("Fusion Client Library API", () => {
         assert.lengthOf(res, 1);
         assert.isString(res[0]);
         done();
-      });
+      }).catch(done);
     });
 
     // Unless of course the user asked us to error on missing documents by
@@ -304,7 +304,7 @@ describe("Fusion Client Library API", () => {
         // document.
         assert.deepEqual(res, [11]);
         done();
-      });
+      }).catch(done);
     });
 
     // `upsert` works if the user didn't specify an ID.
@@ -316,7 +316,7 @@ describe("Fusion Client Library API", () => {
         assert.lengthOf(res, 1);
         assert.isString(res[0]);
         done();
-      });
+      }).catch(done);
     });
 
     // `upsert` again
@@ -328,7 +328,7 @@ describe("Fusion Client Library API", () => {
         assert.lengthOf(res, 1);
         assert.isString(res[0]);
         done();
-      });
+      }).catch(done);
     });
 
     // What if they want to error on missing documents? Call `update` instead.
@@ -357,7 +357,7 @@ describe("Fusion Client Library API", () => {
         assert.isString(res[0]);
         assert.isString(res[1]);
         done();
-      });
+      }).catch(done);
     });
     it("#.update(multiple_existing)", (done) => {
       data.update([{ id: 9, b: 9 }, { id: 11, c: 11 }]).then((res) => {
@@ -365,7 +365,7 @@ describe("Fusion Client Library API", () => {
         // documents.
         assert.deepEqual(res, [9, 11]);
         done();
-      });
+      }).catch(done);
     });
 
     // Like `store`, `update` has nice error handling to tell the user if they
@@ -408,7 +408,7 @@ describe("Fusion Client Library API", () => {
           assert.isObject(i);
         }
         done();
-      });
+      }).catch(done);
     });
 
     // Let's grab a specific document using `findOne`
@@ -416,7 +416,7 @@ describe("Fusion Client Library API", () => {
       data.findOne(1).value().then((res) => {
         assert.deepEqual(res, { id: 1, a: 3 });
         done();
-      });
+      }).catch(done);
     });
 
     // We can also `findOne` by a different (indexed!) field. In that case,
@@ -427,7 +427,7 @@ describe("Fusion Client Library API", () => {
       data.findOne(3, { field: 'a' }).value().then((res) => {
         assert.deepEqual(res, { id: 1, a: 3 });
         done();
-      });
+      }).catch(done);
     });
 
     // `findOne` returns `null` if a document doesn't exist.
@@ -435,7 +435,7 @@ describe("Fusion Client Library API", () => {
       data.findOne('abracadabra').value().then((res) => {
         assert.isNull(res);
         done();
-      });
+      }).catch(done);
     });
 
     // BTW, `findOne` does the nice error-handling thingy.
@@ -453,7 +453,7 @@ describe("Fusion Client Library API", () => {
       data.find(1).value().then((res) => {
         assert.deepEqual(res, [{ id: 1, a: 3 }]);
         done();
-      });
+      }).catch(done);
     });
 
     // Which is equivalent to searching by the ID field explicitly.
@@ -461,7 +461,7 @@ describe("Fusion Client Library API", () => {
       data.find(1, { field: 'id' }).value().then((res) => {
         assert.deepEqual(res, [{ id: 1, a: 3 }]);
         done();
-      });
+      }).catch(done);
     });
 
     // But look, we can search by a different indexed field and get multiple
@@ -470,7 +470,7 @@ describe("Fusion Client Library API", () => {
       data.find(3, { field: 'a' }).value().then((res) => {
         assert.deepEqual(res, [{ id: 1, a: 3 }, { id: 3, a: 3 }]);
         done();
-      });
+      }).catch(done);
     });
 
     // You can also find multiple values in the database. Again, everything gets
@@ -481,7 +481,7 @@ describe("Fusion Client Library API", () => {
         assert.deepEqual(res, [{ id: 8, a: { b: 1, c: 3 }, d: { e: 1, f: 3 } },
                                { id: 9, a: { c: 3 }, b: 9, d: { f: 3 } }]);
         done();
-      });
+      }).catch(done);
     });
 
     // We can do it on a custom field, too.
@@ -491,7 +491,7 @@ describe("Fusion Client Library API", () => {
                                { id: 2, a: 2 },
                                { id: 3, a: 3 }]);
         done();
-      });
+      }).catch(done);
     });
 
     // But what happens if some of the documents are missing?
@@ -499,7 +499,7 @@ describe("Fusion Client Library API", () => {
       data.find('abracadabra1', 1, 'abracadabra2').value().then((res) => {
         assert.deepEqual(res, [{ id: 1, a: 3 }]);
         done();
-      });
+      }).catch(done);
     });
 
     // And of course `find` has nice error handling.
@@ -518,7 +518,7 @@ describe("Fusion Client Library API", () => {
       data.remove(2).then((res) => {
         assert.isUndefined(res);
         done();
-      });
+      }).catch(done);
     });
 
     // Removing a missing document shouldn't generate an error.
@@ -526,7 +526,7 @@ describe("Fusion Client Library API", () => {
       data.remove('abracadabra').then((res) => {
         assert.isUndefined(res);
         done();
-      });
+      }).catch(done);
     });
 
     // It's also possible to remove multiple docuemnts
@@ -534,7 +534,7 @@ describe("Fusion Client Library API", () => {
       data.remove(8, 9).then((res) => {
         assert.isUndefined(res);
         done();
-      });
+      }).catch(done);
     });
 
     // And of course `remove` does the delightful error handling where the user
@@ -554,7 +554,7 @@ describe("Fusion Client Library API", () => {
         assert.isArray(res);
         assert.lengthOf(res, 12);
         done();
-      });
+      }).catch(done);
     });
 
   }); // "Reads and writes API"
