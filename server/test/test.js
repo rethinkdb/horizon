@@ -29,7 +29,7 @@ describe('Fusion Server', () => {
       beforeEach('Connect Fusion Client', utils.open_fusion_conn);
       afterEach('Close Fusion Client', utils.close_fusion_conn);
 
-      all_suites.forEach((s) => describe(s.name, () => s.all_tests(table)));
+      all_suites.forEach((s) => s.suite(table));
     });
 
   describe('HTTPS', () => {
@@ -38,6 +38,6 @@ describe('Fusion Server', () => {
       beforeEach('Connect Fusion Client', utils.open_fusion_conn);
       afterEach('Close Fusion Client', utils.close_fusion_conn);
 
-      all_suites.forEach((s) => describe(s.name, () => s.all_tests(table)));
+      all_suites.forEach((s) => s.suite(table));
     });
 });

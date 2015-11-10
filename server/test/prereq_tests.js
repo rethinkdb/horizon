@@ -6,9 +6,9 @@ const assert = require('assert');
 const crypto = require('crypto');
 const r      = require('rethinkdb');
 
-module.exports.name = 'Prereqs';
+module.exports.suite = (table) => describe('Prereqs', () => all_tests(table));
 
-module.exports.all_tests = (table) => {
+var all_tests = (table) => {
   beforeEach('authenticate', (done) => utils.fusion_default_auth(done));
 
   // Launch simultaneous queries that depend on a non-existent table, then
