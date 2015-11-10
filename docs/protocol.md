@@ -77,11 +77,11 @@ All requests match the following pattern:
 }
 ```
 * `collection` describes which table to operate on in the fusion database
-* `data` is the row(s) to be written (or removed)
+* `data` is the documents to be written (or removed)
   * `data[i].id` is required for `remove` operations, all other fields are optional
   * `data.id` may be omitted in a `store_*` operation: a new row will be inserted in the collection
-  * `data.missing` is valid with `type: store`, whether to insert if a row doesn't exist, or error out
-  * `data.conflict` is valid with `type: store`, whether to `replace`, `update`, or `error` if a document with the given id already exists
+  * `options.missing` must be specified for `type: store`; whether to `insert` or `error` if a document doesn't exist
+  * `options.conflict` must be specified for `type: store`; whether to `replace`, `update`, or `error` if a document with the given id already exists
 
 #### end_subscription
 Tells the fusion server to stop sending data for a given subscription.  Data may still be received until the server has processed this and sent a `"state": "complete"` response for the subscription.
