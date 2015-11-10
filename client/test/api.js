@@ -89,7 +89,7 @@ describe("Fusion Client Library API", () => {
         // document.
         assert.deepEqual(res, [1]);
         done();
-      }, done);
+      }).catch(done);
     });
 
     // `store` overwrites documents that already exist.
