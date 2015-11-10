@@ -203,6 +203,12 @@ class Fusion extends FusionEmitter {
     }
   }
 
+  endSubscription(requestId){
+    return this.handshakeResponse.then((handshake) => {
+      this.socket.send({request_id: requestId, type: 'end_subscription'})
+    })
+  }
+
   _send(type, data){
     let requestId = this.requestCounter++
     let req = {type: type, options: data, request_id: requestId}
@@ -331,8 +337,10 @@ class RequestEmitter extends FusionEmitter {
     }
   }
   dispose(reason='RequestEmitter for ${this.requestId} disposed'){
-    return this.remoteListeners.dispose().then(() => super.dispose(reason))
-    //TODO: send some message to the server to stop this requestId
+    return this.fusion.endSubscription(this.requestId)
+      .then(() => this.getPromise('complete'))
+      .then(() => this.remoteListeners.dispose())
+      .then(() => super.dispose(reason))
   }
 }
 
