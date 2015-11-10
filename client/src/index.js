@@ -313,11 +313,13 @@ class RequestEmitter extends FusionEmitter {
         this.emit('error', err)
       }).on(responseEvent(requestId), (response) => {
         if(Array.isArray(response.data)){
+          let emitted = false
           response.data.forEach(changeObj => {
-            if(!this._emitChangeEvent(changeObj)){
-              this.emit('response', response.data)
-            }
+            emitted = this._emitChangeEvent(changeObj)
           })
+          if(!emitted){
+              this.emit('response', response.data)
+          }
         }else if(response.data !== undefined){
           this.emit("response", response.data)
         }
@@ -484,7 +486,7 @@ class Collection extends TermBase {
       if(typeof doc === 'number' || typeof doc === 'string'){
         return {id: doc}
       }else{
-        doc
+        return doc
       }
     })
     let promise = this.fusion.remove(this._collectionName, documents)
