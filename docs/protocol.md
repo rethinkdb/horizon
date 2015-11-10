@@ -67,20 +67,20 @@ All requests match the following pattern:
 ```
 {
   "request_id": <NUMBER>,
-  "type": "store_error" | "store_replace" | "store_update" | "remove",
+  "type": "store" | "remove",
   "options": {
     "collection": <STRING>,
-    "data": <OBJECT>,
+    "data": [<OBJECT>, ... ],
     "missing": "insert" | "error",
     "conflict": "replace" | "update" | "error"
   }
 }
 ```
 * `collection` describes which table to operate on in the fusion database
-* `data` is the row to be written (or removed)
-  * `data.id` is required for `remove` operations, all other fields are optional
-  * if `data.id` is omitted on a `store_*` operation, a new row will be inserted in the collection
-  * `data.missing` is valid with `type: store`, whether to insert if the store doesn't exist, or error out
+* `data` is the row(s) to be written (or removed)
+  * `data[i].id` is required for `remove` operations, all other fields are optional
+  * `data.id` may be omitted in a `store_*` operation: a new row will be inserted in the collection
+  * `data.missing` is valid with `type: store`, whether to insert if a row doesn't exist, or error out
   * `data.conflict` is valid with `type: store`, whether to `replace`, `update`, or `error` if a document with the given id already exists
 
 #### end_subscription
