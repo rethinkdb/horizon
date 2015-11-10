@@ -177,13 +177,17 @@ class Fusion extends FusionEmitter {
     return new Collection(this, collectionName)
   }
 
-  store(collection, document, options){
-    let command = Object.assign({data: document}, collection, options)
-    return this._send(`store`, command).intoCollectingPromise('added')
+  store(collection, documents, options){
+    if(documents.length === 1 && Array.isArray(documents[0])){
+      //Unwrap if a user passed an array to a spread function
+      documents = documents[0]
+    }
+    let command = Object.assign({data: documents}, collection, options)
+    return this._send(`store`, command).intoCollectingPromise('response')
   }
 
-  remove(collection, document){
-    let command = {collection: collection, data: document}
+  remove(collection, documents){
+    let command = {collection: collection, data: documents}
     return this._send('remove', command).intoCollectingPromise('response')
   }
 
@@ -420,32 +424,32 @@ class Collection extends TermBase {
     return new Order(this.fusion, this.query, field, ascending)
   }
 
-  store(document){
+  store(...documents){
     let args = {missing: 'insert', conflict: 'replace'}
-    return this.fusion.store(this.query, document, args)
+    return this.fusion.store(this.query, documents, args)
   }
 
-  upsert(document){
+  upsert(...documents){
     let args =  {missing: 'insert', conflict: 'update'}
-    return this.fusion.store(this.query, document, args)
+    return this.fusion.store(this.query, documents, args)
   }
 
-  insert(document){
+  insert(...documents){
     let args = {missing: 'insert', conflict: 'error'}
-    return this.fusion.store(this.query, document, args)
+    return this.fusion.store(this.query, documents, args)
   }
 
-  replace(document){
+  replace(...documents){
     let args = {missing: 'error', conflict: 'replace'}
-    return this.fusion.store(this.query, document, args)
+    return this.fusion.store(this.query, documents, args)
   }
 
-  update(document){
+  update(...documents){
     let args = {missing: 'error', conflict: 'update'}
-    return this.fusion.store(this.query, document, args)
+    return this.fusion.store(this.query, documents, args)
   }
 
-  remove(document){
+  remove(...documents){
     if(typeof document === 'number' || typeof document === 'string'){
       document = {id: document}
     }

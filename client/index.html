@@ -25,7 +25,7 @@
                  .on("added", (value) => console.log("Item added: ", value))
                  .on("error", (event) => console.error("Error on subscription", event))
          }).then((data) => {
-             return blob.store({some: "data", id: 45}, 'replace');
+             return blob.store({some: "data", id: 45});
          }).then((resp) => {
              console.log(`Got back store response:`, resp);
              return blob.remove(45)
