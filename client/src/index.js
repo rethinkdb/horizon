@@ -412,8 +412,9 @@ class MockConnection extends Fusion {
 
 class TermBase {
 
-  constructor(fusion){
+  constructor(fusion, unwrapResponse=false){
     this.fusion = fusion
+    this.unwrapResponse = unwrapResponse
   }
 
   subscribe(updates=true){
@@ -423,7 +424,12 @@ class TermBase {
 
   value(){
     // return promise with no changefeed
-    return this.fusion.query(this.query)
+    let promise = this.fusion.query(this.query)
+    if(this.unwrapResponse){
+      return promise.then((val) => val[0])
+    }else{
+      return promise
+    }
   }
 }
 
@@ -516,7 +522,7 @@ class Find extends TermBase {
 
 class FindOne extends TermBase {
   constructor(fusion, query, docId){
-    super(fusion)
+    super(fusion, true)
     this.id = docId
     this.query = Object.assign({
       selection: {type: 'find_one', args: [docId]}
