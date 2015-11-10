@@ -13,6 +13,7 @@ module.exports.make_write_reql = function (request) {
   var data = options.data;
 
   check(data !== undefined, `'options.data' must be specified.`);
+  check(data.length >= 0, `'options.data' must be an array of at least length 1.`);
   check(collection !== undefined, `'options.collection' must be specified.`);
   check(collection.constructor.name === 'String',
         `'options.collection' must be a string.`)
@@ -32,9 +33,19 @@ module.exports.make_write_reql = function (request) {
       reql = reql.insert(data, { conflict: conflict });
     } else if (missing === 'error') {
       if (conflict === 'update') {
-        reql = r.expr(data).forEach((row) => reql.get(row('id')).update(row));
+        reql = r.expr(data).forEach((row) =>
+          reql.get(row('id')).replace((old) =>
+           r.branch(old.ne(null), old.merge(row),
+             r.error(r.expr("The document with id '")
+                      .add(row('id').coerceTo('string'))
+                      .add("' was missing.")))));
       } else if (conflict === 'replace') {
-        reql = r.expr(data).forEach((row) => reql.get(row('id')).replace(row));
+        reql = r.expr(data).forEach((row) =>
+          reql.get(row('id')).replace((old) =>
+            r.branch(old.ne(null), row,
+             r.error(r.expr("The document with id '")
+                      .add(row('id').coerceTo('string'))
+                      .add("' was missing.")))));
       } else {
         fail(`'options.missing' and 'options.conflict' cannot both be 'error'.`);
       }
@@ -56,10 +67,6 @@ module.exports.make_write_reql = function (request) {
 module.exports.handle_write_response = function (client, request, response, send_cb) {
   if (response.errors !== 0) {
     send_cb({ error: response.first_error });
-  } else if (request.options.missing !== undefined &&
-             request.options.missing === 'error' &&
-             response.skipped !== 0) {
-    fail(`'options.missing' was 'error' and a document was missing from the database.`);
   } else {
     var index = 0;
     var ids = request.options.data.map((row) => {

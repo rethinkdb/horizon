@@ -111,7 +111,7 @@ module.exports.all_tests = (table) => {
         },
         (err, res) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "'options.missing' was 'error' and a document was missing from the database.");
+          assert.strictEqual(err.message, "The document with id '10' was missing.");
           check_table_size(10, done);
         });
     });
@@ -148,7 +148,7 @@ module.exports.all_tests = (table) => {
         },
         (err, res) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "'options.missing' was 'error' and a document was missing from the database.");
+          assert.strictEqual(err.message, "The document with id '10' was missing.");
           check_table_size(10, done);
         });
     });
@@ -167,7 +167,7 @@ module.exports.all_tests = (table) => {
         },
         (err, res) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "'options.missing' was 'error' and a document was missing from the database.");
+          assert.strictEqual(err.message, "The document with id '10' was missing.");
           check_table_size(10, done);
         });
     });
@@ -258,7 +258,7 @@ module.exports.all_tests = (table) => {
         },
         (err, res) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "'options.missing' was 'error' and a document was missing from the database.");
+          assert.strictEqual(err.message, "The document with id '10' was missing.");
           check_table_size(10, done);
         });
     });
@@ -295,7 +295,7 @@ module.exports.all_tests = (table) => {
         },
         (err, res) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "'options.missing' was 'error' and a document was missing from the database.");
+          assert.strictEqual(err.message, "The document with id '10' was missing.");
           check_table_size(10, done);
         });
     });
@@ -314,7 +314,7 @@ module.exports.all_tests = (table) => {
         },
         (err, res) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "'options.missing' was 'error' and a document was missing from the database.");
+          assert.strictEqual(err.message, "The document with id '10' was missing.");
           check_table_size(11, done);
         });
     });
