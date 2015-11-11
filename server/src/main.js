@@ -14,7 +14,7 @@ const parsed = new nopt(
     unsecure: Boolean,
     key_file: path,
     cert_file: path,
-    debug: Boolean
+    debug: Boolean,
   });
 
 const print_usage = () => {
@@ -71,7 +71,7 @@ if (parsed.debug) {
 
 if (!parsed.unsecure) {
   if (parsed.key_file !== undefined) {
-    opts.key = fs.readFileSync(key_file);
+    opts.key = fs.readFileSync(parsed.key_file);
   } else {
     opts.key = fs.readFileSync('./key.pem');
   }

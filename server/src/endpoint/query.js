@@ -1,6 +1,5 @@
 'use strict';
 
-const { check } = require('../error');
 const { query } = require('../schema/fusion_protocol');
 
 const Joi = require('joi');
@@ -61,6 +60,6 @@ const handle_response = (query, response, send_cb) => {
   } else {
     send_cb({ data: [response], state: 'complete' });
   }
-}
+};
 
 module.exports = { make_reql, handle_response };

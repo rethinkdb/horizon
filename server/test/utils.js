@@ -19,7 +19,7 @@ logger.add(logger.transports.File, { filename: log_file });
 logger.remove(logger.transports.Console);
 
 // Variables used by most tests
-var rdb_server, rdb_port, rdb_conn; // Instantiated once
+var rdb_port, rdb_conn; // Instantiated once
 var fusion_server, fusion_port; // Instantiated for HTTP and HTTPS
 var fusion_conn; // Instantiated for every test
 
@@ -79,7 +79,7 @@ module.exports.start_rdb_server = (done) => {
 module.exports.create_table = (table, done) => {
   assert.notStrictEqual(rdb_conn, undefined);
   r.tableCreate(table).run(rdb_conn)
-   .then((res) => done(),
+   .then(() => done(),
          (err) => {
            assert(/Table `\w+\.\w+` already exists\./.test(err.msg));
            done();
@@ -89,7 +89,7 @@ module.exports.create_table = (table, done) => {
 // Removes all data from a table - does not remove indexes
 module.exports.clear_table = (table, done) => {
   assert.notStrictEqual(rdb_conn, undefined);
-  r.table(table).delete().run(rdb_conn).then((res) => done());
+  r.table(table).delete().run(rdb_conn).then(() => done());
 };
 
 // Populates a table with random rows with keys in the range [0, num_rows)
@@ -97,7 +97,7 @@ module.exports.populate_table = (table, num_rows, done) => {
   assert.notStrictEqual(rdb_conn, undefined);
   r.table(table).insert(
       r.range(num_rows).map((i) => ({ id: i }))
-    ).run(rdb_conn).then((res) => done());
+    ).run(rdb_conn).then(() => done());
 };
 
 var create_fusion_server = (backend, opts) => {
@@ -118,24 +118,22 @@ module.exports.start_secure_fusion_server = (done) => {
 
   // Generate key and cert
   var temp_file = `./tmp.pem`;
-  new Promise((resolve, reject) => {
-      var proc = child_process.exec(
-        `openssl req -x509 -nodes -batch -newkey rsa:2048 -keyout ${temp_file} -days 1`,
-        (err, stdout) => {
-          assert.ifError(err);
-          var cert_start = stdout.indexOf('-----BEGIN CERTIFICATE-----');
-          var cert_end = stdout.indexOf('-----END CERTIFICATE-----');
-          assert(cert_start !== -1 && cert_end !== -1);
+  child_process.exec(
+    `openssl req -x509 -nodes -batch -newkey rsa:2048 -keyout ${temp_file} -days 1`,
+    (err, stdout) => {
+      assert.ifError(err);
+      var cert_start = stdout.indexOf('-----BEGIN CERTIFICATE-----');
+      var cert_end = stdout.indexOf('-----END CERTIFICATE-----');
+      assert(cert_start !== -1 && cert_end !== -1);
 
-          var cert = stdout.slice(cert_start, cert_end);
-          cert += '-----END CERTIFICATE-----\n';
+      var cert = stdout.slice(cert_start, cert_end);
+      cert += '-----END CERTIFICATE-----\n';
 
-          var key = fs.readFileSync(temp_file);
-          fs.unlinkSync(temp_file);
+      var key = fs.readFileSync(temp_file);
+      fs.unlinkSync(temp_file);
 
-          fusion_server = create_fusion_server(fusion.Server, { key: key, cert: cert });
-          fusion_server.local_port('localhost').then((p) => fusion_port = p, done());
-        });
+      fusion_server = create_fusion_server(fusion.Server, { key: key, cert: cert });
+      fusion_server.local_port('localhost').then((p) => fusion_port = p, done());
     });
 };
 
@@ -188,7 +186,7 @@ module.exports.open_fusion_conn = (done) => {
     new websocket(`${is_secure() ? 'wss' : 'ws'}://localhost:${fusion_port}`,
                   fusion.protocol, { rejectUnauthorized: false })
       .once('error', (err) => assert.ifError(err))
-      .on('open', () => done())
+      .on('open', () => done());
 };
 
 module.exports.close_fusion_conn = () => {
@@ -201,7 +199,7 @@ module.exports.close_fusion_conn = () => {
 var fusion_authenticated = false;
 var fusion_auth = (req, cb) => {
   assert(fusion_conn && fusion_conn.readyState === websocket.OPEN);
-  fusion_conn.send(JSON.stringify(req));;
+  fusion_conn.send(JSON.stringify(req));
   fusion_conn.once('message', (msg) => {
       fusion_authenticated = true;
       var res = JSON.parse(msg);

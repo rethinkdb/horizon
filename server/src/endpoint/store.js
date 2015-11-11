@@ -9,6 +9,6 @@ const r = require('rethinkdb');
 const make_reql = (request) => {
   var { data, collection } = Joi.attempt(request.options, store);
   return r.table(collection).insert(data, { conflict: 'replace' });
-}
+};
 
 module.exports = { make_reql, handle_response };

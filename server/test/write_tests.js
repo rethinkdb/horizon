@@ -34,7 +34,7 @@ const all_tests = (table) => {
             data: [ new_row ],
           },
         },
-        (err, res) => {
+        (err) => {
           assert.ifError(err);
           check_table_size(11, done);
         });
@@ -50,7 +50,7 @@ const all_tests = (table) => {
             data: [ conflict_row ],
           },
         },
-        (err, res) => {
+        (err) => {
           assert.ifError(err);
           check_table_size(10, done);
         });
@@ -66,7 +66,7 @@ const all_tests = (table) => {
             data: new_batch,
           },
         },
-        (err, res) => {
+        (err) => {
           assert.ifError(err);
           check_table_size(13, done);
         });
@@ -82,7 +82,7 @@ const all_tests = (table) => {
             data: conflict_batch,
           },
         },
-        (err, res) => {
+        (err) => {
           assert.ifError(err);
           check_table_size(11, done);
         });
@@ -98,9 +98,9 @@ const all_tests = (table) => {
             data: [ new_row ],
           },
         },
-        (err, res) => {
+        (err) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "The document with id '10' was missing.");
+          assert.strictEqual(err.message, `The document with id '10' was missing.`);
           check_table_size(10, done);
         });
     });
@@ -115,7 +115,7 @@ const all_tests = (table) => {
             data: [ conflict_row ],
           },
         },
-        (err, res) => {
+        (err) => {
           assert.ifError(err);
           check_table_size(10, done);
         });
@@ -131,9 +131,9 @@ const all_tests = (table) => {
             data: new_batch,
           },
         },
-        (err, res) => {
+        (err) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "The document with id '10' was missing.");
+          assert.strictEqual(err.message, `The document with id '10' was missing.`);
           check_table_size(10, done);
         });
     });

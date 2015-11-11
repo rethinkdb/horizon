@@ -1,3 +1,5 @@
+'use strict';
+
 const Joi = require('joi');
 
 const read = Joi.object({
@@ -7,25 +9,26 @@ const read = Joi.object({
   order: Joi.string().valid('ascending', 'descending')
     .when('selection.type', {
       is: Joi.any().valid('between').optional(),
-      otherwise: Joi.forbidden()
+      otherwise: Joi.forbidden(),
     }),
 
   limit: Joi.number().positive()
     .when('selection.type', {
       is: 'find_one',
-      then: Joi.forbidden()
+      then: Joi.forbidden(),
     }),
 
   selection: Joi.object({
-      type: Joi.string().valid([
-        'find',
-        'find_one',
-        'between'
-      ]),
-      args: Joi.array()
-        .when('selection.type', { is: 'find_one', then: Joi.array().single() })
-        .when('selection.type', { is: 'between', then: Joi.array().length(2) })
-    }).unknown(false).optional(),
+    type: Joi.string().valid([
+      'find',
+      'find_one',
+      'between',
+    ]),
+    args: Joi.alternatives()
+      .when('selection.type', { is: 'find', then: Joi.array().length(1) })
+      .when('selection.type', { is: 'between', then: Joi.array().length(2),
+                                otherwise: Joi.array() }),
+  }).unknown(false).optional(),
 
     // .options({
     //   language: {

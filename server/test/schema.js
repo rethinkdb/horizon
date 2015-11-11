@@ -29,7 +29,7 @@ describe('Schema', () => {
       field_name: 'id',
       selection: {
         type: 'find',
-        args: [ 1, 2, 3 ]
+        args: [ 1, 2, 3 ],
       },
       limit: 1,
     };
@@ -47,7 +47,7 @@ describe('Schema', () => {
       field_name: 'id',
       selection: {
         type: 'between',
-        args: [ 1, 2 ]
+        args: [ 1, 2 ],
       },
       limit: 1,
       order: 'descending',
@@ -66,9 +66,9 @@ describe('Schema', () => {
       field_name: 'id',
       selection: {
         type: 'find_one',
-        args: [ 1 ]
+        args: [ 1 ],
       },
-      limit: 1
+      limit: 1,
     };
 
     var { error } = fusion_protocol.query.validate(options);

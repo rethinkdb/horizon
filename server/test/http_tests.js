@@ -9,7 +9,7 @@ const https  = require('https');
 
 const suite = (table) => describe('Webserver', () => all_tests(table));
 
-const all_tests = (table) => {
+const all_tests = () => {
   it('localhost/fusion.js', (done) => {
       var transport = utils.is_secure() ? https : http;
       transport.get({ hostname: 'localhost',

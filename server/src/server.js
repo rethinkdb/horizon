@@ -52,7 +52,7 @@ class BaseServer {
 
     this._http_servers.forEach((http_server, host) => {
         http_server.listen(opts.local_port, host);
-        this._local_ports.set(host, new Promise((resolve, reject) => {
+        this._local_ports.set(host, new Promise((resolve) => {
             http_server.on('listening', () => { resolve(http_server.address().port); });
           }));
         this._ws_servers.set(host, new websocket.Server({ server: http_server,
@@ -67,19 +67,19 @@ class BaseServer {
     assert(handle_response !== undefined);
     assert(this._endpoints.get(endpoint_name) === undefined);
     this._endpoints.set(endpoint_name, { make_reql: make_reql, handle_response: handle_response });
-  };
+  }
 
   local_port(host) {
     return this._local_ports.get(host);
   }
 
   close() {
-    this._ws_servers.forEach((server, host) => server.close());
-    this._http_servers.forEach((server, host) => server.close());
+    this._ws_servers.forEach((server) => server.close());
+    this._http_servers.forEach((server) => server.close());
   }
 
   _get_endpoint(request) {
-    const { type, options } = Joi.attempt(request, fusion_protocol.request);
+    const { type } = Joi.attempt(request, fusion_protocol.request);
 
     var endpoint = this._endpoints.get(type);
     check(endpoint !== undefined, `"${type}" is not a recognized endpoint.`);
