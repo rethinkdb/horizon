@@ -35,7 +35,7 @@ module.exports.start_rdb_server = (done) => {
             }
           });
         fs.rmdirSync(dir);
-      } catch (err) { }
+      } catch (err) { /* Do nothing */ }
     };
   rmdirSync_recursive(data_dir);
 

@@ -24,7 +24,7 @@ const all_tests = (table) => {
           (err, res) => {
             assert.ifError(err);
             assert.strictEqual(res.length, 0);
-            if (++finished == query_count) {
+            if (++finished === query_count) {
               r.table(table_name).count().run(utils.rdb_conn())
                .then((res) => (assert.strictEqual(res, 0), done()),
                      (err) => done(err));
@@ -53,7 +53,7 @@ const all_tests = (table) => {
           (err, res) => {
             assert.ifError(err);
             assert.strictEqual(res.length, 1);
-            if (++finished == query_count) {
+            if (++finished === query_count) {
               r.table(table_name).count().run(utils.rdb_conn())
                .then((res) => (assert.strictEqual(res, query_count), done()),
                      (err) => done(err));
@@ -83,7 +83,7 @@ const all_tests = (table) => {
           (err, res) => {
             assert.ifError(err);
             assert.strictEqual(res.length, 0);
-            if (++finished == query_count) {
+            if (++finished === query_count) {
               r.table(table).indexStatus(index_name).run(utils.rdb_conn())
                .then(
                  (res) => {

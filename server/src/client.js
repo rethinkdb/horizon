@@ -184,7 +184,7 @@ class Client {
 
     // If a db, table, or index used does not exist, we must create them
     matches = info.msg.match(database_missing_regex);
-    if (matches != null && matches.length == 2) {
+    if (matches !== null && matches.length === 2) {
       logger.warn(`Creating missing db "${matches[1]}".`);
       return this.run_prerequisite(query, r.dbCreate(String(matches[1])));
     }

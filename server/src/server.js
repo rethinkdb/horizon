@@ -111,7 +111,7 @@ class Server extends BaseServer {
 }
 
 const accept_protocol = (protocols, cb) => {
-  if (protocols.findIndex(x => x === protocol_name) != -1) {
+  if (protocols.findIndex((x) => x === protocol_name) !== -1) {
     cb(true, protocol_name);
   } else {
     logger.debug(`Rejecting client without "${protocol_name}" protocol (${protocols}).`);
