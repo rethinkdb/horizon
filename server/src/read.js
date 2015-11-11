@@ -3,6 +3,7 @@
 const Joi = require('joi');
 const r = require('rethinkdb');
 const protocol = require('./schema/protocol');
+const check = require('./error.js').check;
 
 module.exports.make_read_reql = function (request) {
   var options = Joi.attempt(request.options, protocol.read);
@@ -26,6 +27,8 @@ module.exports.make_read_reql = function (request) {
   }
 
   if (order) {
+    // TODO: get this working in the schema
+    if (selection) { check(selection.type === 'between', `"order" is not allowed`); }
     if (order === 'descending') {
       reql = reql.orderBy({ index: r.desc(index) });
     } else {
@@ -34,6 +37,8 @@ module.exports.make_read_reql = function (request) {
   }
 
   if (limit) {
+    // TODO: get this working in the schema
+    if (selection) { check(selection.type !== 'find_one', `"limit" is not allowed`); }
     reql = reql.limit(limit);
   }
 

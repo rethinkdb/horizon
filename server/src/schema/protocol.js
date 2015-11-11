@@ -2,33 +2,26 @@ const Joi = require('joi');
 
 const read = Joi.object({
   collection: Joi.string().token().required(),
-  field_name: Joi.string().default('id'), // TODO: possibly require this to be specified
+  field_name: Joi.string().required(),
+
+  // TODO: 'order' should be valid when selection is unspecified, or selection.type is 'between'
+  order: Joi.string().valid('ascending', 'descending').optional(),
+
+  // TODO: 'limit' should be valid when selection is unspecified, or selection.type is 'between' or 'find'
+  limit: Joi.number().positive().optional(),
+
   selection: Joi.object({
-    type: Joi.string().required().valid([
+    type: Joi.string().valid([
       'find',
       'find_one',
       'between'
     ]),
     args: Joi.alternatives()
-      .when('selection.type', { is: 'find_one', then: Joi.array().single() })
-      .when('selection.type', { is: 'between',  then: Joi.array().length(2),
-                                                otherwise: Joi.array() })
-  }),
-  limit: Joi
-    .when('selection.type', {
-      is: 'find_one',
-      then: Joi.forbidden(),
-      otherwise: Joi.number().positive()
-    }),
-  order: Joi
-    .when('selection.type', {
-      is: 'between',
-      then: Joi.string().valid([
-        'ascending',
-        'descending'
-      ]),
-      otherwise: Joi.forbidden()
-    })
+      .when('selection.type', { is: 'find', then: Joi.array().length(1) })
+      .when('selection.type', { is: 'between', then: Joi.array().length(2),
+                                otherwise: Joi.array() })
+  }).optional(),
+
     // .options({
     //   language: {
     //     any: {
@@ -48,13 +41,11 @@ const request = Joi.object({
     'subscribe',
 
     'store',
-    'store',
-    'store',
     'remove',
 
     'end_subscription'
   ]),
-  options: Joi.object()
+  options: Joi.object(),
 });
 
 

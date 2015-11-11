@@ -148,7 +148,7 @@ module.exports.Client = class Client {
     if (table_not_ready_regex.test(info.msg) &&
         Date.now() - query.start_time < 10000) {
       logger.warn(`Waiting for unknown table to be ready.`);
-      return setTimeout(() => this.run_query(query), 1000);
+      return setTimeout(() => this.run_query(query), 100);
     }
 
     matches = info.msg.match(index_not_ready_regex);

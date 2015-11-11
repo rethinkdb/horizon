@@ -20,7 +20,7 @@ var all_tests = (table) => {
       var finished = 0;
       for (var i = 0; i < query_count; ++i) {
         utils.stream_test(
-          { request_id: i, type: 'query', options: { collection: table_name } },
+          { request_id: i, type: 'query', options: { collection: table_name, field_name: 'id' } },
           (err, res) => {
             assert.ifError(err);
             assert.strictEqual(res.length, 0);
@@ -57,7 +57,7 @@ var all_tests = (table) => {
             assert.strictEqual(res.length, 1);
             if (++finished == query_count) {
               r.table(table_name).count().run(utils.rdb_conn())
-               .then((res) => (assert.strictEqual(res, 5), done()),
+               .then((res) => (assert.strictEqual(res, query_count), done()),
                      (err) => done(err));
             }
           });
@@ -68,6 +68,34 @@ var all_tests = (table) => {
   // verify that only one such index exists with that name.
   it('index create race', (done) => {
       var index_name = crypto.randomBytes(8).toString('hex');
-      done();
+      var query_count = 5;
+
+      var finished = 0;
+      for (var i = 0; i < query_count; ++i) {
+        utils.stream_test(
+          {
+            request_id: i,
+            type: 'query',
+            options: {
+              collection: table,
+              field_name: index_name,
+              order: 'ascending',
+            },
+          },
+          (err, res) => {
+            assert.ifError(err);
+            assert.strictEqual(res.length, 0);
+            if (++finished == query_count) {
+              r.table(table).indexStatus(index_name).run(utils.rdb_conn())
+               .then(
+                 (res) => {
+                   assert.strictEqual(res.length, 1);
+                   assert(res[0].ready);
+                   done();
+                 },
+                 (err) => done(err));
+            }
+          });
+      }
     });
 };

@@ -23,6 +23,7 @@ describe('Schema', () => {
   it('query - options', (done) => {
     const options = {
       collection: 'fusion',
+      field_name: 'id',
       selection: {
         type: 'find_one',
         args: [ 1 ]

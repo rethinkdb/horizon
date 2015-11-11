@@ -60,11 +60,21 @@ var all_tests = (table) => {
   // disconnects. Open a changefeed, disconnect the client, then make sure the
   // changefeed would have gotten an event.
   // We don't check any results, we're just seeing if the server crashes.
-  it('client disconnect with changefeed', (done) => {
-      var msg = { request_id: 3, type: 'subscribe', options: { collection: table } };
-      utils.fusion_conn().send(JSON.stringify(msg));
+  it('client disconnect during changefeed', (done) => {
+      utils.fusion_conn().send(JSON.stringify(
+        {
+          request_id: 3,
+          type: 'subscribe',
+          options: {
+            collection: table,
+            field_name: 'id',
+          },
+        }));
       utils.add_fusion_listener(3, (msg) => {
-          if (msg.state === 'synced') {
+          if (msg.error !== undefined) {
+            throw new Error(msg.error);
+          } else if (msg.state === 'synced') {
+            utils.close_fusion_conn();
             r.table(table).insert({}).run(utils.rdb_conn())
              .then((res) => done());
           }
@@ -76,7 +86,14 @@ var all_tests = (table) => {
   // We don't check any results, we're just seeing if the server crashes.
   it('client disconnect during query', (done) => {
       var msg = { request_id: 3, type: 'query', options: { collection: table } };
-      utils.fusion_conn().send(JSON.stringify(msg),
-        () => (utils.close_fusion_conn(), done()));
+      utils.fusion_conn().send(JSON.stringify(
+        {
+          request_id: 4,
+          type: 'query',
+          options: {
+            collection: table,
+            field_name: 'id',
+          },
+        }), () => (utils.close_fusion_conn(), done()));
     });
 };
