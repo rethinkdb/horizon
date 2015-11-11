@@ -856,6 +856,17 @@ describe("Fusion Client Library", () => {
         }).catch(done);
       });
 
+      // Passing an object to `remove` is an error because neither primary nor
+      // secondary keys can be objects in RethinkDB. Also, we aren't doing `{
+      // id: x }` destructuring.
+      it("#.remove(obj)", (done) => {
+        data.remove({ id: 'do_not_remove_1' }).catch((err) => {
+          assert.isDefined(err);
+          assert.isNotNull(err);
+          done();
+        });
+      });
+
       // Check that the remaining documents are there
       it("#.remove.check.remaining", (done) => {
         data.value().then((res) => {
@@ -1005,6 +1016,26 @@ describe("Fusion Client Library", () => {
           }).catch(done);
         });
 
+        // Searching for an object is an error because neither primary nor
+        // secondary keys can be objects in RethinkDB. Also, we aren't doing `{
+        // id: x }` destructuring.
+        it("#.findOne(obj)", (done) => {
+          data.findOne({ id: 1 }).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+
+        // Same for secondary key searches
+        it("#.findOne(obj, field)", (done) => {
+          data.findOne({ id: 20 }, { field: 'a' }).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+
       }); // Testing `findOne`
 
       describe("Testing `find`", () => {
@@ -1136,6 +1167,26 @@ describe("Fusion Client Library", () => {
             assert.isNotNull(err);
             done();
           }).catch(done);
+        });
+
+        // Searching for an object is an error because neither primary nor
+        // secondary keys can be objects in RethinkDB. Also, we aren't doing `{
+        // id: x }` destructuring.
+        it("#.find(obj)", (done) => {
+          data.find({ id: 1 }).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+
+        // Same for secondary key searches
+        it("#.find(obj, field)", (done) => {
+          data.find({ id: 20 }, { field: 'a' }).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
         });
 
       }); // Testing `find`
