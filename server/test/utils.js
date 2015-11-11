@@ -24,6 +24,21 @@ var fusion_server, fusion_port; // Instantiated for HTTP and HTTPS
 var fusion_conn; // Instantiated for every test
 
 module.exports.start_rdb_server = (done) => {
+  var rmdirSync_recursive = (dir) => {
+      try {
+        fs.readdirSync(dir).forEach((item) => {
+            var full_path = path.join(dir, item);
+            if (fs.statSync(full_path).isDirectory()) {
+              rmdirSync_recursive(full_path);
+            } else {
+              fs.unlinkSync(full_path);
+            }
+          });
+        fs.rmdirSync(dir);
+      } catch (err) { }
+    };
+  rmdirSync_recursive(data_dir);
+
   var proc = child_process.spawn('rethinkdb', [ '--http-port', '0',
                                                 '--cluster-port', '0',
                                                 '--driver-port', '0',
@@ -33,17 +48,6 @@ module.exports.start_rdb_server = (done) => {
 
   process.on('exit', () => {
       proc.kill('SIGKILL');
-      var rmdirSync_recursive = (dir) => {
-          fs.readdirSync(dir).forEach((item) => {
-              var full_path = path.join(dir, item);
-              if (fs.statSync(full_path).isDirectory()) {
-                rmdirSync_recursive(full_path);
-              } else {
-                fs.unlinkSync(full_path);
-              }
-            });
-          fs.rmdirSync(dir);
-        };
       rmdirSync_recursive(data_dir);
     });
 
