@@ -71,45 +71,73 @@ describe('Schema', () => {
     assert(error);
   });
 
-  it('protocol - write no id', () => {
-    const options = {
-      collection: 'fusion',
-      data: [ { field: 4 } ],
-    };
+  const write_without_id = {
+    collection: 'fusion',
+    data: [ { field: 4 } ],
+  };
 
-    var { error } = fusion_protocol.insert.validate(options);
+  it('protocol - insert without id', () => {
+    var { error } = fusion_protocol.insert.validate(write_without_id);
     assert.ifError(error);
-    var { error } = fusion_protocol.upsert.validate(options);
-    assert.ifError(error);
-    var { error } = fusion_protocol.store.validate(options);
-    assert.ifError(error);
+  });
 
-    var { error } = fusion_protocol.replace.validate(options);
-    utils.check_error(error, '"id" is required');
-    var { error } = fusion_protocol.update.validate(options);
-    utils.check_error(error, '"id" is required');
-    var { error } = fusion_protocol.remove.validate(options);
+  it('protocol - upsert without id', () => {
+    var { error } = fusion_protocol.upsert.validate(write_without_id);
+    assert.ifError(error);
+  });
+
+  it('protocol - store without id', () => {
+    var { error } = fusion_protocol.store.validate(write_without_id);
+    assert.ifError(error);
+  });
+
+  it('protocol - replace without id', () => {
+    var { error } = fusion_protocol.replace.validate(write_without_id);
     utils.check_error(error, '"id" is required');
   });
 
-  it('protocol - write with id', () => {
-    const options = {
-      collection: 'fusion',
-      data: [ { id: 5, field: 4 } ],
-    };
+  it('protocol - update without id', () => {
+    var { error } = fusion_protocol.update.validate(write_without_id);
+    utils.check_error(error, '"id" is required');
+  });
 
-    var { error } = fusion_protocol.insert.validate(options);
-    assert.ifError(error);
-    var { error } = fusion_protocol.upsert.validate(options);
-    assert.ifError(error);
-    var { error } = fusion_protocol.store.validate(options);
-    assert.ifError(error);
+  it('protocol - remove without id', () => {
+    var { error } = fusion_protocol.remove.validate(write_without_id);
+    utils.check_error(error, '"id" is required');
+  });
 
-    var { error } = fusion_protocol.replace.validate(options);
+  const write_with_id = {
+    collection: 'fusion',
+    data: [ { id: 5, field: 4 } ],
+  };
+
+  it('protocol - insert with id', () => {
+    var { error } = fusion_protocol.insert.validate(write_with_id);
     assert.ifError(error);
-    var { error } = fusion_protocol.update.validate(options);
+  });
+
+  it('protocol - upsert with id', () => {
+    var { error } = fusion_protocol.upsert.validate(write_with_id);
     assert.ifError(error);
-    var { error } = fusion_protocol.remove.validate(options);
+  });
+
+  it('protocol - store with id', () => {
+    var { error } = fusion_protocol.store.validate(write_with_id);
+    assert.ifError(error);
+  });
+
+  it('protocol - replace with id', () => {
+    var { error } = fusion_protocol.replace.validate(write_with_id);
+    assert.ifError(error);
+  });
+
+  it('protocol - update with id', () => {
+    var { error } = fusion_protocol.update.validate(write_with_id);
+    assert.ifError(error);
+  });
+
+  it('protocol - remove with id', () => {
+    var { error } = fusion_protocol.remove.validate(write_with_id);
     assert.ifError(error);
   });
 
