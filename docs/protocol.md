@@ -52,7 +52,7 @@ All requests match the following pattern:
 }
 ```
 * `collection` describes which table to operate on in the fusion database
-* `field_name` is the index to use for selection and ordering.  If not specified, this will default to `id`.  For `selection.type == "find_one"`, this must be `id` or omitted.
+* `field_name` is the index to use for selection and ordering. It must be specified. A reasonable default value is `id`
 * `selection` provides an operation to select some subset of the table - optional
   * `selection.type` may be `find_one`, `find`, or `between`
   * `selection.args` is an array of arguments for the selection
