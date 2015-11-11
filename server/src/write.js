@@ -64,12 +64,12 @@ module.exports.make_write_reql = function (request) {
   return reql;
 };
 
-module.exports.handle_write_response = function (client, request, response, send_cb) {
+module.exports.handle_write_response = function (query, response, send_cb) {
   if (response.errors !== 0) {
     send_cb({ error: response.first_error });
   } else {
     var index = 0;
-    var ids = request.options.data.map((row) => {
+    var ids = query.request.options.data.map((row) => {
         return row.id === undefined ? response.generated_keys[index++] : row.id;
       });
     send_cb({ data: ids, state: 'complete' });

@@ -9,10 +9,11 @@ const websocket = require('ws');
 const check = error.check;
 
 class Query {
-  constructor(request, endpoint) {
+  constructor(client, request) {
+    this.client = client;
     this.request = request;
-    this.endpoint = endpoint;
-    this.reql = endpoint.make_reql(request);
+    this.endpoint = client.parent._get_endpoint(request);
+    this.reql = this.endpoint.make_reql(request);
     this.start_time = Date.now();
   }
 }
@@ -21,7 +22,7 @@ module.exports.Client = class Client {
   constructor(socket, parent_server) {
     this.socket = socket;
     this.parent = parent_server;
-    this.cursors = new Set();
+    this.cursors = new Map();
 
     this.socket.on('open', () => this.handle_open());
     this.socket.on('close', (code, msg) => this.handle_close(code, msg));
@@ -66,13 +67,23 @@ module.exports.Client = class Client {
     logger.debug(`Received request from client: ${data}`);
     var request = this.parse_request(data);
 
+    if (request !== undefined && request.type === 'end_subscription') {
+      return end_subscription(request); // there is no response for end_subscription
+    }
+
     try {
       check(this.check_permissions(request),
             `This session lacks the permissions to run ${data}.`);
-
-      this.run_query(new Query(request, this.parent._get_endpoint(request)));
+      this.run_query(new Query(this, request));
     } catch (err) {
       this.send_response({ request: request }, { error: err.message });
+    }
+  }
+
+  end_subscription(request) {
+    var cursor = this.cursors.delete(request.request_id);
+    if (cursor !== undefined) {
+      cursor.close();
     }
   }
 
@@ -88,7 +99,7 @@ module.exports.Client = class Client {
   handle_response(query, res) {
     logger.debug(`Got result ${res} for ${query.request.request_id} - ${query.request.type}`);
     try {
-      query.endpoint.handle_response(this, query.request, res, (data) => this.send_response(query, data));
+      query.endpoint.handle_response(query, res, (data) => this.send_response(query, data));
     } catch (err) {
       logger.debug(`Error when handling response: ${err.message}`);
       this.send_response(query, { error: err.message });

@@ -49,8 +49,8 @@ module.exports.make_read_reql = function (request) {
   return reql;
 };
 
-var handle_cursor = function (client, cursor, send_cb) {
-  client.cursors.add(cursor);
+var handle_cursor = function (query, cursor, send_cb) {
+  query.client.cursors.set(query.request.request_id, cursor);
   cursor.each((err, item) => {
       if (err !== null) {
         send_cb({ error: `${err}` });
@@ -58,13 +58,13 @@ var handle_cursor = function (client, cursor, send_cb) {
         send_cb({ data: [item] });
       }
     }, () => {
-      client.cursors.delete(cursor);
+      query.client.cursors.delete(cursor);
       send_cb({ data: [], state: 'complete' });
     });
 };
 
-var handle_feed = function (client, feed, send_cb) {
-  client.cursors.add(feed);
+var handle_feed = function (query, feed, send_cb) {
+  query.client.cursors.set(query.request.request_id, feed);
   feed.each((err, item) => {
       if (err !== null) {
         send_cb({ error: `${err}` });
@@ -76,21 +76,21 @@ var handle_feed = function (client, feed, send_cb) {
         send_cb({ data: [item] });
       }
     }, () => {
-      client.cursors.delete(cursor);
+      query.client.cursors.delete(feed);
       send_cb({ data: [], state: 'complete' });
     });
 };
 
-module.exports.handle_read_response = function (client, request, response, send_cb) {
-  if (request.type === 'query') {
+module.exports.handle_read_response = function (query, response, send_cb) {
+  if (query.request.type === 'query') {
     if (response.constructor.name === 'Cursor') {
-      handle_cursor(client, response, send_cb);
+      handle_cursor(query, response, send_cb);
     } else if (response.constructor.name === 'Array') {
       send_cb({ data: response, state: 'complete' });
     } else {
       send_cb({ data: [response], state: 'complete' });
     }
   } else {
-    handle_feed(client, response, send_cb);
+    handle_feed(query, response, send_cb);
   }
 }
