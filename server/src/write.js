@@ -1,10 +1,8 @@
 'use strict';
 
-const error = require('./error.js');
-const r = require('rethinkdb');
+const { check, fail } = require('./error');
 
-const check = error.check;
-const fail = error.fail;
+const r = require('rethinkdb');
 
 const make_write_reql = (request) => {
   var type = request.type;

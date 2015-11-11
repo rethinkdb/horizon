@@ -35,17 +35,9 @@ const write = Joi.object({
 });
 
 const request = Joi.object({
-  request_id: Joi.number(),
-  type: Joi.string().valid([
-    'query',
-    'subscribe',
-
-    'store',
-    'remove',
-
-    'end_subscription'
-  ]),
-  options: Joi.object(),
+  request_id: Joi.number().required(),
+  type: Joi.string().required(),
+  options: Joi.object().required(),
 });
 
 

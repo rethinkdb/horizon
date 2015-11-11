@@ -1,7 +1,8 @@
 'use strict';
 
+const fusion_protocol = require('../src/schema/fusion_protocol');
+
 const assert = require('assert');
-const protocol = require('../src/schema/protocol');
 
 describe('Schema', () => {
 
@@ -9,10 +10,10 @@ describe('Schema', () => {
     const request = {
       request_id: 1,
       type: 'query',
-      options: {}
+      options: { }
     };
 
-    var { error, value } = protocol.request.validate(request);
+    var { error, value } = fusion_protocol.request.validate(request);
 
     assert.ifError(error);
     assert(value);
@@ -32,7 +33,7 @@ describe('Schema', () => {
       // order: 'ascending'
     };
 
-    var { error, value } = protocol.read.validate(options);
+    var { error, value } = fusion_protocol.read.validate(options);
 
     assert.ifError(error);
     assert(value);

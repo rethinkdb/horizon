@@ -1,12 +1,22 @@
 'use strict';
 
-const fusion = require('./server.js');
+const fusion = require('./server');
 
 const fs = require('fs');
 const nopt = require('nopt');
 const path = require('path');
 
-const parsed = new nopt({ bind: [String, Array], port: Number, connect: String, unsecure: Boolean, key_file: path, cert_file: path, debug: Boolean });
+const parsed = new nopt(
+  {
+    bind: [String, Array],
+    port: Number,
+    connect: String,
+    unsecure: Boolean,
+    key_file: path,
+    cert_file: path,
+    debug: Boolean
+  });
+
 const print_usage = () => {
   console.log('Usage: node fusion.js [OPTIONS]');
   console.log('');

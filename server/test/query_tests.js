@@ -1,6 +1,6 @@
 'use strict';
 
-const utils = require('./utils.js');
+const utils = require('./utils');
 
 const assert = require('assert');
 const r = require('rethinkdb');
@@ -15,8 +15,9 @@ const all_tests = (table) => {
   before('Populate table', (done) => utils.populate_table(table, num_rows, done));
   beforeEach('Authenticate client', utils.fusion_default_auth);
 
-  var assert_error = (err, expected) => {
-    assert(err.message.indexOf(expected) !== -1, err.message);
+  var check_error = (err, msg) => {
+    assert.notStrictEqual(err, null);
+    assert(err.message.indexOf(msg) !== -1, err.message);
   }
 
   it('table scan', (done) => {
@@ -128,7 +129,8 @@ const all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert_error(err, '"order" is not allowed');
+          assert.deepStrictEqual(res, []);
+          check_error(err, '"order" is not allowed');
           done();
         });
     });
@@ -149,7 +151,8 @@ const all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert_error(err, '"limit" is not allowed');
+          assert.deepStrictEqual(res, []);
+          check_error(err, '"limit" is not allowed');
           done();
         });
     });
@@ -191,7 +194,8 @@ const all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert_error(err, '"order" is not allowed');
+          assert.deepStrictEqual(res, []);
+          check_error(err, '"order" is not allowed');
           done();
         });
     });
@@ -235,7 +239,8 @@ const all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert_error(err, '"order" is not allowed');
+          assert.deepStrictEqual(res, []);
+          check_error(err, '"order" is not allowed');
           done();
         });
     });

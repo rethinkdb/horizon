@@ -1,6 +1,6 @@
 'use strict';
 
-const fusion        = require('../src/server.js');
+const fusion = require('../src/server');
 
 const assert        = require('assert');
 const child_process = require('child_process');

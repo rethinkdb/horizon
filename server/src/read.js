@@ -1,9 +1,10 @@
 'use strict';
 
+const { check } = require('./error');
+const protocol = require('./schema/fusion_protocol');
+
 const Joi = require('joi');
 const r = require('rethinkdb');
-const protocol = require('./schema/protocol');
-const check = require('./error.js').check;
 
 const make_read_reql = (request) => {
   var options = Joi.attempt(request.options, protocol.read);

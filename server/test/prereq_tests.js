@@ -1,6 +1,6 @@
 'use strict'
 
-const utils = require('./utils.js');
+const utils = require('./utils');
 
 const assert = require('assert');
 const crypto = require('crypto');

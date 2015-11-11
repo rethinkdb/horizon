@@ -1,26 +1,24 @@
 'use strict';
 
-const fusion_client = require('./client.js');
-const fusion_read = require('./read.js');
-const fusion_write = require('./write.js');
-const logger = require('./logger.js');
-const error = require('./error.js');
+const { check } = require('./error');
+const fusion_client = require('./client');
+const fusion_protocol = require('./schema/fusion_protocol');
+const fusion_read = require('./read');
+const fusion_write = require('./write');
+const logger = require('./logger');
+const server_options = require('./schema/server_options');
 
-const schema = require('./schema/server.js');
-
-const check = error.check;
-
-const Joi = require('joi');
-const r = require('rethinkdb');
 const assert = require('assert');
-const url = require('url');
 const fs = require('fs');
-const path = require('path');
-const websocket = require('ws');
 const http = require('http');
 const https = require('https');
+const Joi = require('joi');
+const path = require('path');
+const r = require('rethinkdb');
+const url = require('url');
+const websocket = require('ws');
 
-const protocol = 'rethinkdb-fusion-v0';
+const protocol_name = 'rethinkdb-fusion-v0';
 
 class BaseServer {
   constructor(opts, make_http_server) {
@@ -71,11 +69,7 @@ class BaseServer {
   }
 
   _get_endpoint(request) {
-    var type = request.type;
-    var options = request.options;
-
-    check(type !== undefined, `'type' must be specified.`);
-    check(options !== undefined, `'options' must be specified.`);
+    const { type, options } = Joi.attempt(request, fusion_protocol.request);
 
     var endpoint = this._endpoints.get(type);
     check(endpoint !== undefined, `'${type}' is not a recognized endpoint.`);
@@ -85,7 +79,7 @@ class BaseServer {
 
 class UnsecureServer extends BaseServer {
   constructor(user_opts) {
-    var opts = Joi.attempt(user_opts, schema.unsecure_server_options);
+    var opts = Joi.attempt(user_opts, server_options.unsecure);
 
     super(opts, () => {
         logger.warn('Creating unsecure HTTP server.');
@@ -96,7 +90,7 @@ class UnsecureServer extends BaseServer {
 
 class Server extends BaseServer {
   constructor(user_opts) {
-    var opts = Joi.attempt(user_opts, schema.secure_server_options);
+    var opts = Joi.attempt(user_opts, server_options.secure);
 
     super(opts, () => {
         return new https.Server({ key: opts.key, cert: opts.cert },
@@ -106,10 +100,10 @@ class Server extends BaseServer {
 }
 
 const accept_protocol = (protocols, cb) => {
-  if (protocols.findIndex(x => x === protocol) != -1) {
-    cb(true, protocol);
+  if (protocols.findIndex(x => x === protocol_name) != -1) {
+    cb(true, protocol_name);
   } else {
-    logger.debug(`Rejecting client without '${protocol}' protocol: ${protocols}`);
+    logger.debug(`Rejecting client without '${protocol_name}' protocol: ${protocols}`);
     cb(false, null);
   }
 };
@@ -183,4 +177,4 @@ class ReqlConnection {
   }
 }
 
-module.exports = { UnsecureServer, Server, protocol, logger };
+module.exports = { UnsecureServer, Server, protocol: protocol_name, logger };

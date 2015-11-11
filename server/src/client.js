@@ -1,7 +1,7 @@
 'use strict';
 
-const logger = require('./logger.js');
-const { check } = require('./error.js');
+const { check } = require('./error');
+const logger = require('./logger');
 
 const r = require('rethinkdb');
 const websocket = require('ws');

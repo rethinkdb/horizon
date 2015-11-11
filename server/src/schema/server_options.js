@@ -1,6 +1,6 @@
 const Joi = require('joi');
 
-const unsecure_server_options = Joi.object({
+const unsecure = Joi.object({
   local_hosts: Joi.array()
     .items(Joi.string().hostname())
     .default([ 'localhost' ]),
@@ -12,9 +12,9 @@ const unsecure_server_options = Joi.object({
   db: Joi.string().token().default('fusion'),
 });
 
-const secure_server_options = unsecure_server_options.keys({
+const secure = unsecure.keys({
   cert: Joi.binary(),
   key: Joi.binary(),
 });
 
-module.exports = { unsecure_server_options, secure_server_options };
+module.exports = { unsecure, secure };
