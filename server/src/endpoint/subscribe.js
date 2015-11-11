@@ -24,4 +24,4 @@ const handle_response = (query, feed, send_cb) => {
     });
 };
 
-module.exports = { make_reql, handle_response }
+module.exports = { make_reql, handle_response };

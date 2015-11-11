@@ -1,3 +1,5 @@
+'use strict';
+
 const check = (pred, message) => {
   if (!pred) {
     throw new Error(message);

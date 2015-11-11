@@ -3,7 +3,6 @@
 const utils = require('./utils');
 
 const assert = require('assert');
-const r = require('rethinkdb');
 
 const suite = (table) => describe('Query', () => all_tests(table));
 
@@ -18,7 +17,7 @@ const all_tests = (table) => {
   var check_error = (err, msg) => {
     assert.notStrictEqual(err, null);
     assert(err.message.indexOf(msg) !== -1, err.message);
-  }
+  };
 
   it('table scan', (done) => {
       utils.stream_test(
@@ -28,7 +27,7 @@ const all_tests = (table) => {
           options: {
             collection: table,
             field_name: 'id',
-          }
+          },
         },
         (err, res) => {
           assert.ifError(err);
@@ -46,7 +45,7 @@ const all_tests = (table) => {
             collection: table,
             field_name: 'id',
             order: 'ascending',
-          }
+          },
         },
         (err, res) => {
           assert.ifError(err);
@@ -64,7 +63,7 @@ const all_tests = (table) => {
             collection: table,
             field_name: 'id',
             limit: 2,
-          }
+          },
         },
         (err, res) => {
           assert.ifError(err);
@@ -83,7 +82,7 @@ const all_tests = (table) => {
             field_name: 'id',
             order: 'descending',
             limit: 4,
-          }
+          },
         },
         (err, res) => {
           assert.ifError(err);
@@ -104,7 +103,7 @@ const all_tests = (table) => {
               type: 'find_one',
               args: [ 4 ],
             },
-          }
+          },
         },
         (err, res) => {
           assert.ifError(err);

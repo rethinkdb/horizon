@@ -11,9 +11,9 @@ const make_reql = (request) => {
   return r.expr(data).forEach((row) =>
         r.table(collection).get(row('id')).replace((old) =>
          r.branch(old.ne(null), old.merge(row),
-           r.error(r.expr("The document with id '")
+           r.error(r.expr(`The document with id '`)
                     .add(row('id').coerceTo('string'))
-                    .add("' was missing.")))));
-}
+                    .add(`' was missing.`)))));
+};
 
 module.exports = { make_reql, handle_response };

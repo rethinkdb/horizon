@@ -11,7 +11,7 @@ const all_tests = (table) => {
   const check_error = (err, msg) => {
     assert.notStrictEqual(err, null);
     assert(err.message.indexOf(msg) !== -1, err.message);
-  }
+  };
 
   beforeEach('Authenticate client', utils.fusion_default_auth);
 
@@ -81,7 +81,7 @@ const all_tests = (table) => {
           } else if (msg.state === 'synced') {
             utils.close_fusion_conn();
             r.table(table).insert({}).run(utils.rdb_conn())
-             .then((res) => done());
+             .then(() => done());
           }
         });
     });
@@ -90,7 +90,6 @@ const all_tests = (table) => {
   // disconnects.  Close the connection immediately after sending the request.
   // We don't check any results, we're just seeing if the server crashes.
   it('client disconnect during query', (done) => {
-      var msg = { request_id: 3, type: 'query', options: { collection: table } };
       utils.fusion_conn().send(JSON.stringify(
         {
           request_id: 4,

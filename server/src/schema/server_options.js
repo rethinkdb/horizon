@@ -1,3 +1,5 @@
+'use strict';
+
 const Joi = require('joi');
 
 const max_port = 65536;

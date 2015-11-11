@@ -14,6 +14,15 @@ class Query {
     this.reql = this.endpoint.make_reql(request);
     this.start_time = Date.now();
   }
+  // TODO: add functions for endpoint access:
+  //   - add_cursor(request_id, cursor) - adds a cursor to be tracked (and closed on disconnection)
+  //   - remove_cursor(request_id, cursor) - removes a cursor from being tracked
+  //     - for these, we should probably change cursors to a Map of request_id -> Set of cursors
+  //   - handle_error(err) - use default error handling
+  //     - in dev mode, this will automatically create/wait for dbs, tables, indexes
+  //     - in release mode, this will just pass the error back to the client
+  // TODO: should we allow user-defined endpoints to run multiple reql queries?
+  //   perhaps give them a callback for it, rather than returning the reql
 }
 
 class Client {
@@ -25,7 +34,7 @@ class Client {
     this.socket.on('open', () => this.handle_open());
     this.socket.on('close', (code, msg) => this.handle_close(code, msg));
     this.socket.on('error', (error) => this.handle_websocket_error(error));
-    this.socket.once('message', (data, flags) => this.handle_handshake(data));
+    this.socket.once('message', (data) => this.handle_handshake(data));
   }
 
   handle_open() {
@@ -57,7 +66,7 @@ class Client {
   handle_handshake(data) {
     logger.debug(`Got handshake request: ${data}`);
     // TODO: implement handshake
-    this.socket.on('message', (data, flags) => this.handle_request(data));
+    this.socket.on('message', (data) => this.handle_request(data));
     this.send_response({ request: this.parse_request(data) }, { user_id: 0 });
   }
 
@@ -66,7 +75,7 @@ class Client {
     var request = this.parse_request(data);
 
     if (request !== undefined && request.type === 'end_subscription') {
-      return end_subscription(request); // there is no response for end_subscription
+      return this.end_subscription(request); // there is no response for end_subscription
     }
 
     try {
@@ -91,7 +100,7 @@ class Client {
       logger.debug(`Running ${r.Error.printQuery(query.reql)}`);
 
       query.reql.run(conn).then((res) => this.handle_response(query, res),
-		                (err) => this.handle_response_error(query, err));
+                                (err) => this.handle_response_error(query, err));
   }
 
   handle_response(query, res) {
@@ -120,7 +129,7 @@ class Client {
       check(conn !== undefined, `Connection to the database is down.`);
       logger.debug(`Running ${r.Error.printQuery(root_term)}`);
 
-      root_term.run(conn).then((res) => this.run_query(query),
+      root_term.run(conn).then(() => this.run_query(query),
                                (err) => this.handle_response_error(query, err));
   }
 

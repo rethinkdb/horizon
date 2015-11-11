@@ -10,7 +10,7 @@ const make_reql = (request) => {
   return r.table(collection)
           .getAll(r.args(data.map((row) => row.id)), { index: 'id' })
           .delete();
-}
+};
 
 // This is also used by the 'replace' and 'update' endpoints
 const handle_response = (query, response, send_cb) => {
@@ -19,6 +19,6 @@ const handle_response = (query, response, send_cb) => {
   } else {
     send_cb({ data: query.request.options.data.map((row) => row.id), state: 'complete' });
   }
-}
+};
 
 module.exports = { make_reql, handle_response };

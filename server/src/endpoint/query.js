@@ -1,6 +1,5 @@
 'use strict';
 
-const { check } = require('../error');
 const { query } = require('../schema/fusion_protocol');
 
 const Joi = require('joi');
@@ -29,8 +28,6 @@ const make_reql = (request) => {
   }
 
   if (order) {
-    // TODO: get this working in the schema
-    if (selection) { check(selection.type === 'between', `"order" is not allowed`); }
     if (order === 'descending') {
       reql = reql.orderBy({ index: r.desc(index) });
     } else {
@@ -39,8 +36,6 @@ const make_reql = (request) => {
   }
 
   if (limit) {
-    // TODO: get this working in the schema
-    if (selection) { check(selection.type !== 'find_one', `"limit" is not allowed`); }
     reql = reql.limit(limit);
   }
 
@@ -65,6 +60,6 @@ const handle_response = (query, response, send_cb) => {
   } else {
     send_cb({ data: [response], state: 'complete' });
   }
-}
+};
 
 module.exports = { make_reql, handle_response };
