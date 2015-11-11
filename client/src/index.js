@@ -437,7 +437,7 @@ class Collection extends TermBase {
   constructor(fusion, collectionName){
     super(fusion)
     this._collectionName = collectionName
-    this.query = {collection: collectionName}
+    this.query = {collection: collectionName, field_name: 'id'}
   }
 
   findOne(id, {field: field='id'}={}){
@@ -537,14 +537,14 @@ class FindOne extends TermBase {
 }
 
 class Between extends TermBase {
-  constructor(fusion, query, minVal, maxVal, field){
+  constructor(fusion, query, minVal, maxVal, fieldName){
     super(fusion)
-    this.minVal = minVal
-    this.maxVal = maxVal
-    this.field = field
+    this._minVal = minVal
+    this._maxVal = maxVal
+    this._field = fieldName
     this.query = Object.assign({
       selection: {type: 'between', args: [minVal, maxVal]},
-      field_name: field
+      field_name: fieldName
     }, query)
   }
 
@@ -554,13 +554,12 @@ class Between extends TermBase {
 }
 
 class Order {
-  constructor(fusion, query, field, ascending){
+  constructor(fusion, query, fieldName, ascending){
     this.fusion = fusion
-    this.field = field
-    this.direction = direction
+    this._field = fieldName
     this.query = Object.assign({
       order: ascending ? 'ascending' : 'descending',
-      field_name: field
+      field_name: fieldName
     }, query)
   }
 
