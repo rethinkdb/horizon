@@ -1,5 +1,5 @@
 require('babel-polyfill')
-const EventEmitter = require('events').EventEmitter
+const { FusionEmitter, ListenerSet } = require('./utility.js')
 
 const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 
@@ -10,153 +10,6 @@ function errorEvent(id){
   return `error:${id}`
 }
 
-let emitterCount = 0
-
-class FusionEmitter extends EventEmitter {
-  constructor(name=`FusionEmitter(${emitterCount++})`){
-    super()
-    this.name = name
-    this.listenerSets = 0
-  }
-  // Returns a function that can be called to remove the listener
-  // Otherwise works the same as 'on' for the underlying socket
-  register(event, listener){
-    this.on(event, listener)
-    return () => {
-      this.removeListener(event, listener)
-    }
-  }
-
-  // Similar to `register` but wraps `once` instead of `on`
-  registerOnce(event, listener){
-    this.once(event, listener)
-    return () => {
-      this.removeListener(event, listener)
-    }
-  }
-
-  //Forwards events from the current emitter to another emitter,
-  //returning an unregistration function
-  fwd(srcEvent, dst, dstEvent=srcEvent){
-    return this.register(srcEvent, (...args) => dst.emit(dstEvent, ...args))
-  }
-
-  //Create a promise from this emitter, accepts on the given event
-  //and rejects on the second event which defaults to 'error'
-  getPromise(acceptEvent, rejectEvent='error'){
-    let listenerSet = ListenerSet.onEmitter(this)
-    return this._makePromise(listenerSet, acceptEvent, rejectEvent)
-  }
-
-  // The same as getPromise, but disposes the event emitter when it's
-  // resolved or rejected. The underlying EventEmitter shouldn't be
-  // used.
-  intoPromise(acceptEvent, rejectEvent='error'){
-    let listenerSet = ListenerSet.absorbEmitter(this)
-    return this._makePromise(listenerSet, acceptEvent, rejectEvent)
-  }
-
-  _makePromise(listenerSet, acceptEvent, rejectEvent){
-    return new Promise((resolve, reject) => {
-      listenerSet
-        .onceAndDispose(acceptEvent, resolve)
-        .onceAndDispose(rejectEvent, (err) => {
-          reject(new Error(err.error))
-        })
-    })
-  }
-
-  // Listens for all 'response' events, adding them to an
-  // internal array. Once a response comes in that has state: the
-  // complete event, it resolves the promise with all of the values
-  // obtained so far.  The promise is rejected if an error event is
-  // raised.
-  collectingPromise(addEvent='response', completeEvent='complete'){
-    let listenerSet = ListenerSet.onEmitter(this)
-    return this._collectPromise(listenerSet, addEvent, completeEvent)
-  }
-
-  // Same as collectingPromise except disposes the underlying
-  // EventEmitter when it is resolved or rejected
-  intoCollectingPromise(addEvent='response', completeEvent='complete'){
-    let listenerSet = ListenerSet.absorbEmitter(this)
-    return this._collectPromise(listenerSet, addEvent, completeEvent)
-  }
-
-  _collectPromise(listenerSet, addEvent, completeEvent){
-    return new Promise((resolve, reject) => {
-      let values = [];
-      listenerSet
-        .on(addEvent, (items) => {
-          values.push(...items)
-        }).onceAndDispose(completeEvent, () => {
-          resolve(values)
-        }).onceAndDispose('error', (err) => {
-          reject(new Error(err.error))
-        })
-    })
-  }
-}
-
-// Handles hooking up a group of listeners to a FusionEmitter, and
-// removing them all when certain events occur
-class ListenerSet {
-  constructor(emitter, {absorb: absorb=false}={}){
-    this.name = `${emitter.name}{${emitter.listenerSets++}}`
-    this.emitter = emitter
-    this.unregistry = []
-    this.absorb = absorb
-  }
-
-  static onEmitter(emitter){
-    return new ListenerSet(emitter)
-  }
-
-  static absorbEmitter(emitter){
-    return new ListenerSet(emitter, {absorb: true})
-  }
-
-  on(event, listener){
-    this.unregistry.push(this.emitter.register(event, listener))
-    return this
-  }
-
-  once(event, listener){
-    this.unregistry.push(this.emitter.registerOnce(event, listener))
-    return this
-  }
-
-  fwd(srcEvent, dst, dstEvent=srcEvent){
-    this.unregistry.push(this.emitter.fwd(srcEvent, dst, dstEvent))
-    return this
-  }
-
-  onceAndDispose(event, listener){
-    let wrappedListener = (...args) => {
-      this.dispose("ListenerSet.onceAndDispose").then(() => listener(...args))
-    }
-    this.unregistry.push(this.emitter.registerOnce(event, wrappedListener))
-    return this
-  }
-
-  disposeOn(event){
-    this.unregistry.push(this.emitter.registerOnce(
-      event, () => {
-        this.dispose("ListenerSet.disposeOn")
-      }))
-    return this
-  }
-
-  dispose(reason){
-    this.unregistry.forEach(unregister => unregister())
-    if(this.absorb){
-      return this.emitter.dispose(reason)
-    }else{
-      return Promise.resolve()
-    }
-  }
-
-}
 
 var fusionCount = 0
 
@@ -321,8 +174,6 @@ class RequestEmitter extends FusionEmitter {
       }).disposeOn('error')
   }
 
-  // Emits an event depending on new_val old_val return value is
-  // whether an event was emitted
   _emitChangeEvent(changeObj){
     if(changeObj.new_val === undefined && changeObj.old_val === undefined){
       return false
