@@ -20,8 +20,14 @@ function rejectIfNoArgs(name, args, onSuccess){
     return onSuccess
   }
 }
+let emitterCount = 0
 
 class FusionEmitter extends EventEmitter {
+  constructor(name=`FusionEmitter(${emitterCount++})`){
+    super()
+    this.name = name
+    this.listenerSets = 0
+  }
   // Returns a function that can be called to remove the listener
   // Otherwise works the same as 'on' for the underlying socket
   register(event, listener){
@@ -106,6 +112,7 @@ class FusionEmitter extends EventEmitter {
 // removing them all when certain events occur
 class ListenerSet {
   constructor(emitter, {absorb: absorb=false}={}){
+    this.name = `${emitter.name}{${emitter.listenerSets++}}`
     this.emitter = emitter
     this.unregistry = []
     this.absorb = absorb
@@ -144,26 +151,28 @@ class ListenerSet {
 
   disposeOn(event){
     this.unregistry.push(this.emitter.registerOnce(
-      event, () => this.dispose("ListenerSet.disposeOn")))
+      event, () => {
+        this.dispose("ListenerSet.disposeOn")
+      }))
     return this
   }
 
   dispose(reason){
-    return Promise.resolve(() => {
-      this.unregistry.forEach(unregister => unregister())
-      if(this.absorb){
-        return this.emitter.dispose(reason)
-      }else{
-        return this
-      }
-    })
+    this.unregistry.forEach(unregister => unregister())
+    if(this.absorb){
+      return this.emitter.dispose(reason)
+    }else{
+      return Promise.resolve()
+    }
   }
 
 }
 
+var fusionCount = 0
+
 class Fusion extends FusionEmitter {
   constructor(host, {secure: secure=true}={}){
-    super()
+    super('Fusion(${fusionCount++})')
     var self = (collectionName) => self.collection(collectionName)
     Object.setPrototypeOf(self, Object.getPrototypeOf(this))
 
@@ -172,7 +181,7 @@ class Fusion extends FusionEmitter {
     self.requestCounter = 0
     self.socket = new FusionSocket(host, secure)
     self.listenerSet = ListenerSet.absorbEmitter(self.socket)
-      .on('error', (err) => self.emit('error', err, self))
+      .onceAndDispose('error', (err) => self.emit('error', err, self))
       .on('connected', () => self.emit('connected', self))
       .on('disconnected', () => self.emit('disconnected', self))
     // send handshake
@@ -221,7 +230,7 @@ class Fusion extends FusionEmitter {
   }
 
   endSubscription(requestId){
-    return this.handshakeResponse.then((handshake) => {
+    return this.handshakeResponse.then(handshake => {
       this.socket.send({request_id: requestId, type: 'end_subscription'})
     })
   }
@@ -232,7 +241,7 @@ class Fusion extends FusionEmitter {
     this.handshakeResponse.then((handshake) => {
       this.socket.send(req)
     })
-    return new RequestEmitter(requestId, this.socket)
+    return new RequestEmitter(requestId, this, 'query')
   }
 
   // Subscription queries, only handles returning an emitter
@@ -240,17 +249,19 @@ class Fusion extends FusionEmitter {
     let requestId = this.requestCounter++
     let req = {type: 'subscribe', options: query, request_id: requestId}
     this.handshakeResponse.then((handshake) => this.socket.send(req))
-    return new RequestEmitter(requestId, this.socket)
+    return new RequestEmitter(requestId, this, 'subscribe')
   }
 
 }
+
+var socketCount = 0
 
 class FusionSocket extends FusionEmitter {
   // Wraps native websockets in an EventEmitter, and deals with some
   // simple protocol level things like serializing from/to JSON, and
   // emitting events on request_ids
   constructor(host, secure=true){
-    super()
+    super(`FusionSocket(${socketCount++})`)
     let hostString = (secure ? 'wss://' : 'ws://') + host
     this._ws = new WebSocket(hostString, PROTOCOL_VERSION)
     this._openWs = new Promise((resolve, reject) => {
@@ -287,8 +298,7 @@ class FusionSocket extends FusionEmitter {
   }
 
   dispose(reason='FusionSocket disposed'){
-    return this._openWs.then(
-      (ws) => ws.close(1000, reason))
+    return this._openWs.then((ws) => ws.close(1000, reason))
   }
 
 }
@@ -298,18 +308,17 @@ class FusionSocket extends FusionEmitter {
 // and for creating promises that resolve or reject based on events
 // from this emitter
 class RequestEmitter extends FusionEmitter {
-  constructor(requestId, fusion){
-    super()
+  constructor(requestId, fusion, queryType){
+    super(`RequestEmitter(${requestId})`)
     this.fusion = fusion
     this.requestId = requestId
-    this.remoteListeners = ListenerSet.onEmitter(this.fusion)
-
+    this.queryType = queryType
+    this.remoteListeners = ListenerSet.onEmitter(this.fusion.socket)
     //Forwards on fusion events to this emitter's listeners
     this.remoteListeners
       .fwd('connected', this)
       .fwd('disconnected', this)
-      //.fwd(errorEvent(requestId), this, 'error')
-      .on(errorEvent(requestId), (err) => {
+      .onceAndDispose(errorEvent(requestId), (err) => {
         this.emit('error', err)
       }).on(responseEvent(requestId), (response) => {
         if(Array.isArray(response.data)){
@@ -356,10 +365,13 @@ class RequestEmitter extends FusionEmitter {
     }
   }
   dispose(reason=`RequestEmitter for ${this.requestId} disposed`){
-    return this.fusion.endSubscription(this.requestId)
-      .then(() => this.getPromise('complete'))
-      .then(() => this.remoteListeners.dispose())
-      .then(() => super.dispose(reason))
+    if(this.type === 'subscription'){
+      return this.fusion.endSubscription(this.requestId)
+        .then(() => this.getPromise('complete'))
+        .then(() => this.remoteListeners.dispose(reason))
+    }else{
+      return this.remoteListeners.dispose(reason)
+    }
   }
 }
 

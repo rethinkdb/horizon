@@ -1,30 +1,93 @@
 'use strict';
 
-const utils = require('./utils.js');
+const utils = require('./utils');
 
 const assert = require('assert');
-const r      = require('rethinkdb');
+const r = require('rethinkdb');
 
-module.exports.suite = (table) => describe('Query', () => all_tests(table));
+const suite = (table) => describe('Query', () => all_tests(table));
 
 // TODO: ensure each row is present in the results
-var all_tests = (table) => {
+const all_tests = (table) => {
   const num_rows = 10;
 
   before('Clear table', (done) => utils.clear_table(table, done));
   before('Populate table', (done) => utils.populate_table(table, num_rows, done));
   beforeEach('Authenticate client', utils.fusion_default_auth);
 
-  var assert_error = (err, expected) => {
-    assert(err.message.indexOf(expected) !== -1, err);
+  var check_error = (err, msg) => {
+    assert.notStrictEqual(err, null);
+    assert(err.message.indexOf(msg) !== -1, err.message);
   }
 
   it('table scan', (done) => {
       utils.stream_test(
-        { request_id: 0, type: 'query', options: { collection: table } },
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            field_name: 'id',
+          }
+        },
         (err, res) => {
           assert.ifError(err);
           assert.strictEqual(res.length, num_rows);
+          done();
+        });
+    });
+
+  it('table scan order', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            field_name: 'id',
+            order: 'ascending',
+          }
+        },
+        (err, res) => {
+          assert.ifError(err);
+          assert.strictEqual(res.length, num_rows);
+          done();
+        });
+    });
+
+  it('table scan limit', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            field_name: 'id',
+            limit: 2,
+          }
+        },
+        (err, res) => {
+          assert.ifError(err);
+          assert.strictEqual(res.length, 2);
+          done();
+        });
+    });
+
+  it('table scan order limit', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            field_name: 'id',
+            order: 'descending',
+            limit: 4,
+          }
+        },
+        (err, res) => {
+          assert.ifError(err);
+          assert.strictEqual(res.length, 4);
           done();
         });
     });
@@ -36,6 +99,7 @@ var all_tests = (table) => {
           type: 'query',
           options: {
             collection: table,
+            field_name: 'id',
             selection: {
               type: 'find_one',
               args: [ 4 ],
@@ -56,6 +120,7 @@ var all_tests = (table) => {
           type: 'query',
           options: {
             collection: table,
+            field_name: 'id',
             selection: {
               type: 'find_one',
               args: [ 4 ],
@@ -64,7 +129,8 @@ var all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert_error(err, '"order" is not allowed');
+          assert.deepStrictEqual(res, []);
+          check_error(err, '"order" is not allowed');
           done();
         });
     });
@@ -76,6 +142,7 @@ var all_tests = (table) => {
           type: 'query',
           options: {
             collection: table,
+            field_name: 'id',
             selection: {
               type: 'find_one',
               args: [ 4 ],
@@ -84,7 +151,8 @@ var all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert_error(err, '"limit" is not allowed');
+          assert.deepStrictEqual(res, []);
+          check_error(err, '"limit" is not allowed');
           done();
         });
     });
@@ -96,6 +164,7 @@ var all_tests = (table) => {
           type: 'query',
           options: {
             collection: table,
+            field_name: 'id',
             selection: {
               type: 'find',
               args: [ 4, 6, 9 ],
@@ -116,6 +185,7 @@ var all_tests = (table) => {
           type: 'query',
           options: {
             collection: table,
+            field_name: 'id',
             selection: {
               type: 'find',
               args: [ 1, 2, 4 ],
@@ -124,7 +194,8 @@ var all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert_error(err, '"order" is not allowed');
+          assert.deepStrictEqual(res, []);
+          check_error(err, '"order" is not allowed');
           done();
         });
     });
@@ -136,6 +207,7 @@ var all_tests = (table) => {
           type: 'query',
           options: {
             collection: table,
+            field_name: 'id',
             selection: {
               type: 'find',
               args: [ 4, 8, 2, 1 ],
@@ -157,6 +229,7 @@ var all_tests = (table) => {
           type: 'query',
           options: {
             collection: table,
+            field_name: 'id',
             selection: {
               type: 'find',
               args: [ 4, 5, 1, 2 ],
@@ -166,7 +239,8 @@ var all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert_error(err, '"order" is not allowed');
+          assert.deepStrictEqual(res, []);
+          check_error(err, '"order" is not allowed');
           done();
         });
     });
@@ -178,6 +252,7 @@ var all_tests = (table) => {
           type: 'query',
           options: {
             collection: table,
+            field_name: 'id',
             selection: {
               type: 'between',
               args: [ 4, 10 ],
@@ -198,6 +273,7 @@ var all_tests = (table) => {
           type: 'query',
           options: {
             collection: table,
+            field_name: 'id',
             selection: {
               type: 'between',
               args: [ 2, 5 ],
@@ -219,6 +295,7 @@ var all_tests = (table) => {
           type: 'query',
           options: {
             collection: table,
+            field_name: 'id',
             selection: {
               type: 'between',
               args: [ 1, 7 ],
@@ -240,6 +317,7 @@ var all_tests = (table) => {
           type: 'query',
           options: {
             collection: table,
+            field_name: 'id',
             selection: {
               type: 'between',
               args: [ 6, 10 ],
@@ -255,3 +333,5 @@ var all_tests = (table) => {
         });
     });
 };
+
+module.exports = { suite };

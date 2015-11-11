@@ -1,16 +1,16 @@
 'use strict';
 
-const utils = require('./utils.js');
-const logger = require('../src/server.js').logger;
+const { logger } = require('../src/server');
+const utils = require('./utils');
 
 // Test cases
 const all_suites = [
-    require('./http_tests.js'),
-    require('./protocol_tests.js'),
-    require('./query_tests.js'),
-    require('./write_tests.js'),
-    require('./subscribe_tests.js'),
-    require('./prereq_tests.js'),
+    require('./http_tests'),
+    require('./prereq_tests'),
+    require('./protocol_tests'),
+    require('./query_tests'),
+    require('./subscribe_tests'),
+    require('./write_tests'),
   ];
 
 const table = 'test';

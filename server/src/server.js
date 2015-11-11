@@ -1,28 +1,33 @@
 'use strict';
 
-const fusion_client = require('./client.js');
-const fusion_read = require('./read.js');
-const fusion_write = require('./write.js');
-const logger = require('./logger.js');
-const error = require('./error.js');
+const { check } = require('./error');
+const fusion_client = require('./client');
+const fusion_protocol = require('./schema/fusion_protocol');
+const logger = require('./logger');
+const server_options = require('./schema/server_options');
 
-const schema = require('./schema/server.js');
+const endpoints = {
+  insert: require('./endpoint/insert'),
+  query: require('./endpoint/query'),
+  remove: require('./endpoint/remove'),
+  replace: require('./endpoint/replace'),
+  store: require('./endpoint/store'),
+  subscribe: require('./endpoint/subscribe'),
+  update: require('./endpoint/update'),
+  upsert: require('./endpoint/upsert'),
+};
 
-const check = error.check;
-
-const Joi = require('joi');
-const r = require('rethinkdb');
 const assert = require('assert');
-const url = require('url');
 const fs = require('fs');
-const path = require('path');
-const websocket = require('ws');
 const http = require('http');
 const https = require('https');
+const Joi = require('joi');
+const path = require('path');
+const r = require('rethinkdb');
+const url = require('url');
+const websocket = require('ws');
 
-var protocol_name = 'rethinkdb-fusion-v0';
-module.exports.protocol = protocol_name;
-module.exports.logger = logger;
+const protocol_name = 'rethinkdb-fusion-v0';
 
 class BaseServer {
   constructor(opts, make_http_server) {
@@ -36,10 +41,9 @@ class BaseServer {
                                          opts.db,
                                          this._clients);
 
-    this.add_endpoint('subscribe', fusion_read.make_read_reql, fusion_read.handle_read_response);
-    this.add_endpoint('query', fusion_read.make_read_reql, fusion_read.handle_read_response);
-    this.add_endpoint('store', fusion_write.make_write_reql, fusion_write.handle_write_response);
-    this.add_endpoint('remove', fusion_write.make_write_reql, fusion_write.handle_write_response);
+    for (let key of Object.keys(endpoints)) {
+      this.add_endpoint(key, endpoints[key].make_reql, endpoints[key].handle_response);
+    }
 
     opts.local_hosts.forEach((host) => {
         assert(this._http_servers.get(host) === undefined);
@@ -59,6 +63,8 @@ class BaseServer {
   }
 
   add_endpoint(endpoint_name, make_reql, handle_response) {
+    assert(make_reql !== undefined);
+    assert(handle_response !== undefined);
     assert(this._endpoints.get(endpoint_name) === undefined);
     this._endpoints.set(endpoint_name, { make_reql: make_reql, handle_response: handle_response });
   };
@@ -73,32 +79,28 @@ class BaseServer {
   }
 
   _get_endpoint(request) {
-    var type = request.type;
-    var options = request.options;
-
-    check(type !== undefined, `'type' must be specified.`);
-    check(options !== undefined, `'options' must be specified.`);
+    const { type, options } = Joi.attempt(request, fusion_protocol.request);
 
     var endpoint = this._endpoints.get(type);
-    check(endpoint !== undefined, `'${type}' is not a recognized endpoint.`);
+    check(endpoint !== undefined, `"${type}" is not a recognized endpoint.`);
     return endpoint;
   }
 }
 
-module.exports.UnsecureServer = class UnsecureServer extends BaseServer {
+class UnsecureServer extends BaseServer {
   constructor(user_opts) {
-    var opts = Joi.attempt(user_opts, schema.unsecure_server_options);
+    var opts = Joi.attempt(user_opts, server_options.unsecure);
 
     super(opts, () => {
-        logger.warn('Creating unsecure HTTP server.');
+        logger.warn(`Creating unsecure HTTP server.`);
         return new http.Server(handle_http_request);
       });
   }
 }
 
-module.exports.Server = class Server extends BaseServer {
+class Server extends BaseServer {
   constructor(user_opts) {
-    var opts = Joi.attempt(user_opts, schema.secure_server_options);
+    var opts = Joi.attempt(user_opts, server_options.secure);
 
     super(opts, () => {
         return new https.Server({ key: opts.key, cert: opts.cert },
@@ -107,26 +109,26 @@ module.exports.Server = class Server extends BaseServer {
   }
 }
 
-var accept_protocol = function (protocols, cb) {
+const accept_protocol = (protocols, cb) => {
   if (protocols.findIndex(x => x === protocol_name) != -1) {
     cb(true, protocol_name);
   } else {
-    logger.debug(`Rejecting client without '${protocol_name}' protocol: ${protocols}`);
+    logger.debug(`Rejecting client without "${protocol_name}" protocol (${protocols}).`);
     cb(false, null);
   }
 };
 
 // Function which handles just the /fusion.js endpoint
-var handle_http_request = function (req, res) {
+const handle_http_request = (req, res) => {
   const req_path = url.parse(req.url).pathname;
   const file_path = path.resolve('../client/dist/build.js');
-  logger.debug(`HTTP request for '${req_path}'`);
+  logger.debug(`HTTP request for "${req_path}"`);
 
   if (req_path === '/fusion.js') {
     fs.access(file_path, fs.R_OK | fs.F_OK, (exists) => {
         if (exists) {
           res.writeHead(404, { 'Content-Type': 'text/plain' });
-          res.end('Client library not found\n');
+          res.end(`Client library not found\n`);
         } else {
           fs.readFile(file_path, 'binary', (err, file) => {
               if (err) {
@@ -141,7 +143,7 @@ var handle_http_request = function (req, res) {
       });
   } else {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
-    res.end('Forbidden\n');
+    res.end(`Forbidden\n`);
   }
 };
 
@@ -184,3 +186,5 @@ class ReqlConnection {
     return this.connection;
   }
 }
+
+module.exports = { UnsecureServer, Server, protocol: protocol_name, logger };

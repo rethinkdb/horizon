@@ -1,27 +1,26 @@
 'use strict';
 
-const logger = require('./logger.js');
-const error = require('./error.js');
+const { check } = require('./error');
+const logger = require('./logger');
 
 const r = require('rethinkdb');
 const websocket = require('ws');
 
-const check = error.check;
-
 class Query {
-  constructor(request, endpoint) {
+  constructor(client, request) {
+    this.client = client;
     this.request = request;
-    this.endpoint = endpoint;
-    this.reql = endpoint.make_reql(request);
+    this.endpoint = client.parent._get_endpoint(request);
+    this.reql = this.endpoint.make_reql(request);
     this.start_time = Date.now();
   }
 }
 
-module.exports.Client = class Client {
+class Client {
   constructor(socket, parent_server) {
     this.socket = socket;
     this.parent = parent_server;
-    this.cursors = new Set();
+    this.cursors = new Map();
 
     this.socket.on('open', () => this.handle_open());
     this.socket.on('close', (code, msg) => this.handle_close(code, msg));
@@ -47,7 +46,7 @@ module.exports.Client = class Client {
   parse_request(data) {
     try {
       var request = JSON.parse(data);
-      check(request.request_id !== undefined, `'request_id' must be specified.`);
+      check(request.request_id !== undefined, `"request_id" is required`);
       return request;
     } catch (err) {
       logger.debug(`Failed to parse client request: ${err}`);
@@ -66,13 +65,23 @@ module.exports.Client = class Client {
     logger.debug(`Received request from client: ${data}`);
     var request = this.parse_request(data);
 
+    if (request !== undefined && request.type === 'end_subscription') {
+      return end_subscription(request); // there is no response for end_subscription
+    }
+
     try {
       check(this.check_permissions(request),
             `This session lacks the permissions to run ${data}.`);
-
-      this.run_query(new Query(request, this.parent._get_endpoint(request)));
+      this.run_query(new Query(this, request));
     } catch (err) {
       this.send_response({ request: request }, { error: err.message });
+    }
+  }
+
+  end_subscription(request) {
+    var cursor = this.cursors.delete(request.request_id);
+    if (cursor !== undefined) {
+      cursor.close();
     }
   }
 
@@ -88,7 +97,7 @@ module.exports.Client = class Client {
   handle_response(query, res) {
     logger.debug(`Got result ${res} for ${query.request.request_id} - ${query.request.type}`);
     try {
-      query.endpoint.handle_response(this, query.request, res, (data) => this.send_response(query, data));
+      query.endpoint.handle_response(query, res, (data) => this.send_response(query, data));
     } catch (err) {
       logger.debug(`Error when handling response: ${err.message}`);
       this.send_response(query, { error: err.message });
@@ -116,14 +125,14 @@ module.exports.Client = class Client {
   }
 
   handle_response_error(query, info) {
-    const database_exists_regex = /Database `\w+` already exists\./;
-    const table_exists_regex = /Table `\w+\.\w+` already exists\./;
-    const index_exists_regex = /Index `\w+` already exists on table `\w+\.\w+`\./;
-    const table_not_ready_regex = /Primary replica for shard .* not available/;
-    const index_not_ready_regex = /Index `(\w+)` on table `(\w+)\.(\w+)` was accessed before its construction was finished\./;
-    const database_missing_regex = /Database `(\w+)` does not exist\./;
-    const table_missing_regex = /Table `(\w+)\.(\w+)` does not exist\./;
-    const index_missing_regex = /Index `(\w+)` was not found on table `(\w+)\.(\w+)`\./;
+    const database_exists_regex = /Database `\w+` already exists/;
+    const table_exists_regex = /Table `\w+\.\w+` already exists/;
+    const index_exists_regex = /Index `\w+` already exists on table `\w+\.\w+`/;
+    const table_not_ready_regex = /[Pp]rimary replica for shard .* not available/;
+    const index_not_ready_regex = /Index `(\w+)` on table `(\w+)\.(\w+)` was accessed before its construction was finished/;
+    const database_missing_regex = /Database `(\w+)` does not exist/;
+    const table_missing_regex = /Table `(\w+)\.(\w+)` does not exist/;
+    const index_missing_regex = /Index `(\w+)` was not found on table `(\w+)\.(\w+)`/;
 
     logger.debug(`Got error ${info} for ${query.request.request_id} - ${query.request.type}`);
     // Ignore responses for disconnected clients
@@ -148,12 +157,12 @@ module.exports.Client = class Client {
     if (table_not_ready_regex.test(info.msg) &&
         Date.now() - query.start_time < 10000) {
       logger.warn(`Waiting for unknown table to be ready.`);
-      return setTimeout(() => this.run_query(query), 1000);
+      return setTimeout(() => this.run_query(query), 100);
     }
 
     matches = info.msg.match(index_not_ready_regex);
     if (matches !== null && matches.length === 4) {
-      logger.warn(`Waiting for index '${matches[2]}.${matches[3]}:${matches[1]}' to be ready.`);
+      logger.warn(`Waiting for index "${matches[2]}.${matches[3]}:${matches[1]}" to be ready.`);
       return this.run_prerequisite(query,
         r.db(String(matches[2])).table(String(matches[3])).indexWait(String(matches[1])));
     }
@@ -161,20 +170,20 @@ module.exports.Client = class Client {
     // If a db, table, or index used does not exist, we must create them
     matches = info.msg.match(database_missing_regex);
     if (matches != null && matches.length == 2) {
-      logger.warn(`Creating missing db '${matches[1]}'.`);
+      logger.warn(`Creating missing db "${matches[1]}".`);
       return this.run_prerequisite(query, r.dbCreate(String(matches[1])));
     }
 
     matches = info.msg.match(table_missing_regex);
     if (matches !== null && matches.length === 3) {
-      logger.warn(`Creating missing table '${matches[1]}.${matches[2]}'.`);
+      logger.warn(`Creating missing table "${matches[1]}.${matches[2]}".`);
       return this.run_prerequisite(query,
         r.db(String(matches[1])).tableCreate(String(matches[2])));
     }
 
     matches = info.msg.match(index_missing_regex);
     if (matches !== null && matches.length === 4) {
-      logger.warn(`Creating missing index '${matches[2]}.${matches[3]}:${matches[1]}'.`);
+      logger.warn(`Creating missing index "${matches[2]}.${matches[3]}:${matches[1]}".`);
       return this.run_prerequisite(query,
         r.db(String(matches[2])).table(String(matches[3])).indexCreate(String(matches[1])));
     }
@@ -194,3 +203,5 @@ module.exports.Client = class Client {
     return true;
   }
 }
+
+module.exports = { Client };
