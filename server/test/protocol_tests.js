@@ -56,7 +56,7 @@ const all_tests = (table) => {
   it('invalid endpoint', (done) => {
       utils.stream_test({ request_id: 2, type: 'fake', options: { } }, (err, res) => {
           assert.deepStrictEqual(res, []),
-          assert.strictEqual(err.message, "'fake' is not a recognized endpoint.");
+          assert.strictEqual(err.message, '"fake" is not a recognized endpoint.');
           done();
         });
     });

@@ -44,12 +44,10 @@ const all_tests = (table) => {
         utils.stream_test(
           {
             request_id: i,
-            type: 'store',
+            type: 'insert',
             options: {
               collection: table_name,
               data: [{}],
-              missing: 'insert',
-              conflict: 'error',
             },
           },
           (err, res) => {

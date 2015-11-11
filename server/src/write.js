@@ -1,66 +1,52 @@
 'use strict';
 
 const { check, fail } = require('./error');
+const fusion_protocol = require('./schema/fusion_protocol');
 
+const Joi = require('joi');
 const r = require('rethinkdb');
 
-const make_write_reql = (request) => {
-  var type = request.type;
-  var options = request.options;
-  var collection = options.collection;
-  var data = options.data;
+const make_update_reql = (request) => {
+  var { data, collection } = Joi.attempt(request.options, fusion_protocol.update);
+  return r.expr(data).forEach((row) =>
+        r.table(collection).get(row('id')).replace((old) =>
+         r.branch(old.ne(null), old.merge(row),
+           r.error(r.expr("The document with id '")
+                    .add(row('id').coerceTo('string'))
+                    .add("' was missing.")))));
+}
 
-  check(data !== undefined, `'options.data' must be specified.`);
-  check(data.length >= 0, `'options.data' must be an array of at least length 1.`);
-  check(collection !== undefined, `'options.collection' must be specified.`);
-  check(collection.constructor.name === 'String',
-        `'options.collection' must be a string.`)
+const make_replace_reql = (request) => {
+  var { data, collection } = Joi.attempt(request.options, fusion_protocol.replace);
+  return r.expr(data).forEach((row) =>
+        r.table(collection).get(row('id')).replace((old) =>
+          r.branch(old.ne(null), row,
+           r.error(r.expr("The document with id '")
+                    .add(row('id').coerceTo('string'))
+                    .add("' was missing.")))));
+}
 
-  var reql = r.table(collection);
+const make_insert_reql = (request) => {
+  var { data, collection } = Joi.attempt(request.options, fusion_protocol.insert);
+  return r.table(collection).insert(data, { conflict: 'error' });
+}
 
-  switch (type) {
-  case 'store':
-    var missing = options.missing;
-    var conflict = options.conflict;
-    check(missing !== undefined, `'options.missing' must be specified for a 'store' operation.`);
-    check(conflict !== undefined, `'options.conflict' must be specified for a 'store' operation.`);
-    check(conflict === 'update' || conflict === 'replace' || conflict === 'error',
-          `'options.conflict' must be one of 'update', 'replace', or 'error'.`);
+const make_upsert_reql = (request) => {
+  var { data, collection } = Joi.attempt(request.options, fusion_protocol.upsert);
+  return r.table(collection).insert(data, { conflict: 'update' });
+}
 
-    if (missing === 'insert') {
-      reql = reql.insert(data, { conflict: conflict });
-    } else if (missing === 'error') {
-      if (conflict === 'update') {
-        reql = r.expr(data).forEach((row) =>
-          reql.get(row('id')).replace((old) =>
-           r.branch(old.ne(null), old.merge(row),
-             r.error(r.expr("The document with id '")
-                      .add(row('id').coerceTo('string'))
-                      .add("' was missing.")))));
-      } else if (conflict === 'replace') {
-        reql = r.expr(data).forEach((row) =>
-          reql.get(row('id')).replace((old) =>
-            r.branch(old.ne(null), row,
-             r.error(r.expr("The document with id '")
-                      .add(row('id').coerceTo('string'))
-                      .add("' was missing.")))));
-      } else {
-        fail(`'options.missing' and 'options.conflict' cannot both be 'error'.`);
-      }
-    } else {
-      fail(`'options.missing' must be one of 'insert' or 'error'.`);
-    }
-    break;
-  case 'remove':
-    var ids = data.map((row) => {
-        check(row.id !== undefined, `'options.data[i].id' must be specified for 'remove'.`);
-        return row.id;
-      });
-    reql = reql.getAll(r.args(ids), { index: 'id' }).delete();
-  }
+const make_store_reql = (request) => {
+  var { data, collection } = Joi.attempt(request.options, fusion_protocol.store);
+  return r.table(collection).insert(data, { conflict: 'replace' });
+}
 
-  return reql;
-};
+const make_remove_reql = (request) => {
+  var { data, collection } = Joi.attempt(request.options, fusion_protocol.remove);
+  return r.table(collection)
+          .getAll(r.args(data.map((row) => row.id)), { index: 'id' })
+          .delete();
+}
 
 const handle_write_response = (query, response, send_cb) => {
   if (response.errors !== 0) {
@@ -68,10 +54,22 @@ const handle_write_response = (query, response, send_cb) => {
   } else {
     var index = 0;
     var ids = query.request.options.data.map((row) => {
-        return row.id === undefined ? response.generated_keys[index++] : row.id;
+        if (row.id === undefined) {
+          check(response.generated_keys && response.generated_keys.length > index);
+          return response.generated_keys[index++];
+        }
+        return row.id;
       });
     send_cb({ data: ids, state: 'complete' });
   }
 };
 
-module.exports = { make_write_reql, handle_write_response };
+module.exports = {
+  make_store_reql,
+  make_insert_reql,
+  make_update_reql,
+  make_upsert_reql,
+  make_replace_reql,
+  make_remove_reql,
+  handle_write_response
+};

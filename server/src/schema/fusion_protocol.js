@@ -20,7 +20,7 @@ const read = Joi.object({
       .when('selection.type', { is: 'find', then: Joi.array().length(1) })
       .when('selection.type', { is: 'between', then: Joi.array().length(2),
                                 otherwise: Joi.array() })
-  }).optional(),
+  }).unknown(false).optional(),
 
     // .options({
     //   language: {
@@ -29,16 +29,32 @@ const read = Joi.object({
     //     }
     //   }
     // })
-});
+}).unknown(false);
 
-const write = Joi.object({
-});
+const write_id_optional = Joi.object({
+  collection: Joi.string().token().required(),
+  data: Joi.array().min(1).items(Joi.object({ id: Joi.any().optional() })),
+}).unknown(false);
+
+const write_id_required = Joi.object({
+  collection: Joi.string().token().required(),
+  data: Joi.array().min(1).items(Joi.object({ id: Joi.any().required() })),
+}).unknown(false);
 
 const request = Joi.object({
   request_id: Joi.number().required(),
   type: Joi.string().required(),
   options: Joi.object().required(),
-});
+}).unknown(false);
 
-
-module.exports = { request, read, write }
+module.exports = {
+  request,
+  query: read,
+  subscribe: read,
+  insert: write_id_optional,
+  store: write_id_optional,
+  upsert: write_id_required,
+  update: write_id_required,
+  replace: write_id_required,
+  remove: write_id_required,
+};

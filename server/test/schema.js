@@ -33,7 +33,7 @@ describe('Schema', () => {
       // order: 'ascending'
     };
 
-    var { error, value } = fusion_protocol.read.validate(options);
+    var { error, value } = fusion_protocol.query.validate(options);
 
     assert.ifError(error);
     assert(value);

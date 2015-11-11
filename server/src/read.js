@@ -7,7 +7,7 @@ const Joi = require('joi');
 const r = require('rethinkdb');
 
 const make_read_reql = (request) => {
-  var options = Joi.attempt(request.options, protocol.read);
+  var options = Joi.attempt(request.options, protocol.query);
   var { selection, order, limit } = options;
   var index = options.field_name;
 

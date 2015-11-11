@@ -24,7 +24,7 @@ const all_tests = (table) => {
   beforeEach('Populate table', (done) => utils.populate_table(table, num_rows, done));
   beforeEach('Authenticate', (done) => utils.fusion_default_auth(done));
 
-  it('store replace insert new', (done) => {
+  it('store new', (done) => {
       utils.stream_test(
         {
           request_id: 0,
@@ -32,8 +32,6 @@ const all_tests = (table) => {
           options: {
             collection: table,
             data: [ new_row ],
-            conflict: 'replace',
-            missing: 'insert',
           },
         },
         (err, res) => {
@@ -42,7 +40,7 @@ const all_tests = (table) => {
         });
     });
 
-  it('store replace insert conflict', (done) => {
+  it('store conflict', (done) => {
       utils.stream_test(
         {
           request_id: 0,
@@ -50,8 +48,6 @@ const all_tests = (table) => {
           options: {
             collection: table,
             data: [ conflict_row ],
-            conflict: 'replace',
-            missing: 'insert',
           },
         },
         (err, res) => {
@@ -60,7 +56,7 @@ const all_tests = (table) => {
         });
     });
 
-  it('store replace insert batch new', (done) => {
+  it('store batch new', (done) => {
       utils.stream_test(
         {
           request_id: 0,
@@ -68,8 +64,6 @@ const all_tests = (table) => {
           options: {
             collection: table,
             data: new_batch,
-            conflict: 'replace',
-            missing: 'insert',
           },
         },
         (err, res) => {
@@ -78,7 +72,7 @@ const all_tests = (table) => {
         });
     });
 
-  it('store replace insert batch conflict', (done) => {
+  it('store batch conflict', (done) => {
       utils.stream_test(
         {
           request_id: 0,
@@ -86,8 +80,6 @@ const all_tests = (table) => {
           options: {
             collection: table,
             data: conflict_batch,
-            conflict: 'replace',
-            missing: 'insert',
           },
         },
         (err, res) => {
@@ -96,16 +88,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store replace error new', (done) => {
+  it('replace new', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'replace',
           options: {
             collection: table,
             data: [ new_row ],
-            conflict: 'replace',
-            missing: 'error',
           },
         },
         (err, res) => {
@@ -115,16 +105,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store replace error conflict', (done) => {
+  it('replace conflict', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'replace',
           options: {
             collection: table,
             data: [ conflict_row ],
-            conflict: 'replace',
-            missing: 'error',
           },
         },
         (err, res) => {
@@ -133,16 +121,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store replace error batch new', (done) => {
+  it('replace batch new', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'replace',
           options: {
             collection: table,
             data: new_batch,
-            conflict: 'replace',
-            missing: 'error',
           },
         },
         (err, res) => {
@@ -152,16 +138,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store replace error batch conflict', (done) => {
+  it('replace batch conflict', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'replace',
           options: {
             collection: table,
             data: conflict_batch,
-            conflict: 'replace',
-            missing: 'error',
           },
         },
         (err, res) => {
@@ -171,16 +155,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store update insert new', (done) => {
+  it('upsert new', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'upsert',
           options: {
             collection: table,
             data: [ new_row ],
-            conflict: 'update',
-            missing: 'insert',
           },
         },
         (err, res) => {
@@ -189,16 +171,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store update insert conflict', (done) => {
+  it('upsert conflict', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'upsert',
           options: {
             collection: table,
             data: [ conflict_row ],
-            conflict: 'update',
-            missing: 'insert',
           },
         },
         (err, res) => {
@@ -207,16 +187,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store update insert batch new', (done) => {
+  it('upsert batch new', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'upsert',
           options: {
             collection: table,
             data: new_batch,
-            conflict: 'update',
-            missing: 'insert',
           },
         },
         (err, res) => {
@@ -225,16 +203,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store update insert batch conflict', (done) => {
+  it('upsert batch conflict', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'upsert',
           options: {
             collection: table,
             data: conflict_batch,
-            conflict: 'update',
-            missing: 'insert',
           },
         },
         (err, res) => {
@@ -243,16 +219,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store update error new', (done) => {
+  it('update new', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'update',
           options: {
             collection: table,
             data: [ new_row ],
-            conflict: 'update',
-            missing: 'error',
           },
         },
         (err, res) => {
@@ -262,16 +236,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store update error conflict', (done) => {
+  it('update conflict', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'update',
           options: {
             collection: table,
             data: [ conflict_row ],
-            conflict: 'update',
-            missing: 'error',
           },
         },
         (err, res) => {
@@ -280,16 +252,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store update error batch new', (done) => {
+  it('update batch new', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'update',
           options: {
             collection: table,
             data: new_batch,
-            conflict: 'update',
-            missing: 'error',
           },
         },
         (err, res) => {
@@ -299,16 +269,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store update error batch conflict', (done) => {
+  it('update batch conflict', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'update',
           options: {
             collection: table,
             data: conflict_batch,
-            conflict: 'update',
-            missing: 'error',
           },
         },
         (err, res) => {
@@ -318,16 +286,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store error insert new', (done) => {
+  it('insert new', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'insert',
           options: {
             collection: table,
             data: [ new_row ],
-            conflict: 'error',
-            missing: 'insert',
           },
         },
         (err, res) => {
@@ -336,16 +302,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store error insert conflict', (done) => {
+  it('insert conflict', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'insert',
           options: {
             collection: table,
             data: [ conflict_row ],
-            conflict: 'error',
-            missing: 'insert',
           },
         },
         (err, res) => {
@@ -355,16 +319,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store error insert batch new', (done) => {
+  it('insert batch new', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'insert',
           options: {
             collection: table,
             data: new_batch,
-            conflict: 'error',
-            missing: 'insert',
           },
         },
         (err, res) => {
@@ -373,16 +335,14 @@ const all_tests = (table) => {
         });
     });
 
-  it('store error insert batch conflict', (done) => {
+  it('insert batch conflict', (done) => {
       utils.stream_test(
         {
           request_id: 0,
-          type: 'store',
+          type: 'insert',
           options: {
             collection: table,
             data: conflict_batch,
-            conflict: 'error',
-            missing: 'insert',
           },
         },
         (err, res) => {
@@ -392,83 +352,7 @@ const all_tests = (table) => {
         });
     });
 
-  it('store error error new', (done) => {
-      utils.stream_test(
-        {
-          request_id: 0,
-          type: 'store',
-          options: {
-            collection: table,
-            data: [ new_row ],
-            conflict: 'error',
-            missing: 'error',
-          },
-        },
-        (err, res) => {
-          assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "'options.missing' and 'options.conflict' cannot both be 'error'.");
-          check_table_size(10, done);
-        });
-    });
-
-  it('store error error conflict', (done) => {
-      utils.stream_test(
-        {
-          request_id: 0,
-          type: 'store',
-          options: {
-            collection: table,
-            data: [ conflict_row ],
-            conflict: 'error',
-            missing: 'error',
-          },
-        },
-        (err, res) => {
-          assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "'options.missing' and 'options.conflict' cannot both be 'error'.");
-          check_table_size(10, done);
-        });
-    });
-
-  it('store error error batch new', (done) => {
-      utils.stream_test(
-        {
-          request_id: 0,
-          type: 'store',
-          options: {
-            collection: table,
-            data: new_batch,
-            conflict: 'error',
-            missing: 'error',
-          },
-        },
-        (err, res) => {
-          assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "'options.missing' and 'options.conflict' cannot both be 'error'.");
-          check_table_size(10, done);
-        });
-    });
-
-  it('store error error batch conflict', (done) => {
-      utils.stream_test(
-        {
-          request_id: 0,
-          type: 'store',
-          options: {
-            collection: table,
-            data: conflict_batch,
-            conflict: 'error',
-            missing: 'error',
-          },
-        },
-        (err, res) => {
-          assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "'options.missing' and 'options.conflict' cannot both be 'error'.");
-          check_table_size(10, done);
-        });
-    });
-
-  it('remove single new', (done) => {
+  it('remove new', (done) => {
       utils.stream_test(
         {
           request_id: 0,
@@ -484,7 +368,7 @@ const all_tests = (table) => {
         });
     });
 
-  it('remove single conflict', (done) => {
+  it('remove conflict', (done) => {
       utils.stream_test(
         {
           request_id: 0,
@@ -500,7 +384,7 @@ const all_tests = (table) => {
         });
     });
 
-  it('remove single batch new', (done) => {
+  it('remove batch new', (done) => {
       utils.stream_test(
         {
           request_id: 0,
@@ -516,7 +400,7 @@ const all_tests = (table) => {
         });
     });
 
-  it('remove single batch conflict', (done) => {
+  it('remove batch conflict', (done) => {
       utils.stream_test(
         {
           request_id: 0,

@@ -34,8 +34,12 @@ class BaseServer {
 
     this.add_endpoint('subscribe', fusion_read.make_read_reql, fusion_read.handle_read_response);
     this.add_endpoint('query', fusion_read.make_read_reql, fusion_read.handle_read_response);
-    this.add_endpoint('store', fusion_write.make_write_reql, fusion_write.handle_write_response);
-    this.add_endpoint('remove', fusion_write.make_write_reql, fusion_write.handle_write_response);
+    this.add_endpoint('update', fusion_write.make_update_reql, fusion_write.handle_write_response);
+    this.add_endpoint('replace', fusion_write.make_replace_reql, fusion_write.handle_write_response);
+    this.add_endpoint('insert', fusion_write.make_insert_reql, fusion_write.handle_write_response);
+    this.add_endpoint('upsert', fusion_write.make_upsert_reql, fusion_write.handle_write_response);
+    this.add_endpoint('store', fusion_write.make_store_reql, fusion_write.handle_write_response);
+    this.add_endpoint('remove', fusion_write.make_remove_reql, fusion_write.handle_write_response);
 
     opts.local_hosts.forEach((host) => {
         assert(this._http_servers.get(host) === undefined);
@@ -72,7 +76,7 @@ class BaseServer {
     const { type, options } = Joi.attempt(request, fusion_protocol.request);
 
     var endpoint = this._endpoints.get(type);
-    check(endpoint !== undefined, `'${type}' is not a recognized endpoint.`);
+    check(endpoint !== undefined, `"${type}" is not a recognized endpoint.`);
     return endpoint;
   }
 }
@@ -82,7 +86,7 @@ class UnsecureServer extends BaseServer {
     var opts = Joi.attempt(user_opts, server_options.unsecure);
 
     super(opts, () => {
-        logger.warn('Creating unsecure HTTP server.');
+        logger.warn(`Creating unsecure HTTP server.`);
         return new http.Server(handle_http_request);
       });
   }
@@ -103,7 +107,7 @@ const accept_protocol = (protocols, cb) => {
   if (protocols.findIndex(x => x === protocol_name) != -1) {
     cb(true, protocol_name);
   } else {
-    logger.debug(`Rejecting client without '${protocol_name}' protocol: ${protocols}`);
+    logger.debug(`Rejecting client without "${protocol_name}" protocol (${protocols}).`);
     cb(false, null);
   }
 };
@@ -112,13 +116,13 @@ const accept_protocol = (protocols, cb) => {
 const handle_http_request = (req, res) => {
   const req_path = url.parse(req.url).pathname;
   const file_path = path.resolve('../client/dist/build.js');
-  logger.debug(`HTTP request for '${req_path}'`);
+  logger.debug(`HTTP request for "${req_path}"`);
 
   if (req_path === '/fusion.js') {
     fs.access(file_path, fs.R_OK | fs.F_OK, (exists) => {
         if (exists) {
           res.writeHead(404, { 'Content-Type': 'text/plain' });
-          res.end('Client library not found\n');
+          res.end(`Client library not found\n`);
         } else {
           fs.readFile(file_path, 'binary', (err, file) => {
               if (err) {
@@ -133,7 +137,7 @@ const handle_http_request = (req, res) => {
       });
   } else {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
-    res.end('Forbidden\n');
+    res.end(`Forbidden\n`);
   }
 };
 
