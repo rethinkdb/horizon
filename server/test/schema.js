@@ -5,7 +5,7 @@ const protocol = require('../src/schema/protocol');
 
 describe('Schema', () => {
 
-  it('request', (done) => {
+  it('protocol - request', (done) => {
     const request = {
       request_id: 1,
       type: 'query',
@@ -20,7 +20,46 @@ describe('Schema', () => {
     done();
   });
 
-  it('query - options', (done) => {
+  // TODO: all these tests assume failures but don't validate why
+
+  it('protocol - read - find', (done) => {
+    const options = {
+      collection: 'fusion',
+      field_name: 'id',
+      selection: {
+        type: 'find',
+        args: [ 1, 2, 3 ]
+      },
+      limit: 1,
+    };
+
+    var { error } = protocol.read.validate(options);
+
+    assert.ifError(error);
+
+    done();
+  });
+
+  it('protocol - read - between', (done) => {
+    const options = {
+      collection: 'fusion',
+      field_name: 'id',
+      selection: {
+        type: 'between',
+        args: [ 1, 2 ]
+      },
+      limit: 1,
+      order: 'descending',
+    };
+
+    var { error } = protocol.read.validate(options);
+
+    assert.ifError(error);
+
+    done();
+  });
+
+  it('protocol - read - find_one', (done) => {
     const options = {
       collection: 'fusion',
       field_name: 'id',
@@ -28,16 +67,12 @@ describe('Schema', () => {
         type: 'find_one',
         args: [ 1 ]
       },
-      // limit: 1,
-      // order: 'ascending'
+      limit: 1
     };
 
-    var { error, value } = protocol.read.validate(options);
+    var { error } = protocol.read.validate(options);
 
-    assert.ifError(error);
-    assert(value);
-    assert.equal(value.field_name, 'id');
-    assert.deepEqual(value.selection.args, [1]);
+    assert(error);
 
     done();
   });
