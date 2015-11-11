@@ -906,13 +906,11 @@ describe("Fusion Client Library", () => {
         }).catch(done);
       });
 
-      // TODO for Josh: for some reason defining `empty_collection` below breaks
-      // everything.
-
       // We'll also need a separate empty collection
-      //var empty_collection = fusion('empty_test_collection');
+      var empty_collection;
       before((done) => {
-        //removeAllData(empty_collection, done);
+        empty_collection = fusion('empty_test_collection');
+        removeAllData(empty_collection, done);
         done();
       });
 
@@ -928,7 +926,7 @@ describe("Fusion Client Library", () => {
         });
 
         // Reading from an empty collection should result in an empty array
-        it.skip("#.empty_collection", (done) => {
+        it("#.empty_collection", (done) => {
           empty_collection.value().then((res) => {
             assert.sameDeepMembers([], res);
             done();
