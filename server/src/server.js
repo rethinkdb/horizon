@@ -3,10 +3,19 @@
 const { check } = require('./error');
 const fusion_client = require('./client');
 const fusion_protocol = require('./schema/fusion_protocol');
-const fusion_read = require('./read');
-const fusion_write = require('./write');
 const logger = require('./logger');
 const server_options = require('./schema/server_options');
+
+const endpoints = {
+  insert: require('./endpoint/insert'),
+  query: require('./endpoint/query'),
+  remove: require('./endpoint/remove'),
+  replace: require('./endpoint/replace'),
+  store: require('./endpoint/store'),
+  subscribe: require('./endpoint/subscribe'),
+  update: require('./endpoint/update'),
+  upsert: require('./endpoint/upsert'),
+};
 
 const assert = require('assert');
 const fs = require('fs');
@@ -32,14 +41,9 @@ class BaseServer {
                                          opts.db,
                                          this._clients);
 
-    this.add_endpoint('subscribe', fusion_read.make_read_reql, fusion_read.handle_read_response);
-    this.add_endpoint('query', fusion_read.make_read_reql, fusion_read.handle_read_response);
-    this.add_endpoint('update', fusion_write.make_update_reql, fusion_write.handle_write_response);
-    this.add_endpoint('replace', fusion_write.make_replace_reql, fusion_write.handle_write_response);
-    this.add_endpoint('insert', fusion_write.make_insert_reql, fusion_write.handle_write_response);
-    this.add_endpoint('upsert', fusion_write.make_upsert_reql, fusion_write.handle_write_response);
-    this.add_endpoint('store', fusion_write.make_store_reql, fusion_write.handle_write_response);
-    this.add_endpoint('remove', fusion_write.make_remove_reql, fusion_write.handle_write_response);
+    for (let key of Object.keys(endpoints)) {
+      this.add_endpoint(key, endpoints[key].make_reql, endpoints[key].handle_response);
+    }
 
     opts.local_hosts.forEach((host) => {
         assert(this._http_servers.get(host) === undefined);
@@ -59,6 +63,8 @@ class BaseServer {
   }
 
   add_endpoint(endpoint_name, make_reql, handle_response) {
+    assert(make_reql !== undefined);
+    assert(handle_response !== undefined);
     assert(this._endpoints.get(endpoint_name) === undefined);
     this._endpoints.set(endpoint_name, { make_reql: make_reql, handle_response: handle_response });
   };

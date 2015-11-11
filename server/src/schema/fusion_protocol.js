@@ -53,7 +53,7 @@ module.exports = {
   subscribe: read,
   insert: write_id_optional,
   store: write_id_optional,
-  upsert: write_id_required,
+  upsert: write_id_optional,
   update: write_id_required,
   replace: write_id_required,
   remove: write_id_required,
