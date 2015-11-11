@@ -83,8 +83,8 @@ All requests match the following pattern:
   * `update` updates existing documents. It errors if any document does not already exist
   * `upsert` updates existing documents or inserts them if they do not exist
   * `replace` replaces existing documents entirely. It errors if any document does not already exist
-  * `store` replaces existing documents entirely, or inserts them if they doesn't exist.
-  * `remove` removes documents
+  * `store` replaces existing documents entirely, or inserts them if they do'nt exist.
+  * `remove` removes documents. It will not error if a document does not exist
 
 #### end_subscription
 Tells the fusion server to stop sending data for a given subscription.  Data may still be received until the server has processed this and sent a `"state": "complete"` response for the subscription.
