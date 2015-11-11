@@ -911,7 +911,6 @@ describe("Fusion Client Library", () => {
       before((done) => {
         empty_collection = fusion('empty_test_collection');
         removeAllData(empty_collection, done);
-        done();
       });
 
 
