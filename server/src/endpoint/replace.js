@@ -7,7 +7,9 @@ const Joi = require('joi');
 const r = require('rethinkdb');
 
 const make_reql = (request) => {
-  var { data, collection } = Joi.attempt(request.options, replace);
+  var { value: { data, collection }, error } = Joi.validate(request.options, replace);
+  if (error !== null) { throw new Error(error.details[0].message); }
+
   return r.expr(data).forEach((row) =>
         r.table(collection).get(row('id')).replace((old) =>
           r.branch(old.ne(null), row,

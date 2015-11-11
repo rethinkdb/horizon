@@ -6,7 +6,9 @@ const Joi = require('joi');
 const r = require('rethinkdb');
 
 const make_reql = (request) => {
-  var { data, collection } = Joi.attempt(request.options, remove);
+  var { value: { data, collection }, error } = Joi.validate(request.options, remove);
+  if (error !== null) { throw new Error(error.details[0].message); }
+
   return r.table(collection)
           .getAll(r.args(data.map((row) => row.id)), { index: 'id' })
           .delete();

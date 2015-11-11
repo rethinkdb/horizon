@@ -59,7 +59,7 @@ class Client {
       return request;
     } catch (err) {
       logger.debug(`Failed to parse client request: ${err}`);
-      return this.socket.close(1002, `Unparseable request: ${data}`);
+      this.socket.close(1002, `Unparseable request: ${data}`);
     }
   }
 
@@ -67,23 +67,29 @@ class Client {
     logger.debug(`Got handshake request: ${data}`);
     // TODO: implement handshake
     this.socket.on('message', (data) => this.handle_request(data));
-    this.send_response({ request: this.parse_request(data) }, { user_id: 0 });
+    var request = this.parse_request(data);
+
+    if (request !== undefined) {
+      this.send_response({ request: request }, { user_id: 0 });
+    }
   }
 
   handle_request(data) {
     logger.debug(`Received request from client: ${data}`);
     var request = this.parse_request(data);
 
-    if (request !== undefined && request.type === 'end_subscription') {
-      return this.end_subscription(request); // there is no response for end_subscription
-    }
+    if (request !== undefined) {
+      if (request.type === 'end_subscription') {
+        return this.end_subscription(request); // there is no response for end_subscription
+      }
 
-    try {
-      check(this.check_permissions(request),
-            `This session lacks the permissions to run ${data}.`);
-      this.run_query(new Query(this, request));
-    } catch (err) {
-      this.send_response({ request: request }, { error: err.message });
+      try {
+        check(this.check_permissions(request),
+              `This session lacks the permissions to run ${data}.`);
+        this.run_query(new Query(this, request));
+      } catch (err) {
+        this.send_response({ request: request }, { error: err.message });
+      }
     }
   }
 

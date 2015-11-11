@@ -7,7 +7,8 @@ const Joi = require('joi');
 const r = require('rethinkdb');
 
 const make_reql = (request) => {
-  var { data, collection } = Joi.attempt(request.options, insert);
+  var { value: { data, collection }, error } = Joi.validate(request.options, insert);
+  if (error !== null) { throw new Error(error.details[0].message); }
   return r.table(collection).insert(data, { conflict: 'error' });
 };
 

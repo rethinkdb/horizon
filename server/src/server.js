@@ -79,10 +79,11 @@ class BaseServer {
   }
 
   _get_endpoint(request) {
-    const { type } = Joi.attempt(request, fusion_protocol.request);
+    const { value, error } = Joi.validate(request, fusion_protocol.request);
+    if (error !== null) { throw new Error(error.details[0].message); }
 
-    var endpoint = this._endpoints.get(type);
-    check(endpoint !== undefined, `"${type}" is not a recognized endpoint.`);
+    var endpoint = this._endpoints.get(value.type);
+    check(endpoint !== undefined, `"${value.type}" is not a recognized endpoint.`);
     return endpoint;
   }
 }
