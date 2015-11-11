@@ -10,16 +10,6 @@ function errorEvent(id){
   return `error:${id}`
 }
 
-//Pass a function's 'arguments' object to this and a promise to return
-//if successful
-function rejectIfNoArgs(name, args, onSuccess){
-  if(args.length === 0){
-    return Promise.reject(
-      new Error(`${name} must receive at least one argument`))
-  }else{
-    return onSuccess
-  }
-}
 let emitterCount = 0
 
 class FusionEmitter extends EventEmitter {
@@ -203,18 +193,9 @@ class Fusion extends FusionEmitter {
     return new Collection(this, collectionName)
   }
 
-  store(collection, documents, options){
-    if(Array.isArray(documents[0]) && documents.length === 1 ){
-      //Unwrap if a user passed an array to a spread function
-      documents = documents[0]
-    }
-    let command = Object.assign({data: documents}, collection, options)
-    return this._send(`store`, command).intoCollectingPromise('response')
-  }
-
-  remove(collection, documents){
-    let command = {collection: collection, data: documents}
-    return this._send('remove', command).intoCollectingPromise('response')
+  writeOp(opType, collectionName, documents){
+    let command = {data: documents, collection: collectionName}
+    return this._send(opType, command).intoCollectingPromise('response')
   }
 
   query(data){
@@ -456,8 +437,11 @@ class Collection extends TermBase {
     return new FindOne(this.fusion, this.query, id, field)
   }
 
-  find(fieldName, fieldValue){
-    return new Find(this.fusion, this.query, fieldName, fieldValue)
+  find(...fieldValues){
+    if(arguments.length > 0){
+      var { field } = Array.slice(...fieldValues, 0, -1)
+    }
+    return new Find(this.fusion, this.query, fieldValues)
   }
 
   between(minVal, maxVal, field='id'){
@@ -468,46 +452,49 @@ class Collection extends TermBase {
     return new Order(this.fusion, this.query, field, ascending)
   }
 
-  store(...documents){
-    let args = {missing: 'insert', conflict: 'replace'}
-    let promise = this.fusion.store(this.query, documents, args)
-    return rejectIfNoArgs('store', arguments, promise)
+  store(documents){
+    return this._writeOp('store', documents)
   }
 
-  upsert(...documents){
-    let args =  {missing: 'insert', conflict: 'update'}
-    let promise = this.fusion.store(this.query, documents, args)
-    return rejectIfNoArgs('upsert', arguments, promise)
+  upsert(documents){
+    return this._writeOp('upsert', documents)
   }
 
-  insert(...documents){
-    let args = {missing: 'insert', conflict: 'error'}
-    let promise = this.fusion.store(this.query, documents, args)
-    return rejectIfNoArgs('insert', arguments, promise)
+  insert(documents){
+    return this._writeOp('insert', documents)
   }
 
-  replace(...documents){
-    let args = {missing: 'error', conflict: 'replace'}
-    let promise = this.fusion.store(this.query, documents, args)
-    return rejectIfNoArgs('replace', arguments, promise)
+  replace(documents){
+    return this._writeOp('replace', documents)
   }
 
-  update(...documents){
-    let args = {missing: 'error', conflict: 'update'}
-    let promise = this.fusion.store(this.query, documents, args)
-    return rejectIfNoArgs('update', arguments, promise)
+  update(documents){
+    return this._writeOp('update', documents)
   }
 
-  remove(...documents){
-    documents = documents.map((doc) => {
-      if(typeof doc === 'number' || typeof doc === 'string'){
+  remove(documents){
+    // Wrap bare identifiers
+    if(!Array.isArray(documents)){
+      documents = [documents]
+    }
+    documents = documents.map(doc => {
+      if(['string', 'number'].indexOf(typeof doc) !== -1){
         return {id: doc}
       }else{
         return doc
       }
     })
-    let promise = this.fusion.remove(this._collectionName, documents)
-    return rejectIfNoArgs('remove', arguments, promise)
+    return this._writeOp('remove', documents)
+  }
+
+  _writeOp(name, documents){
+    if(documents == null){
+      return Promise.reject(
+        new Error(`${name} must receive a non-null argument`))
+    }else if(!Array.isArray(documents)){
+      documents = [documents]
+    }
+    return this.fusion.writeOp(name, this._collectionName, documents)
   }
 }
 
