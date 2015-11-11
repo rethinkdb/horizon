@@ -10,8 +10,8 @@ const suite = (table) => describe('Write', () => all_tests(table));
 const num_rows = 10;
 
 const new_row = { id: 10 };
-const new_batch = [ { id: 10 }, { id: 11 }, { id: 12 } ];
 const conflict_row = { id: 0 };
+const new_batch = [ { id: 10 }, { id: 11 }, { id: 12 } ];
 const conflict_batch = [ { id: 8 }, { id: 9 }, { id: 10 } ];
 
 // TODO: verify through reql that rows have been inserted/removed
@@ -34,8 +34,9 @@ const all_tests = (table) => {
             data: [ new_row ],
           },
         },
-        (err) => {
+        (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [10]);
           check_table_size(11, done);
         });
     });
@@ -50,8 +51,9 @@ const all_tests = (table) => {
             data: [ conflict_row ],
           },
         },
-        (err) => {
+        (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [0]);
           check_table_size(10, done);
         });
     });
@@ -66,8 +68,9 @@ const all_tests = (table) => {
             data: new_batch,
           },
         },
-        (err) => {
+        (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [10, 11, 12]);
           check_table_size(13, done);
         });
     });
@@ -82,8 +85,9 @@ const all_tests = (table) => {
             data: conflict_batch,
           },
         },
-        (err) => {
+        (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [8, 9, 10]);
           check_table_size(11, done);
         });
     });
@@ -98,9 +102,10 @@ const all_tests = (table) => {
             data: [ new_row ],
           },
         },
-        (err) => {
+        (err, res) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, `The document with id '10' was missing.`);
+          assert.strictEqual(err.message, `The document with id 10 was missing.`);
+          assert.deepStrictEqual(res, []);
           check_table_size(10, done);
         });
     });
@@ -115,8 +120,9 @@ const all_tests = (table) => {
             data: [ conflict_row ],
           },
         },
-        (err) => {
+        (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [0]);
           check_table_size(10, done);
         });
     });
@@ -131,9 +137,10 @@ const all_tests = (table) => {
             data: new_batch,
           },
         },
-        (err) => {
+        (err, res) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, `The document with id '10' was missing.`);
+          assert.strictEqual(err.message, `The document with id 10 was missing.`);
+          assert.deepStrictEqual(res, []);
           check_table_size(10, done);
         });
     });
@@ -150,7 +157,8 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "The document with id '10' was missing.");
+          assert.strictEqual(err.message, `The document with id 10 was missing.`);
+          assert.deepStrictEqual(res, []);
           check_table_size(10, done);
         });
     });
@@ -167,6 +175,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [10]);
           check_table_size(11, done);
         });
     });
@@ -183,6 +192,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [0]);
           check_table_size(11, done);
         });
     });
@@ -199,6 +209,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [10, 11, 12]);
           check_table_size(11, done);
         });
     });
@@ -215,6 +226,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [8, 9, 10]);
           check_table_size(11, done);
         });
     });
@@ -231,7 +243,8 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "The document with id '10' was missing.");
+          assert.strictEqual(err.message, `The document with id 10 was missing.`);
+          assert.deepStrictEqual(res, []);
           check_table_size(10, done);
         });
     });
@@ -248,6 +261,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [0]);
           check_table_size(11, done);
         });
     });
@@ -264,7 +278,8 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "The document with id '10' was missing.");
+          assert.strictEqual(err.message, `The document with id 10 was missing.`);
+          assert.deepStrictEqual(res, []);
           check_table_size(10, done);
         });
     });
@@ -281,7 +296,8 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, "The document with id '10' was missing.");
+          assert.strictEqual(err.message, `The document with id 10 was missing.`);
+          assert.deepStrictEqual(res, []);
           check_table_size(11, done);
         });
     });
@@ -298,6 +314,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [10]);
           check_table_size(11, done);
         });
     });
@@ -314,7 +331,8 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.notStrictEqual(err, null);
-          assert(/Duplicate primary key `id`/.test(err.message));
+          utils.check_error(err, 'Duplicate primary key');
+          assert.deepStrictEqual(res, []);
           check_table_size(10, done);
         });
     });
@@ -331,6 +349,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [10, 11, 12]);
           check_table_size(11, done);
         });
     });
@@ -347,7 +366,8 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.notStrictEqual(err, null);
-          assert(/Duplicate primary key `id`/.test(err.message));
+          utils.check_error(err, 'Duplicate primary key');
+          assert.deepStrictEqual(res, []);
           check_table_size(11, done);
         });
     });
@@ -364,6 +384,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [10]);
           check_table_size(10, done);
         });
     });
@@ -380,6 +401,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [0]);
           check_table_size(9, done);
         });
     });
@@ -396,6 +418,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [10, 11, 12]);
           check_table_size(10, done);
         });
     });
@@ -412,6 +435,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.ifError(err);
+          assert.deepStrictEqual(res, [8, 9, 10]);
           check_table_size(8, done);
         });
     });

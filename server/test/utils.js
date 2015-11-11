@@ -239,6 +239,11 @@ module.exports.stream_test = (req, cb) => {
     });
 };
 
+module.exports.check_error = (err, msg) => {
+  assert.notStrictEqual(err, null);
+  assert(err.message.indexOf(msg) !== -1, err.message);
+};
+
 module.exports.rdb_conn = () => rdb_conn;
 module.exports.fusion_conn = () => fusion_conn;
 module.exports.fusion_port = () => fusion_port;

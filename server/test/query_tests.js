@@ -14,11 +14,6 @@ const all_tests = (table) => {
   before('Populate table', (done) => utils.populate_table(table, num_rows, done));
   beforeEach('Authenticate client', utils.fusion_default_auth);
 
-  var check_error = (err, msg) => {
-    assert.notStrictEqual(err, null);
-    assert(err.message.indexOf(msg) !== -1, err.message);
-  };
-
   it('table scan', (done) => {
       utils.stream_test(
         {
@@ -129,7 +124,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.deepStrictEqual(res, []);
-          check_error(err, '"order" is not allowed');
+          utils.check_error(err, '"order" is not allowed');
           done();
         });
     });
@@ -151,7 +146,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.deepStrictEqual(res, []);
-          check_error(err, '"limit" is not allowed');
+          utils.check_error(err, '"limit" is not allowed');
           done();
         });
     });
@@ -194,7 +189,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.deepStrictEqual(res, []);
-          check_error(err, '"order" is not allowed');
+          utils.check_error(err, '"order" is not allowed');
           done();
         });
     });
@@ -239,7 +234,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.deepStrictEqual(res, []);
-          check_error(err, '"order" is not allowed');
+          utils.check_error(err, '"order" is not allowed');
           done();
         });
     });

@@ -8,11 +8,6 @@ const r = require('rethinkdb');
 const suite = (table) => describe('Protocol', () => all_tests(table));
 
 const all_tests = (table) => {
-  const check_error = (err, msg) => {
-    assert.notStrictEqual(err, null);
-    assert(err.message.indexOf(msg) !== -1, err.message);
-  };
-
   beforeEach('Authenticate client', utils.fusion_default_auth);
 
   it('unparseable', (done) => {
@@ -40,7 +35,7 @@ const all_tests = (table) => {
   it('no type', (done) => {
       utils.stream_test({ request_id: 0 }, (err, res) => {
           assert.deepStrictEqual(res, []);
-          check_error(err, '"type" is required');
+          utils.check_error(err, '"type" is required');
           done();
         });
     });
@@ -48,7 +43,7 @@ const all_tests = (table) => {
   it('no options', (done) => {
       utils.stream_test({ request_id: 1, type: 'fake' }, (err, res) => {
           assert.deepStrictEqual(res, []),
-          check_error(err, '"options" is required'),
+          utils.check_error(err, '"options" is required'),
           done();
         });
     });
