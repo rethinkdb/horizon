@@ -412,9 +412,8 @@ class MockConnection extends Fusion {
 
 class TermBase {
 
-  constructor(fusion, unwrapResponse=false){
+  constructor(fusion){
     this.fusion = fusion
-    this.unwrapResponse = unwrapResponse
   }
 
   subscribe(updates=true){
@@ -422,14 +421,14 @@ class TermBase {
     return this.fusion.subscribe(this.query, updates)
   }
 
+  _modifyValue(val){
+    //By default, don't change the result
+    return val
+  }
+
   value(){
     // return promise with no changefeed
-    let promise = this.fusion.query(this.query)
-    if(this.unwrapResponse){
-      return promise.then((val) => val[0])
-    }else{
-      return promise
-    }
+    return this.fusion.query(this.query).then(this._modifyValue.bind(this))
   }
 }
 
@@ -441,8 +440,8 @@ class Collection extends TermBase {
     this.query = {collection: collectionName}
   }
 
-  findOne(id){
-    return new FindOne(this.fusion, this.query, id)
+  findOne(id, {field: field='id'}={}){
+    return new FindOne(this.fusion, this.query, id, field)
   }
 
   find(fieldName, fieldValue){
@@ -521,12 +520,19 @@ class Find extends TermBase {
 }
 
 class FindOne extends TermBase {
-  constructor(fusion, query, docId){
-    super(fusion, true)
-    this.id = docId
+  constructor(fusion, query, docId, fieldName){
+    super(fusion)
+    this._id = docId
+    this._fieldName = fieldName
     this.query = Object.assign({
-      selection: {type: 'find_one', args: [docId]}
+      selection: {type: 'find_one', args: [docId]},
+      field_name: fieldName,
     }, query)
+  }
+
+  _modifyValue(val){
+    //findOne unwraps its results
+    return val[0]
   }
 }
 
