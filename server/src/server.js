@@ -20,9 +20,7 @@ const websocket = require('ws');
 const http = require('http');
 const https = require('https');
 
-var protocol_name = 'rethinkdb-fusion-v0';
-module.exports.protocol = protocol_name;
-module.exports.logger = logger;
+const protocol = 'rethinkdb-fusion-v0';
 
 class BaseServer {
   constructor(opts, make_http_server) {
@@ -85,7 +83,7 @@ class BaseServer {
   }
 }
 
-module.exports.UnsecureServer = class UnsecureServer extends BaseServer {
+class UnsecureServer extends BaseServer {
   constructor(user_opts) {
     var opts = Joi.attempt(user_opts, schema.unsecure_server_options);
 
@@ -96,7 +94,7 @@ module.exports.UnsecureServer = class UnsecureServer extends BaseServer {
   }
 }
 
-module.exports.Server = class Server extends BaseServer {
+class Server extends BaseServer {
   constructor(user_opts) {
     var opts = Joi.attempt(user_opts, schema.secure_server_options);
 
@@ -107,17 +105,17 @@ module.exports.Server = class Server extends BaseServer {
   }
 }
 
-var accept_protocol = function (protocols, cb) {
-  if (protocols.findIndex(x => x === protocol_name) != -1) {
-    cb(true, protocol_name);
+const accept_protocol = (protocols, cb) => {
+  if (protocols.findIndex(x => x === protocol) != -1) {
+    cb(true, protocol);
   } else {
-    logger.debug(`Rejecting client without '${protocol_name}' protocol: ${protocols}`);
+    logger.debug(`Rejecting client without '${protocol}' protocol: ${protocols}`);
     cb(false, null);
   }
 };
 
 // Function which handles just the /fusion.js endpoint
-var handle_http_request = function (req, res) {
+const handle_http_request = (req, res) => {
   const req_path = url.parse(req.url).pathname;
   const file_path = path.resolve('../client/dist/build.js');
   logger.debug(`HTTP request for '${req_path}'`);
@@ -184,3 +182,5 @@ class ReqlConnection {
     return this.connection;
   }
 }
+
+module.exports = { UnsecureServer, Server, protocol, logger };

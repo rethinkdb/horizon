@@ -5,7 +5,7 @@ const r = require('rethinkdb');
 const protocol = require('./schema/protocol');
 const check = require('./error.js').check;
 
-module.exports.make_read_reql = function (request) {
+const make_read_reql = (request) => {
   var options = Joi.attempt(request.options, protocol.read);
   var { selection, order, limit } = options;
   var index = options.field_name;
@@ -49,7 +49,7 @@ module.exports.make_read_reql = function (request) {
   return reql;
 };
 
-var handle_cursor = function (query, cursor, send_cb) {
+const handle_cursor = (query, cursor, send_cb) => {
   query.client.cursors.set(query.request.request_id, cursor);
   cursor.each((err, item) => {
       if (err !== null) {
@@ -63,7 +63,7 @@ var handle_cursor = function (query, cursor, send_cb) {
     });
 };
 
-var handle_feed = function (query, feed, send_cb) {
+const handle_feed = (query, feed, send_cb) => {
   query.client.cursors.set(query.request.request_id, feed);
   feed.each((err, item) => {
       if (err !== null) {
@@ -81,7 +81,7 @@ var handle_feed = function (query, feed, send_cb) {
     });
 };
 
-module.exports.handle_read_response = function (query, response, send_cb) {
+const handle_read_response = (query, response, send_cb) => {
   if (query.request.type === 'query') {
     if (response.constructor.name === 'Cursor') {
       handle_cursor(query, response, send_cb);
@@ -94,3 +94,5 @@ module.exports.handle_read_response = function (query, response, send_cb) {
     handle_feed(query, response, send_cb);
   }
 }
+
+module.exports = { make_read_reql, handle_read_response };

@@ -96,7 +96,7 @@ module.exports.clear_table = (table, done) => {
 module.exports.populate_table = (table, num_rows, done) => {
   assert.notStrictEqual(rdb_conn, undefined);
   r.table(table).insert(
-      r.range(num_rows).map(function (i) { return { id: i }; })
+      r.range(num_rows).map((i) => ({ id: i }))
     ).run(rdb_conn).then((res) => done());
 };
 
@@ -223,7 +223,7 @@ module.exports.fusion_default_auth = (done) => {
 // occurred, or `null` otherwise.  `res` will be an array, being the concatenation
 // of all `data` items returned by the server for the given request_id.
 // TODO: this doesn't allow for dealing with multiple states (like 'synced').
-module.exports.stream_test = function (req, cb) {
+module.exports.stream_test = (req, cb) => {
   assert(fusion_conn && fusion_conn.readyState === websocket.OPEN);
   fusion_conn.send(JSON.stringify(req));
   var results = [];

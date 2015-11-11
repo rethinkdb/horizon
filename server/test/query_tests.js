@@ -3,12 +3,12 @@
 const utils = require('./utils.js');
 
 const assert = require('assert');
-const r      = require('rethinkdb');
+const r = require('rethinkdb');
 
-module.exports.suite = (table) => describe('Query', () => all_tests(table));
+const suite = (table) => describe('Query', () => all_tests(table));
 
 // TODO: ensure each row is present in the results
-var all_tests = (table) => {
+const all_tests = (table) => {
   const num_rows = 10;
 
   before('Clear table', (done) => utils.clear_table(table, done));
@@ -328,3 +328,5 @@ var all_tests = (table) => {
         });
     });
 };
+
+module.exports = { suite };

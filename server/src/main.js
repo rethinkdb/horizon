@@ -1,12 +1,13 @@
 'use strict';
 
 const fusion = require('./server.js');
-const fs     = require('fs');
-const path   = require('path');
-const nopt   = require('nopt');
 
-var parsed = new nopt({ bind: [String, Array], port: Number, connect: String, unsecure: Boolean, key_file: path, cert_file: path, debug: Boolean });
-var print_usage = function () {
+const fs = require('fs');
+const nopt = require('nopt');
+const path = require('path');
+
+const parsed = new nopt({ bind: [String, Array], port: Number, connect: String, unsecure: Boolean, key_file: path, cert_file: path, debug: Boolean });
+const print_usage = () => {
   console.log('Usage: node fusion.js [OPTIONS]');
   console.log('');
   console.log('  --bind HOST            local hostname to serve fusion on (repeatable)');

@@ -1,12 +1,10 @@
 'use strict';
 
 const logger = require('./logger.js');
-const error = require('./error.js');
+const { check } = require('./error.js');
 
 const r = require('rethinkdb');
 const websocket = require('ws');
-
-const check = error.check;
 
 class Query {
   constructor(client, request) {
@@ -18,7 +16,7 @@ class Query {
   }
 }
 
-module.exports.Client = class Client {
+class Client {
   constructor(socket, parent_server) {
     this.socket = socket;
     this.parent = parent_server;
@@ -205,3 +203,5 @@ module.exports.Client = class Client {
     return true;
   }
 }
+
+module.exports = { Client };

@@ -1,10 +1,9 @@
-var check = (pred, message) => {
+const check = (pred, message) => {
   if (!pred) {
     throw new Error(message);
   }
 };
 
-var fail = (message) => check(false, message);
+const fail = (message) => check(false, message);
 
-module.exports.check = check;
-module.exports.fail = fail;
+module.exports = { check, fail };

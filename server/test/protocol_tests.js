@@ -3,11 +3,11 @@
 const utils  = require('./utils.js');
 
 const assert = require('assert');
-const r      = require('rethinkdb');
+const r = require('rethinkdb');
 
-module.exports.suite = (table) => describe('Protocol', () => all_tests(table));
+const suite = (table) => describe('Protocol', () => all_tests(table));
 
-var all_tests = (table) => {
+const all_tests = (table) => {
   beforeEach('Authenticate client', utils.fusion_default_auth);
 
   it('unparseable', (done) => {
@@ -97,3 +97,5 @@ var all_tests = (table) => {
         }), () => (utils.close_fusion_conn(), done()));
     });
 };
+
+module.exports = { suite };

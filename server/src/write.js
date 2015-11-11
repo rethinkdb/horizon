@@ -6,7 +6,7 @@ const r = require('rethinkdb');
 const check = error.check;
 const fail = error.fail;
 
-module.exports.make_write_reql = function (request) {
+const make_write_reql = (request) => {
   var type = request.type;
   var options = request.options;
   var collection = options.collection;
@@ -64,7 +64,7 @@ module.exports.make_write_reql = function (request) {
   return reql;
 };
 
-module.exports.handle_write_response = function (query, response, send_cb) {
+const handle_write_response = (query, response, send_cb) => {
   if (response.errors !== 0) {
     send_cb({ error: response.first_error });
   } else {
@@ -75,3 +75,5 @@ module.exports.handle_write_response = function (query, response, send_cb) {
     send_cb({ data: ids, state: 'complete' });
   }
 };
+
+module.exports = { make_write_reql, handle_write_response };

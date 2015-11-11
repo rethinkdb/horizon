@@ -7,9 +7,9 @@ const fs     = require('fs');
 const http   = require('http');
 const https  = require('https');
 
-module.exports.suite = (table) => describe('Webserver', () => all_tests(table));
+const suite = (table) => describe('Webserver', () => all_tests(table));
 
-var all_tests = (table) => {
+const all_tests = (table) => {
   it('localhost/fusion.js', (done) => {
       var transport = utils.is_secure() ? https : http;
       transport.get({ hostname: 'localhost',
@@ -24,3 +24,5 @@ var all_tests = (table) => {
         });
     });
 };
+
+module.exports = { suite };

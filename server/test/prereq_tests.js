@@ -4,11 +4,11 @@ const utils = require('./utils.js');
 
 const assert = require('assert');
 const crypto = require('crypto');
-const r      = require('rethinkdb');
+const r = require('rethinkdb');
 
-module.exports.suite = (table) => describe('Prereqs', () => all_tests(table));
+const suite = (table) => describe('Prereqs', () => all_tests(table));
 
-var all_tests = (table) => {
+const all_tests = (table) => {
   beforeEach('authenticate', (done) => utils.fusion_default_auth(done));
 
   // Launch simultaneous queries that depend on a non-existent table, then
@@ -99,3 +99,5 @@ var all_tests = (table) => {
       }
     });
 };
+
+module.exports = { suite };
