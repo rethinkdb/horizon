@@ -1,5 +1,5 @@
 require('babel-polyfill')
-const { FusionEmitter, ListenerSet } = require('./utility.js')
+const { FusionEmitter, ListenerSet, validKeyValue } = require('./utility.js')
 
 const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 
@@ -284,11 +284,11 @@ class Collection extends TermBase {
     this.query = {collection: collectionName, field_name: 'id'}
   }
 
-  findOne(id, {field: field='id'}={}){
-    return new FindOne(this.fusion, this.query, id, field)
+  find(id, {field: field='id'}={}){
+    return new Find(this.fusion, this.query, id, field)
   }
 
-  find(...fieldValues){
+  findAll(...fieldValues){
     var fieldName = 'id'
     if(arguments.length > 0){
       let last = fieldValues.slice(-1)[0]
@@ -297,7 +297,7 @@ class Collection extends TermBase {
         fieldValues = fieldValues.slice(0, -1)
       }
     }
-    return new Find(this.fusion, this.query, fieldValues, fieldName)
+    return new FindAll(this.fusion, this.query, fieldValues, fieldName)
   }
 
   between(minVal, maxVal, field='id'){
@@ -328,18 +328,22 @@ class Collection extends TermBase {
     return this._writeOp('update', documents)
   }
 
-  remove(...documents){
-    if(Array.isArray(documents[0])){
-      documents = documents[0]
+  remove(documentOrId){
+    if(validKeyValue(documentOrId)){
+      documentOrId = {id: documentOrId}
     }
-    documents = documents.map(doc => {
-      if(['string', 'number'].indexOf(typeof doc) !== -1){
+    return this.writeOp('remove', [documentOrId]).then(() => undefined)
+  }
+
+  removeAll(documentsOrIds){
+    documentsOrIds = documentsOrIds.map(doc => {
+      if(validKeyValue(doc)){
         return {id: doc}
       }else{
         return doc
       }
     })
-    return this._writeOp('remove', documents).then(() => undefined)
+    return this._writeOp('remove', documentsOrIds).then(() => undefined)
   }
 
   _writeOp(name, documents){
@@ -356,7 +360,7 @@ class Collection extends TermBase {
   }
 }
 
-class Find extends TermBase {
+class FindAll extends TermBase {
   constructor(fusion, query, fieldValues, fieldName){
     super(fusion)
     this._values = fieldValues
@@ -376,7 +380,7 @@ class Find extends TermBase {
   }
 }
 
-class FindOne extends TermBase {
+class Find extends TermBase {
   constructor(fusion, query, docId, fieldName){
     super(fusion)
     this._id = docId

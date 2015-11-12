@@ -173,5 +173,24 @@ class FusionEmitter extends EventEmitter {
   }
 }
 
+// Checks whether the return value is a valid primary or secondary
+// index value
+function validKeyValue(val){
+  if(val == null){
+    return false
+  }
+  if(['boolean', 'number', 'string'].indexOf(val) !== -1){
+    return true
+  }
+  if(Array.isArray(val)){
+    let containsBad = false
+    val.forEach((v) => {
+      containsBad = containsBad || validKeyValue(v)
+    })
+    return containsBad
+  }
+  return false
+}
+
 module.exports.ListenerSet = ListenerSet
 module.exports.FusionEmitter = FusionEmitter
