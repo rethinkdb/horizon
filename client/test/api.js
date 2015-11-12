@@ -11,7 +11,7 @@ function removeAllData(collection, done) {
     // Make sure we deleted everything
     return collection.value();
   }).then((res) => {
-    assert.lengthOf(res, 0);
+    assert.deepEqual([], res);
     done();
   }).catch((err) => {
     done(err);
