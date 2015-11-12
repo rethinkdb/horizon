@@ -1080,7 +1080,7 @@ describe("Fusion Client Library", () => {
         // Let's try this again for a field that doesn't exist.
         it("#.find(field_no_field)", (done) => {
           data.find(1, { field: 'b' }).value().then((res) => {
-            assert.equal([], res);
+            assert.deepEqual([], res);
             done();
           }).catch(done);
         });
@@ -1104,7 +1104,7 @@ describe("Fusion Client Library", () => {
             assert.isDefined(err);
             assert.isNotNull(err);
             done();
-          });
+          }).catch(done);
         });
 
         // No args is ok, because people will be using `apply`
@@ -1112,7 +1112,7 @@ describe("Fusion Client Library", () => {
           data.find().value().then((res) => {
             assert.deepEqual([], res);
             done();
-          });
+          }).catch(done);
         });
 
         // Find lets us look for multiple documents. Let's try it on a primary
@@ -1174,7 +1174,7 @@ describe("Fusion Client Library", () => {
             assert.isDefined(err);
             assert.isNotNull(err);
             done();
-          });
+          }).catch(done);
         });
 
         // Same for secondary key searches
@@ -1183,7 +1183,7 @@ describe("Fusion Client Library", () => {
             assert.isDefined(err);
             assert.isNotNull(err);
             done();
-          });
+          }).catch(done);
         });
 
       }); // Testing `find`

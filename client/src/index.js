@@ -292,7 +292,7 @@ class Collection extends TermBase {
     var fieldName = 'id'
     if(arguments.length > 0){
       let last = fieldValues.slice(-1)[0]
-      if(typeof last === 'object' && last.field !== undefined){
+      if(!!last && typeof last === 'object' && last.field !== undefined){
         fieldName = last.field
         fieldValues = fieldValues.slice(0, -1)
       }
@@ -328,10 +328,9 @@ class Collection extends TermBase {
     return this._writeOp('update', documents)
   }
 
-  remove(documents){
-    // Wrap bare identifiers
-    if(!Array.isArray(documents)){
-      documents = [documents]
+  remove(...documents){
+    if(Array.isArray(documents[0])){
+      documents = documents[0]
     }
     documents = documents.map(doc => {
       if(['string', 'number'].indexOf(typeof doc) !== -1){
@@ -340,7 +339,7 @@ class Collection extends TermBase {
         return doc
       }
     })
-    return this._writeOp('remove', documents)
+    return this._writeOp('remove', documents).then(() => undefined)
   }
 
   _writeOp(name, documents){
@@ -362,10 +361,10 @@ class Find extends TermBase {
     super(fusion)
     this._values = fieldValues
     this._name = fieldName
-    this.query = Object.assign({
+    this.query = Object.assign({}, query, {
       selection: {type: 'find', args: fieldValues},
       field_name: fieldName
-    }, query)
+    })
   }
 
   order(field='id', ascending=true){
@@ -382,10 +381,10 @@ class FindOne extends TermBase {
     super(fusion)
     this._id = docId
     this._fieldName = fieldName
-    this.query = Object.assign({
+    this.query = Object.assign({}, query, {
       selection: {type: 'find_one', args: [docId]},
       field_name: fieldName,
-    }, query)
+    })
   }
 
   _modifyValue(val){
@@ -404,10 +403,10 @@ class Between extends TermBase {
     this._minVal = minVal
     this._maxVal = maxVal
     this._field = fieldName
-    this.query = Object.assign({
+    this.query = Object.assign({}, query, {
       selection: {type: 'between', args: [minVal, maxVal]},
       field_name: fieldName
-    }, query)
+    })
   }
 
   limit(size){
@@ -419,10 +418,10 @@ class Order {
   constructor(fusion, query, fieldName, ascending){
     this.fusion = fusion
     this._field = fieldName
-    this.query = Object.assign({
+    this.query = Object.assign({}, query, {
       order: ascending ? 'ascending' : 'descending',
       field_name: fieldName
-    }, query)
+    })
   }
 
   limit(size){
@@ -439,7 +438,7 @@ class Limit extends TermBase {
   constructor(fusion, query, size){
     super(fusion)
     this._size = size
-    this.query = Object.assign({limit: size}, query)
+    this.query = Object.assign({}, query, {limit: size})
   }
 }
 
