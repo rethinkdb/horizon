@@ -15,15 +15,29 @@ class Request {
     this.reql = this.endpoint.make_reql(this.raw);
     this.start_time = Date.now();
   }
+
+  add_cursor(cursor) {
+    check(this.client.cursors.get(this.id) === undefined,
+          `Endpoint added more than one cursor.`);
+    check(cursor.constructor.name === 'Cursor' ||
+          cursor.constructor.name === 'Feed' ||
+          cursor.constructor.name === 'AtomFeed' ||
+          cursor.constructor.name === 'OrderByLimitFeed',
+          `Endpoint provided a non-cursor as a cursor.`);
+    this.client.cursors.set(this.id, cursor);
+  }
+
+  remove_cursor() {
+    this.client.cursors.delete(this.id);
+  }
+
   // TODO: add functions for endpoint access:
-  //   - add_cursor(cursor) - adds a cursor to be tracked (and closed on disconnection)
-  //   - remove_cursor(cursor) - removes a cursor from being tracked
-  //     - for these, we should probably change cursors to a Map of request_id -> Set of cursors
   //   - handle_error(err) - use default error handling
   //     - in dev mode, this will automatically create/wait for dbs, tables, indexes
   //     - in release mode, this will just pass the error back to the client
+  //     - allow users to register error handlers?
   // TODO: should we allow user-defined endpoints to run multiple reql queries?
-  //   perhaps give them a callback for it, rather than returning the reql
+  //   probably not
 }
 
 class Client {

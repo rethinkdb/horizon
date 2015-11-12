@@ -44,7 +44,7 @@ const make_reql = (raw_request) => {
 
 // All queries result in a cursor response
 const handle_response = (request, cursor, send_cb) => {
-  request.client.cursors.set(request.id, cursor);
+  request.add_cursor(cursor);
   cursor.each((err, item) => {
     if (err !== null) {
       send_cb({ error: `${err}` });
@@ -52,7 +52,7 @@ const handle_response = (request, cursor, send_cb) => {
       send_cb({ data: [ item ] });
     }
   }, () => {
-    request.client.cursors.delete(cursor);
+    request.remove_cursor();
     send_cb({ data: [ ], state: 'complete' });
   });
 };

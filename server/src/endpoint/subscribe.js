@@ -7,7 +7,7 @@ const make_reql = (raw_request) => {
 };
 
 const handle_response = (request, feed, send_cb) => {
-  request.client.cursors.set(request.id, feed);
+  request.add_cursor(feed);
   feed.each((err, item) => {
     if (err !== null) {
       send_cb({ error: `${err}` });
@@ -19,7 +19,7 @@ const handle_response = (request, feed, send_cb) => {
       send_cb({ data: [ item ] });
     }
   }, () => {
-    request.client.cursors.delete(feed);
+    request.remove_cursor(feed);
     send_cb({ data: [ ], state: 'complete' });
   });
 };
