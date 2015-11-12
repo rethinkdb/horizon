@@ -62,27 +62,29 @@ All requests match the following pattern:
 * `limit` limits the number of results to be selected - optional
 * `order` orders the results according to `field_name` - optional
 
-#### store, remove
+#### insert, store, upsert, replace, update, remove
 
 ```
 {
   "request_id": <NUMBER>,
-  "type": "store" | "remove",
+  "type": "store" | "update" | "upsert" | "insert" | "replace" | "remove",
   "options": {
     "collection": <STRING>,
-    "data": [<OBJECT>, ... ],
-    "missing": "insert" | "error",
-    "conflict": "replace" | "update" | "error"
+    "data": [<OBJECT>, ... ]
   }
 }
 ```
 * `collection` describes which table to operate on in the fusion database
 * `data` is the documents to be written (or removed)
   * `data[i].id` is required for `remove` operations, all other fields are optional
-  * `data.id` may be omitted in a `store_*` operation: a new row will be inserted in the collection
-  * `options.missing` must be specified for `type: store`; whether to `insert` or `error` if a document doesn't exist
-  * `options.conflict` must be specified for `type: store`; whether to `replace`, `update`, or `error` if a document with the given id already exists
-  * `options.missing` and `options.conflict` cannot both be `error`
+  * `data[i].id` may be omitted in an `insert`, `store`, or `upsert` operations: a new row will be inserted in the collection
+* `type` is the write operation to perform
+  * `insert` inserts new documents, erroring if any document already exists
+  * `update` updates existing documents. It errors if any document does not already exist
+  * `upsert` updates existing documents or inserts them if they do not exist
+  * `replace` replaces existing documents entirely. It errors if any document does not already exist
+  * `store` replaces existing documents entirely, or inserts them if they do'nt exist.
+  * `remove` removes documents. It will not error if a document does not exist
 
 #### end_subscription
 Tells the fusion server to stop sending data for a given subscription.  Data may still be received until the server has processed this and sent a `"state": "complete"` response for the subscription.
