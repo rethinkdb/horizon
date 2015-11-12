@@ -6,7 +6,6 @@ const utils = require('./utils');
 const assert = require('assert');
 
 describe('Schema', () => {
-
   it('protocol - request', () => {
     const request = {
       request_id: 1,
@@ -14,7 +13,7 @@ describe('Schema', () => {
       options: { },
     };
 
-    var { error, value } = fusion_protocol.request.validate(request);
+    const { error, value } = fusion_protocol.request.validate(request);
 
     assert.ifError(error);
     assert(value);
@@ -33,7 +32,7 @@ describe('Schema', () => {
       limit: 1,
     };
 
-    var { error } = fusion_protocol.query.validate(options);
+    const { error } = fusion_protocol.query.validate(options);
 
     assert.ifError(error);
   });
@@ -50,7 +49,7 @@ describe('Schema', () => {
       order: 'descending',
     };
 
-    var { error } = fusion_protocol.query.validate(options);
+    const { error } = fusion_protocol.query.validate(options);
 
     assert.ifError(error);
   });
@@ -66,7 +65,7 @@ describe('Schema', () => {
       limit: 1,
     };
 
-    var { error } = fusion_protocol.query.validate(options);
+    const { error } = fusion_protocol.query.validate(options);
 
     assert(error);
   });
@@ -77,32 +76,32 @@ describe('Schema', () => {
   };
 
   it('protocol - insert without id', () => {
-    var { error } = fusion_protocol.insert.validate(write_without_id);
+    const { error } = fusion_protocol.insert.validate(write_without_id);
     assert.ifError(error);
   });
 
   it('protocol - upsert without id', () => {
-    var { error } = fusion_protocol.upsert.validate(write_without_id);
+    const { error } = fusion_protocol.upsert.validate(write_without_id);
     assert.ifError(error);
   });
 
   it('protocol - store without id', () => {
-    var { error } = fusion_protocol.store.validate(write_without_id);
+    const { error } = fusion_protocol.store.validate(write_without_id);
     assert.ifError(error);
   });
 
   it('protocol - replace without id', () => {
-    var { error } = fusion_protocol.replace.validate(write_without_id);
+    const { error } = fusion_protocol.replace.validate(write_without_id);
     utils.check_error(error, '"id" is required');
   });
 
   it('protocol - update without id', () => {
-    var { error } = fusion_protocol.update.validate(write_without_id);
+    const { error } = fusion_protocol.update.validate(write_without_id);
     utils.check_error(error, '"id" is required');
   });
 
   it('protocol - remove without id', () => {
-    var { error } = fusion_protocol.remove.validate(write_without_id);
+    const { error } = fusion_protocol.remove.validate(write_without_id);
     utils.check_error(error, '"id" is required');
   });
 
@@ -112,33 +111,32 @@ describe('Schema', () => {
   };
 
   it('protocol - insert with id', () => {
-    var { error } = fusion_protocol.insert.validate(write_with_id);
+    const { error } = fusion_protocol.insert.validate(write_with_id);
     assert.ifError(error);
   });
 
   it('protocol - upsert with id', () => {
-    var { error } = fusion_protocol.upsert.validate(write_with_id);
+    const { error } = fusion_protocol.upsert.validate(write_with_id);
     assert.ifError(error);
   });
 
   it('protocol - store with id', () => {
-    var { error } = fusion_protocol.store.validate(write_with_id);
+    const { error } = fusion_protocol.store.validate(write_with_id);
     assert.ifError(error);
   });
 
   it('protocol - replace with id', () => {
-    var { error } = fusion_protocol.replace.validate(write_with_id);
+    const { error } = fusion_protocol.replace.validate(write_with_id);
     assert.ifError(error);
   });
 
   it('protocol - update with id', () => {
-    var { error } = fusion_protocol.update.validate(write_with_id);
+    const { error } = fusion_protocol.update.validate(write_with_id);
     assert.ifError(error);
   });
 
   it('protocol - remove with id', () => {
-    var { error } = fusion_protocol.remove.validate(write_with_id);
+    const { error } = fusion_protocol.remove.validate(write_with_id);
     assert.ifError(error);
   });
-
 });

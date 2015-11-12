@@ -55,7 +55,7 @@ class Client {
 
   parse_raw_request(data) {
     try {
-      var request = JSON.parse(data);
+      const request = JSON.parse(data);
       check(request.request_id !== undefined, `"request_id" is required`);
       return request;
     } catch (err) {
@@ -68,7 +68,7 @@ class Client {
     logger.debug(`Got handshake request: ${data}`);
     // TODO: implement handshake
     this.socket.on('message', (msg) => this.handle_request(msg));
-    var raw_request = this.parse_raw_request(data);
+    const raw_request = this.parse_raw_request(data);
 
     if (raw_request !== undefined) {
       this.send_response({ id: raw_request.request_id }, { user_id: 0 });
@@ -77,7 +77,7 @@ class Client {
 
   handle_request(data) {
     logger.debug(`Received request from client: ${data}`);
-    var raw_request = this.parse_raw_request(data);
+    const raw_request = this.parse_raw_request(data);
 
     if (raw_request !== undefined) {
       if (raw_request.type === 'end_subscription') {
@@ -95,14 +95,14 @@ class Client {
   }
 
   end_subscription(raw_request) {
-    var cursor = this.cursors.delete(raw_request.request_id);
+    const cursor = this.cursors.delete(raw_request.request_id);
     if (cursor !== undefined) {
       cursor.close();
     }
   }
 
   run_request(request) {
-      var conn = this.parent._reql_conn.get_connection();
+      const conn = this.parent._reql_conn.get_connection();
       check(conn !== undefined, `Connection to the database is down.`);
       logger.debug(`Running ${r.Error.printQuery(request.reql)}`);
 
@@ -132,7 +132,7 @@ class Client {
   }
 
   run_prerequisite(request, root_term) {
-      var conn = this.parent._reql_conn.get_connection();
+      const conn = this.parent._reql_conn.get_connection();
       check(conn !== undefined, `Connection to the database is down.`);
       logger.debug(`Running ${r.Error.printQuery(root_term)}`);
 
@@ -157,7 +157,7 @@ class Client {
       return;
     }
 
-    var matches;
+    let matches;
 
     // We may have tried to create a table or index while it was already being
     // created, recognize those errors and retry.
@@ -204,9 +204,9 @@ class Client {
         r.db(String(matches[2])).table(String(matches[3])).indexCreate(String(matches[1])));
     }
 
-    var response = { request_id: request.id,
-                     error: info.msg,
-                     error_code: 0 };
+    const response = { request_id: request.id,
+                       error: info.msg,
+                       error_code: 0 };
     logger.debug(`Sending error response: ${JSON.stringify(response)}`);
     this.socket.send(JSON.stringify(response));
   }

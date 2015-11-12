@@ -7,11 +7,11 @@ const r = require('rethinkdb');
 
 // This is also used by the 'subscribe' endpoint
 const make_reql = (raw_request) => {
-  var { value: { collection, selection, order, limit, field_name: index }, error } =
+  const { value: { collection, selection, order, limit, field_name: index }, error } =
     Joi.validate(raw_request.options, query);
   if (error !== null) { throw new Error(error.details[0].message); }
 
-  var reql = r.table(collection);
+  let reql = r.table(collection);
 
   if (selection) {
     switch (selection.type) {
@@ -49,11 +49,11 @@ const handle_response = (request, cursor, send_cb) => {
       if (err !== null) {
         send_cb({ error: `${err}` });
       } else {
-        send_cb({ data: [item] });
+        send_cb({ data: [ item ] });
       }
     }, () => {
       request.client.cursors.delete(cursor);
-      send_cb({ data: [], state: 'complete' });
+      send_cb({ data: [ ], state: 'complete' });
     });
 };
 

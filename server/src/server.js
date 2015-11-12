@@ -160,7 +160,7 @@ class BaseServer {
     const { value, error } = Joi.validate(request, fusion_protocol.request);
     if (error !== null) { throw new Error(error.details[0].message); }
 
-    var endpoint = this._endpoints.get(value.type);
+    const endpoint = this._endpoints.get(value.type);
     check(endpoint !== undefined, `"${value.type}" is not a recognized endpoint.`);
     return endpoint;
   }
@@ -168,7 +168,7 @@ class BaseServer {
 
 class UnsecureServer extends BaseServer {
   constructor(user_opts) {
-    var opts = Joi.attempt(user_opts, server_options.unsecure);
+    const opts = Joi.attempt(user_opts, server_options.unsecure);
 
     super(opts, () => {
         logger.warn(`Creating unsecure HTTP server.`);
@@ -179,7 +179,7 @@ class UnsecureServer extends BaseServer {
 
 class Server extends BaseServer {
   constructor(user_opts) {
-    var opts = Joi.attempt(user_opts, server_options.secure);
+    const opts = Joi.attempt(user_opts, server_options.secure);
 
     super(opts, () => {
         return new https.Server({ key: opts.key, cert: opts.cert },

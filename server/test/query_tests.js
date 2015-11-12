@@ -121,7 +121,7 @@ const all_tests = (table) => {
         },
         (err, res) => {
           assert.ifError(err);
-          assert.deepStrictEqual(res, []);
+          assert.deepStrictEqual(res, [ ]);
           done();
         });
     });
@@ -142,7 +142,7 @@ const all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert.deepStrictEqual(res, []);
+          assert.deepStrictEqual(res, [ ]);
           utils.check_error(err, '"order" is not allowed');
           done();
         });
@@ -164,7 +164,7 @@ const all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert.deepStrictEqual(res, []);
+          assert.deepStrictEqual(res, [ ]);
           utils.check_error(err, '"limit" is not allowed');
           done();
         });
@@ -207,7 +207,7 @@ const all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert.deepStrictEqual(res, []);
+          assert.deepStrictEqual(res, [ ]);
           utils.check_error(err, '"order" is not allowed');
           done();
         });
@@ -252,7 +252,7 @@ const all_tests = (table) => {
           },
         },
         (err, res) => {
-          assert.deepStrictEqual(res, []);
+          assert.deepStrictEqual(res, [ ]);
           utils.check_error(err, '"order" is not allowed');
           done();
         });

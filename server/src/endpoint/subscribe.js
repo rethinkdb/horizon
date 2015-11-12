@@ -16,11 +16,11 @@ const handle_response = (request, feed, send_cb) => {
       } else if (item.state === 'ready') {
         send_cb({ state: 'synced' });
       } else {
-        send_cb({ data: [item] });
+        send_cb({ data: [ item ] });
       }
     }, () => {
       request.client.cursors.delete(feed);
-      send_cb({ data: [], state: 'complete' });
+      send_cb({ data: [ ], state: 'complete' });
     });
 };
 

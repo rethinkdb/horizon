@@ -7,7 +7,7 @@ const Joi = require('joi');
 const r = require('rethinkdb');
 
 const make_reql = (raw_request) => {
-  var { value: { data, collection }, error } = Joi.validate(raw_request.options, insert);
+  const { value: { data, collection }, error } = Joi.validate(raw_request.options, insert);
   if (error !== null) { throw new Error(error.details[0].message); }
   return r.table(collection).insert(data, { conflict: 'error' });
 };
@@ -17,10 +17,11 @@ const handle_response = (request, response, send_cb) => {
   if (response.errors !== 0) {
     send_cb({ error: response.first_error });
   } else {
-    var index = 0;
-    var ids = request.raw.options.data.map((row) => {
+    let index = 0;
+    const ids = request.raw.options.data.map((row) => {
         if (row.id === undefined) {
-          check(response.generated_keys && response.generated_keys.length > index);
+          check(response.generated_keys && response.generated_keys.length > index,
+                `ReQL response does not contain enough generated keys.`);
           return response.generated_keys[index++];
         }
         return row.id;

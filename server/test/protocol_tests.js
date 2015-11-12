@@ -9,7 +9,7 @@ const all_tests = (table) => {
   beforeEach('Authenticate client', utils.fusion_default_auth);
 
   it('unparseable', (done) => {
-      var conn = utils.fusion_conn();
+      const conn = utils.fusion_conn();
       conn.removeAllListeners('error');
       conn.send('foobar');
       conn.once('close', (code, msg) => {
@@ -20,7 +20,7 @@ const all_tests = (table) => {
     });
 
   it('no request_id', (done) => {
-      var conn = utils.fusion_conn();
+      const conn = utils.fusion_conn();
       conn.removeAllListeners('error');
       conn.send('{ }');
       conn.once('close', (code, msg) => {
@@ -32,7 +32,7 @@ const all_tests = (table) => {
 
   it('no type', (done) => {
       utils.stream_test({ request_id: 0 }, (err, res) => {
-          assert.deepStrictEqual(res, []);
+          assert.deepStrictEqual(res, [ ]);
           utils.check_error(err, '"type" is required');
           done();
         });
@@ -40,15 +40,15 @@ const all_tests = (table) => {
 
   it('no options', (done) => {
       utils.stream_test({ request_id: 1, type: 'fake' }, (err, res) => {
-          assert.deepStrictEqual(res, []),
-          utils.check_error(err, '"options" is required'),
+          assert.deepStrictEqual(res, [ ]);
+          utils.check_error(err, '"options" is required');
           done();
         });
     });
 
   it('invalid endpoint', (done) => {
       utils.stream_test({ request_id: 2, type: 'fake', options: { } }, (err, res) => {
-          assert.deepStrictEqual(res, []),
+          assert.deepStrictEqual(res, [ ]);
           assert.strictEqual(err.message, '"fake" is not a recognized endpoint.');
           done();
         });

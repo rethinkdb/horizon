@@ -13,10 +13,10 @@ const all_tests = (table) => {
   // verify that only one table exists with that name.
   it('table create race on read', (done) => {
       const query_count = 5;
-      var table_name = crypto.randomBytes(8).toString('hex');
+      const table_name = crypto.randomBytes(8).toString('hex');
 
-      var finished = 0;
-      for (var i = 0; i < query_count; ++i) {
+      let finished = 0;
+      for (let i = 0; i < query_count; ++i) {
         utils.stream_test(
           { request_id: i, type: 'query', options: { collection: table_name, field_name: 'id' } },
           (err, res) => {
@@ -35,17 +35,17 @@ const all_tests = (table) => {
   // is different for a read or a write when the table is unavailable.
   it('table create race on write', (done) => {
       const query_count = 5;
-      var table_name = crypto.randomBytes(8).toString('hex');
+      const table_name = crypto.randomBytes(8).toString('hex');
 
-      var finished = 0;
-      for (var i = 0; i < query_count; ++i) {
+      let finished = 0;
+      for (let i = 0; i < query_count; ++i) {
         utils.stream_test(
           {
             request_id: i,
             type: 'insert',
             options: {
               collection: table_name,
-              data: [{}],
+              data: [ { } ],
             },
           },
           (err, res) => {
@@ -63,11 +63,11 @@ const all_tests = (table) => {
   // Launch two simultaneous queries that depend on a non-existent index, then
   // verify that only one such index exists with that name.
   it('index create race', (done) => {
-      var index_name = crypto.randomBytes(8).toString('hex');
-      var query_count = 5;
+      const query_count = 5;
+      const index_name = crypto.randomBytes(8).toString('hex');
 
-      var finished = 0;
-      for (var i = 0; i < query_count; ++i) {
+      let finished = 0;
+      for (let i = 0; i < query_count; ++i) {
         utils.stream_test(
           {
             request_id: i,

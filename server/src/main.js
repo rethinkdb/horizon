@@ -8,7 +8,7 @@ const path = require('path');
 
 const parsed = new nopt(
   {
-    bind: [String, Array],
+    bind: [ String, Array ],
     port: Number,
     connect: String,
     unsecure: Boolean,
@@ -40,10 +40,10 @@ if (parsed.help) {
   process.exit(0);
 }
 
-var opts = { };
+const opts = { };
 
 if (parsed.bind !== undefined) {
-  opts.local_hosts = new Set(['localhost']);
+  opts.local_hosts = new Set([ 'localhost' ]);
   parsed.bind.forEach((item) => opts.local_hosts.add(item));
 }
 
@@ -52,7 +52,7 @@ if (parsed.port !== undefined) {
 }
 
 if (parsed.connect !== undefined) {
-  var host_port = parsed.connect.split(':');
+  const host_port = parsed.connect.split(':');
   if (host_port.length === 1) {
     opts.rdb_host = host_port[0];
   } else if (host_port.length === 2) {
