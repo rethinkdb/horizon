@@ -2,12 +2,12 @@
 
 const query = require('./query');
 
-const make_reql = (request) => {
-  return query.make_reql(request).changes({ include_states: true });
+const make_reql = (raw_request) => {
+  return query.make_reql(raw_request).changes({ include_states: true });
 };
 
-const handle_response = (query, feed, send_cb) => {
-  query.client.cursors.set(query.request.request_id, feed);
+const handle_response = (request, feed, send_cb) => {
+  request.client.cursors.set(request.id, feed);
   feed.each((err, item) => {
       if (err !== null) {
         send_cb({ error: `${err}` });
@@ -19,7 +19,7 @@ const handle_response = (query, feed, send_cb) => {
         send_cb({ data: [item] });
       }
     }, () => {
-      query.client.cursors.delete(feed);
+      request.client.cursors.delete(feed);
       send_cb({ data: [], state: 'complete' });
     });
 };

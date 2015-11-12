@@ -20,8 +20,14 @@ describe('Fusion Server', () => {
   before(`Creating general-purpose table: '${table}'`,
          (done) => utils.create_table(table, done));
 
-  beforeEach(function() { logger.info(`Start test '${this.currentTest.title}'`); });
-  afterEach(function() { logger.info(`End test '${this.currentTest.title}'`); });
+
+  beforeEach(
+    /** @this - provided by mocha, cannot use an arrow function here */
+    function() { logger.info(`Start test '${this.currentTest.title}'`); });
+
+  afterEach(
+    /** @this - provided by mocha, cannot use an arrow function here */
+    function() { logger.info(`End test '${this.currentTest.title}'`); });
 
   describe('HTTP', () => {
       before('Start Fusion Server', utils.start_unsecure_fusion_server);

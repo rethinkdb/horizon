@@ -6,8 +6,6 @@ const assert = require('assert');
 const crypto = require('crypto');
 const r = require('rethinkdb');
 
-const suite = (table) => describe('Prereqs', () => all_tests(table));
-
 const all_tests = (table) => {
   beforeEach('authenticate', (done) => utils.fusion_default_auth(done));
 
@@ -26,8 +24,8 @@ const all_tests = (table) => {
             assert.strictEqual(res.length, 0);
             if (++finished === query_count) {
               r.table(table_name).count().run(utils.rdb_conn())
-               .then((res) => (assert.strictEqual(res, 0), done()),
-                     (err) => done(err));
+               .then((count) => (assert.strictEqual(count, 0), done()),
+                     (error) => done(error));
             }
           });
       }
@@ -55,8 +53,8 @@ const all_tests = (table) => {
             assert.strictEqual(res.length, 1);
             if (++finished === query_count) {
               r.table(table_name).count().run(utils.rdb_conn())
-               .then((res) => (assert.strictEqual(res, query_count), done()),
-                     (err) => done(err));
+               .then((count) => (assert.strictEqual(count, query_count), done()),
+                     (error) => done(error));
             }
           });
       }
@@ -86,16 +84,18 @@ const all_tests = (table) => {
             if (++finished === query_count) {
               r.table(table).indexStatus(index_name).run(utils.rdb_conn())
                .then(
-                 (res) => {
-                   assert.strictEqual(res.length, 1);
-                   assert(res[0].ready);
+                 (statuses) => {
+                   assert.strictEqual(statuses.length, 1);
+                   assert(statuses[0].ready);
                    done();
                  },
-                 (err) => done(err));
+                 (error) => done(error));
             }
           });
       }
     });
 };
+
+const suite = (table) => describe('Prereqs', () => all_tests(table));
 
 module.exports = { suite };

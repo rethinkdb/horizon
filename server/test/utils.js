@@ -2,12 +2,12 @@
 
 const fusion = require('../src/server');
 
-const assert        = require('assert');
+const assert = require('assert');
 const child_process = require('child_process');
-const fs            = require('fs');
-const path          = require('path');
-const r             = require('rethinkdb');
-const websocket     = require('ws');
+const fs = require('fs');
+const path = require('path');
+const r = require('rethinkdb');
+const websocket = require('ws');
 
 const db = `fusion`;
 const data_dir = `./rethinkdb_data_test`;
@@ -154,6 +154,7 @@ var is_secure = () => {
 module.exports.is_secure = is_secure;
 
 var fusion_listeners;
+var fusion_authenticated = false;
 
 var add_fusion_listener = (request_id, cb) => {
   assert(fusion_authenticated, 'fusion_conn was not authenticated before making requests');
@@ -200,13 +201,12 @@ module.exports.close_fusion_conn = () => {
   fusion_authenticated = false;
 };
 
-var fusion_authenticated = false;
 var fusion_auth = (req, cb) => {
   assert(fusion_conn && fusion_conn.readyState === websocket.OPEN);
   fusion_conn.send(JSON.stringify(req));
-  fusion_conn.once('message', (msg) => {
+  fusion_conn.once('message', (auth_msg) => {
       fusion_authenticated = true;
-      var res = JSON.parse(msg);
+      var res = JSON.parse(auth_msg);
       fusion_conn.on('message', (msg) => dispatch_message(msg));
       cb(res);
     });

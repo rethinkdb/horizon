@@ -6,8 +6,8 @@ const { handle_response } = require('./remove');
 const Joi = require('joi');
 const r = require('rethinkdb');
 
-const make_reql = (request) => {
-  var { value: { data, collection }, error } = Joi.validate(request.options, update);
+const make_reql = (raw_request) => {
+  var { value: { data, collection }, error } = Joi.validate(raw_request.options, update);
   if (error !== null) { throw new Error(error.details[0].message); }
 
   return r.expr(data).forEach((row) =>

@@ -3,11 +3,9 @@
 const utils = require('./utils');
 
 const assert = require('assert');
-const fs     = require('fs');
-const http   = require('http');
-const https  = require('https');
-
-const suite = (table) => describe('Webserver', () => all_tests(table));
+const fs = require('fs');
+const http = require('http');
+const https = require('https');
 
 const all_tests = () => {
   it('localhost/fusion.js', (done) => {
@@ -24,5 +22,7 @@ const all_tests = () => {
         });
     });
 };
+
+const suite = (table) => describe('Webserver', () => all_tests(table));
 
 module.exports = { suite };

@@ -4,8 +4,6 @@ const utils = require('./utils');
 
 const assert = require('assert');
 
-const suite = (table) => describe('Write', () => all_tests(table));
-
 // Before each test, ids [0, 10) will be present in the table
 const num_rows = 10;
 
@@ -440,5 +438,7 @@ const all_tests = (table) => {
         });
     });
 };
+
+const suite = (table) => describe('Write', () => all_tests(table));
 
 module.exports = { suite };

@@ -6,9 +6,9 @@ const Joi = require('joi');
 const r = require('rethinkdb');
 
 // This is also used by the 'subscribe' endpoint
-const make_reql = (request) => {
+const make_reql = (raw_request) => {
   var { value: { collection, selection, order, limit, field_name: index }, error } =
-    Joi.validate(request.options, query);
+    Joi.validate(raw_request.options, query);
   if (error !== null) { throw new Error(error.details[0].message); }
 
   var reql = r.table(collection);
@@ -42,9 +42,9 @@ const make_reql = (request) => {
   return reql;
 };
 
-const handle_response = (query, response, send_cb) => {
+const handle_response = (request, response, send_cb) => {
   if (response.constructor.name === 'Cursor') {
-    query.client.cursors.set(query.request.request_id, response);
+    request.client.cursors.set(request.id, response);
     response.each((err, item) => {
         if (err !== null) {
           send_cb({ error: `${err}` });
@@ -52,7 +52,7 @@ const handle_response = (query, response, send_cb) => {
           send_cb({ data: [item] });
         }
       }, () => {
-        query.client.cursors.delete(response);
+        request.client.cursors.delete(response);
         send_cb({ data: [], state: 'complete' });
       });
   } else if (response.constructor.name === 'Array') {

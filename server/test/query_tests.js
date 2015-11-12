@@ -4,8 +4,6 @@ const utils = require('./utils');
 
 const assert = require('assert');
 
-const suite = (table) => describe('Query', () => all_tests(table));
-
 // TODO: ensure each row is present in the results
 const all_tests = (table) => {
   const num_rows = 10;
@@ -327,5 +325,7 @@ const all_tests = (table) => {
         });
     });
 };
+
+const suite = (table) => describe('Query', () => all_tests(table));
 
 module.exports = { suite };

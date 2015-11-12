@@ -1,11 +1,9 @@
 'use strict';
 
-const utils  = require('./utils');
+const utils = require('./utils');
 
 const assert = require('assert');
 const r = require('rethinkdb');
-
-const suite = (table) => describe('Protocol', () => all_tests(table));
 
 const all_tests = (table) => {
   beforeEach('Authenticate client', utils.fusion_default_auth);
@@ -96,5 +94,7 @@ const all_tests = (table) => {
         }), () => (utils.close_fusion_conn(), done()));
     });
 };
+
+const suite = (table) => describe('Protocol', () => all_tests(table));
 
 module.exports = { suite };
