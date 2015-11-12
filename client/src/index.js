@@ -289,10 +289,15 @@ class Collection extends TermBase {
   }
 
   find(...fieldValues){
+    var fieldName = 'id'
     if(arguments.length > 0){
-      var { field } = Array.slice(...fieldValues, 0, -1)
+      let last = fieldValues.slice(-1)[0]
+      if(typeof last === 'object' && last.field !== undefined){
+        fieldName = last.field
+        fieldValues = fieldValues.slice(0, -1)
+      }
     }
-    return new Find(this.fusion, this.query, fieldValues)
+    return new Find(this.fusion, this.query, fieldValues, fieldName)
   }
 
   between(minVal, maxVal, field='id'){
@@ -344,19 +349,22 @@ class Collection extends TermBase {
         new Error(`${name} must receive a non-null argument`))
     }else if(!Array.isArray(documents)){
       documents = [documents]
+    }else if(documents.length === 0){
+      // Don't bother sending no-ops to the server
+      return Promise.resolve([])
     }
     return this.fusion.writeOp(name, this._collectionName, documents)
   }
 }
 
 class Find extends TermBase {
-  constructor(fusion, query, field, value){
+  constructor(fusion, query, fieldValues, fieldName){
     super(fusion)
-    this._field = field
-    this._value = value
+    this._values = fieldValues
+    this._name = fieldName
     this.query = Object.assign({
-      selection: {type: 'find', args: [value]},
-      field_name: field
+      selection: {type: 'find', args: fieldValues},
+      field_name: fieldName
     }, query)
   }
 
@@ -382,7 +390,11 @@ class FindOne extends TermBase {
 
   _modifyValue(val){
     //findOne unwraps its results
-    return val[0]
+    if(val != undefined){
+      return val[0]
+    }else{
+      return null
+    }
   }
 }
 

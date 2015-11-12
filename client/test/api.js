@@ -19,7 +19,7 @@ function removeAllData(collection, done) {
     // TODO: semantics of remove are currently pretty bad; fix up this code when
     // they improve.
 
-    return collection.remove.apply(collection, ids);
+    return collection.remove(ids);
   }).then((res) => {
     // Make sure we deleted everything
     return collection.value();
