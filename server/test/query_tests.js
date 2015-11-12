@@ -105,6 +105,27 @@ const all_tests = (table) => {
         });
     });
 
+  it('find_one missing', (done) => {
+      utils.stream_test(
+        {
+          request_id: 0,
+          type: 'query',
+          options: {
+            collection: table,
+            field_name: 'id',
+            selection: {
+              type: 'find_one',
+              args: [ 14 ],
+            },
+          },
+        },
+        (err, res) => {
+          assert.ifError(err);
+          assert.deepStrictEqual(res, []);
+          done();
+        });
+    });
+
   it('find_one order', (done) => {
       utils.stream_test(
         {

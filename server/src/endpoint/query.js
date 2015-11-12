@@ -16,7 +16,7 @@ const make_reql = (raw_request) => {
   if (selection) {
     switch (selection.type) {
       case 'find_one':
-        reql = reql.getAll(selection.args[0], { index }).nth(0);
+        reql = reql.getAll(selection.args[0], { index }).limit(1);
         break;
       case 'find':
         reql = reql.getAll(r.args(selection.args), { index });
@@ -42,24 +42,19 @@ const make_reql = (raw_request) => {
   return reql;
 };
 
-const handle_response = (request, response, send_cb) => {
-  if (response.constructor.name === 'Cursor') {
-    request.client.cursors.set(request.id, response);
-    response.each((err, item) => {
-        if (err !== null) {
-          send_cb({ error: `${err}` });
-        } else {
-          send_cb({ data: [item] });
-        }
-      }, () => {
-        request.client.cursors.delete(response);
-        send_cb({ data: [], state: 'complete' });
-      });
-  } else if (response.constructor.name === 'Array') {
-    send_cb({ data: response, state: 'complete' });
-  } else {
-    send_cb({ data: [response], state: 'complete' });
-  }
+// All queries result in a cursor response
+const handle_response = (request, cursor, send_cb) => {
+  request.client.cursors.set(request.id, cursor);
+  cursor.each((err, item) => {
+      if (err !== null) {
+        send_cb({ error: `${err}` });
+      } else {
+        send_cb({ data: [item] });
+      }
+    }, () => {
+      request.client.cursors.delete(cursor);
+      send_cb({ data: [], state: 'complete' });
+    });
 };
 
 module.exports = { make_reql, handle_response };
