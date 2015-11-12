@@ -5,21 +5,8 @@ var Fusion = require("Fusion");
 function removeAllData(collection, done) {
   // Read all elements from the collection
   collection.value().then((res) => {
-    var ids = [];
-
-    // Get the ids out of each document
-    for(var x of res) {
-      ids.push(x['id']);
-    }
-
-    // Push something onto `ids`, 'cause remove is being annoying right now if
-    // we're empty.
-    ids.push(1);
-
-    // TODO: semantics of remove are currently pretty bad; fix up this code when
-    // they improve.
-
-    return collection.remove(ids);
+    // Now drop these elements
+    return collection.removeAll(res);
   }).then((res) => {
     // Make sure we deleted everything
     return collection.value();
@@ -30,7 +17,6 @@ function removeAllData(collection, done) {
     done(err);
   });
 }
-
 
 // This test suite covers various edge cases in the Fusion client library API.
 // It does not cover correctness of the full system in various circumstances.
@@ -126,7 +112,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([1], res);
 
             // Let's make sure we get back the document that we put in.
-            return data.findOne(1).value();
+            return data.find(1).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.deepEqual({ id: 1, a: 1, b: 1 }, res);
@@ -138,7 +124,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([1], res);
 
             // Make sure `store` overwrote the original document
-            return data.findOne(1).value();
+            return data.find(1).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.deepEqual({ id: 1, c: 1 }, res);
@@ -161,7 +147,7 @@ describe("Fusion Client Library", () => {
             new_id = res[0];
 
             // Let's make sure we get back the document that we put in.
-            return data.findOne(new_id).value();
+            return data.find(new_id).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.deepEqual({ id: new_id, a: 1, b: 1 }, res);
@@ -173,7 +159,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([new_id], res);
 
             // Make sure `store` overwrote the original document
-            return data.findOne(new_id).value();
+            return data.find(new_id).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.deepEqual({ id: new_id, c: 1 }, res);
@@ -217,7 +203,7 @@ describe("Fusion Client Library", () => {
             new_id_1 = res[1];
 
             // Make sure we get what we put in.
-            return data.find(new_id_0, new_id_1, 1).value();
+            return data.findAll(new_id_0, new_id_1, 1).value();
           }).then((res) => {
             // We're supposed to get an array of documents we put in
             assert.sameDeepMembers([{ id: new_id_0 }, { id: new_id_1, a: 1 }, { id: 1, a: 1 }], res);
@@ -260,7 +246,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([1], res);
 
             // Let's make sure we get back the document that we put in.
-            return data.findOne(1).value();
+            return data.find(1).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.deepEqual({ id: 1, a: 1, b: 1 }, res);
@@ -289,7 +275,7 @@ describe("Fusion Client Library", () => {
             new_id = res[0];
 
             // Let's make sure we get back the document that we put in.
-            return data.findOne(new_id).value();
+            return data.find(new_id).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.deepEqual({ id: new_id, a: 1, b: 1 }, res);
@@ -339,7 +325,7 @@ describe("Fusion Client Library", () => {
             new_id_1 = res[1];
 
             // Make sure we get what we put in.
-            return data.find(new_id_0, new_id_1, 1).value();
+            return data.findAll(new_id_0, new_id_1, 1).value();
           }).then((res) => {
             // We're supposed to get an array of documents we put in
             assert.sameDeepMembers([{ id: new_id_0 }, { id: new_id_1, a: 1 }, { id: 1, a: 1 }], res);
@@ -358,7 +344,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([2], res);
 
             // Let's make sure we get back the document that we put in.
-            return data.findOne(2).value();
+            return data.find(2).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.deepEqual({ id: 2, a: 2 }, res);
@@ -403,7 +389,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([1], res);
 
             // Let's make sure we get back the document that we put in.
-            return data.findOne(1).value();
+            return data.find(1).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.deepEqual({ id: 1, a: { b: 1, c: 1 }, d: 1 }, res);
@@ -415,7 +401,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([1], res);
 
             // Make sure `upsert` updated the original document
-            return data.findOne(1).value();
+            return data.find(1).value();
           }).then((res) => {
             // Check that the document was updated correctly
             assert.deepEqual({ id: 1, a: { b: 1, c: 2 }, d: 1 }, res);
@@ -438,7 +424,7 @@ describe("Fusion Client Library", () => {
             new_id = res[0];
 
             // Let's make sure we get back the document that we put in.
-            return data.findOne(new_id).value();
+            return data.find(new_id).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.deepEqual({ id: new_id, a: { b: 1, c: 1 }, d: 1 }, res);
@@ -450,7 +436,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([new_id], res);
 
             // Make sure `upsert` updated the original document
-            return data.findOne(new_id).value();
+            return data.find(new_id).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.deepEqual({ id: new_id, a: { b: 1, c: 2 }, d: 1 }, res);
@@ -494,7 +480,7 @@ describe("Fusion Client Library", () => {
             new_id_1 = res[1];
 
             // Make sure we get what we put in.
-            return data.find(new_id_0, new_id_1, 1).value();
+            return data.findAll(new_id_0, new_id_1, 1).value();
           }).then((res) => {
             // We're supposed to get an array of documents we put in
             assert.sameDeepMembers([{ id: new_id_0 }, { id: new_id_1, a: 1 }, { id: 1, a: 1 }], res);
@@ -554,7 +540,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([1], res);
 
             // Let's make sure we get back the document that we put in.
-            return data.findOne(1).value();
+            return data.find(1).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.deepEqual({ id: 1, a: { b: 1, c: 1 }, d: 1 }, res);
@@ -566,7 +552,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([1], res);
 
             // Make sure `upsert` updated the original document
-            return data.findOne(1).value();
+            return data.find(1).value();
           }).then((res) => {
             // Check that the document was updated correctly
             assert.deepEqual({ id: 1, a: { b: 1, c: 2 }, d: 1 }, res);
@@ -602,7 +588,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([1, 2], res);
 
             // Let's make sure we get back the documents that we put in.
-            return data.find(1, 2).value();
+            return data.findAll(1, 2).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.sameDeepMembers([{ id: 1, a: { b: 1, c: 1 }, d: 1 },
@@ -617,7 +603,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([1, 2], res);
 
             // Make sure `update` updated the documents properly
-            return data.find(1, 2).value();
+            return data.findAll(1, 2).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.sameDeepMembers([{ id: 1, a: { b: 1, c: 2 }, d: 1 },
@@ -682,7 +668,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([1], res);
 
             // Let's make sure we get back the document that we put in.
-            return data.findOne(1).value();
+            return data.find(1).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.deepEqual({ id: 1, a: { b: 1, c: 1 }, d: 1 }, res);
@@ -694,7 +680,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([1], res);
 
             // Make sure `replace` replaced the original document
-            return data.findOne(1).value();
+            return data.find(1).value();
           }).then((res) => {
             // Check that the document was updated correctly
             assert.deepEqual({ id: 1, a: { c: 2 } }, res);
@@ -730,7 +716,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([1, 2], res);
 
             // Let's make sure we get back the documents that we put in.
-            return data.find(1, 2).value();
+            return data.findAll(1, 2).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.sameDeepMembers([{ id: 1, a: { b: 1, c: 1 }, d: 1 },
@@ -745,7 +731,7 @@ describe("Fusion Client Library", () => {
             assert.deepEqual([1, 2], res);
 
             // Make sure `update` updated the documents properly
-            return data.find(1, 2).value();
+            return data.findAll(1, 2).value();
           }).then((res) => {
             // Check that we get back what we put in.
             assert.sameDeepMembers([{ id: 1, a: { c: 2 } },
@@ -816,7 +802,7 @@ describe("Fusion Client Library", () => {
           assert.isUndefined(res);
 
           // Let's make sure the removed document isn't there
-          return data.findOne(1).value();
+          return data.find(1).value();
         }).then((res) => {
           // Let's make sure the removed document isn't there
           assert.isNull(res);
@@ -832,40 +818,34 @@ describe("Fusion Client Library", () => {
         }).catch(done);
       });
 
-      // It's also possible to remove multiple docuemnts. We'll throw in a
-      // missing one, for good measure.
-      it("#.remove(a, b, missing)", (done) => {
-        data.remove(2, 3, 9).then((res) => {
-          assert.isUndefined(res);
-
-          // Let's make sure the documents aren't there
-          return data.find(2, 3, 9).value();
-        }).then((res) => {
-          // Let's make sure the documents aren't there
-          assert.deepEqual([], res);
-          done();
-        }).catch(done);
-      });
-
-      // Calling `remove` with no arguments is ok (because people will be using
-      // it with `apply`)
-      it("#.remove()", (done) => {
-        data.remove().then((res) => {
-          assert.isUndefined(res);
-          done();
-        }).catch(done);
-      });
-
-      // Passing an object to `remove` is an error because neither primary nor
-      // secondary keys can be objects in RethinkDB. Also, we aren't doing `{
-      // id: x }` destructuring.
-      it("#.remove(obj)", (done) => {
+      // TODO: Passing an object to `remove` is ok
+      it.skip("#.remove(obj)", (done) => {
         data.remove({ id: 'do_not_remove_1' }).catch((err) => {
           assert.isDefined(err);
           assert.isNotNull(err);
           done();
         });
       });
+
+      // Calling `remove` with no arguments is an error
+      it("#.remove()", (done) => {
+        data.remove().catch((err) => {
+          assert.isDefined(err);
+          assert.isNotNull(err);
+          done();
+        }).catch(done);
+      });
+
+      // Calling `remove` with null is an error
+      it("#.remove(null)", (done) => {
+        data.remove(null).catch((err) => {
+          assert.isDefined(err);
+          assert.isNotNull(err);
+          done();
+        }).catch(done);
+      });
+
+      // TODO: give a good error if the user tries to use varargs
 
       // Check that the remaining documents are there
       it("#.remove.check.remaining", (done) => {
@@ -934,113 +914,12 @@ describe("Fusion Client Library", () => {
 
       });
 
-      describe("Testing `findOne`", () => {
-
-        // Let's grab a specific document using `findOne`
-        it("#.findOne(id)", (done) => {
-          data.findOne(1).value().then((res) => {
-            assert.deepEqual({ id: 1, a: 10 }, res);
-            done();
-          }).catch(done);
-        });
-
-        // This is equivalent to searching by field `id`
-        it("#.findOne(id, field:id)", (done) => {
-          data.findOne(1, { field: 'id' }).value().then((res) => {
-            assert.deepEqual({ id: 1, a: 10 }, res);
-            done();
-          }).catch(done);
-        });
-
-        // `findOne` returns `null` if a document doesn't exist.
-        it("#.findOne(missing)", (done) => {
-          data.findOne('abracadabra').value().then((res) => {
-            assert.isNull(res);
-            done();
-          }).catch(done);
-        });
-
-        // Looking for `null` is an error. RethinkDB doesn't allow secondary
-        // index values to be `null`.
-        it("#.findOne(null)", (done) => {
-          data.findOne(null).value().catch((err) => {
-            assert.isDefined(err);
-            assert.isNotNull(err);
-            done();
-          });
-        });
-
-        // Looking for `undefined` is also an error.
-        it("#.findOne(undefined)", (done) => {
-          data.findOne().value().catch((err) => {
-            assert.isDefined(err);
-            assert.isNotNull(err);
-            done();
-          });
-        });
-
-        // We can also `findOne` by a different (indexed!) field. In that case,
-        // `findOne` will return the first match.
-        it("#.findOne(field)", (done) => {
-          data.findOne(10, { field: 'a' }).value().then((res) => {
-            assert.deepEqual({ id: 1, a: 10 }, res);
-            done();
-          }).catch(done);
-        });
-
-        // Let's try this again for a value that doesn't exist.
-        it("#.findOne(field_no_value)", (done) => {
-          data.findOne(100, { field: 'a' }).value().then((res) => {
-            assert.isNull(res);
-            done();
-          }).catch(done);
-        });
-
-        // Let's try this again for a field that doesn't exist.
-        it("#.findOne(field_no_field)", (done) => {
-          data.findOne(1, { field: 'b' }).value().then((res) => {
-            assert.isNull(res);
-            done();
-          }).catch(done);
-        });
-
-        // Let's try this again, now with multiple results.
-        it("#.findOne(field_many_values)", (done) => {
-          data.findOne(20, { field: 'a' }).value().then((res) => {
-            // The id should be one of 2, 3, or 4
-            assert.include([2, 3, 4], res['id']);
-            done();
-          }).catch(done);
-        });
-
-        // Searching for an object is an error because neither primary nor
-        // secondary keys can be objects in RethinkDB. Also, we aren't doing `{
-        // id: x }` destructuring.
-        it("#.findOne(obj)", (done) => {
-          data.findOne({ id: 1 }).value().catch((err) => {
-            assert.isDefined(err);
-            assert.isNotNull(err);
-            done();
-          });
-        });
-
-        // Same for secondary key searches
-        it("#.findOne(obj, field)", (done) => {
-          data.findOne({ id: 20 }, { field: 'a' }).value().catch((err) => {
-            assert.isDefined(err);
-            assert.isNotNull(err);
-            done();
-          });
-        });
-
-      }); // Testing `findOne`
-
       describe("Testing `find`", () => {
 
         // Let's grab a specific document using `find`
         it("#.find(id)", (done) => {
           data.find(1).value().then((res) => {
-            assert.deepEqual([{ id: 1, a: 10 }], res);
+            assert.deepEqual({ id: 1, a: 10 }, res);
             done();
           }).catch(done);
         });
@@ -1048,23 +927,43 @@ describe("Fusion Client Library", () => {
         // This is equivalent to searching by field `id`
         it("#.find(id, field:id)", (done) => {
           data.find(1, { field: 'id' }).value().then((res) => {
-            assert.deepEqual([{ id: 1, a: 10 }], res);
+            assert.deepEqual({ id: 1, a: 10 }, res);
             done();
           }).catch(done);
         });
 
-        // `find` returns `[]` if a document doesn't exist.
+        // `find` returns `null` if a document doesn't exist.
         it("#.find(missing)", (done) => {
           data.find('abracadabra').value().then((res) => {
-            assert.deepEqual([], res);
+            assert.isNull(res);
             done();
           }).catch(done);
         });
 
-        // We can also `find` by a different (indexed!) field.
+        // Looking for `null` is an error. RethinkDB doesn't allow secondary
+        // index values to be `null`.
+        it("#.find(null)", (done) => {
+          data.find(null).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+
+        // Looking for `undefined` is also an error.
+        it("#.find(undefined)", (done) => {
+          data.find().value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+
+        // We can also `find` by a different (indexed!) field. In that case,
+        // `find` will return the first match.
         it("#.find(field)", (done) => {
           data.find(10, { field: 'a' }).value().then((res) => {
-            assert.deepEqual([{ id: 1, a: 10 }], res);
+            assert.deepEqual({ id: 1, a: 10 }, res);
             done();
           }).catch(done);
         });
@@ -1072,7 +971,7 @@ describe("Fusion Client Library", () => {
         // Let's try this again for a value that doesn't exist.
         it("#.find(field_no_value)", (done) => {
           data.find(100, { field: 'a' }).value().then((res) => {
-            assert.deepEqual([], res);
+            assert.isNull(res);
             done();
           }).catch(done);
         });
@@ -1080,7 +979,7 @@ describe("Fusion Client Library", () => {
         // Let's try this again for a field that doesn't exist.
         it("#.find(field_no_field)", (done) => {
           data.find(1, { field: 'b' }).value().then((res) => {
-            assert.deepEqual([], res);
+            assert.isNull(res);
             done();
           }).catch(done);
         });
@@ -1088,80 +987,8 @@ describe("Fusion Client Library", () => {
         // Let's try this again, now with multiple results.
         it("#.find(field_many_values)", (done) => {
           data.find(20, { field: 'a' }).value().then((res) => {
-            // There are three docs where `a == 20`
-            assert.sameDeepMembers([{ id: 2, a: 20 },
-                                    { id: 3, a: 20 },
-                                    { id: 4, a: 20 }],
-                                   res);
-            done();
-          }).catch(done);
-        });
-
-        // Looking for `null` is an error since secondary index values cannot be
-        // `null` in RethinkDB.
-        it("#.find(null)", (done) => {
-          data.find(null).value().catch((err) => {
-            assert.isDefined(err);
-            assert.isNotNull(err);
-            done();
-          }).catch(done);
-        });
-
-        // No args is ok, because people will be using `apply`
-        it("#.find(undefined)", (done) => {
-          data.find().value().then((res) => {
-            assert.deepEqual([], res);
-            done();
-          }).catch(done);
-        });
-
-        // Find lets us look for multiple documents. Let's try it on a primary
-        // key.
-        it("#.find(a, b)", (done) => {
-          data.find(1, 2, 20).value().then((res) => {
-            // There are three docs where `a == 20`
-            assert.sameDeepMembers([{ id: 1, a: 10 },
-                                    { id: 2, a: 20 }],
-                                   res);
-            done();
-          }).catch(done);
-        });
-
-        // Let's try multiple documents on a secondary key.
-        it("#.find(a, b, field)", (done) => {
-          data.find(10, 20, 200, { field: 'a' }).value().then((res) => {
-            // There are three docs where `a == 20`
-            assert.sameDeepMembers([{ id: 1, a: 10 },
-                                    { id: 2, a: 20 },
-                                    { id: 3, a: 20 },
-                                    { id: 4, a: 20 }],
-                                   res);
-            done();
-          }).catch(done);
-        });
-
-        // Let's try it on a missing field
-        it("#.find(a, b, field_no_field)", (done) => {
-          data.find(1, 2, 200, { field: 'abracadabra' }).value().then((res) => {
-            assert.equal([], res);
-            done();
-          }).catch(done);
-        });
-
-        // When one thing fails, everything fails.
-        it("#.find(a, null, c)", (done) => {
-          data.find(1, null, 2).value().catch((err) => {
-            assert.isDefined(err);
-            assert.isNotNull(err);
-            done();
-          }).catch(done);
-        });
-
-        // Let's try it again on a secondary key.
-        it("#.find(a, null, c, field)", (done) => {
-          data.find(10, null, 20, { field: 'a' }).value().catch((err) => {
-            assert.isDefined(err);
-            assert.isNotNull(err);
+            // The id should be one of 2, 3, or 4
+            assert.include([2, 3, 4], res['id']);
             done();
           }).catch(done);
         });
@@ -1174,7 +1001,7 @@ describe("Fusion Client Library", () => {
             assert.isDefined(err);
             assert.isNotNull(err);
             done();
-          }).catch(done);
+          });
         });
 
         // Same for secondary key searches
@@ -1183,10 +1010,163 @@ describe("Fusion Client Library", () => {
             assert.isDefined(err);
             assert.isNotNull(err);
             done();
-          }).catch(done);
+          });
         });
 
       }); // Testing `find`
+
+      describe("Testing `findAll`", () => {
+
+        // Let's grab a specific document using `findAll`
+        it("#.findAll(id)", (done) => {
+          data.findAll(1).value().then((res) => {
+            assert.deepEqual([{ id: 1, a: 10 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // This is equivalent to searching by field `id`
+        it("#.findAll(id, field:id)", (done) => {
+          data.findAll(1, { field: 'id' }).value().then((res) => {
+            assert.deepEqual([{ id: 1, a: 10 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // `findAll` returns `[]` if a document doesn't exist.
+        it("#.findAll(missing)", (done) => {
+          data.findAll('abracadabra').value().then((res) => {
+            assert.deepEqual([], res);
+            done();
+          }).catch(done);
+        });
+
+        // We can also `findAll` by a different (indexed!) field.
+        it("#.findAll(field)", (done) => {
+          data.findAll(10, { field: 'a' }).value().then((res) => {
+            assert.deepEqual([{ id: 1, a: 10 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try this again for a value that doesn't exist.
+        it("#.findAll(field_no_value)", (done) => {
+          data.findAll(100, { field: 'a' }).value().then((res) => {
+            assert.deepEqual([], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try this again for a field that doesn't exist.
+        it("#.findAll(field_no_field)", (done) => {
+          data.findAll(1, { field: 'b' }).value().then((res) => {
+            assert.deepEqual([], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try this again, now with multiple results.
+        it("#.findAll(field_many_values)", (done) => {
+          data.findAll(20, { field: 'a' }).value().then((res) => {
+            // There are three docs where `a == 20`
+            assert.sameDeepMembers([{ id: 2, a: 20 },
+                                    { id: 3, a: 20 },
+                                    { id: 4, a: 20 }],
+                                   res);
+            done();
+          }).catch(done);
+        });
+
+        // Looking for `null` is an error since secondary index values cannot be
+        // `null` in RethinkDB.
+        it("#.findAll(null)", (done) => {
+          data.findAll(null).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          }).catch(done);
+        });
+
+        // No args is ok, because people will be using `apply`
+        it("#.findAll(undefined)", (done) => {
+          data.findAll().value().then((res) => {
+            assert.deepEqual([], res);
+            done();
+          }).catch(done);
+        });
+
+        // `findAll` lets us look for multiple documents. Let's try it on a primary
+        // key.
+        it("#.findAll(a, b, missing)", (done) => {
+          data.findAll(1, 2, 20).value().then((res) => {
+            // There are three docs where `a == 20`
+            assert.sameDeepMembers([{ id: 1, a: 10 },
+                                    { id: 2, a: 20 }],
+                                   res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try multiple documents on a secondary key.
+        it("#.findAll(a, b, missing, field)", (done) => {
+          data.findAll(10, 20, 200, { field: 'a' }).value().then((res) => {
+            // There are three docs where `a == 20`
+            assert.sameDeepMembers([{ id: 1, a: 10 },
+                                    { id: 2, a: 20 },
+                                    { id: 3, a: 20 },
+                                    { id: 4, a: 20 }],
+                                   res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try it on a missing field
+        it("#.findAll(a, b, field_no_field)", (done) => {
+          data.findAll(1, 2, 200, { field: 'abracadabra' }).value().then((res) => {
+            assert.equal([], res);
+            done();
+          }).catch(done);
+        });
+
+        // When one thing fails, everything fails.
+        it("#.findAll(a, null, c)", (done) => {
+          data.findAll(1, null, 2).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try it again on a secondary key.
+        it("#.findAll(a, null, c, field)", (done) => {
+          data.findAll(10, null, 20, { field: 'a' }).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          }).catch(done);
+        });
+
+        // Searching for an object is an error because neither primary nor
+        // secondary keys can be objects in RethinkDB. Also, we aren't doing `{
+        // id: x }` destructuring.
+        it("#.findAll(obj)", (done) => {
+          data.findAll({ id: 1 }).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          }).catch(done);
+        });
+
+        // Same for secondary key searches
+        it("#.findAll(obj, field)", (done) => {
+          data.findAll({ id: 20 }, { field: 'a' }).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          }).catch(done);
+        });
+
+      }); // Testing `findAll`
 
     }); // Test the lookup API
 
