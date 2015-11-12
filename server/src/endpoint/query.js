@@ -15,15 +15,15 @@ const make_reql = (raw_request) => {
 
   if (selection) {
     switch (selection.type) {
-      case 'find_one':
-        reql = reql.getAll(selection.args[0], { index }).limit(1);
-        break;
-      case 'find':
-        reql = reql.getAll(r.args(selection.args), { index });
-        break;
-      case 'between':
-        reql = reql.between(selection.args[0], selection.args[1], { index });
-        break;
+    case 'find_one':
+      reql = reql.getAll(selection.args[0], { index }).limit(1);
+      break;
+    case 'find':
+      reql = reql.getAll(r.args(selection.args), { index });
+      break;
+    case 'between':
+      reql = reql.between(selection.args[0], selection.args[1], { index });
+      break;
     }
   }
 
@@ -46,15 +46,15 @@ const make_reql = (raw_request) => {
 const handle_response = (request, cursor, send_cb) => {
   request.client.cursors.set(request.id, cursor);
   cursor.each((err, item) => {
-      if (err !== null) {
-        send_cb({ error: `${err}` });
-      } else {
-        send_cb({ data: [ item ] });
-      }
-    }, () => {
-      request.client.cursors.delete(cursor);
-      send_cb({ data: [ ], state: 'complete' });
-    });
+    if (err !== null) {
+      send_cb({ error: `${err}` });
+    } else {
+      send_cb({ data: [ item ] });
+    }
+  }, () => {
+    request.client.cursors.delete(cursor);
+    send_cb({ data: [ ], state: 'complete' });
+  });
 };
 
 module.exports = { make_reql, handle_response };

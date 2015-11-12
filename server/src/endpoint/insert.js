@@ -19,13 +19,13 @@ const handle_response = (request, response, send_cb) => {
   } else {
     let index = 0;
     const ids = request.raw.options.data.map((row) => {
-        if (row.id === undefined) {
-          check(response.generated_keys && response.generated_keys.length > index,
-                `ReQL response does not contain enough generated keys.`);
-          return response.generated_keys[index++];
-        }
-        return row.id;
-      });
+      if (row.id === undefined) {
+        check(response.generated_keys && response.generated_keys.length > index,
+              `ReQL response does not contain enough generated keys.`);
+        return response.generated_keys[index++];
+      }
+      return row.id;
+    });
     send_cb({ data: ids, state: 'complete' });
   }
 };

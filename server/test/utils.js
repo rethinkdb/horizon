@@ -24,18 +24,18 @@ let fusion_authenticated = false;
 
 module.exports.start_rdb_server = (done) => {
   const rmdirSync_recursive = (dir) => {
-      try {
-        fs.readdirSync(dir).forEach((item) => {
-            const full_path = path.join(dir, item);
-            if (fs.statSync(full_path).isDirectory()) {
-              rmdirSync_recursive(full_path);
-            } else {
-              fs.unlinkSync(full_path);
-            }
-          });
-        fs.rmdirSync(dir);
-      } catch (err) { /* Do nothing */ }
-    };
+    try {
+      fs.readdirSync(dir).forEach((item) => {
+        const full_path = path.join(dir, item);
+        if (fs.statSync(full_path).isDirectory()) {
+          rmdirSync_recursive(full_path);
+        } else {
+          fs.unlinkSync(full_path);
+        }
+      });
+      fs.rmdirSync(dir);
+    } catch (err) { /* Do nothing */ }
+  };
   rmdirSync_recursive(data_dir);
 
   const proc = child_process.spawn('rethinkdb', [ '--http-port', '0',
@@ -46,36 +46,36 @@ module.exports.start_rdb_server = (done) => {
   proc.once('error', (err) => assert.ifError(err));
 
   process.on('exit', () => {
-      proc.kill('SIGKILL');
-      rmdirSync_recursive(data_dir);
-    });
+    proc.kill('SIGKILL');
+    rmdirSync_recursive(data_dir);
+  });
 
   // Error if we didn't get the port before the server exited
   proc.stdout.once('end', () => assert(rdb_port !== undefined));
 
   let buffer = '';
   proc.stdout.on('data', (data) => {
-      buffer += data.toString();
+    buffer += data.toString();
 
-      const endline_pos = buffer.indexOf('\n');
-      if (endline_pos === -1) { return; }
+    const endline_pos = buffer.indexOf('\n');
+    if (endline_pos === -1) { return; }
 
-      const line = buffer.slice(0, endline_pos);
-      buffer = buffer.slice(endline_pos + 1);
+    const line = buffer.slice(0, endline_pos);
+    buffer = buffer.slice(endline_pos + 1);
 
-      const matches = line.match(/^Listening for client driver connections on port (\d+)$/);
-      if (matches === null || matches.length !== 2) { return; }
+    const matches = line.match(/^Listening for client driver connections on port (\d+)$/);
+    if (matches === null || matches.length !== 2) { return; }
 
-      proc.stdout.removeAllListeners('data');
-      rdb_port = parseInt(matches[1]);
-      r.connect({ port: rdb_port, db: db }).then((c) => {
-          rdb_conn = c;
-          return r.dbCreate(db).run(c);
-        }).then((res) => {
-          assert.strictEqual(res.dbs_created, 1);
-          done();
-        });
+    proc.stdout.removeAllListeners('data');
+    rdb_port = parseInt(matches[1]);
+    r.connect({ port: rdb_port, db: db }).then((c) => {
+      rdb_conn = c;
+      return r.dbCreate(db).run(c);
+    }).then((res) => {
+      assert.strictEqual(res.dbs_created, 1);
+      done();
     });
+  });
 };
 
 // Creates a table, no-op if it already exists
@@ -200,19 +200,19 @@ const fusion_auth = (req, cb) => {
   assert(fusion_conn && fusion_conn.readyState === websocket.OPEN);
   fusion_conn.send(JSON.stringify(req));
   fusion_conn.once('message', (auth_msg) => {
-      fusion_authenticated = true;
-      const res = JSON.parse(auth_msg);
-      fusion_conn.on('message', (msg) => dispatch_message(msg));
-      cb(res);
-    });
+    fusion_authenticated = true;
+    const res = JSON.parse(auth_msg);
+    fusion_conn.on('message', (msg) => dispatch_message(msg));
+    cb(res);
+  });
 };
 
 module.exports.fusion_auth = fusion_auth;
 module.exports.fusion_default_auth = (done) => {
   fusion_auth({ request_id: -1 }, (res) => {
-      assert.deepEqual(res, { request_id: -1, user_id: 0 });
-      done();
-    });
+    assert.deepEqual(res, { request_id: -1, user_id: 0 });
+    done();
+  });
 };
 
 // `stream_test` will send a request (containing a request_id), and call the
@@ -225,17 +225,17 @@ module.exports.stream_test = (req, cb) => {
   fusion_conn.send(JSON.stringify(req));
   const results = [];
   add_fusion_listener(req.request_id, (msg) => {
-      if (msg.data !== undefined) {
-        results.push.apply(results, msg.data);
-      }
-      if (msg.error !== undefined) {
-        remove_fusion_listener(req.request_id);
-        cb(new Error(msg.error), results);
-      } else if (msg.state === 'complete') {
-        remove_fusion_listener(req.request_id);
-        cb(null, results);
-      }
-    });
+    if (msg.data !== undefined) {
+      results.push.apply(results, msg.data);
+    }
+    if (msg.error !== undefined) {
+      remove_fusion_listener(req.request_id);
+      cb(new Error(msg.error), results);
+    } else if (msg.state === 'complete') {
+      remove_fusion_listener(req.request_id);
+      cb(null, results);
+    }
+  });
 };
 
 module.exports.check_error = (err, msg) => {

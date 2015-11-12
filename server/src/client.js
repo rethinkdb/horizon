@@ -102,12 +102,12 @@ class Client {
   }
 
   run_request(request) {
-      const conn = this.parent._reql_conn.get_connection();
-      check(conn !== undefined, `Connection to the database is down.`);
-      logger.debug(`Running ${r.Error.printQuery(request.reql)}`);
+    const conn = this.parent._reql_conn.get_connection();
+    check(conn !== undefined, `Connection to the database is down.`);
+    logger.debug(`Running ${r.Error.printQuery(request.reql)}`);
 
-      request.reql.run(conn).then((res) => this.handle_response(request, res),
-                                  (err) => this.handle_response_error(request, err));
+    request.reql.run(conn).then((res) => this.handle_response(request, res),
+                                (err) => this.handle_response_error(request, err));
   }
 
   handle_response(request, res) {
@@ -132,12 +132,12 @@ class Client {
   }
 
   run_prerequisite(request, root_term) {
-      const conn = this.parent._reql_conn.get_connection();
-      check(conn !== undefined, `Connection to the database is down.`);
-      logger.debug(`Running ${r.Error.printQuery(root_term)}`);
+    const conn = this.parent._reql_conn.get_connection();
+    check(conn !== undefined, `Connection to the database is down.`);
+    logger.debug(`Running ${r.Error.printQuery(root_term)}`);
 
-      root_term.run(conn).then(() => this.run_request(request),
-                               (err) => this.handle_response_error(request, err));
+    root_term.run(conn).then(() => this.run_request(request),
+                             (err) => this.handle_response_error(request, err));
   }
 
   handle_response_error(request, info) {

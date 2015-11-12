@@ -13,7 +13,7 @@
     "dot-notation": [ 2 ],
     "eqeqeq": [ 2 ],
     "func-style": [ 2, "expression" ],
-    "indent": [ 0, 2 ],
+    "indent": [ 2, 2 ],
     "key-spacing": [ 2 ],
     "linebreak-style": [ 2, "unix" ],
     "new-parens": [ 2 ],

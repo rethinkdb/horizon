@@ -42,15 +42,15 @@ const read = Joi.object({
 const write_id_optional = Joi.object({
   collection: Joi.string().token().required(),
   data: Joi.array().min(1).items(Joi.object({
-      id: Joi.any().optional(),
-    }).unknown(true)).required(),
+    id: Joi.any().optional(),
+  }).unknown(true)).required(),
 }).unknown(false);
 
 const write_id_required = Joi.object({
   collection: Joi.string().token().required(),
   data: Joi.array().min(1).items(Joi.object({
-      id: Joi.any().required(),
-    }).unknown(true)).required(),
+    id: Joi.any().required(),
+  }).unknown(true)).required(),
 }).unknown(false);
 
 const request = Joi.object({
