@@ -933,7 +933,7 @@ describe("Fusion Client Library", () => {
           assert.isUndefined(res);
 
           // Let's make sure the removed document isn't there
-          return data.findAll(3, 4).value();
+          return data.findAll(3, 50, 4).value();
         }).then((res) => {
           // Let's make sure the removed document isn't there
           assert.deepEqual([], res);
@@ -1296,7 +1296,7 @@ describe("Fusion Client Library", () => {
         // Let's try it on a missing field
         it("#.findAll(a, b, field_no_field)", (done) => {
           data.findAll(1, 2, 200, { field: 'abracadabra' }).value().then((res) => {
-            assert.equal([], res);
+            assert.deepEqual([], res);
             done();
           }).catch(done);
         });
