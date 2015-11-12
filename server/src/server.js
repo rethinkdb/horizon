@@ -46,21 +46,21 @@ const handle_http_request = (req, res) => {
 
   if (req_path === '/fusion.js') {
     fs.access(file_path, fs.R_OK | fs.F_OK, (exists) => {
-        if (exists) {
-          res.writeHead(404, { 'Content-Type': 'text/plain' });
-          res.end(`Client library not found\n`);
-        } else {
-          fs.readFile(file_path, 'binary', (err, file) => {
-              if (err) {
-                res.writeHead(500, { 'Content-Type': 'text/plain' });
-                res.end(`${err}\n`);
-              } else {
-                res.writeHead(200);
-                res.end(file, 'binary');
-              }
-            });
-        }
-      });
+      if (exists) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end(`Client library not found\n`);
+      } else {
+        fs.readFile(file_path, 'binary', (err, file) => {
+          if (err) {
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end(`${err}\n`);
+          } else {
+            res.writeHead(200);
+            res.end(file, 'binary');
+          }
+        });
+      }
+    });
   } else {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
     res.end(`Forbidden\n`);
@@ -124,20 +124,20 @@ class BaseServer {
     }
 
     opts.local_hosts.forEach((host) => {
-        assert(this._http_servers.get(host) === undefined);
-        this._http_servers.set(host, make_http_server());
-      });
+      assert(this._http_servers.get(host) === undefined);
+      this._http_servers.set(host, make_http_server());
+    });
 
     this._http_servers.forEach((http_server, host) => {
-        http_server.listen(opts.local_port, host);
-        this._local_ports.set(host, new Promise((resolve) => {
-            http_server.on('listening', () => { resolve(http_server.address().port); });
-          }));
-        this._ws_servers.set(host, new websocket.Server({ server: http_server,
-                                                          handleProtocols: accept_protocol })
-          .on('error', (error) => logger.error(`Websocket server error: ${error}`))
-          .on('connection', (socket) => new fusion_client.Client(socket, this)));
-      });
+      http_server.listen(opts.local_port, host);
+      this._local_ports.set(host, new Promise((resolve) => {
+        http_server.on('listening', () => { resolve(http_server.address().port); });
+      }));
+      this._ws_servers.set(host, new websocket.Server({ server: http_server,
+                                                        handleProtocols: accept_protocol })
+        .on('error', (error) => logger.error(`Websocket server error: ${error}`))
+        .on('connection', (socket) => new fusion_client.Client(socket, this)));
+    });
   }
 
   add_endpoint(endpoint_name, make_reql, handle_response) {
@@ -160,7 +160,7 @@ class BaseServer {
     const { value, error } = Joi.validate(request, fusion_protocol.request);
     if (error !== null) { throw new Error(error.details[0].message); }
 
-    var endpoint = this._endpoints.get(value.type);
+    const endpoint = this._endpoints.get(value.type);
     check(endpoint !== undefined, `"${value.type}" is not a recognized endpoint.`);
     return endpoint;
   }
@@ -168,23 +168,23 @@ class BaseServer {
 
 class UnsecureServer extends BaseServer {
   constructor(user_opts) {
-    var opts = Joi.attempt(user_opts, server_options.unsecure);
+    const opts = Joi.attempt(user_opts, server_options.unsecure);
 
     super(opts, () => {
-        logger.warn(`Creating unsecure HTTP server.`);
-        return new http.Server(handle_http_request);
-      });
+      logger.warn(`Creating unsecure HTTP server.`);
+      return new http.Server(handle_http_request);
+    });
   }
 }
 
 class Server extends BaseServer {
   constructor(user_opts) {
-    var opts = Joi.attempt(user_opts, server_options.secure);
+    const opts = Joi.attempt(user_opts, server_options.secure);
 
     super(opts, () => {
-        return new https.Server({ key: opts.key, cert: opts.cert },
-                                handle_http_request);
-      });
+      return new https.Server({ key: opts.key, cert: opts.cert },
+                              handle_http_request);
+    });
   }
 }
 
