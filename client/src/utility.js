@@ -175,23 +175,31 @@ class FusionEmitter extends EventEmitter {
 
 // Checks whether the return value is a valid primary or secondary
 // index value
-function validKeyValue(val){
+function validIndexValue(val){
   if(val == null){
     return false
   }
-  if(['boolean', 'number', 'string'].indexOf(val) !== -1){
+  if(['boolean', 'number', 'string'].indexOf(typeof val) !== -1){
     return true
   }
   if(Array.isArray(val)){
     let containsBad = false
     val.forEach((v) => {
-      containsBad = containsBad || validKeyValue(v)
+      containsBad = containsBad || validIndexValue(v)
     })
     return containsBad
   }
   return false
 }
 
-module.exports.ListenerSet = ListenerSet
-module.exports.FusionEmitter = FusionEmitter
-module.exports.validKeyValue = validKeyValue
+// Returns a failing promise with the given error message
+function promiseError(msg){
+  return Promise.reject(new Error(msg))
+}
+
+Object.assign(module.exports, {
+  ListenerSet,
+  FusionEmitter,
+  validIndexValue,
+  promiseError,
+})

@@ -1,5 +1,10 @@
 require('babel-polyfill')
-const { FusionEmitter, ListenerSet, validKeyValue } = require('./utility.js')
+const {
+  FusionEmitter,
+  ListenerSet,
+  validIndexValue,
+  promiseError,
+} = require('./utility.js')
 
 const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 
@@ -265,14 +270,9 @@ class TermBase {
     return this.fusion.subscribe(this.query, updates)
   }
 
-  _modifyValue(val){
-    //By default, don't change the result
-    return val
-  }
-
   value(){
     // return promise with no changefeed
-    return this.fusion.query(this.query).then(this._modifyValue.bind(this))
+    return this.fusion.query(this.query)
   }
 }
 
@@ -329,18 +329,33 @@ class Collection extends TermBase {
   }
 
   remove(documentOrId){
-    if(validKeyValue(documentOrId)){
+    if(arguments.length > 1){
+      return promiseError("remove takes exactly one argument")
+    }
+    if(documentOrId === undefined){
+      return promiseError("remove must be given an argument")
+    }
+    if(documentOrId === null){
+      return promiseError("remove must receive a non-null argument")
+    }
+    if(validIndexValue(documentOrId)){
       documentOrId = {id: documentOrId}
     }
     return this._writeOp('remove', [documentOrId]).then(() => undefined)
   }
 
   removeAll(documentsOrIds){
-    documentsOrIds = documentsOrIds.map(doc => {
-      if(validKeyValue(doc)){
-        return {id: doc}
+    if(!Array.isArray(documentsOrIds)){
+      return promiseError("removeAll takes an array as an argument")
+    }
+    if(arguments.length > 1){
+      return promiseError("removeAll only takes one argument (an array)")
+    }
+    documentsOrIds = documentsOrIds.map(item => {
+      if(validIndexValue(item)){
+        return {id: item}
       }else{
-        return doc
+        return item
       }
     })
     return this._writeOp('remove', documentsOrIds).then(() => undefined)
@@ -348,8 +363,7 @@ class Collection extends TermBase {
 
   _writeOp(name, documents){
     if(documents == null){
-      return Promise.reject(
-        new Error(`${name} must receive a non-null argument`))
+      return promiseError(`${name} must receive a non-null argument`)
     }else if(!Array.isArray(documents)){
       documents = [documents]
     }else if(documents.length === 0){
@@ -369,6 +383,14 @@ class FindAll extends TermBase {
       selection: {type: 'find', args: fieldValues},
       field_name: fieldName
     })
+  }
+
+  value(){
+    if(this._values.length === 0){
+      return Promise.resolve([])
+    }else{
+      return super.value()
+    }
   }
 
   order(field='id', ascending=true){
@@ -391,13 +413,14 @@ class Find extends TermBase {
     })
   }
 
-  _modifyValue(val){
-    //findOne unwraps its results
-    if(val != undefined){
-      return val[0]
-    }else{
-      return null
-    }
+  value(){
+    return super.value().then(val => {
+      if(val != undefined){
+        return val[0] || null
+      }else{
+        return null
+      }
+    })
   }
 }
 

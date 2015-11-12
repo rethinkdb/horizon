@@ -857,7 +857,7 @@ describe("Fusion Client Library", () => {
           assert.isDefined(err);
           assert.isNotNull(err);
           done();
-        }).catch(done);
+        }).then((val) => done(new Error(`Didn't fail ${val}`)));
       });
 
       // Check that the remaining documents are there
@@ -984,11 +984,13 @@ describe("Fusion Client Library", () => {
         });
       });
       it("#.removeAll([a], b)", (done) => {
-        data.removeAll([1], 2).catch((err) => {
-          assert.isDefined(err);
-          assert.isNotNull(err);
-          done();
-        });
+        data.removeAll([1], 2)
+          .then(() => done(new Error("Should have gotten an error")))
+          .catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          })
       });
       it("#.removeAll(null)", (done) => {
         data.removeAll(null).catch((err) => {
