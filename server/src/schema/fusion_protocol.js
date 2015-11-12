@@ -25,9 +25,9 @@ const read = Joi.object({
       'between',
     ]),
     args: Joi.alternatives()
-      .when('selection.type', { is: 'find', then: Joi.array().length(1) })
-      .when('selection.type', { is: 'between', then: Joi.array().length(2),
-                                otherwise: Joi.array() }),
+      .when('type', { is: 'find_one', then: Joi.array().length(1) })
+      .when('type', { is: 'between', then: Joi.array().length(2) })
+      .when('type', { is: 'find', then: Joi.array().min(1) }),
   }).unknown(false).optional(),
 
     // .options({
@@ -41,12 +41,16 @@ const read = Joi.object({
 
 const write_id_optional = Joi.object({
   collection: Joi.string().token().required(),
-  data: Joi.array().min(1).items(Joi.object({ id: Joi.any().optional() }).unknown(true)),
+  data: Joi.array().min(1).items(Joi.object({
+      id: Joi.any().optional(),
+    }).unknown(true)).required(),
 }).unknown(false);
 
 const write_id_required = Joi.object({
   collection: Joi.string().token().required(),
-  data: Joi.array().min(1).items(Joi.object({ id: Joi.any().required() }).unknown(true)),
+  data: Joi.array().min(1).items(Joi.object({
+      id: Joi.any().required(),
+    }).unknown(true)).required(),
 }).unknown(false);
 
 const request = Joi.object({
