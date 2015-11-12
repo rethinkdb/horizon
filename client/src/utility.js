@@ -194,3 +194,4 @@ function validKeyValue(val){
 
 module.exports.ListenerSet = ListenerSet
 module.exports.FusionEmitter = FusionEmitter
+module.exports.validKeyValue = validKeyValue

@@ -332,7 +332,7 @@ class Collection extends TermBase {
     if(validKeyValue(documentOrId)){
       documentOrId = {id: documentOrId}
     }
-    return this.writeOp('remove', [documentOrId]).then(() => undefined)
+    return this._writeOp('remove', [documentOrId]).then(() => undefined)
   }
 
   removeAll(documentsOrIds){
