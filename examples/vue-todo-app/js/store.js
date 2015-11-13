@@ -8,7 +8,6 @@
     secure: true
   });
   const todos = fusion("todos");
-  var STORAGE_KEY = 'todos-vuejs';
 
   exports.todoStorage = {
 
@@ -18,12 +17,7 @@
       console.log("FETCHING ALL")
       todos.value().then(function(result) {
 
-        //Because value() on a collection is currently broken
-        result = result.map((item) => {
-          return item[0];
-        });
-
-        app.todos = result;
+        app.todos = app.todos.concat(result);
 
       }).catch(function(error) {
         console.error(error);
@@ -32,31 +26,28 @@
     saveAll: function(newVal, oldVal) {
 			console.log("SAVEALL")
 
-			console.log(newVal.length);
-			console.log(oldVal.length);
+			if(!newVal.length){ return; }
 
-			const newIds = newVal.map(function(doc){return doc.id;});
-			console.log(newIds);
-
-			// Check if any of the todos in the old list are not in the computed
-			//  list of ids and call .remove
-			for (var doc of oldVal){
-				console.log(doc);
-				if (newIds.indexOf(doc.id) === -1) {
-					todos.remove(doc);
-				} else {
-					todos.store(doc, "replace");
+			for (var newDoc of newVal){
+				for (var oldDoc of oldVal){
+          console.log(newDoc)
+          console.log(oldDoc)
+					if (newDoc.title !== oldDoc.title || newDoc.completed !== oldDoc.completed){
+						todos.store(newDoc);
+					}
 				}
 			}
     },
+
 		remove: function(doc){
 			todos.remove(doc);
 		},
-    changes: function(added, updated, deleted) {
+
+    changes: function(added, changed, removed) {
       todos.subscribe()
         .on("added", added)
-        .on("updated", updated)
-        .on("deleted", deleted)
+        .on("changed", changed)
+        .on("removed", removed)
     }
   };
 

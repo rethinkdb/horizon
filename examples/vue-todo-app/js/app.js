@@ -30,6 +30,7 @@
 		data: {
 			todos: [],
 			newTodo: '',
+			tempTodo: {title: "", completed:false},
 			editedTodo: null,
 			visibility: 'all'
 		},
@@ -38,12 +39,12 @@
 		watch: {
 			todos: {
 				deep: true,
-				handler: todoStorage.saveAll
-			}
+				handler: todoStorage.saveAll,
+			},
 		},
 
 		// computed properties
-		// http://vuejs.org/guide/computed.html
+		//  http://vuejs.org/guide/computed.html
 		computed: {
 			filteredTodos: function () {
 				return filters[this.visibility](this.todos);
@@ -61,13 +62,10 @@
 					});
 				}
 			},
-			ids: function() {
-				return this.todos.map(function(item){ return item.id })
-			},
 		},
 
 		// methods that implement data logic.
-		// note there's no DOM manipulation here at all.
+		//  note there's no DOM manipulation here at all.
 		methods: {
 
 			uuid: function() {
@@ -77,16 +75,22 @@
 			},
 
 			addTodo: function () {
-				var value = this.newTodo && this.newTodo.trim();
+				const value = this.newTodo && this.newTodo.trim();
 				if (!value) {
 					return;
 				}
-				this.todos.unshift({ title: value, id: this.uuid(), completed: false });
+				this.todos.push({
+					title: value,
+					id: this.uuid(),
+					completed: false,
+					datetime: new Date(),
+				});
 				this.newTodo = '';
 			},
 
 			removeTodo: function (todo){
 				this.todos.$remove(todo);
+				todoStorage.remove(todo);
 			},
 
 			editTodo: function (todo) {
@@ -115,35 +119,30 @@
 			},
 
 			addedChanges: function (doc) {
-				console.log(doc);
-				console.log(this.ids.indexOf(doc.id));
-				if(this.ids.indexOf(doc.id) === -1){
-					this.todos.unshift(doc);
-				}
+				this.todos.push(doc);
 			},
 
 			updatedChanges: function (doc) {
 				console.log("UPDATING");
-				console.log(doc);
-				todos.forEach(function (doc, index) {
-					if (todo.id == doc.new_val.id) {
-						todos[index] = doc.new_val;
+				var i = 0;
+				for(var todo of this.todos){
+					if (todo.id === doc.id && todo.title !== doc.title) {
+						this.todos.$set(i, doc);
 						return;
 					}
-				});
+					i++;
+				}
 			},
 
 			deletedChanges: function (doc) {
-				console.log("DELETIIION")
 				console.log(doc);
-				this.todos.forEach(function (doc, index) {
-					if (todo.id == doc.old_val.id) {
-						this.todos = this.todos.splice(index, 1);
-						return;
+				for(var todo of this.todos){
+					if(todo.id === doc.id){
+							this.todos.$remove(todo);
+							return;
 					}
-				});
+				}
 			}
-
 		},
 
 		// a custom directive to wait for the DOM to be updated
