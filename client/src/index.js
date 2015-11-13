@@ -384,7 +384,7 @@ class FindAll extends TermBase {
     this._values = fieldValues
     this._name = fieldName
     this.query = Object.assign({}, query, {
-      selection: {type: 'find', args: fieldValues},
+      selection: {type: 'find_all', args: fieldValues},
       field_name: fieldName
     })
   }
@@ -412,7 +412,7 @@ class Find extends TermBase {
     this._id = docId
     this._fieldName = fieldName
     this.query = Object.assign({}, query, {
-      selection: {type: 'find_one', args: [docId]},
+      selection: {type: 'find', args: [docId]},
       field_name: fieldName,
     })
   }
