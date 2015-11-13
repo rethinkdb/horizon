@@ -56,9 +56,15 @@ All requests match the following pattern:
 * `selection` provides an operation to select some subset of the table - optional
   * `selection.type` may be `find_one`, `find`, or `between`
   * `selection.args` is an array of arguments for the selection
-    * `find_one` - the array has a single value in it, being the ID of the object to find
-    * `find` - the array has any number of values in it, each matching row will be found
-    * `between` - the array has two values in it, the lower and upper bound for the selection
+    * `find`
+      * the array contains a single value 
+      * return all objects in the `collection` that have the given value for the `field_name`
+    * `find_all`
+      * the array contains one or more values
+      * returns any objects in the `collection` that have any of the values in the array in `field_name`
+    * `between`
+      * the array has two values in it, the lower and upper bound for the selection
+      * returns any objects from the collection with values between the upper and lower bounds for the given `field_name`
 * `limit` limits the number of results to be selected - optional
 * `order` orders the results according to `field_name` - optional
 
@@ -83,7 +89,7 @@ All requests match the following pattern:
   * `update` updates existing documents. It errors if any document does not already exist
   * `upsert` updates existing documents or inserts them if they do not exist
   * `replace` replaces existing documents entirely. It errors if any document does not already exist
-  * `store` replaces existing documents entirely, or inserts them if they do'nt exist.
+  * `store` replaces existing documents entirely, or inserts them if they don't exist.
   * `remove` removes documents. It will not error if a document does not exist
 
 #### end_subscription
