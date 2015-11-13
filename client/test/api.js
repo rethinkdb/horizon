@@ -257,7 +257,7 @@ describe("Fusion Client Library", () => {
               assert.isNotNull(err);
               done();
             });
-          });
+          }).catch(done);
         });
 
         // If we insert a document without an ID, the ID is generated for us.
@@ -286,7 +286,7 @@ describe("Fusion Client Library", () => {
               assert.isNotNull(err);
               done();
             });
-          });
+          }).catch(done);
         });
 
         // Inserting `null` is an error.
@@ -353,7 +353,7 @@ describe("Fusion Client Library", () => {
             data.insert([{ id: 1, a: 1 }, { id: 2, a: 2 }, { id: 3, a: 3 }]).catch((err) => {
               done();
             });
-          });
+          }).catch(done);
         });
 
         // Let's trigger a failure in an insert batch again, this time by making
