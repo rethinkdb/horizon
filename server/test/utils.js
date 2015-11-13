@@ -4,6 +4,7 @@ const fusion = require('../src/server');
 
 const assert = require('assert');
 const child_process = require('child_process');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const r = require('rethinkdb');
@@ -95,12 +96,19 @@ const clear_table = (table, done) => {
   r.table(table).delete().run(rdb_conn).then(() => done());
 };
 
-// Populates a table with random rows with keys in the range [0, num_rows)
-const populate_table = (table, num_rows, done) => {
+// Populates a table with the given rows
+// If `rows` is a number, fill in data using all keys in [0, rows)
+const populate_table = (table, rows, done) => {
   assert.notStrictEqual(rdb_conn, undefined);
-  r.table(table).insert(
-      r.range(num_rows).map((i) => ({ id: i }))
-    ).run(rdb_conn).then(() => done());
+
+  if (rows.constructor.name !== 'Array') {
+    rows = r.range(rows).map((i) => ({
+      id: i,
+      value: crypto.randomBytes(4).toString('hex'),
+    }));
+  }
+
+  r.table(table).insert(rows).run(rdb_conn).then(() => done());
 };
 
 const create_fusion_server = (backend, opts) => {
