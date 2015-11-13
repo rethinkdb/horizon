@@ -50,7 +50,7 @@ describe("Fusion Client Library", () => {
         // its argument.
         assert.equal(fusion, _fusion);
         done();
-      });
+      }).on('error', done)
     }); // "new Fusion()"
 
     // Test the `error` event.

@@ -20,31 +20,34 @@ var fusionCount = 0
 
 class Fusion extends FusionEmitter {
   constructor(host, {secure: secure=true}={}){
-    super('Fusion(${fusionCount++})')
-    var self = (collectionName) => self.collection(collectionName)
-    Object.setPrototypeOf(self, Object.getPrototypeOf(this))
+    super(`Fusion(${fusionCount++})`)
 
-    self.host = host
-    self.secure = secure
-    self.requestCounter = 0
-    self.socket = new FusionSocket(host, secure)
-    self.listenerSet = ListenerSet.absorbEmitter(self.socket)
-      .onceAndDispose('error', (err) => self.emit('error', err, self))
-      .on('connected', () => self.emit('connected', self))
-      .on('disconnected', () => self.emit('disconnected', self))
+    // Allow calling a fusion object
+    let self = name => this.collection(name)
+    Object.setPrototypeOf(self, this)
+
+    this.host = host
+    this.secure = secure
+    this.requestCounter = 0
+    this.socket = new FusionSocket(host, secure)
+    this.listenerSet = ListenerSet.absorbEmitter(this.socket)
+      .onceAndDispose('error', (err) => this.emit('error', err, self))
+      .on('connected', () => this.emit('connected', self))
+      .on('disconnected', () => this.emit('disconnected', self))
     // send handshake
-    self.handshakeResponse = self.socket.getPromise('connected').then(() => {
-      let reqId = self.requestCounter++
-      self.socket.send({request_id: reqId})
-      return self.socket.getPromise(responseEvent(reqId))
-    }).catch(event => {
-      return self.dispose("Fusion got a Connection error")
-    })
+    this.handshakeResponse = this.socket.getPromise('connected').then(() => {
+      let reqId = this.requestCounter++
+      this.socket.send({request_id: reqId})
+      return this.socket.getPromise(responseEvent(reqId)).then((res) => {
+        return res
+      })
+    }).catch(() => {})
     return self
   }
 
   dispose(reason='Fusion object disposed'){
-    return this.socket.dispose(reason).then(() => this.listenerSet.dispose(reason))
+    // The listenerSet owns the fusionSocket, so will dispose of it.
+    return this.listenerSet.dispose(reason)
   }
 
   collection(collectionName){
@@ -137,7 +140,8 @@ class FusionSocket extends FusionEmitter {
   }
 
   dispose(reason='FusionSocket disposed'){
-    return this._openWs.then((ws) => ws.close(1000, reason))
+    this._ws.close(1000, reason)
+    return this.getPromise('disconnected')
   }
 
 }

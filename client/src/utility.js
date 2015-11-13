@@ -73,11 +73,13 @@ class ListenerSet {
   // absorbing ListenerSet it cleans up the underlying emitter the
   // listeners were registered on.
   dispose(reason){
-    this.unregistry.forEach(unregister => unregister())
+    let cleanup = () => this.unregistry.forEach(unregister => unregister())
     if(this.absorb){
-      return this.emitter.dispose(reason)
+      return this.emitter.dispose(reason).then(() => {
+        cleanup()
+      })
     }else{
-      return Promise.resolve()
+      return Promise.resolve().then(cleanup)
     }
   }
 
