@@ -15,10 +15,10 @@ const make_reql = (raw_request) => {
 
   if (selection) {
     switch (selection.type) {
-    case 'find_one':
+    case 'find':
       reql = reql.getAll(selection.args[0], { index }).limit(1);
       break;
-    case 'find':
+    case 'find_all':
       reql = reql.getAll(r.args(selection.args), { index });
       break;
     case 'between':

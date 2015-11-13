@@ -14,20 +14,20 @@ const read = Joi.object({
 
   limit: Joi.number().positive()
     .when('selection.type', {
-      is: 'find_one',
+      is: 'find',
       then: Joi.forbidden(),
     }),
 
   selection: Joi.object({
     type: Joi.string().valid([
       'find',
-      'find_one',
+      'find_all',
       'between',
     ]),
     args: Joi.alternatives()
-      .when('type', { is: 'find_one', then: Joi.array().length(1) })
-      .when('type', { is: 'between', then: Joi.array().length(2) })
-      .when('type', { is: 'find', then: Joi.array().min(1) }),
+      .when('type', { is: 'find', then: Joi.array().length(1) })
+      .when('type', { is: 'find_all', then: Joi.array().min(1) })
+      .when('type', { is: 'between', then: Joi.array().length(2) }),
   }).unknown(false).optional(),
 
     // .options({

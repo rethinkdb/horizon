@@ -300,12 +300,12 @@ describe('Schema', () => {
         });
       });
 
-      describe('find_one', () => {
+      describe('find', () => {
         const valid = {
           collection: 'fusion',
           field_name: 'id',
           selection: {
-            type: 'find_one',
+            type: 'find',
             args: [ 4 ],
           },
         };
@@ -332,25 +332,25 @@ describe('Schema', () => {
 
         it('extra selection field', () => {
           const request = extend({ }, valid);
-          request.selection = { type: 'find_one', args: [ 0 ], fake_field: 'a' };
+          request.selection = { type: 'find', args: [ 0 ], fake_field: 'a' };
           const { error } = fusion_protocol.query.validate(request);
           utils.check_error(error, '"fake_field" is not allowed');
         });
 
         it('wrong "args" count', () => {
           const request = extend({ }, valid);
-          request.selection = { type: 'find_one', args: [ 1, 2 ] };
+          request.selection = { type: 'find', args: [ 1, 2 ] };
           const { error } = fusion_protocol.query.validate(request);
           utils.check_error(error, '"args" must contain 1 items');
         });
       });
 
-      describe('find', () => {
+      describe('find_all', () => {
         const valid = {
           collection: 'fusion',
           field_name: 'id',
           selection: {
-            type: 'find',
+            type: 'find_all',
             args: [ 4, 5, 6 ],
           },
         };
@@ -378,14 +378,14 @@ describe('Schema', () => {
 
         it('extra selection field', () => {
           const request = extend({ }, valid);
-          request.selection = { type: 'find', args: [ 0 ], fake_field: { } };
+          request.selection = { type: 'find_all', args: [ 0 ], fake_field: { } };
           const { error } = fusion_protocol.query.validate(request);
           utils.check_error(error, '"fake_field" is not allowed');
         });
 
         it('wrong "args" count', () => {
           const request = extend({ }, valid);
-          request.selection = { type: 'find', args: [ ] };
+          request.selection = { type: 'find_all', args: [ ] };
           const { error } = fusion_protocol.query.validate(request);
           utils.check_error(error, '"args" must contain at least 1 items');
         });

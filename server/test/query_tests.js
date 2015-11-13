@@ -84,7 +84,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find_one', (done) => {
+  it('find', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -93,7 +93,7 @@ const all_tests = (table) => {
           collection: table,
           field_name: 'id',
           selection: {
-            type: 'find_one',
+            type: 'find',
             args: [ 4 ],
           },
         },
@@ -105,72 +105,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find_one missing', (done) => {
-    utils.stream_test(
-      {
-        request_id: 0,
-        type: 'query',
-        options: {
-          collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'find_one',
-            args: [ 14 ],
-          },
-        },
-      },
-      (err, res) => {
-        assert.ifError(err);
-        assert.deepStrictEqual(res, [ ]);
-        done();
-      });
-  });
-
-  it('find_one order', (done) => {
-    utils.stream_test(
-      {
-        request_id: 0,
-        type: 'query',
-        options: {
-          collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'find_one',
-            args: [ 4 ],
-          },
-          order: 'ascending',
-        },
-      },
-      (err, res) => {
-        assert.deepStrictEqual(res, [ ]);
-        utils.check_error(err, '"order" is not allowed');
-        done();
-      });
-  });
-
-  it('find_one limit', (done) => {
-    utils.stream_test(
-      {
-        request_id: 0,
-        type: 'query',
-        options: {
-          collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'find_one',
-            args: [ 4 ],
-          },
-          limit: 5,
-        },
-      },
-      (err, res) => {
-        assert.deepStrictEqual(res, [ ]);
-        utils.check_error(err, '"limit" is not allowed');
-        done();
-      });
-  });
-
-  it('find', (done) => {
+  it('find missing', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -180,13 +115,13 @@ const all_tests = (table) => {
           field_name: 'id',
           selection: {
             type: 'find',
-            args: [ 4, 6, 9 ],
+            args: [ 14 ],
           },
         },
       },
       (err, res) => {
         assert.ifError(err);
-        assert.strictEqual(res.length, 3);
+        assert.deepStrictEqual(res, [ ]);
         done();
       });
   });
@@ -201,9 +136,9 @@ const all_tests = (table) => {
           field_name: 'id',
           selection: {
             type: 'find',
-            args: [ 1, 2, 4 ],
+            args: [ 4 ],
           },
-          order: 'descending',
+          order: 'ascending',
         },
       },
       (err, res) => {
@@ -223,6 +158,71 @@ const all_tests = (table) => {
           field_name: 'id',
           selection: {
             type: 'find',
+            args: [ 4 ],
+          },
+          limit: 5,
+        },
+      },
+      (err, res) => {
+        assert.deepStrictEqual(res, [ ]);
+        utils.check_error(err, '"limit" is not allowed');
+        done();
+      });
+  });
+
+  it('find_all', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          field_name: 'id',
+          selection: {
+            type: 'find_all',
+            args: [ 4, 6, 9 ],
+          },
+        },
+      },
+      (err, res) => {
+        assert.ifError(err);
+        assert.strictEqual(res.length, 3);
+        done();
+      });
+  });
+
+  it('find_all order', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          field_name: 'id',
+          selection: {
+            type: 'find_all',
+            args: [ 1, 2, 4 ],
+          },
+          order: 'descending',
+        },
+      },
+      (err, res) => {
+        assert.deepStrictEqual(res, [ ]);
+        utils.check_error(err, '"order" is not allowed');
+        done();
+      });
+  });
+
+  it('find_all limit', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          field_name: 'id',
+          selection: {
+            type: 'find_all',
             args: [ 4, 8, 2, 1 ],
           },
           limit: 3,
@@ -235,7 +235,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find order limit', (done) => {
+  it('find_all order limit', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -244,7 +244,7 @@ const all_tests = (table) => {
           collection: table,
           field_name: 'id',
           selection: {
-            type: 'find',
+            type: 'find_all',
             args: [ 4, 5, 1, 2 ],
           },
           order: 'descending',
