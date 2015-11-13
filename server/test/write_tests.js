@@ -30,12 +30,12 @@ const all_tests = (table) => {
   const make_request = (type, ids) => {
     return {
       request_id: crypto.randomBytes(4).readUInt32BE(),
-        type: type,
-        options: {
-          collection: table,
-          data: ids.map(new_row_from_id),
-        },
-      };
+      type: type,
+      options: {
+        collection: table,
+        data: ids.map(new_row_from_id),
+      },
+    };
   };
 
   const check_table = (expected, done) => {
@@ -43,13 +43,19 @@ const all_tests = (table) => {
      .run(utils.rdb_conn()).then((res) => {
        assert.strictEqual(JSON.stringify(res), JSON.stringify(expected));
        done();
-    }).catch((err) => done(err));
+     }).catch((err) => done(err));
   };
 
   const combine_sort_data = (old_data, new_data, on_new, on_conflict) => {
     const map = new Map();
     old_data.forEach((row) => map.set(row.id, row));
-    new_data.forEach((row) => map.has(row.id) ? on_conflict(row, map) : on_new(row, map));
+    new_data.forEach((row) => {
+      if (map.has(row.id)) {
+        on_conflict(row, map);
+      } else {
+        on_new(row, map);
+      }
+    });
     return Array.from(map.values()).sort((a, b) => a.id - b.id);
   };
 

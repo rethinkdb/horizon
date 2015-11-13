@@ -102,13 +102,13 @@ const populate_table = (table, rows, done) => {
   assert.notStrictEqual(rdb_conn, undefined);
 
   if (rows.constructor.name !== 'Array') {
-    rows = r.range(rows).map((i) => ({
-      id: i,
-      value: crypto.randomBytes(4).toString('hex'),
-    }));
+    r.table(table).insert(
+      r.range(rows).map(
+        (i) => ({ id: i, value: crypto.randomBytes(4).toString('hex') })
+      )).run(rdb_conn).then(() => done());
+  } else {
+    r.table(table).insert(rows).run(rdb_conn).then(() => done());
   }
-
-  r.table(table).insert(rows).run(rdb_conn).then(() => done());
 };
 
 const create_fusion_server = (backend, opts) => {
