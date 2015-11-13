@@ -5,10 +5,11 @@ const EventEmitter = require('events').EventEmitter
 // removing them all when certain events occur
 class ListenerSet {
   constructor(emitter, {absorb: absorb=false}={}){
-    this.name = `${emitter.name}{${emitter.listenerSets++}}`
     this.emitter = emitter
     this.unregistry = []
     this.absorb = absorb
+    let id = emitter.listenerSets++
+    this.toString = () => `ListenerSet(${id}) on ${emitter}`
   }
 
   // Create a new ListenerSet. When the .dispose method is called, the
@@ -92,8 +93,8 @@ let emitterCount = 0
 class FusionEmitter extends EventEmitter {
   constructor(name=`FusionEmitter(${emitterCount++})`){
     super()
-    this.name = name
     this.listenerSets = 0
+    this.toString = () => name
   }
   // Returns a function that can be called to remove the listener
   // Otherwise works the same as 'on' for the underlying socket
