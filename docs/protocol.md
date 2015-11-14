@@ -60,12 +60,12 @@ All requests match the following pattern:
   * The first argument is an object whose key-value pairs correspond to keys in `index`.
   * The second argument should be `closed` to include the boundary, and `open` otherwise.
 * `find` is an object whose key-value pairs correspond to keys in `index`.
-  * `find` will select a subset of `collection` which matches all the fields in the object.
+  * Returns any objects in the `collection` that match all the fields in the object given.
   * The keys should correspond to a subset of the `index` fields, starting from the left.
   * The values indicate the literal values for those fields.
 * `find_all` is an array of objects whose key-value pairs correspond to keys in `index`.
+  * Returns any objects in the `collection` that match all the fields in any of the objects given.
   * `find_all` cannot be specified with `find`, `order`, `lower_bound`, or `upper_bound`.
-  * `find_all` will select a subset of `collection` which matches all the fields in any of the objects given.
 * `limit` limits the number of results to be selected - optional
 
 Notes:
@@ -78,7 +78,8 @@ and the fields used with `lower_bound` and `upper_bound` should be at the end of
 the array (with the least-significant last).
 
 Because `find_all` may select discontinuous chunks of data from across the collection,
-it cannot be meaningfully used with `order`, `lower_bound`, or `upper_bound`.
+it cannot as efficiently be used with `order`, `lower_bound`, or `upper_bound`,
+and so that combination is not provided.
 
 #### insert, store, upsert, replace, update, remove
 
@@ -101,7 +102,7 @@ it cannot be meaningfully used with `order`, `lower_bound`, or `upper_bound`.
   * `update` updates existing documents. It errors if any document does not already exist
   * `upsert` updates existing documents or inserts them if they do not exist
   * `replace` replaces existing documents entirely. It errors if any document does not already exist
-  * `store` replaces existing documents entirely, or inserts them if they do'nt exist.
+  * `store` replaces existing documents entirely, or inserts them if they don't exist.
   * `remove` removes documents. It will not error if a document does not exist
 
 #### end_subscription
