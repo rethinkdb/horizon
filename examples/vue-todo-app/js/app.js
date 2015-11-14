@@ -20,7 +20,6 @@
 		}
 	};
 
-	Vue.config.debug = true
 	exports.app = new Vue({
 
 		// the root element that will be compiled
@@ -68,12 +67,6 @@
 		//  note there's no DOM manipulation here at all.
 		methods: {
 
-			uuid: function() {
-  			var x = Math.floor(Math.random() * 100000000000);
-  			return Math.floor(Math.random() * x).toString(36) +
-        	Math.abs(Math.floor(Math.random() * x) ^ Date.now()).toString(36);
-			},
-
 			addTodo: function () {
 				const value = this.newTodo && this.newTodo.trim();
 				if (!value) {
@@ -81,7 +74,7 @@
 				}
 				this.todos.push({
 					title: value,
-					id: this.uuid(),
+					id: todoStorage.generateUUID(),
 					completed: false,
 					datetime: new Date(),
 				});
@@ -118,27 +111,33 @@
 				this.todos = filters.active(this.todos);
 			},
 
+			// Changefeed Methods
+
 			addedChanges: function (doc) {
-				this.todos.push(doc);
+				for(var i = 0; i < this.todos.length; i++){
+
+						// If we already have this document, don't duplicate.
+						//  Can't rely on Vuejs track-by= directive
+						if (this.todos[i].id === doc.id){
+							return;
+						}
+				}
+				this.todos = this.todos.concat(doc);
 			},
 
 			updatedChanges: function (doc) {
-				console.log("UPDATING");
-				var i = 0;
-				for(var todo of this.todos){
-					if (todo.id === doc.id && todo.title !== doc.title) {
+				for(var i = 0; i < this.todos.length; i++){
+					if (this.todos[i].id === doc.id) {
 						this.todos.$set(i, doc);
 						return;
 					}
-					i++;
 				}
 			},
 
 			deletedChanges: function (doc) {
-				console.log(doc);
-				for(var todo of this.todos){
-					if(todo.id === doc.id){
-							this.todos.$remove(todo);
+				for(var i = 0; i < this.todos.length; i++){
+					if(this.todos[i].id === doc.id){
+							this.todos.splice(i,1);
 							return;
 					}
 				}
