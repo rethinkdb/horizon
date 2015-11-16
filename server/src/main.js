@@ -3,64 +3,55 @@
 const fusion = require('./server');
 
 const fs = require('fs');
-const nopt = require('nopt');
-const path = require('path');
+const argparse = require('argparse');
 
-const parsed = new nopt(
-  {
-    bind: [ String, Array ],
-    port: Number,
-    connect: String,
-    unsecure: Boolean,
-    key_file: path,
-    cert_file: path,
-    debug: Boolean,
-  });
+const parser = new argparse.ArgumentParser();
+parser.addArgument([ '--bind', '-b' ],
+  { type: 'string', action: 'append', metavar: 'HOST',
+    help: 'Local hostname to serve fusion on (repeatable).' });
 
-const print_usage = () => {
-  console.log('Usage: node fusion.js [OPTIONS]');
-  console.log('');
-  console.log('  --bind HOST            local hostname to serve fusion on (repeatable)');
-  console.log('  --port PORT            local port to serve fusion on');
-  console.log('  --connect HOST:PORT    host and port of the RethinkDB server to connect to');
-  console.log('  --unsecure             serve unsecure websockets, ignore --key-file and --cert-file');
-  console.log('  --key-file PATH        path to the key file to use, defaults to ./key.pem');
-  console.log('  --cert-file PATH       path to the cert file to use, defaults to ./cert.pem');
-  console.log('  --debug                enable debug logging');
-  console.log('');
-};
+parser.addArgument([ '--port', '-p' ],
+  { type: 'int', metavar: 'PORT',
+    help: 'Local port to serve fusion on.' });
 
-if (parsed.help) {
-  print_usage();
-  process.exit(0);
-} else if (parsed.argv.remain.length !== 0) {
-  // TODO: nopt doesn't let us discover extra '--flag' options - choose a new library
-  console.log(`Unrecognized argument: ${parsed.argv.remain[0]}`);
-  print_usage();
-  process.exit(0);
-}
+parser.addArgument([ '--connect', '-c' ],
+  { type: 'string', metavar: 'HOST:PORT',
+    help: 'Host and port of the RethinkDB server to connect to.' });
 
-const opts = { };
+parser.addArgument([ '--key-file' ],
+  { type: 'string', defaultValue: './key.pem', metavar: 'PATH',
+    help: 'Path to the key file to use, defaults to "./key.pem".' });
 
-if (parsed.bind !== undefined) {
-  opts.local_hosts = new Set([ 'localhost' ]);
-  parsed.bind.forEach((item) => opts.local_hosts.add(item));
-}
+parser.addArgument([ '--cert-file' ],
+  { type: 'string', defaultValue: './cert.pem', metavar: 'PATH',
+    help: 'Path to the cert file to use, defaults to "./cert.pem".' });
 
-if (parsed.port !== undefined) {
-  opts.local_port = parsed.port;
-}
+parser.addArgument([ '--debug' ],
+  { defaultValue: false, action: 'storeTrue',
+    help: 'Enable debug logging.' });
 
-if (parsed.connect !== undefined) {
+parser.addArgument([ '--unsecure' ],
+  { defaultValue: false, action: 'storeTrue',
+    help: 'Serve unsecure websockets, ignore --key-file and --cert-file.' });
+
+const parsed = parser.parseArgs();
+const options = { };
+
+const param_if_not_null = (param) => { if (param !== null) { return param; } };
+
+options.local_port = param_if_not_null(parsed.port);
+options.local_hosts = param_if_not_null(parsed.bind);
+
+if (parsed.connect !== null) {
   const host_port = parsed.connect.split(':');
   if (host_port.length === 1) {
-    opts.rdb_host = host_port[0];
+    options.rdb_host = host_port[0];
   } else if (host_port.length === 2) {
-    opts.rdb_host = host_port[0];
-    opts.rdb_port = host_port[1];
+    options.rdb_host = host_port[0];
+    options.rdb_port = host_port[1];
   } else {
     console.log(`Expected --connect HOST:PORT, but found "${parsed.connect}"`);
-    print_usage();
+    parsed.printUsage();
     process.exit(1);
   }
 }
@@ -70,19 +61,19 @@ if (parsed.debug) {
 }
 
 if (!parsed.unsecure) {
-  if (parsed.key_file !== undefined) {
-    opts.key = fs.readFileSync(parsed.key_file);
+  if (parsed.key_file !== null) {
+    options.key = fs.readFileSync(parsed.key_file);
   } else {
-    opts.key = fs.readFileSync('./key.pem');
+    options.key = fs.readFileSync('./key.pem');
   }
 
-  if (parsed.cert_file !== undefined) {
-    opts.cert = fs.readFileSync(parsed.cert_file);
+  if (parsed.cert_file !== null) {
+    options.cert = fs.readFileSync(parsed.cert_file);
   } else {
-    opts.cert = fs.readFileSync('./cert.pem');
+    options.cert = fs.readFileSync('./cert.pem');
   }
 
-  new fusion.Server(opts);
+  new fusion.Server(options);
 } else {
-  new fusion.UnsecureServer(opts);
+  new fusion.UnsecureServer(options);
 }

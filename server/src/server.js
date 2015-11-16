@@ -168,10 +168,10 @@ class BaseServer {
 
 class UnsecureServer extends BaseServer {
   constructor(user_opts) {
+    logger.warn(`Creating unsecure HTTP server.`);
     const opts = Joi.attempt(user_opts, server_options.unsecure);
 
     super(opts, () => {
-      logger.warn(`Creating unsecure HTTP server.`);
       return new http.Server(handle_http_request);
     });
   }
