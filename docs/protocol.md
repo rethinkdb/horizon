@@ -41,45 +41,30 @@ All requests match the following pattern:
   "type": "query" | "subscribe",
   "options": {
     "collection": <STRING>,
-    "index": <ARRAY>,
-    "order": "ascending" | "descending"
-    "lower_bound": [ <OBJECT>, "open" | "closed" ],
-    "upper_bound": [ <OBJECT>, "open" | "closed" ],
+    "order": [ <ARRAY>, "ascending" | "descending"],
+    "above": [ <OBJECT>, "open" | "closed" ],
+    "below": [ <OBJECT>, "open" | "closed" ],
     "find": <OBJECT>,
     "find_all": [<OBJECT>, ...],
     "limit": <NUMBER>,
   }
 }
 ```
-* `collection` describes which table to operate on in the fusion database
-* `index` is an array of field names to index the query by. It must be specified.
-  * The order of field names in `index` should be in order of decreasing cardinality.
-* `order` orders the results according to `index` - optional
-* `lower_bound` and `upper_bound` are arrays describing the boundaries regarding `index`.
-  * `lower_bound` and `upper_bound` can only be specified if `order` is provided.
-  * The first argument is an object whose key-value pairs correspond to keys in `index`.
+* `collection` describes which table to operate on in the fusion database.
+* `order` orders the results according to an array of fields - optional.
+  * The first argument is an array of field names, most-significant first.
+  * The second argument determines which direction the results are sorted in.
+* `above` and `below` are arrays describing the boundaries regarding `order` - optional.
+  * `above` and `below` can only be specified if `order` is provided.
+  * The first argument is an object whose key-value pairs correspond to fields in `order`.
   * The second argument should be `closed` to include the boundary, and `open` otherwise.
-* `find` is an object whose key-value pairs correspond to keys in `index`.
-  * Returns any objects in the `collection` that match all the fields in the object given.
-  * The keys should correspond to a subset of the `index` fields, starting from the left.
-  * The values indicate the literal values for those fields.
-* `find_all` is an array of objects whose key-value pairs correspond to keys in `index`.
-  * Returns any objects in the `collection` that match all the fields in any of the objects given.
-  * `find_all` cannot be specified with `find`, `order`, `lower_bound`, or `upper_bound`.
-* `limit` limits the number of results to be selected - optional
-
-Notes:
-`index` determines the underlying single or compound index that the implementation
-will use to fulfill the query.  Order is important, a different combination of the
-same fields will result in a different index being utilized.  In the `index` array,
-fields on the right are used as tie-breakers for fields on the left.  Thus, the
-fields tied to a hard value by `find` should be at the beginning of the array,
-and the fields used with `lower_bound` and `upper_bound` should be at the end of
-the array (with the least-significant last).
-
-Because `find_all` may select discontinuous chunks of data from across the collection,
-it cannot as efficiently be used with `order`, `lower_bound`, or `upper_bound`,
-and so that combination is not provided.
+* `find` returns one object in `collection` that exactly matches the fields in the object given - optional.
+  * `find` cannot be used with `find_all`, `order`, `above`, or `below`.
+* `find_all` is an array of objects whose key-value pairs correspond to keys in `index` - optional.
+  * Returns any object in `collection` that exactly matches the fields in any of the objects given.
+  * `find_all` cannot be used with `find`.
+  * `find_all` with multiple objects cannot be used with `order`, `above`, or `below`.
+* `limit` limits the number of results to be selected - optional.
 
 #### insert, store, upsert, replace, update, remove
 
