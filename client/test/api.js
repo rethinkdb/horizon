@@ -1766,7 +1766,7 @@ describe("Fusion Client Library", () => {
 
         // Let's try a big compound example
         it("#.findAll.order([]).above.below.limit", (done) => {
-          data.findAll({ b: 1 }, { id: 3 }, { b: 3} )
+          data.findAll({ b: 1 }, { id: 3 }, { b: 3 } )
               .order(['a', 'id'])
               .above([20, 3])
               .below([20, 4], 'closed')
@@ -1780,7 +1780,22 @@ describe("Fusion Client Library", () => {
 
         // Let's try it again, but now only with a prefix
         it("#.findAll.order([x, y]).above([x]).below", (done) => {
-          data.findAll({ b: 1 }, { id: 3 }, { b: 3} )
+          data.findAll({ b: 1 }, { id: 3 }, { b: 3 } )
+              .order(['a', 'id'])
+              .above([20])
+              .below([20, 4], 'closed')
+              .limit(2)
+              .value().then((res) => {
+            assert.deepEqual([{ id: 2, a: 20, b: 1 },
+                              { id: 3, a: 20, b: 2 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Same, but `findAll` has more complex conditions, just to be sure this
+        // works
+        it("#.findAll({...}).order([x, y]).above([x]).below", (done) => {
+          data.findAll({ a: 20, b: 1 }, { id: 3 }, { id: 4, b: 3 } )
               .order(['a', 'id'])
               .above([20])
               .below([20, 4], 'closed')
