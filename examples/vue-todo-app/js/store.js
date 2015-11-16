@@ -33,9 +33,7 @@
 
       // Can't compare oldVal to newVal because of Javascript limitations. Only
       //  certain mutations to an array are detectable. So save every doc.
-      for(var doc of newVal){
-          todos.store(doc);
-      }
+      todos.store(newVal);
     },
 
 		remove: function(doc){
