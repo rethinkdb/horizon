@@ -1038,11 +1038,11 @@ describe("Fusion Client Library", () => {
 
       var testData = [
         { id: 1, a: 10 },
-        { id: 2, a: 20 },
-        { id: 3, a: 20 },
-        { id: 4, a: 20 },
-        { id: 5, a: 50 },
-        { id: 6, a: 60 },
+        { id: 2, a: 20, b: 1 },
+        { id: 3, a: 20, b: 2 },
+        { id: 4, a: 20, b: 3 },
+        { id: 5, a: 60 },
+        { id: 6, a: 50 },
       ];
 
       // Drop all the existing data
@@ -1100,8 +1100,8 @@ describe("Fusion Client Library", () => {
         });
 
         // This is equivalent to searching by field `id`
-        it("#.find(id, field:id)", (done) => {
-          data.find(1, { field: 'id' }).value().then((res) => {
+        it("#.find(id: X)", (done) => {
+          data.find({ id: 1 }).value().then((res) => {
             assert.deepEqual({ id: 1, a: 10 }, res);
             done();
           }).catch(done);
@@ -1134,10 +1134,19 @@ describe("Fusion Client Library", () => {
           });
         });
 
+        // The document passed to `find` can't be empty
+        it("#.find({})", (done) => {
+          data.find({}).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+
         // We can also `find` by a different (indexed!) field. In that case,
         // `find` will return the first match.
         it("#.find(field)", (done) => {
-          data.find(10, { field: 'a' }).value().then((res) => {
+          data.find({ a: 10 }).value().then((res) => {
             assert.deepEqual({ id: 1, a: 10 }, res);
             done();
           }).catch(done);
@@ -1145,7 +1154,7 @@ describe("Fusion Client Library", () => {
 
         // Let's try this again for a value that doesn't exist.
         it("#.find(field_no_value)", (done) => {
-          data.find(100, { field: 'a' }).value().then((res) => {
+          data.find({ a: 100 }).value().then((res) => {
             assert.isNull(res);
             done();
           }).catch(done);
@@ -1153,35 +1162,42 @@ describe("Fusion Client Library", () => {
 
         // Let's try this again for a field that doesn't exist.
         it("#.find(field_no_field)", (done) => {
-          data.find(1, { field: 'b' }).value().then((res) => {
+          data.find({ field: 'a' }).value().then((res) => {
             assert.isNull(res);
             done();
           }).catch(done);
         });
 
         // Let's try this again, now with multiple results.
-        it("#.find(field_many_values)", (done) => {
-          data.find(20, { field: 'a' }).value().then((res) => {
+        it("#.find(field_many_possible_values)", (done) => {
+          data.find({ a: 20 }).value().then((res) => {
             // The id should be one of 2, 3, or 4
             assert.include([2, 3, 4], res['id']);
             done();
           }).catch(done);
         });
 
-        // Searching for an object is an error because neither primary nor
-        // secondary keys can be objects in RethinkDB. Also, we aren't doing `{
-        // id: x }` destructuring.
-        it("#.find(obj)", (done) => {
-          data.find({ id: 1 }).value().catch((err) => {
-            assert.isDefined(err);
-            assert.isNotNull(err);
+        // Users can pass multiple fields to look for
+        it("#.find(multiple_fields)", (done) => {
+          data.find({ a: 20, b: 1 }).value().then((res) => {
+            assert.deepEqual({ id: 2, a: 20, b: 1 }, res);
             done();
-          });
+          }).catch(done);
         });
 
-        // Same for secondary key searches
-        it("#.find(obj, field)", (done) => {
-          data.find({ id: 20 }, { field: 'a' }).value().catch((err) => {
+        // In this case there is no matching document
+        it("#.find(field_multiple_fields_no_result)", (done) => {
+          data.find({ a: 20, c: 100 }).value().then((res) => {
+            assert.isNull(res);
+            done();
+          }).catch(done);
+        });
+
+        // Passing multiple arguments to find should return a nice error
+        it("#.find(arg1, arg2)", (done) => {
+          data.find(1, { id: 1 }).value().then((res) => {
+            done(new Error('Passing multiple arguments to `find` is illegal'));
+          }).catch((err) => {
             assert.isDefined(err);
             assert.isNotNull(err);
             done();
@@ -1201,8 +1217,8 @@ describe("Fusion Client Library", () => {
         });
 
         // This is equivalent to searching by field `id`
-        it("#.findAll(id, field:id)", (done) => {
-          data.findAll(1, { field: 'id' }).value().then((res) => {
+        it("#.findAll(id: X)", (done) => {
+          data.findAll({ id: 1 }).value().then((res) => {
             assert.deepEqual([{ id: 1, a: 10 }], res);
             done();
           }).catch(done);
@@ -1218,7 +1234,7 @@ describe("Fusion Client Library", () => {
 
         // We can also `findAll` by a different (indexed!) field.
         it("#.findAll(field)", (done) => {
-          data.findAll(10, { field: 'a' }).value().then((res) => {
+          data.findAll({ a: 10 }).value().then((res) => {
             assert.deepEqual([{ id: 1, a: 10 }], res);
             done();
           }).catch(done);
@@ -1226,7 +1242,7 @@ describe("Fusion Client Library", () => {
 
         // Let's try this again for a value that doesn't exist.
         it("#.findAll(field_no_value)", (done) => {
-          data.findAll(100, { field: 'a' }).value().then((res) => {
+          data.findAll({ a: 100 }).value().then((res) => {
             assert.deepEqual([], res);
             done();
           }).catch(done);
@@ -1234,7 +1250,7 @@ describe("Fusion Client Library", () => {
 
         // Let's try this again for a field that doesn't exist.
         it("#.findAll(field_no_field)", (done) => {
-          data.findAll(1, { field: 'b' }).value().then((res) => {
+          data.findAll({ field: 'a' }).value().then((res) => {
             assert.deepEqual([], res);
             done();
           }).catch(done);
@@ -1242,11 +1258,11 @@ describe("Fusion Client Library", () => {
 
         // Let's try this again, now with multiple results.
         it("#.findAll(field_many_values)", (done) => {
-          data.findAll(20, { field: 'a' }).value().then((res) => {
+          data.findAll({ a: 20 }).value().then((res) => {
             // There are three docs where `a == 20`
-            assert.sameDeepMembers([{ id: 2, a: 20 },
-                                    { id: 3, a: 20 },
-                                    { id: 4, a: 20 }],
+            assert.sameDeepMembers([{ id: 2, a: 20, b: 1 },
+                                    { id: 3, a: 20, b: 2 },
+                                    { id: 4, a: 20, b: 3 }],
                                    res);
             done();
           }).catch(done);
@@ -1256,6 +1272,15 @@ describe("Fusion Client Library", () => {
         // `null` in RethinkDB.
         it("#.findAll(null)", (done) => {
           data.findAll(null).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          }).catch(done);
+        });
+
+        // Looking for an empty object is also an error
+        it("#.findAll({})", (done) => {
+          data.findAll({}).value().catch((err) => {
             assert.isDefined(err);
             assert.isNotNull(err);
             done();
@@ -1272,32 +1297,32 @@ describe("Fusion Client Library", () => {
 
         // `findAll` lets us look for multiple documents. Let's try it on a primary
         // key.
-        it("#.findAll(a, b, missing)", (done) => {
-          data.findAll(1, 2, 20).value().then((res) => {
+        it("#.findAll(a, {id: b}, missing)", (done) => {
+          data.findAll(1, { id: 2 }, 20).value().then((res) => {
             // There are three docs where `a == 20`
             assert.sameDeepMembers([{ id: 1, a: 10 },
-                                    { id: 2, a: 20 }],
+                                    { id: 2, a: 20, b: 1 }],
                                    res);
             done();
           }).catch(done);
         });
 
-        // Let's try multiple documents on a secondary key.
-        it("#.findAll(a, b, missing, field)", (done) => {
-          data.findAll(10, 20, 200, { field: 'a' }).value().then((res) => {
+        // Let's try a mix of primary and secondary keys, with some missing
+        it("#.findAll({a: X}, {a: missing}, id, {id:missing})", (done) => {
+          data.findAll({ a: 20 }, { id: 200 }, 1, { a: 200 }).value().then((res) => {
             // There are three docs where `a == 20`
             assert.sameDeepMembers([{ id: 1, a: 10 },
-                                    { id: 2, a: 20 },
-                                    { id: 3, a: 20 },
-                                    { id: 4, a: 20 }],
+                                    { id: 2, a: 20, b: 1 },
+                                    { id: 3, a: 20, b: 2 },
+                                    { id: 4, a: 20, b: 3 }],
                                    res);
             done();
           }).catch(done);
         });
 
-        // Let's try it on a missing field
-        it("#.findAll(a, b, field_no_field)", (done) => {
-          data.findAll(1, 2, 200, { field: 'abracadabra' }).value().then((res) => {
+        // Let's try when everything is missing
+        it("#.findAll({missing: id}, {a:missing}, missing)", (done) => {
+          data.findAll({ field: 1 }, 200, { a: 200 }).value().then((res) => {
             assert.deepEqual([], res);
             done();
           }).catch(done);
@@ -1312,29 +1337,9 @@ describe("Fusion Client Library", () => {
           }).catch(done);
         });
 
-        // Let's try it again on a secondary key.
+        // Let's try it again with an empty object.
         it("#.findAll(a, null, c, field)", (done) => {
-          data.findAll(10, null, 20, { field: 'a' }).value().catch((err) => {
-            assert.isDefined(err);
-            assert.isNotNull(err);
-            done();
-          }).catch(done);
-        });
-
-        // Searching for an object is an error because neither primary nor
-        // secondary keys can be objects in RethinkDB. Also, we aren't doing `{
-        // id: x }` destructuring.
-        it("#.findAll(obj)", (done) => {
-          data.findAll({ id: 1 }).value().catch((err) => {
-            assert.isDefined(err);
-            assert.isNotNull(err);
-            done();
-          }).catch(done);
-        });
-
-        // Same for secondary key searches
-        it("#.findAll(obj, field)", (done) => {
-          data.findAll({ id: 20 }, { field: 'a' }).value().catch((err) => {
+          data.findAll(1, {}, { a: 20 }).value().catch((err) => {
             assert.isDefined(err);
             assert.isNotNull(err);
             done();
@@ -1342,6 +1347,560 @@ describe("Fusion Client Library", () => {
         });
 
       }); // Testing `findAll`
+
+      describe("Testing `order`", () => {
+
+        // We can order by a field (default order is ascending)
+        it("#.order(id)", (done) => {
+          data.order('id').value().then((res) => {
+            assert.deepEqual(testData, res);
+            done();
+          }).catch(done);
+        });
+
+        // That's the same as passing `ascending` explicitly
+        it("#.order(id, 'ascending')", (done) => {
+          data.order('id', 'ascending').value().then((res) => {
+            assert.deepEqual(testData, res);
+            done();
+          }).catch(done);
+        });
+
+        // We can also sort in descending order
+        it("#.order(id, 'descending')", (done) => {
+          data.order('id', 'descending').value().then((res) => {
+            assert.deepEqual(_.cloneDeep(testData).reverse(), res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try ordering by a different field. Currently RethinkDB will
+        // only return documents that have a field `b`, but this will some day
+        // change.
+        it("#.order(b, 'descending')", (done) => {
+          data.order('b', 'descending').value().then((res) => {
+            assert.deepEqual([{ id: 4, a: 20, b: 3 },
+                              { id: 3, a: 20, b: 2 },
+                              { id: 2, a: 20, b: 1 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try to order by a missing field
+        it("#.order(missing, 'descending')", (done) => {
+          data.order('abracadabra').value().then((res) => {
+            assert.deepEqual([], res);
+            done();
+          }).catch(done);
+        });
+
+        // We can pass multiple fields to `order` to disambiguate.
+        it("#.order([a, id])", (done) => {
+          data.order(['a', 'id']).value().then((res) => {
+            assert.deepEqual(testData, res);
+            done();
+          }).catch(done);
+        });
+
+        // Passing no arguments, null, bad arguments, or too many arguments is
+        // an error.
+        it("#.order()", (done) => {
+          data.order().value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+        it("#.order(null)", (done) => {
+          data.order(null).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+        it("#.order(null, 'foo')", (done) => {
+          data.order(null, 'foo').value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+        it("#.order('id', 'foo')", (done) => {
+          data.order('id', 'foo').value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+        it("#.order('id', 'ascending', 1)", (done) => {
+          data.order('id', 'ascending', 1).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+
+      }); // Testing `order`
+
+      describe("Testing `limit`", () => {
+
+        // Limit returns an array of documents
+        it("#.order(id).limit(2)", (done) => {
+          data.order('id').limit(2).value().then((res) => {
+            assert.deepEqual([{ id: 1, a: 10 },
+                              { id: 2, a: 20, b: 1 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // `limit(0)` is ok
+        it("#.order(id).limit(0)", (done) => {
+          data.order('id').limit(0).value().then((res) => {
+            assert.deepEqual([], res);
+            done();
+          }).catch(done);
+        });
+
+        // `limit(null)` is an error
+        it("#.order(id).limit(null)", (done) => {
+          data.order('id').limit(null).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          }).catch(done);
+        });
+
+        // `limit(-1)` is an error
+        it("#.order(id).limit(-1)", (done) => {
+          data.order('id').limit(-1).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          }).catch(done);
+        });
+
+        // `limit(non_int)` is an error
+        it("#.order(id).limit('k')", (done) => {
+          data.order('id').limit('k').value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          }).catch(done);
+        });
+
+      }); // Testing `limit`
+
+      describe("Testing `above`", () => {
+
+        // By default `above` is closed
+        it("#.order(id).above(5)", (done) => {
+          data.order('id').above(5).value().then((res) => {
+            assert.deepEqual([{ id: 5, a: 50 },
+                              { id: 6, a: 60 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // We can also pass that explicitly
+        it("#.order(id).above(5, closed)", (done) => {
+          data.order('id').above(5, 'closed').value().then((res) => {
+            assert.deepEqual([{ id: 5, a: 50 },
+                              { id: 6, a: 60 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // But we can make it open
+        it("#.order(id).above(5, open)", (done) => {
+          data.order('id').above(5, 'open').value().then((res) => {
+            assert.deepEqual([{ id: 6, a: 60 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try something that returns no values
+        it("#.order(id).above(maxval)", (done) => {
+          data.order('id').above(7).value().then((res) => {
+            assert.deepEqual([], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try it on a compound index
+        it("#.order([a,id]).above([20,3])", (done) => {
+          data.order(['a', 'id']).above([20, 3]).value().then((res) => {
+            assert.deepEqual([{ id: 3, a: 20, b: 2 },
+                              { id: 4, a: 20, b: 3 },
+                              { id: 5, a: 50 },
+                              { id: 6, a: 60 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try it on a compound index, but open
+        it("#.order([a,id]).above([20,3], open)", (done) => {
+          data.order(['a', 'id']).above([20, 3], 'open').value().then((res) => {
+            assert.deepEqual([{ id: 4, a: 20, b: 3 },
+                              { id: 5, a: 50 },
+                              { id: 6, a: 60 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Just a prefix is ok
+        it("#.order([a,id]).above([20])", (done) => {
+          data.order(['a', 'id']).above([20]).value().then((res) => {
+            assert.deepEqual([{ id: 2, a: 20, b: 1 },
+                              { id: 3, a: 20, b: 2 },
+                              { id: 4, a: 20, b: 3 },
+                              { id: 5, a: 50 },
+                              { id: 6, a: 60 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try just a prefix, but open
+        it("#.order([a,id]).above([20], open)", (done) => {
+          data.order(['a', 'id']).above([20]).value().then((res) => {
+            assert.deepEqual([{ id: 5, a: 50 },
+                              { id: 6, a: 60 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // However, if the key is compound, not passing an array is not ok
+        it("#.order([a,id]).above(20)", (done) => {
+          data.order(['a', 'id']).above(20).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          })
+        });
+
+        // Starting with `null` is not ok
+        it("#.order(id).above(null)", (done) => {
+          data.order('id').above(null).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+
+        // Empty value is not ok
+        it("#.order(id).above()", (done) => {
+          data.order('id').above().value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+
+        // Bad arguments are not ok
+        it("#.order(id).above(1, bad)", (done) => {
+          data.order('id').above(1, 'foo').value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+
+      }); // Testing `above`
+
+      describe("Testing `below`", () => {
+
+        // By default `below` is open
+        it("#.order(id).below(3)", (done) => {
+          data.order('id').below(3).value().then((res) => {
+            assert.deepEqual([{ id: 1, a: 10 },
+                              { id: 2, a: 20, b: 1 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // We can also pass that explicitly
+        it("#.order(id).below(3, 'open')", (done) => {
+          data.order('id').below(3, 'open').value().then((res) => {
+            assert.deepEqual([{ id: 1, a: 10 },
+                              { id: 2, a: 20, b: 1 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // But we can make it closed
+        it("#.order(id).below(3, 'closed')", (done) => {
+          data.order('id').below(3, 'closed').value().then((res) => {
+            assert.deepEqual([{ id: 1, a: 10 },
+                              { id: 2, a: 20, b: 1 },
+                              { id: 3, a: 20, b: 2 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try something that returns no values
+        it("#.order(id).below(minval)", (done) => {
+          data.order('id').below(0).value().then((res) => {
+            assert.deepEqual([], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try it on a compound index
+        it("#.order([a,id]).below([20,3])", (done) => {
+          data.order(['a', 'id']).below([20, 3]).value().then((res) => {
+            assert.deepEqual([{ id: 1, a: 10 },
+                              { id: 2, a: 20, b: 1 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try it on a compound index, but closed
+        it("#.order([a,id]).below([20,3], closed)", (done) => {
+          data.order(['a', 'id']).below([20, 3], 'closed').value().then((res) => {
+            assert.deepEqual([{ id: 1, a: 10 },
+                              { id: 2, a: 20, b: 1 },
+                              { id: 3, a: 20, b: 2 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Just a prefix is ok
+        it("#.order([a,id]).below([20])", (done) => {
+          data.order(['a', 'id']).below([20]).value().then((res) => {
+            assert.deepEqual([{ id: 1, a: 10 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try just a prefix, but closed
+        it("#.order([a,id]).below([20], closed)", (done) => {
+          data.order(['a', 'id']).below([20], 'closed').value().then((res) => {
+            assert.deepEqual([{ id: 1, a: 10 },
+                              { id: 2, a: 20, b: 1 },
+                              { id: 3, a: 20, b: 2 },
+                              { id: 4, a: 20, b: 3 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // However, if the key is compound, not passing an array is not ok
+        it("#.order([a,id]).below(20)", (done) => {
+          data.order(['a', 'id']).below(20).value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          })
+        });
+
+        // Starting with `null` is not ok
+        it("#.order(id).below(null)", (done) => {
+          data.order('id').below(null).value().err((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+
+        // Empty value is not ok
+        it("#.order(id).below()", (done) => {
+          data.order('id').below().value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+
+        // Bad arguments are not ok
+        it("#.order(id).below(1, bad)", (done) => {
+          data.order('id').below(1, 'foo').value().catch((err) => {
+            assert.isDefined(err);
+            assert.isNotNull(err);
+            done();
+          });
+        });
+
+      }); // Testing `below`
+
+      describe("Test `above/below/limit` chaining variations", () => {
+
+        // Let's do a biiig chain
+        it("#.findAll.order.above.below", (done) => {
+          data.findAll({ a: 20 })
+              .order('id').above(2).below(4)
+              .value().then((res) => {
+            assert.deepEqual([{ id: 2, a: 20, b: 1 },
+                              { id: 3, a: 20, b: 2 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's flip it the other way
+        it("#.findAll.order(desc).below.above", (done) => {
+          data.findAll({ a: 20 })
+              .order('id', 'descending')
+              .below(4).above(2)
+              .value().then((res) => {
+            assert.deepEqual([{ id: 3, a: 20, b: 2 },
+                              { id: 2, a: 20, b: 1 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's throw limit into the mix
+        it("#.findAll.order.above.below.limit", (done) => {
+          data.findAll({ a: 20 })
+              .order('id').above(2).below(4).limit(1)
+              .value().then((res) => {
+            assert.deepEqual([{ id: 2, a: 20, b: 1 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's do it on the collection
+        it("#.order.above.below.limit", (done) => {
+          data.order('id').above(2).below(4).limit(1)
+              .value().then((res) => {
+            assert.deepEqual([{ id: 2, a: 20, b: 1 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try a big compound example
+        it("#.findAll.order([]).above.below.limit", (done) => {
+          data.findAll({ b: 1 }, { id: 3 }, { b: 3} )
+              .order(['a', 'id'])
+              .above([20, 3])
+              .below([20, 4], 'closed')
+              .limit(2)
+              .value().then((res) => {
+            assert.deepEqual([{ id: 3, a: 20, b: 2 },
+                              { id: 4, a: 20, b: 3 }], res);
+            done();
+          }).catch(done);
+        });
+
+        // Let's try it again, but now only with a prefix
+        it("#.findAll.order([x, y]).above([x]).below", (done) => {
+          data.findAll({ b: 1 }, { id: 3 }, { b: 3} )
+              .order(['a', 'id'])
+              .above([20])
+              .below([20, 4], 'closed')
+              .limit(2)
+              .value().then((res) => {
+            assert.deepEqual([{ id: 2, a: 20, b: 1 },
+                              { id: 3, a: 20, b: 2 }], res);
+            done();
+          }).catch(done);
+        });
+
+      }); // Test `above/below/limit` chaining variations
+
+      describe("Testing illegal chaining", () => {
+
+        // All variations of chaining below should be illegal.
+
+        // Chaining anything after `find` is an error because `find` returns a
+        // single document.
+        it("#.find.find", (done) => {
+          try { data.find(1).find(2).value(); } catch (e) { done(); }
+        });
+        it("#.find.findAll", (done) => {
+          try { data.find(1).findAll(2).value(); } catch (e) { done(); }
+        });
+        it("#.find.order", (done) => {
+          try { data.find(1).order('id').value(); } catch (e) { done(); }
+        });
+        it("#.find.above", (done) => {
+          try { data.find(1).above(0).value(); } catch (e) { done(); }
+        });
+        it("#.find.below", (done) => {
+          try { data.find(1).below(2).value(); } catch (e) { done(); }
+        });
+        it("#.find.limit", (done) => {
+          try { data.find(1).limit(1).value(); } catch (e) { done(); }
+        });
+
+        // Chaining `order` after `findAll` is ok (which allows chainging
+        // `above/below/limit`), but chaining anything else is not ok.
+        it("#.findAll.find", (done) => {
+          try { data.findAll(1).find(2).value(); } catch (e) { done(); }
+        });
+        it("#.findAll.findAll", (done) => {
+          try { data.findAll(1).findAll(2).value(); } catch (e) { done(); }
+        });
+        it("#.findAll.above", (done) => {
+          try { data.findAll(1).above(0).value(); } catch (e) { done(); }
+        });
+        it("#.findAll.below", (done) => {
+          try { data.findAll(1).below(2).value(); } catch (e) { done(); }
+        });
+        it("#.findAll.limit", (done) => {
+          try {
+            data.findAll(1).limit(1).value().then((res) => {
+              done(new Error('`limit` should not be chainable off `findAll` without first chaining `order`'));
+            });
+          } catch (e) { done(); }
+        });
+
+        // Can't chain anything off `above` except `below/limit`
+        it("#.order.above.find", (done) => {
+          try { data.order('id').above(1).find(1).value(); } catch (e) { done(); }
+        });
+        it("#.order.above.findAll", (done) => {
+          try { data.order('id').above(1).findAll(1).value(); } catch (e) { done(); }
+        });
+        it("#.order.above.above", (done) => {
+          try { data.order('id').above(1).above(1).value(); } catch (e) { done(); }
+        });
+
+        // Can't chain anything off `below` except `above/limit`
+        it("#.order.below.find", (done) => {
+          try { data.order('id').below(1).find(1).value(); } catch (e) { done(); }
+        });
+        it("#.order.below.findAll", (done) => {
+          try { data.order('id').below(1).findAll(1).value(); } catch (e) { done(); }
+        });
+        it("#.order.below.below", (done) => {
+          try { data.order('id').below(1).below(1).value(); } catch (e) { done(); }
+        });
+
+        // Can't chain anything off limit
+        it("#.order.limit.limit", (done) => {
+          try { data.order('id').limit(1).limit(1).value(); } catch (e) { done(); }
+        });
+        it("#.order.limit.find", (done) => {
+          try { data.order('id').limit(1).find(1).value(); } catch (e) { done(); }
+        });
+        it("#.order.limit.findAll", (done) => {
+          try { data.order('id').limit(1).findAll(1).value(); } catch (e) { done(); }
+        });
+        it("#.order.limit.below", (done) => {
+          try { data.order('id').limit(1).below(1).value(); } catch (e) { done(); }
+        });
+        it("#.order.limit.above", (done) => {
+          try { data.order('id').limit(1).above(1).value(); } catch (e) { done(); }
+        });
+        it("#.order.limit.order", (done) => {
+          try { data.order('id').limit(1).order('a').value(); } catch (e) { done(); }
+        });
+
+        // Can't double-chain order
+        it("#.order.order", (done) => {
+          try { data.order('id').order('a').value(); } catch (e) { done(); }
+        });
+
+        // Chaining `limit`, `above`, or `below` off of a collection is illegal
+        // without first chaining `order`.
+        it("#.above", (done) => {
+          try { data.above(1).value(); } catch (e) { done(); }
+        });
+        it("#.below", (done) => {
+          try { data.below(2).value(); } catch (e) { done(); }
+        });
+        it("#.limit", (done) => {
+          try { data.limit(1).value(); } catch (e) { done(); }
+        });
+
+      }); // Testing illegal chaining
 
     }); // Test the lookup API
 
