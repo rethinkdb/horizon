@@ -41,26 +41,30 @@ All requests match the following pattern:
   "type": "query" | "subscribe",
   "options": {
     "collection": <STRING>,
-    "field_name": <STRING>,
-    "selection": {
-      "type": <STRING>,
-      "args": <ARRAY>
-    },
+    "order": [ <ARRAY>, "ascending" | "descending"],
+    "above": [ <OBJECT>, "open" | "closed" ],
+    "below": [ <OBJECT>, "open" | "closed" ],
+    "find": <OBJECT>,
+    "find_all": [<OBJECT>, ...],
     "limit": <NUMBER>,
-    "order": "ascending" | "descending"
   }
 }
 ```
-* `collection` describes which table to operate on in the fusion database
-* `field_name` is the index to use for selection and ordering. It must be specified. A reasonable default value is `id`
-* `selection` provides an operation to select some subset of the table - optional
-  * `selection.type` may be `find_one`, `find`, or `between`
-  * `selection.args` is an array of arguments for the selection
-    * `find_one` - the array has a single value in it, being the ID of the object to find
-    * `find` - the array has any number of values in it, each matching row will be found
-    * `between` - the array has two values in it, the lower and upper bound for the selection
-* `limit` limits the number of results to be selected - optional
-* `order` orders the results according to `field_name` - optional
+* `collection` describes which table to operate on in the fusion database.
+* `order` orders the results according to an array of fields - optional.
+  * The first argument is an array of field names, most-significant first.
+  * The second argument determines which direction the results are sorted in.
+* `above` and `below` are arrays describing the boundaries regarding `order` - optional.
+  * `above` and `below` can only be specified if `order` is provided.
+  * The first argument is an object whose key-value pairs correspond to fields in `order`.
+  * The second argument should be `closed` to include the boundary, and `open` otherwise.
+* `find` returns one object in `collection` that exactly matches the fields in the object given - optional.
+  * `find` cannot be used with `find_all`, `order`, `above`, or `below`.
+* `find_all` is an array of objects whose key-value pairs correspond to keys in `index` - optional.
+  * Returns any object in `collection` that exactly matches the fields in any of the objects given.
+  * `find_all` cannot be used with `find`.
+  * `find_all` with multiple objects cannot be used with `order`, `above`, or `below`.
+* `limit` limits the number of results to be selected - optional.
 
 #### insert, store, upsert, replace, update, remove
 
@@ -83,7 +87,7 @@ All requests match the following pattern:
   * `update` updates existing documents. It errors if any document does not already exist
   * `upsert` updates existing documents or inserts them if they do not exist
   * `replace` replaces existing documents entirely. It errors if any document does not already exist
-  * `store` replaces existing documents entirely, or inserts them if they do'nt exist.
+  * `store` replaces existing documents entirely, or inserts them if they don't exist.
   * `remove` removes documents. It will not error if a document does not exist
 
 #### end_subscription

@@ -195,14 +195,9 @@ function validIndexValue(val){
   return false
 }
 
-// Returns a failing promise with the given error message
-function promiseError(msg){
-  return Promise.reject(new Error(msg))
-}
 
 Object.assign(module.exports, {
   ListenerSet,
   FusionEmitter,
   validIndexValue,
-  promiseError,
 })
