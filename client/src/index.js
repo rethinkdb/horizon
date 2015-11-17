@@ -272,9 +272,10 @@ class TermBase {
 class Collection extends TermBase {
 
   constructor(fusion, collectionName){
-    super(fusion, {}, {
+    super(fusion, {
       collection: collectionName,
-    })
+    }, {})
+    this._collectionName = collectionName
     this._extendWith('find', 'findAll', 'order', 'above', 'below', 'limit')
   }
 
