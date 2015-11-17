@@ -1,6 +1,6 @@
 # Fusion Chat example using Vue.js
 
-![](https://i.imgur.com/XFostB8.gifv)
+<center>![](https://i.imgur.com/XFostB8.gif)</center>
 
 - [ ] implement `presence`
 - [ ] implement `geo` to display users differently that are geographically near you
