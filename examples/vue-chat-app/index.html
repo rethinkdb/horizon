@@ -1,18 +1,34 @@
 <html>
+
 <head>
   <link rel="stylesheet" href="app.css">
+  <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
 </head>
 <body>
-  <div id="app">
-    <ul>
-      <li v-for="message in messages | orderBy 'id' -1 | limitBy 10 | orderBy 'id'" transition="expand">
-        {{ message.text }}
-      </li>
-    </ul>
-    <input v-model="newMessage" v-on:keyup.enter="addMessage"></input>
+  <div id="app" class="container">
+    <div class="row">
+      <ul>
+        <li v-for="message in limitedMessages" transition="expand" class="message">
+          <img height="50px" width="50px" src="{{message.id}}">
+          <span class="text">
+            {{ message.text }}
+          </span>
+
+          <span class="datetime u-pull-right">
+            {{message.datetime.toTimeString()}}
+          </span>
+        </li>
+      </ul>
+    </div>
+    <div id="input" class="row">
+      <input class="u-full-width" v-model="newMessage" v-on:keyup.enter="addMessage"></input>
+    </div>
   </div>
   <script src="http://cdnjs.cloudflare.com/ajax/libs/vue/1.0.4/vue.min.js"></script>
+  <script src="https://localhost:8181/fusion.js"></script>
   <script src="app.js"></script>
+
 </body>
 
 </html>
