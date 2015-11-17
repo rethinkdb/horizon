@@ -215,7 +215,6 @@ describe('Schema', () => {
       describe('no selection', () => {
         const valid = {
           collection: 'fusion',
-          field_name: 'id',
         };
 
         it('valid', () => {
@@ -226,7 +225,7 @@ describe('Schema', () => {
 
         it('required fields', () => {
           test_required_fields(fusion_protocol.query, valid,
-                               [ 'collection', 'field_name' ]);
+                               [ 'collection' ]);
         });
 
         it('extra field', () => {
@@ -235,7 +234,25 @@ describe('Schema', () => {
 
         it('order', () => {
           const request = extend({ }, valid);
-          request.order = 'ascending';
+          request.order = [ [ 'id' ], 'ascending' ];
+          const { value, error } = fusion_protocol.query.validate(request);
+          assert.ifError(error);
+          assert.deepStrictEqual(value, request);
+        });
+
+        it('above', () => {
+          const request = extend({ }, valid);
+          request.order = [ [ 'id' ], 'ascending' ];
+          request.above = [ { id: 10 }, 'open' ];
+          const { value, error } = fusion_protocol.query.validate(request);
+          assert.ifError(error);
+          assert.deepStrictEqual(value, request);
+        });
+
+        it('below', () => {
+          const request = extend({ }, valid);
+          request.order = [ [ 'id' ], 'ascending' ];
+          request.below = [ { id: 5 }, 'open' ];
           const { value, error } = fusion_protocol.query.validate(request);
           assert.ifError(error);
           assert.deepStrictEqual(value, request);
@@ -249,6 +266,17 @@ describe('Schema', () => {
           assert.deepStrictEqual(value, request);
         });
 
+        it('above and below and limit', () => {
+          const request = extend({ }, valid);
+          request.order = [ [ 'id' ], 'ascending' ];
+          request.below = [ { id: 0 }, 'closed' ];
+          request.below = [ { id: 5 }, 'closed' ];
+          request.limit = 4;
+          const { value, error } = fusion_protocol.query.validate(request);
+          assert.ifError(error);
+          assert.deepStrictEqual(value, request);
+        });
+
         it('wrong "collection" type', () => {
           const request = extend({ }, valid);
           request.collection = null;
@@ -256,7 +284,6 @@ describe('Schema', () => {
           utils.check_error(error, '"collection" must be a string');
         });
 
-        // TODO: add this to the write schema tests
         it('wrong "collection" value', () => {
           const request = extend({ }, valid);
           request.collection = '*.*';
@@ -264,25 +291,118 @@ describe('Schema', () => {
           utils.check_error(error, '"collection" must only contain alpha-numeric and underscore characters');
         });
 
-        it('wrong "field_name" type', () => {
-          const request = extend({ }, valid);
-          request.field_name = 5;
-          const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"field_name" must be a string');
-        });
-
         it('wrong "order" type', () => {
           const request = extend({ }, valid);
-          request.order = { };
+          request.order = true;
           const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"order" must be a string');
+          utils.check_error(error, '"order" must be an array');
         });
 
         it('wrong "order" value', () => {
           const request = extend({ }, valid);
-          request.order = 'baleeted';
+          {
+            request.order = [ ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"order" does not contain [fields, direction]');
+          } {
+            request.order = [ [ 'id' ] ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"order" does not contain [direction]');
+          } {
+            request.order = [ { }, 'ascending' ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"fields" must be an array');
+          } {
+            request.order = [ [ ], 'descending' ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"fields" must contain at least 1 item');
+          } {
+            request.order = [ [ 'field' ], 'baleeted' ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"direction" must be one of [ascending, descending]');
+          }
+        });
+
+        it('"above" without "order"', () => {
+          const request = extend({ }, valid);
+          request.above = [ { }, 'open' ];
           const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"order" must be one of [ascending, descending]');
+          utils.check_error(error, '"above" is not allowed');
+        });
+
+        it('wrong "above" type', () => {
+          const request = extend({ }, valid);
+          request.order = [ [ 'id' ], 'ascending' ];
+          request.above = true;
+          const { error } = fusion_protocol.query.validate(request);
+          utils.check_error(error, '"above" must be an array');
+        });
+
+        it('wrong "above" value', () => {
+          const request = extend({ }, valid);
+          request.order = [ [ 'id' ], 'ascending' ];
+          {
+            request.above = [ ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"above" does not contain [boundary, bound_type]');
+          } {
+            request.above = [ 1, 'closed' ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"boundary" must be an object');
+          } {
+            request.above = [ { }, 'open' ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"boundary" must have at least 1 child');
+          } {
+            request.above = [ { id: 4 }, 5 ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"bound_type" must be a string');
+          } {
+            request.above = [ { id: 3 }, 'ajar' ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"bound_type" must be one of [open, closed]');
+          }
+        });
+
+        it('"below" without "order"', () => {
+          const request = extend({ }, valid);
+          request.below = [ { }, 'open' ];
+          const { error } = fusion_protocol.query.validate(request);
+          utils.check_error(error, '"below" is not allowed');
+        });
+
+        it('wrong "below" type', () => {
+          const request = extend({ }, valid);
+          request.order = [ [ 'id' ], 'ascending' ];
+          request.below = true;
+          const { error } = fusion_protocol.query.validate(request);
+          utils.check_error(error, '"below" must be an array');
+        });
+
+        it('wrong "below" value', () => {
+          const request = extend({ }, valid);
+          request.order = [ [ 'id' ], 'ascending' ];
+          {
+            request.below = [ ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"below" does not contain [boundary, bound_type]');
+          } {
+            request.below = [ 1, 'closed' ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"boundary" must be an object');
+          } {
+            request.below = [ { }, 'open' ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"boundary" must have at least 1 child');
+          } {
+            request.below = [ { id: 4 }, 5 ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"bound_type" must be a string');
+          } {
+            request.below = [ { id: 3 }, 'ajar' ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"bound_type" must be one of [open, closed]');
+          }
         });
 
         it('wrong "limit" type', () => {
@@ -303,11 +423,7 @@ describe('Schema', () => {
       describe('find', () => {
         const valid = {
           collection: 'fusion',
-          field_name: 'id',
-          selection: {
-            type: 'find',
-            args: [ 4 ],
-          },
+          find: { score: 4 },
         };
 
         it('valid', () => {
@@ -318,7 +434,7 @@ describe('Schema', () => {
 
         it('order', () => {
           const request = extend({ }, valid);
-          request.order = 'ascending';
+          request.order = [ [ 'id' ], 'ascending' ];
           const { error } = fusion_protocol.query.validate(request);
           utils.check_error(error, '"order" is not allowed');
         });
@@ -326,33 +442,23 @@ describe('Schema', () => {
         it('limit', () => {
           const request = extend({ }, valid);
           request.limit = 4;
-          const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"limit" is not allowed');
+          const { value, error } = fusion_protocol.query.validate(request);
+          assert.ifError(error);
+          assert.deepStrictEqual(value, request);
         });
 
-        it('extra selection field', () => {
+        it('wrong "find" type', () => {
           const request = extend({ }, valid);
-          request.selection = { type: 'find', args: [ 0 ], fake_field: 'a' };
+          request.find = 'score';
           const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"fake_field" is not allowed');
-        });
-
-        it('wrong "args" count', () => {
-          const request = extend({ }, valid);
-          request.selection = { type: 'find', args: [ 1, 2 ] };
-          const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"args" must contain 1 items');
+          utils.check_error(error, '"find" must be an object');
         });
       });
 
       describe('find_all', () => {
         const valid = {
           collection: 'fusion',
-          field_name: 'id',
-          selection: {
-            type: 'find_all',
-            args: [ 4, 5, 6 ],
-          },
+          find_all: [ { score: 2 }, { score: 5, id: 0 } ],
         };
 
         it('valid', () => {
@@ -363,53 +469,7 @@ describe('Schema', () => {
 
         it('order', () => {
           const request = extend({ }, valid);
-          request.order = 'descending';
-          const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"order" is not allowed');
-        });
-
-        it('limit', () => {
-          const request = extend({ }, valid);
-          request.limit = 2;
-          const { value, error } = fusion_protocol.query.validate(request);
-          assert.ifError(error);
-          assert.deepStrictEqual(value, request);
-        });
-
-        it('extra selection field', () => {
-          const request = extend({ }, valid);
-          request.selection = { type: 'find_all', args: [ 0 ], fake_field: { } };
-          const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"fake_field" is not allowed');
-        });
-
-        it('wrong "args" count', () => {
-          const request = extend({ }, valid);
-          request.selection = { type: 'find_all', args: [ ] };
-          const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"args" must contain at least 1 items');
-        });
-      });
-
-      describe('between', () => {
-        const valid = {
-          collection: 'fusion',
-          field_name: 'id',
-          selection: {
-            type: 'between',
-            args: [ 4, 5 ],
-          },
-        };
-
-        it('valid', () => {
-          const { value, error } = fusion_protocol.query.validate(valid);
-          assert.ifError(error);
-          assert.deepStrictEqual(value, valid);
-        });
-
-        it('order', () => {
-          const request = extend({ }, valid);
-          request.order = 'descending';
+          request.order = [ [ 'id' ], 'descending' ];
           const { value, error } = fusion_protocol.query.validate(request);
           assert.ifError(error);
           assert.deepStrictEqual(value, request);
@@ -423,18 +483,81 @@ describe('Schema', () => {
           assert.deepStrictEqual(value, request);
         });
 
-        it('extra selection field', () => {
+        it('above', () => {
           const request = extend({ }, valid);
-          request.selection = { type: 'between', args: [ 1, 5 ], fake_field: false };
-          const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"fake_field" is not allowed');
+          request.order = [ [ 'id' ], 'ascending' ];
+          request.above = [ { id: 3 }, 'closed' ];
+          const { value, error } = fusion_protocol.query.validate(request);
+          assert.ifError(error);
+          assert.deepStrictEqual(value, request);
         });
 
-        it('wrong "args" count', () => {
+        it('below', () => {
           const request = extend({ }, valid);
-          request.selection = { type: 'between', args: [ 3, 4, 5 ] };
+          request.order = [ [ 'id' ], 'descending' ];
+          request.below = [ { id: 9 }, 'closed' ];
+          const { value, error } = fusion_protocol.query.validate(request);
+          assert.ifError(error);
+          assert.deepStrictEqual(value, request);
+        });
+
+        it('above and below and limit', () => {
+          const request = extend({ }, valid);
+          request.order = [ [ 'id' ], 'descending' ];
+          request.above = [ { id: 'foo' }, 'open' ];
+          request.below = [ { id: 'bar' }, 'closed' ];
+          request.limit = 59;
+          const { value, error } = fusion_protocol.query.validate(request);
+          assert.ifError(error);
+          assert.deepStrictEqual(value, request);
+        });
+
+        // TODO: these two tests are not passing because we don't enforce this
+        // in the schema - figure out a way to enforce this, or move these
+        // test cases to the server tests.
+        it('"above" field not in "order"', () => {
+          const request = extend({ }, valid);
+          request.order = [ [ 'id' ], 'descending' ];
+          request.above = [ { x: 'foo' }, 'open' ];
           const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"args" must contain 2 items');
+          assert.ifError(error);
+          utils.check_error(error, '');
+        });
+
+        it('"below" field not in "order"', () => {
+          const request = extend({ }, valid);
+          request.order = [ [ 'id' ], 'descending' ];
+          request.below = [ { x: 'foo' }, 'open' ];
+          const { error } = fusion_protocol.query.validate(request);
+          assert.ifError(error);
+          utils.check_error(error, '');
+        });
+
+        it('wrong "find_all" type', () => {
+          const request = extend({ }, valid);
+          request.find_all = null;
+          const { error } = fusion_protocol.query.validate(request);
+          utils.check_error(error, '"find_all" must be an array');
+        });
+
+        it('wrong "find_all" value', () => {
+          const request = extend({ }, valid);
+          {
+            request.find_all = [ ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"find_all" must contain at least 1 items');
+          } {
+            request.find_all = [ { } ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"item" must have at least 1 child');
+          }
+        });
+
+        it('with "find"', () => {
+          const request = extend({ }, valid);
+          request.find = { id: 7 };
+          const { error } = fusion_protocol.query.validate(request);
+          utils.check_error(error, '"find" is not allowed'); // TODO: better message?
         });
       });
     });

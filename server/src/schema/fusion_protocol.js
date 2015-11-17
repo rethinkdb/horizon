@@ -4,39 +4,29 @@ const Joi = require('joi');
 
 const read = Joi.object({
   collection: Joi.string().token().required(),
-  field_name: Joi.string().required(),
 
-  order: Joi.string().valid('ascending', 'descending')
-    .when('selection.type', {
-      is: Joi.any().valid('between').optional(),
-      otherwise: Joi.forbidden(),
-    }),
+  limit: Joi.number().positive().optional(),
 
-  limit: Joi.number().positive()
-    .when('selection.type', {
-      is: 'find',
-      then: Joi.forbidden(),
-    }),
+  order: Joi.array().ordered(
+      Joi.array().items(Joi.string()).min(1).unique().label('fields').required(),
+      Joi.string().valid('ascending', 'descending').label('direction').required()).optional()
+    .when('find', { is: Joi.any().required(), then: Joi.forbidden() })
+    .when('find_all', { is: Joi.array().min(2).required(), then: Joi.forbidden() }),
 
-  selection: Joi.object({
-    type: Joi.string().valid([
-      'find',
-      'find_all',
-      'between',
-    ]),
-    args: Joi.alternatives()
-      .when('type', { is: 'find', then: Joi.array().length(1) })
-      .when('type', { is: 'find_all', then: Joi.array().min(1) })
-      .when('type', { is: 'between', then: Joi.array().length(2) }),
-  }).unknown(false).optional(),
+  above: Joi.array().ordered(
+      Joi.object().min(1).unknown(true).label('boundary').required(),
+      Joi.string().valid('open', 'closed').label('bound_type').required()).optional()
+    .when('order', { is: Joi.any().required(), otherwise: Joi.forbidden() }),
 
-    // .options({
-    //   language: {
-    //     any: {
-    //       unknown: 'can only be used with "between"'
-    //     }
-    //   }
-    // })
+  below: Joi.array().ordered(
+      Joi.object().min(1).unknown(true).label('boundary').required(),
+      Joi.string().valid('open', 'closed').label('bound_type').required()).optional()
+    .when('order', { is: Joi.any().required(), otherwise: Joi.forbidden() }),
+
+  find: Joi.object().min(1).unknown(true).optional()
+    .when('find_all', { is: Joi.any().required(), then: Joi.forbidden() }),
+
+  find_all: Joi.array().items(Joi.object().min(1).label('item').unknown(true)).min(1).optional(),
 }).unknown(false);
 
 const write_id_optional = Joi.object({

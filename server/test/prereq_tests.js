@@ -18,7 +18,7 @@ const all_tests = (table) => {
     let finished = 0;
     for (let i = 0; i < query_count; ++i) {
       utils.stream_test(
-        { request_id: i, type: 'query', options: { collection: table_name, field_name: 'id' } },
+        { request_id: i, type: 'query', options: { collection: table_name } },
         (err, res) => {
           assert.ifError(err);
           assert.strictEqual(res.length, 0);
@@ -64,7 +64,7 @@ const all_tests = (table) => {
   // verify that only one such index exists with that name.
   it('index create race', (done) => {
     const query_count = 5;
-    const index_name = crypto.randomBytes(8).toString('hex');
+    const field_name = crypto.randomBytes(8).toString('hex');
 
     let finished = 0;
     for (let i = 0; i < query_count; ++i) {
@@ -74,15 +74,14 @@ const all_tests = (table) => {
           type: 'query',
           options: {
             collection: table,
-            field_name: index_name,
-            order: 'ascending',
+            order: [ [ field_name ], 'ascending' ],
           },
         },
         (err, res) => {
           assert.ifError(err);
           assert.strictEqual(res.length, 0);
           if (++finished === query_count) {
-            r.table(table).indexStatus(index_name).run(utils.rdb_conn())
+            r.table(table).indexStatus(field_name).run(utils.rdb_conn())
              .then(
                (statuses) => {
                  assert.strictEqual(statuses.length, 1);
