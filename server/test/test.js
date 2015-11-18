@@ -17,8 +17,6 @@ const table = 'test';
 
 describe('Fusion Server', () => {
   before('Start RethinkDB Server', utils.start_rdb_server);
-  before(`Creating general-purpose table: '${table}'`,
-         (done) => utils.create_table(table, done));
 
 
   beforeEach(
@@ -32,6 +30,8 @@ describe('Fusion Server', () => {
   describe('HTTP', () => {
     before('Start Fusion Server', utils.start_unsecure_fusion_server);
     after('Close Fusion Server', utils.close_fusion_server);
+    before(`Creating general-purpose table: '${table}'`,
+           (done) => utils.create_table(table, done));
     beforeEach('Connect Fusion Client', utils.open_fusion_conn);
     afterEach('Close Fusion Client', utils.close_fusion_conn);
 
@@ -41,6 +41,8 @@ describe('Fusion Server', () => {
   describe('HTTPS', () => {
     before('Start Fusion Server', utils.start_secure_fusion_server);
     after('Close Fusion Server', utils.close_fusion_server);
+    before(`Creating general-purpose table: '${table}'`,
+           (done) => utils.create_table(table, done));
     beforeEach('Connect Fusion Client', utils.open_fusion_conn);
     afterEach('Close Fusion Client', utils.close_fusion_conn);
 

@@ -80,14 +80,29 @@ const start_rdb_server = (done) => {
 };
 
 // Creates a table, no-op if it already exists
+// TODO: this depends on prerequisites working, so we don't reimplement the
+// fusion server's internal metadata upkeep.
 const create_table = (table, done) => {
-  assert.notStrictEqual(rdb_conn, undefined);
-  r.tableCreate(table).run(rdb_conn)
-   .then(() => done(),
-         (err) => {
-           assert(/Table `\w+\.\w+` already exists\./.test(err.msg));
-           done();
-         });
+  assert.notStrictEqual(fusion_server, undefined);
+  assert.notStrictEqual(fusion_port, undefined);
+  console.log(`Connecting to server: localhost:${fusion_port}`);
+  let conn = new websocket(`${is_secure() ? 'wss' : 'ws'}://localhost:${fusion_port}`,
+                           fusion.protocol, { rejectUnauthorized: false })
+    .once('error', (err) => assert.ifError(err))
+    .on('open', () => {
+      console.log(`Connected to server, sending auth`);
+      conn.send(JSON.stringify({ request_id: 0 })); // Authenticate
+      conn.once('message', () => {
+        console.log(`Got auth response, sending query`);
+        // This 'query' should auto-create the table if it's missing
+        conn.send(JSON.stringify({ request_id: 0, type: 'query', options: { collection: table, limit: 1 } }));
+        conn.once('message', (res) => {
+          console.log(`Got query response: ${res}`);
+          conn.close();
+          done();
+        });
+      });
+    });
 };
 
 // Removes all data from a table - does not remove indexes
@@ -115,13 +130,17 @@ const create_fusion_server = (backend, opts) => {
   opts.local_port = 0;
   opts.rdb_port = rdb_port;
   opts.db = db;
+  opts.dev_mode = true;
   return new backend(opts);
 };
 
 const start_unsecure_fusion_server = (done) => {
   assert.strictEqual(fusion_server, undefined);
   fusion_server = create_fusion_server(fusion.UnsecureServer, { });
-  fusion_server.local_port('localhost').then((p) => fusion_port = p, done());
+  fusion_server.local_port('localhost').then((p) => {
+    fusion_port = p;
+    fusion_server.ready().then(done);
+  });
 };
 
 const start_secure_fusion_server = (done) => {
@@ -143,7 +162,10 @@ const start_secure_fusion_server = (done) => {
       fs.unlinkSync(temp_file);
 
       fusion_server = create_fusion_server(fusion.Server, { key: key, cert: cert });
-      fusion_server.local_port('localhost').then((p) => fusion_port = p, done());
+      fusion_server.local_port('localhost').then((p) => {
+        fusion_port = p;
+        fusion_server.ready().then(done);
+      });
     });
 };
 

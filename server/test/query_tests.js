@@ -19,7 +19,6 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          field_name: 'id',
         },
       },
       (err, res) => {
@@ -36,8 +35,7 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          field_name: 'id',
-          order: 'ascending',
+          order: [ [ 'id' ], 'ascending' ],
         },
       },
       (err, res) => {
@@ -54,7 +52,6 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          field_name: 'id',
           limit: 2,
         },
       },
@@ -72,8 +69,7 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          field_name: 'id',
-          order: 'descending',
+          order: [ [ 'id' ], 'descending' ],
           limit: 4,
         },
       },
@@ -91,11 +87,7 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'find',
-            args: [ 4 ],
-          },
+          find: { id: 4 },
         },
       },
       (err, res) => {
@@ -112,11 +104,7 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'find',
-            args: [ 14 ],
-          },
+          find: { id: 14 },
         },
       },
       (err, res) => {
@@ -133,12 +121,8 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'find',
-            args: [ 4 ],
-          },
-          order: 'ascending',
+          find: { id: 4 },
+          order: [ [ 'id' ], 'ascending' ],
         },
       },
       (err, res) => {
@@ -155,12 +139,8 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'find',
-            args: [ 4 ],
-          },
-          limit: 5,
+          find: { id: 4 },
+          limit: 5
         },
       },
       (err, res) => {
@@ -177,11 +157,7 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'find_all',
-            args: [ 4, 6, 9 ],
-          },
+          find_all: [ { id: 4 }, { id: 6 }, { id: 9 } ],
         },
       },
       (err, res) => {
@@ -198,17 +174,13 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'find_all',
-            args: [ 1, 2, 4 ],
-          },
-          order: 'descending',
+          find_all: [ { id: 1 }, { id: 2 }, { id: 4 } ],
+          order: [ [ 'id' ], 'descending' ],
         },
       },
       (err, res) => {
-        assert.deepStrictEqual(res, [ ]);
-        utils.check_error(err, '"order" is not allowed');
+        assert.ifError(err);
+        assert.strictEqual(res.length, 3);
         done();
       });
   });
@@ -220,11 +192,7 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'find_all',
-            args: [ 4, 8, 2, 1 ],
-          },
+          find_all: [ { id: 4 }, { id: 8 }, { id: 2 }, { id: 1 } ],
           limit: 3,
         },
       },
@@ -242,106 +210,14 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'find_all',
-            args: [ 4, 5, 1, 2 ],
-          },
-          order: 'descending',
+          find_all: [ { id: 4 }, { id: 5 }, { id: 1 }, { id: 2 } ],
+          order: [ [ 'id' ], 'descending' ],
           limit: 3,
-        },
-      },
-      (err, res) => {
-        assert.deepStrictEqual(res, [ ]);
-        utils.check_error(err, '"order" is not allowed');
-        done();
-      });
-  });
-
-  it('between', (done) => {
-    utils.stream_test(
-      {
-        request_id: 0,
-        type: 'query',
-        options: {
-          collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'between',
-            args: [ 4, 10 ],
-          },
-        },
-      },
-      (err, res) => {
-        assert.ifError(err);
-        assert.strictEqual(res.length, 6);
-        done();
-      });
-  });
-
-  it('between order', (done) => {
-    utils.stream_test(
-      {
-        request_id: 0,
-        type: 'query',
-        options: {
-          collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'between',
-            args: [ 2, 5 ],
-          },
-          order: 'ascending',
         },
       },
       (err, res) => {
         assert.ifError(err);
         assert.strictEqual(res.length, 3);
-        done();
-      });
-  });
-
-  it('between limit', (done) => {
-    utils.stream_test(
-      {
-        request_id: 0,
-        type: 'query',
-        options: {
-          collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'between',
-            args: [ 1, 7 ],
-          },
-          limit: 1,
-        },
-      },
-      (err, res) => {
-        assert.ifError(err);
-        assert.strictEqual(res.length, 1);
-        done();
-      });
-  });
-
-  it('between order limit', (done) => {
-    utils.stream_test(
-      {
-        request_id: 0,
-        type: 'query',
-        options: {
-          collection: table,
-          field_name: 'id',
-          selection: {
-            type: 'between',
-            args: [ 6, 10 ],
-          },
-          order: 'ascending',
-          limit: 2,
-        },
-      },
-      (err, res) => {
-        assert.ifError(err);
-        assert.strictEqual(res.length, 2);
         done();
       });
   });

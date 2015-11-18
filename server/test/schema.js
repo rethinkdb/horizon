@@ -442,9 +442,8 @@ describe('Schema', () => {
         it('limit', () => {
           const request = extend({ }, valid);
           request.limit = 4;
-          const { value, error } = fusion_protocol.query.validate(request);
-          assert.ifError(error);
-          assert.deepStrictEqual(value, request);
+          const { error } = fusion_protocol.query.validate(request);
+          utils.check_error(error, '"limit" is not allowed');
         });
 
         it('wrong "find" type', () => {
@@ -521,7 +520,7 @@ describe('Schema', () => {
           request.above = [ { x: 'foo' }, 'open' ];
           const { error } = fusion_protocol.query.validate(request);
           assert.ifError(error);
-          utils.check_error(error, '');
+          utils.check_error(error, 'TODO');
         });
 
         it('"below" field not in "order"', () => {
@@ -530,7 +529,7 @@ describe('Schema', () => {
           request.below = [ { x: 'foo' }, 'open' ];
           const { error } = fusion_protocol.query.validate(request);
           assert.ifError(error);
-          utils.check_error(error, '');
+          utils.check_error(error, 'TODO');
         });
 
         it('wrong "find_all" type', () => {

@@ -34,6 +34,10 @@ parser.addArgument([ '--unsecure' ],
   { defaultValue: false, action: 'storeTrue',
     help: 'Serve unsecure websockets, ignore --key-file and --cert-file.' });
 
+parser.addArgument([ '--dev' ],
+  { defaultValue: false, action: 'storeTrue',
+    help: 'Runs the server in development mode - automatic creation of indexes and tables.' });
+
 const parsed = parser.parseArgs();
 const options = { };
 
@@ -41,6 +45,7 @@ const param_if_not_null = (param) => { if (param !== null) { return param; } };
 
 options.local_port = param_if_not_null(parsed.port);
 options.local_hosts = param_if_not_null(parsed.bind);
+options.dev_mode = Boolean(parsed.dev);
 
 if (parsed.connect !== null) {
   const host_port = parsed.connect.split(':');

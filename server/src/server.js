@@ -4,6 +4,7 @@ const { check } = require('./error');
 const fusion_client = require('./client');
 const fusion_protocol = require('./schema/fusion_protocol');
 const logger = require('./logger');
+const { Metadata } = require('./metadata');
 const server_options = require('./schema/server_options');
 
 const endpoints = {
@@ -68,42 +69,63 @@ const handle_http_request = (req, res) => {
 };
 
 class ReqlConnection {
-  constructor(host, port, db, clients) {
+  constructor(host, port, db, dev_mode, clients) {
     this.host = host;
     this.port = port;
     this.db = db;
+    this.dev_mode = dev_mode;
     this.clients = clients;
-    this.connection = null;
+    this.connection = undefined;
     this.reconnect_delay = 0;
-    this.reconnect();
+    this._ready = false;
+    this._ready_promise = new Promise((resolve, reject) => this.reconnect(resolve, reject));
   }
 
-  reconnect() {
+  reconnect(resolve, reject) {
     logger.info(`Connecting to RethinkDB: ${this.host}:${this.port}`);
     r.connect({ host: this.host, port: this.port, db: this.db })
-     .then((conn) => this.handle_conn_success(conn),
-           (err) => this.handle_conn_error(err));
+     .then((conn) => {
+       logger.info(`Connection to RethinkDB established.`);
+       this.connection = conn;
+       this.reconnect_delay = 0;
+       this.connection.on('error', (err) => this.handle_conn_error(err));
+       this.metadata = new Metadata(this.connection, this.dev_mode, (err) => {
+         if (err !== undefined) {
+           reject(err);
+         } else {
+           this._ready = true;
+           resolve();
+         }
+       });
+     },
+     (err) => {
+       logger.error(`Connection to RethinkDB terminated: ${err}`);
+       if (this.connection !== undefined) {
+         this.connection = undefined;
+         this.metadata = undefined;
+         this.clients.forEach((client) => client.reql_connection_lost());
+         setTimeout(() => this.reconnect(resolve, reject), this.reconnect_delay);
+         this.reconnect_delay = Math.min(this.reconnect_delay + 100, 1000);
+       }
+     });
   }
 
-  handle_conn_success(conn) {
-    logger.info(`Connection to RethinkDB established.`);
-    this.connection = conn;
-    this.reconnect_delay = 0;
-    this.connection.on('error', (err) => this.handle_conn_error(err));
+  is_ready() {
+    return this._ready;
   }
 
-  handle_conn_error(err) {
-    logger.error(`Connection to RethinkDB terminated: ${err}`);
-    if (!this.connection) {
-      this.connection = null;
-      this.clients.forEach((client) => client.reql_connection_lost());
-      setTimeout(() => this.reconnect(), this.reconnect_delay);
-      this.reconnect_delay = Math.min(this.reconnect_delay + 100, 1000);
-    }
+  ready() {
+    return this._ready_promise;
   }
 
   get_connection() {
+    check(this._ready, `Connection to the database is down.`);
     return this.connection;
+  }
+
+  get_metadata() {
+    check(this._ready, `Connection to the database is down.`);
+    return this.metadata;
   }
 }
 
@@ -117,6 +139,7 @@ class BaseServer {
     this._reql_conn = new ReqlConnection(opts.rdb_host,
                                          opts.rdb_port,
                                          opts.db,
+                                         opts.dev_mode,
                                          this._clients);
 
     for (let key of Object.keys(endpoints)) {
@@ -136,7 +159,14 @@ class BaseServer {
       this._ws_servers.set(host, new websocket.Server({ server: http_server,
                                                         handleProtocols: accept_protocol })
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
-        .on('connection', (socket) => new fusion_client.Client(socket, this)));
+        .on('connection', (socket) => {
+          // Reject connections if we aren't synced with the database
+          if (!this._reql_conn.is_ready()) {
+            socket.close();
+          } else {
+            new fusion_client.Client(socket, this);
+          }
+        }));
     });
   }
 
@@ -149,6 +179,10 @@ class BaseServer {
 
   local_port(host) {
     return this._local_ports.get(host);
+  }
+
+  ready() {
+    return this._reql_conn.ready();
   }
 
   close() {
