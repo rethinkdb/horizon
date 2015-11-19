@@ -37,7 +37,7 @@
 		// watch todos change for localStorage persistence
 		watch: {
 			todos: {
-				deep: true,
+				deep: false,
 				handler: todoStorage.save,
 			},
 		},
