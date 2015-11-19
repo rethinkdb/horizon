@@ -210,7 +210,7 @@ class Client {
       logger.debug(`Attempted to send a response to a disconnected client: ${JSON.stringify(data)}.`);
     } else {
       data.request_id = request.id;
-      logger.debug(`Sending response: ${JSON.stringify(data)}`);
+      logger.debug(`Sending response: ${JSON.stringify(data)}, stack: ${new Error().stack}`);
       this.socket.send(JSON.stringify(data));
     }
   }

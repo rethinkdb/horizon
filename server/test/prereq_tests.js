@@ -65,33 +65,32 @@ const all_tests = (table) => {
   it('index create race', (done) => {
     const query_count = 5;
     const field_name = crypto.randomBytes(8).toString('hex');
+    const conn = utils.rdb_conn();
 
-    let finished = 0;
-    for (let i = 0; i < query_count; ++i) {
-      utils.stream_test(
-        {
-          request_id: i,
-          type: 'query',
-          options: {
-            collection: table,
-            order: [ [ field_name ], 'ascending' ],
+    r.table(table).indexStatus().count().run(conn).then((old_count) => {
+      let finished = 0;
+      for (let i = 0; i < query_count; ++i) {
+        utils.stream_test(
+          {
+            request_id: i,
+            type: 'query',
+            options: {
+              collection: table,
+              order: [ [ field_name ], 'ascending' ],
+            },
           },
-        },
-        (err, res) => {
-          assert.ifError(err);
-          assert.strictEqual(res.length, 0);
-          if (++finished === query_count) {
-            r.table(table).indexStatus(field_name).run(utils.rdb_conn())
-             .then(
-               (statuses) => {
-                 assert.strictEqual(statuses.length, 1);
-                 assert(statuses[0].ready);
+          (err, res) => {
+            assert.ifError(err);
+            assert.strictEqual(res.length, 0);
+            if (++finished === query_count) {
+              r.table(table).indexStatus().count().run(conn).then((new_count) => {
+                 assert.strictEqual(old_count + 1, new_count);
                  done();
-               },
-               (error) => done(error));
-          }
-        });
-    }
+              }, (err) => done(err));
+            }
+          });
+      }
+    });
   });
 };
 

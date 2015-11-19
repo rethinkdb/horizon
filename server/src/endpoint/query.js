@@ -13,8 +13,8 @@ const make_reql = (raw_request, metadata) => {
 
   // Construct a set of all fields we need to index by
   // The `get_fields` can be in any order, but the `order_fields` are strict
-  let table = options.collection;
-  let reql = r.table(table);
+  const table = metadata.get_table(options.collection);
+  let reql = r.table(table.name);
 
   const get_bound = (index, get_value, bound_value, cmp, extrema) => {
     const eval_key = (key) => {
@@ -44,7 +44,7 @@ const make_reql = (raw_request, metadata) => {
   const ordered_between = (obj) => {
     const optional_bound = (name) => options[name] && options[name][0];
     if (options.order) {
-      let index = metadata.get_matching_index(table, Object.keys(obj), options.order[0]);
+      let index = table.get_matching_index(Object.keys(obj), options.order[0]);
       let leftBound = options.above ? options.above[1] : 'closed';
       let rightBound = options.below ? options.below[1] : 'open';
 
@@ -66,7 +66,7 @@ const make_reql = (raw_request, metadata) => {
                           upper_bound(index, obj, optional_bound('below')),
                           { leftBound, rightBound: 'closed', index: index.name });
     } else {
-      let index = metadata.get_matching_index(table, Object.keys(obj));
+      let index = table.get_matching_index(Object.keys(obj), [ ]);
       return reql.between(lower_bound(index, obj, { }),
                           upper_bound(index, obj, { }),
                           { rightBound: 'closed', index: index.name });
@@ -74,7 +74,7 @@ const make_reql = (raw_request, metadata) => {
   };
 
   if (options.find) {
-    let index = metadata.get_matching_index(table, Object.keys(options.find));
+    let index = table.get_matching_index(Object.keys(options.find), [ ]);
     reql = reql.between(lower_bound(index, options.find, { }),
                         upper_bound(index, options.find, { }),
                         { rightBound: 'closed', index: index.name });

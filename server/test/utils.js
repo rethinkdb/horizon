@@ -79,25 +79,23 @@ const start_rdb_server = (done) => {
   });
 };
 
-// Creates a table, no-op if it already exists
-// TODO: this depends on prerequisites working, so we don't reimplement the
-// fusion server's internal metadata upkeep.
+// Creates a table, no-op if it already exists, uses fusion server prereqs
 const create_table = (table, done) => {
   assert.notStrictEqual(fusion_server, undefined);
   assert.notStrictEqual(fusion_port, undefined);
-  console.log(`Connecting to server: localhost:${fusion_port}`);
   let conn = new websocket(`${is_secure() ? 'wss' : 'ws'}://localhost:${fusion_port}`,
                            fusion.protocol, { rejectUnauthorized: false })
     .once('error', (err) => assert.ifError(err))
     .on('open', () => {
-      console.log(`Connected to server, sending auth`);
       conn.send(JSON.stringify({ request_id: 0 })); // Authenticate
       conn.once('message', () => {
-        console.log(`Got auth response, sending query`);
         // This 'query' should auto-create the table if it's missing
-        conn.send(JSON.stringify({ request_id: 0, type: 'query', options: { collection: table, limit: 1 } }));
+        conn.send(JSON.stringify({
+          request_id: 0,
+          type: 'query',
+          options: { collection: table, limit: 1 }
+        }));
         conn.once('message', (res) => {
-          console.log(`Got query response: ${res}`);
           conn.close();
           done();
         });
