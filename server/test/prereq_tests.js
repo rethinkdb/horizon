@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const r = require('rethinkdb');
 
 const all_tests = (table) => {
+  beforeEach('clear table', (done) => utils.clear_table(table, done));
   beforeEach('authenticate', (done) => utils.fusion_default_auth(done));
 
   // Launch simultaneous queries that depend on a non-existent table, then
@@ -84,8 +85,8 @@ const all_tests = (table) => {
             assert.strictEqual(res.length, 0);
             if (++finished === query_count) {
               r.table(table).indexStatus().count().run(conn).then((new_count) => {
-                 assert.strictEqual(old_count + 1, new_count);
-                 done();
+                assert.strictEqual(old_count + 1, new_count);
+                done();
               }, (err) => done(err));
             }
           });
