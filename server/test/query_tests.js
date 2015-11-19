@@ -140,7 +140,7 @@ const all_tests = (table) => {
         options: {
           collection: table,
           find: { id: 4 },
-          limit: 5
+          limit: 5,
         },
       },
       (err, res) => {

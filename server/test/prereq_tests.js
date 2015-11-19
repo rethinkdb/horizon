@@ -87,7 +87,7 @@ const all_tests = (table) => {
               r.table(table).indexStatus().count().run(conn).then((new_count) => {
                 assert.strictEqual(old_count + 1, new_count);
                 done();
-              }, (err) => done(err));
+              }, (err2) => done(err2));
             }
           });
       }

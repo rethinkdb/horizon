@@ -79,6 +79,11 @@ const start_rdb_server = (done) => {
   });
 };
 
+const is_secure = () => {
+  assert.notStrictEqual(fusion_server, undefined);
+  return fusion_server.constructor.name !== 'UnsecureServer';
+};
+
 // Creates a table, no-op if it already exists, uses fusion server prereqs
 const create_table = (table, done) => {
   assert.notStrictEqual(fusion_server, undefined);
@@ -93,9 +98,9 @@ const create_table = (table, done) => {
         conn.send(JSON.stringify({
           request_id: 0,
           type: 'query',
-          options: { collection: table, limit: 1 }
+          options: { collection: table, limit: 1 },
         }));
-        conn.once('message', (res) => {
+        conn.once('message', () => {
           conn.close();
           done();
         });
@@ -170,11 +175,6 @@ const start_secure_fusion_server = (done) => {
 const close_fusion_server = () => {
   if (fusion_server !== undefined) { fusion_server.close(); }
   fusion_server = undefined;
-};
-
-const is_secure = () => {
-  assert.notStrictEqual(fusion_server, undefined);
-  return fusion_server.constructor.name !== 'UnsecureServer';
 };
 
 const add_fusion_listener = (request_id, cb) => {

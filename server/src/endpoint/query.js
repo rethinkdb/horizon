@@ -50,11 +50,11 @@ const make_reql = (raw_request, metadata) => {
 
       // TODO: would be nice if we could enforce this in the schema
       if (options.above) {
-        Object.keys(options.above[0]).forEach((k) => check(index.fields.includes(k),
+        Object.keys(options.above[0]).forEach((k) => check(index.fields.indexOf(k) !== -1,
           `"above" contains a key not mentioned in "order": ${k}`));
       }
       if (options.below) {
-        Object.keys(options.below[0]).forEach((k) => check(index.fields.includes(k),
+        Object.keys(options.below[0]).forEach((k) => check(index.fields.indexOf(k) !== -1,
           `"below" contains a key not mentioned in "order": ${k}`));
       }
 
