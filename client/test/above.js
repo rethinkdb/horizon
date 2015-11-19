@@ -59,28 +59,16 @@ aboveSuite = (getData) => {
     }).catch(done);
   });
 
-  // Let's try it on a compound index
-  it("#.order([a,id]).above([20,3])", (done) => {
-    data.order(['a', 'id']).above({ a: 20, id: 3 }).value().then((res) => {
-      assert.deepEqual([{ id: 3, a: 20, b: 2 },
-                        { id: 4, a: 20, b: 3 },
-                        { id: 5, a: 50 },
-                        { id: 6, a: 60 }], res);
+  // `above` can't include any keys that are in `findAll`
+  it("#.findAll(a).above(a)", (done) => {
+    data.findAll({ a: 20 }).above({ a: 3 }).value().catch((res) => {
+      assert.isDefined(err);
+      assert.isNotNull(err);
       done();
     }).catch(done);
   });
 
-  // Let's try it on a compound index, but open
-  it("#.order([a,id]).above([20,3], open)", (done) => {
-    data.order(['a', 'id']).above({ a: 20, id: 3 }, 'open').value().then((res) => {
-      assert.deepEqual([{ id: 4, a: 20, b: 3 },
-                        { id: 5, a: 50 },
-                        { id: 6, a: 60 }], res);
-      done();
-    }).catch(done);
-  });
-
-  // Just a prefix is ok
+  // Let's try it on a non-primary key
   it("#.order([a,id]).above([20])", (done) => {
     data.order(['a', 'id']).above({ a: 20 }).value().then((res) => {
       assert.deepEqual([{ id: 2, a: 20, b: 1 },
@@ -92,7 +80,7 @@ aboveSuite = (getData) => {
     }).catch(done);
   });
 
-  // Let's try just a prefix, but open
+  // Let's try it on a non-primary key, but open
   it("#.order([a,id]).above([20], open)", (done) => {
     data.order(['a', 'id']).above({ a: 20 }).value().then((res) => {
       assert.deepEqual([{ id: 5, a: 50 },
@@ -101,7 +89,7 @@ aboveSuite = (getData) => {
     }).catch(done);
   });
 
-  // However, if the key is compound, passing a postfix isn't ok
+  // The key in `above` must be the first key in `order`
   it("#.order([a,id]).above(id)", (done) => {
     data.order(['a', 'id']).above({ id: 20 }).value().catch((err) => {
       assert.isDefined(err);
@@ -110,13 +98,31 @@ aboveSuite = (getData) => {
     })
   });
 
-  // Nor is passing a random other field ok
+  // Passing multiple keys to `above` isn't legal
+  it("#.order([a,id]).above(id)", (done) => {
+    data.order(['a', 'id']).above({ a: 20, id: 20 }).value().catch((err) => {
+      assert.isDefined(err);
+      assert.isNotNull(err);
+      done();
+    })
+  });
+
+  // Nor is passing a field that isn't specified in `order`
   it("#.order([a,id]).above(other_field)", (done) => {
     data.order(['a', 'id']).above({ b: 20 }).value().catch((err) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
     })
+  });
+
+  // If chaining `above/below`, they must be passed the same key
+  it("#.above(key1:5).below(key2: 6)", (done) => {
+    data.above({ b: 0 }).below({ a: 100 }).value().catch((err) => {
+      assert.isDefined(err);
+      assert.isNotNull(err);
+      done();
+    }).catch(done);
   });
 
   // Starting with `null` is not ok

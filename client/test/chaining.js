@@ -50,40 +50,11 @@ chainingSuite = (getData) => {
   });
 
   // Let's try a big compound example
-  it("#.findAll.order([]).above.below.limit", (done) => {
-    data.order(['a', 'id'])
-        .above({ a: 20, id: 3 })
-        .findAll({ b: 1 }, { id: 3 }, { b: 3 } )
-        .below({ a: 20, id: 4 }, 'closed')
-        .limit(2)
-        .value().then((res) => {
-      assert.deepEqual([{ id: 3, a: 20, b: 2 },
-                        { id: 4, a: 20, b: 3 }], res);
-      done();
-    }).catch(done);
-  });
-
-  // Let's try it again, but now only with a prefix
-  it("#.findAll.order([x, y]).above([x]).below", (done) => {
-    data.order(['a', 'id'])
-        .above({ a: 20 })
-        .below({ a: 20, id: 4 }, 'closed')
-        .findAll({ b: 1 }, { id: 3 }, { b: 3 } )
-        .limit(2)
-        .value().then((res) => {
-      assert.deepEqual([{ id: 2, a: 20, b: 1 },
-                        { id: 3, a: 20, b: 2 }], res);
-      done();
-    }).catch(done);
-  });
-
-  // Same, but `findAll` has more complex conditions, just to be sure this
-  // works
-  it("#.findAll({...}).order([x, y]).above([x]).below", (done) => {
-    data.above({ a: 20 })
-        .below({ a: 20, id: 4 }, 'closed')
-        .findAll({ a: 20, b: 1 }, { id: 3 }, { id: 4, b: 3 } )
-        .order(['a', 'id'])
+  it("#.findAll.order.above.below.limit", (done) => {
+    data.findAll({ a: 20 })
+        .order('id')
+        .above({ id: 2 })
+        .below({ id: 4 }, 'closed')
         .limit(2)
         .value().then((res) => {
       assert.deepEqual([{ id: 2, a: 20, b: 1 },

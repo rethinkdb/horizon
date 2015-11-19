@@ -60,6 +60,15 @@ orderSuite = (getData, getTestData) => {
     }).catch(done);
   });
 
+  // `order` cannot accept any keys that are present in `findAll`
+  it("#.findAll(key).order(key)", (done) => {
+    data.findAll({id: 1}).order('id').value().catch((err) => {
+      assert.isDefined(err);
+      assert.isNotNull(err);
+      done();
+    });
+  });
+
   // Passing no arguments, null, bad arguments, or too many arguments is
   // an error.
   it("#.order()", (done) => {
