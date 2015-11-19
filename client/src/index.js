@@ -17,11 +17,47 @@ function errorEvent(id){
 
 var fusionCount = 0
 
-function checkNonNull(name, arg){
-  if(arg === null){
-    throw new Error(`The argument to ${name} must be non-null`)
-  }else if(arg === undefined){
-    throw new Error(`The argument to ${name} must be defined`)
+function ordinal(x){
+  if([11,12,13].indexOf(x) !== -1){
+    return `${x}th`
+  }
+  if(x % 10 === 1){
+    return `${x}st`
+  }
+  if(x % 10 === 2){
+    return `${x}nd`
+  }
+  if(x % 10 === 3){
+    return `${x}rd`
+  }
+  return `${x}th`
+}
+
+// Validation helper
+function checkArgs(name, args,
+                   {nullable: nullable=false,
+                    minArgs: minArgs=1,
+                    maxArgs: maxArgs=1}={}){
+  if(minArgs == maxArgs && args.length !== minArgs){
+    let plural = minArgs === 1 ? '' : 's'
+    throw new Error(`${name} must receive exactly ${minArgs} argument${plural}`)
+  }
+  if(args.length < minArgs){
+    let plural = minArgs === 1 ? '' : 's'
+    throw new Error(`${name} must receive at least ${minArgs} argument${plural}.`)
+  }
+  if(args.length > maxArgs){
+    let plural = maxArgs === 1 ? '' : 's'
+    throw new Error(`${name} accepts at most ${maxArgs} argument${plural}.`)
+  }
+  for(let i = 0; i < args.length; i++){
+    if(!nullable && args[i] === null){
+      let ordinality = maxArgs !== 1 ? ` ${ordinal(i + 1)}` : ''
+      throw new Error(`The${ordinality} argument to ${name} must be non-null`)
+    }
+    if(args[i] === undefined){
+      throw new Error(`The ${ordinal(i+1)} argument to ${name} must be defined`)
+    }
   }
 }
 
@@ -298,30 +334,32 @@ class Collection extends TermBase {
   }
 
   store(documents){
+    checkArgs('store', arguments)
     return this._writeOp('store', documents)
   }
 
   upsert(documents){
+    checkArgs('upsert', arguments)
     return this._writeOp('upsert', documents)
   }
 
   insert(documents){
+    checkArgs('insert', arguments)
     return this._writeOp('insert', documents)
   }
 
   replace(documents){
+    checkArgs('replace', arguments)
     return this._writeOp('replace', documents)
   }
 
   update(documents){
+    checkArgs('update', arguments)
     return this._writeOp('update', documents)
   }
 
   remove(documentOrId){
-    checkNonNull('remove', documentOrId)
-    if(arguments.length > 1){
-      throw new Error("remove takes exactly one argument")
-    }
+    checkArgs('remove', arguments)
     if(validIndexValue(documentOrId)){
       documentOrId = {id: documentOrId}
     }
@@ -329,7 +367,7 @@ class Collection extends TermBase {
   }
 
   removeAll(documentsOrIds){
-    checkNonNull('removeAll', documentsOrIds)
+    checkArgs('removeAll', arguments)
     if(!Array.isArray(documentsOrIds)){
       throw new Error("removeAll takes an array as an argument")
     }
@@ -347,7 +385,6 @@ class Collection extends TermBase {
   }
 
   _writeOp(name, documents){
-    checkNonNull(name, documents)
     if(!Array.isArray(documents)){
       documents = [documents]
     }else if(documents.length === 0){
@@ -371,9 +408,7 @@ class FindAll extends TermBase {
   }
 
   static method(...fieldValues){
-    if(arguments.length === 0){
-      throw new Error(`findAll must take at least one argument`)
-    }
+    checkArgs('findAll', arguments, {maxArgs: 100})
     let wrappedFields = fieldValues.map(item => {
       if(validIndexValue(item)){
         return {id: item}
@@ -395,9 +430,7 @@ class Find extends TermBase {
   }
 
   value(){
-    this.fusion.log("FINDING SOMETHING")
     return super.value().then(resp => {
-      this.fusion.log("Testing")
       if(resp.length > 0){
         return resp[0]
       }else{
@@ -407,7 +440,7 @@ class Find extends TermBase {
   }
 
   static method(idOrObject){
-    checkNonNull('find', idOrObject)
+    checkArgs('find', arguments)
     let q = validIndexValue(idOrObject) ? {id: idOrObject} : idOrObject
     return new Find(this.fusion, this.query, q)
   }
@@ -422,7 +455,7 @@ class Above extends TermBase {
   }
 
   static method(aboveSpec, bound="closed"){
-    checkNonNull('above', aboveSpec)
+    checkArgs('above', arguments, {minArgs: 1, maxArgs: 2})
     return new Above(this.fusion, this.query, aboveSpec, bound)
   }
 }
@@ -436,7 +469,7 @@ class Below extends TermBase {
   }
 
   static method(belowSpec, bound="open"){
-    checkNonNull('below', belowSpec)
+    checkArgs('below', arguments, {minArgs: 1, maxArgs: 2})
     return new Below(this.fusion, this.query, belowSpec, bound)
   }
 }
@@ -450,7 +483,7 @@ class Order extends TermBase {
   }
 
   static method(fields, direction='ascending'){
-    checkNonNull('order', fields)
+    checkArgs('order', arguments, {minArgs: 1, maxArgs: 2})
     let wrappedFields = Array.isArray(fields) ? fields : [fields]
     return new Order(this.fusion, this.query, wrappedFields, direction)
   }
@@ -463,7 +496,7 @@ class Limit extends TermBase {
   }
 
   static method(size){
-    checkNonNull('limit', size)
+    checkArgs('limit', arguments)
     return new Limit(this.fusion, this.query, size)
   }
 }
