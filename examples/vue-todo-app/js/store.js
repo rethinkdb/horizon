@@ -26,18 +26,25 @@
         console.error(error);
       });
     },
-    saveAll: function(newVal, oldVal) {
-
-      // If nothing in array, don't save anything, Vuejs.$watch is save crazy
-			if(!newVal.length){ return; }
+    save: function(newVal, oldVal) {
 
       // Can't compare oldVal to newVal because of Javascript limitations. Only
       //  certain mutations to an array are detectable. So save every doc.
-      todos.store(newVal);
+
+      if (Array.isArray(newVal)){
+          todos.replace(newVal)
+      } else {
+          todos.store(newVal);
+      }
+
     },
 
 		remove: function(doc){
-			todos.remove(doc);
+      if (!Array.isArray(doc)){
+          todos.remove(doc);
+      } else if (Array.isArray(doc)){
+          todos.removeAll(doc)
+      }
 		},
 
     changes: function(added, changed, removed) {

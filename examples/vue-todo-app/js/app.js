@@ -29,7 +29,6 @@
 		data: {
 			todos: [],
 			newTodo: '',
-			tempTodo: {title: "", completed:false},
 			editedTodo: null,
 			visibility: 'all'
 		},
@@ -38,7 +37,7 @@
 		watch: {
 			todos: {
 				deep: true,
-				handler: todoStorage.saveAll,
+				handler: todoStorage.save,
 			},
 		},
 
@@ -72,7 +71,7 @@
 				if (!value) {
 					return;
 				}
-				this.todos.push({
+				todoStorage.save({
 					title: value,
 					id: todoStorage.generateUUID(),
 					completed: false,
@@ -82,7 +81,6 @@
 			},
 
 			removeTodo: function (todo){
-				this.todos.$remove(todo);
 				todoStorage.remove(todo);
 			},
 
@@ -108,7 +106,7 @@
 			},
 
 			removeCompleted: function () {
-				this.todos = filters.active(this.todos);
+				filters.completed(this.todos).forEach(this.removeTodo);
 			},
 
 			// Changefeed Methods
@@ -122,7 +120,7 @@
 							return;
 						}
 				}
-				this.todos = this.todos.concat(doc);
+				this.todos.push(doc);
 			},
 
 			updatedChanges: function (doc) {
@@ -134,10 +132,10 @@
 				}
 			},
 
-			deletedChanges: function (doc) {
-				for(var i = 0; i < this.todos.length; i++){
-					if(this.todos[i].id === doc.id){
-							this.todos.splice(i,1);
+			removedChanges: function (doc) {
+				for(var todo of this.todos){
+					if(todo.id === doc.id){
+							this.todos.$remove(todo);
 							return;
 					}
 				}
@@ -161,6 +159,6 @@
 	});
 
 	todoStorage.fetchAll(app);
-	todoStorage.changes(app.addedChanges, app.updatedChanges, app.deletedChanges);
+	todoStorage.changes(app.addedChanges, app.updatedChanges, app.removedChanges);
 
 })(window);
