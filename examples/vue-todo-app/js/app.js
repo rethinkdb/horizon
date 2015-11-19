@@ -24,6 +24,7 @@
 
 		// the root element that will be compiled
 		el: '.todoapp',
+		debug: true,
 
 		// app initial state
 		data: {
@@ -85,11 +86,14 @@
 			},
 
 			editTodo: function (todo) {
+				console.log("EDIT TODO")
 				this.beforeEditCache = todo.title;
 				this.editedTodo = todo;
+				this.updateTodo(todo);
 			},
 
 			doneEdit: function (todo) {
+				console.log("DONE EDIT")
 				if (!this.editedTodo) {
 					return;
 				}
@@ -98,6 +102,10 @@
 				if (!todo.title) {
 					this.removeTodo(todo);
 				}
+			},
+
+			updateTodo: function(todo){
+				todoStorage.update(todo);
 			},
 
 			cancelEdit: function (todo) {

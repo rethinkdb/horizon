@@ -28,9 +28,8 @@
     },
     save: function(newVal, oldVal) {
 
-      // Can't compare oldVal to newVal because of Javascript limitations. Only
+      // Can't compare oldVal to newVal because of Vue/Javascript limitations. Only
       //  certain mutations to an array are detectable. So save every doc.
-
       if (Array.isArray(newVal)){
           todos.replace(newVal)
       } else {
@@ -39,11 +38,16 @@
 
     },
 
-		remove: function(doc){
-      if (!Array.isArray(doc)){
-          todos.remove(doc);
-      } else if (Array.isArray(doc)){
-          todos.removeAll(doc)
+    update: function(todo){
+      console.log(todo);
+      todos.replace(todo);
+    },
+
+		remove: function(todo){
+      if (!Array.isArray(todo)){
+          todos.remove(todo);
+      } else if (Array.isArray(todo)){
+          todos.removeAll(todo)
       }
 		},
 

@@ -18,7 +18,7 @@
 				<ul class="todo-list">
 					<li class="todo" v-for="todo in filteredTodos | orderBy 'datetime' -1" :class="{completed: todo.completed, editing: todo == editedTodo}">
 						<div class="view">
-							<input class="toggle" type="checkbox" v-model="todo.completed">
+							<input class="toggle" type="checkbox" v-model="todo.completed" @click="updateTodo">
 							<label @dblclick="editTodo(todo)">{{todo.title}}</label>
 							<button class="destroy" @click="removeTodo(todo)"></button>
 						</div>
