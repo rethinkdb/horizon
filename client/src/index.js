@@ -17,10 +17,22 @@ function errorEvent(id){
 
 var fusionCount = 0
 
-class Fusion extends FusionEmitter {
-  constructor(host, {secure: secure=true}={}){
-    super(`Fusion(${fusionCount++})`)
+function checkNonNull(name, arg){
+  if(arg === null){
+    throw new Error(`The argument to ${name} must be non-null`)
+  }else if(arg === undefined){
+    throw new Error(`The argument to ${name} must be defined`)
+  }
+}
 
+class Fusion extends FusionEmitter {
+  constructor(host, {secure: secure=true, debug: debug=true}={}){
+    super(`Fusion(${fusionCount++})`)
+    if(debug){
+      this.log = (...args) => console.debug(...args)
+    }else{
+      this.log = () => undefined
+    }
     // Allow calling a fusion object
     let self = name => this.collection(name)
     Object.setPrototypeOf(self, this)
@@ -28,7 +40,7 @@ class Fusion extends FusionEmitter {
     this.host = host
     this.secure = secure
     this.requestCounter = 0
-    this.socket = new FusionSocket(host, secure)
+    this.socket = new FusionSocket(host, secure, this.log)
     this.listenerSet = ListenerSet.absorbEmitter(this.socket)
       .onceAndDispose('error', (err) => this.emit('error', err, self))
       .on('connected', () => this.emit('connected', self))
@@ -101,8 +113,9 @@ class FusionSocket extends FusionEmitter {
   // Wraps native websockets in an EventEmitter, and deals with some
   // simple protocol level things like serializing from/to JSON, and
   // emitting events on request_ids
-  constructor(host, secure=true){
+  constructor(host, secure=true, debug_func){
     super(`FusionSocket(${socketCount++})`)
+    this.log = debug_func
     let hostString = (secure ? 'wss://' : 'ws://') + host
     this._ws = new WebSocket(hostString, PROTOCOL_VERSION)
     this._openWs = new Promise((resolve, reject) => {
@@ -121,6 +134,7 @@ class FusionSocket extends FusionEmitter {
     })
     this._ws.onmessage = (event) => {
       let data = JSON.parse(event.data)
+      this.log("Received", JSON.stringify(data, undefined, 2))
       if(data.request_id === undefined){
         this.emit("error", "Request id undefined", data)
       }else if(data.error !== undefined){
@@ -133,8 +147,9 @@ class FusionSocket extends FusionEmitter {
 
   send(message){
     if(typeof message !== 'string'){
-      message = JSON.stringify(message)
+      message = JSON.stringify(message, undefined, 4)
     }
+    this.log("Sending", message)
     this._openWs.then((ws) => ws.send(message))
   }
 
@@ -250,10 +265,13 @@ class TermBase {
       limit: Limit.method,
     }
     for(let key in methods){
-      if(key in keys){
+      if(keys.indexOf(key) !== -1){
         // Check if query object already has it. If so, insert a dummy
         // method that throws an error.
         if(snakeCase(key) in this.query){
+          if(snakeCase(key) === 'below'){
+            console.log(`${JSON.stringify(this.query)} already has "${snakeCase(key)}"`)
+          }
           this[key] = function(){
             throw new Error(`${key} has already been called on this query`)
           }
@@ -300,14 +318,9 @@ class Collection extends TermBase {
   }
 
   remove(documentOrId){
+    checkNonNull('remove', documentOrId)
     if(arguments.length > 1){
       throw new Error("remove takes exactly one argument")
-    }
-    if(documentOrId === undefined){
-      throw new Error("remove must be given an argument")
-    }
-    if(documentOrId === null){
-      throw new Error("remove must receive a non-null argument")
     }
     if(validIndexValue(documentOrId)){
       documentOrId = {id: documentOrId}
@@ -316,6 +329,7 @@ class Collection extends TermBase {
   }
 
   removeAll(documentsOrIds){
+    checkNonNull('removeAll', documentsOrIds)
     if(!Array.isArray(documentsOrIds)){
       throw new Error("removeAll takes an array as an argument")
     }
@@ -333,9 +347,8 @@ class Collection extends TermBase {
   }
 
   _writeOp(name, documents){
-    if(documents == null){
-      throw new Error(`${name} must receive a non-null argument`)
-    }else if(!Array.isArray(documents)){
+    checkNonNull(name, documents)
+    if(!Array.isArray(documents)){
       documents = [documents]
     }else if(documents.length === 0){
       // Don't bother sending no-ops to the server
@@ -358,12 +371,18 @@ class FindAll extends TermBase {
   }
 
   static method(...fieldValues){
-    let fieldName = 'id'
     if(arguments.length === 0){
       throw new Error(`findAll must take at least one argument`)
     }
-    let allowChaining = arguments.length === 1
-    return new FindAll(this.fusion, this.query, fieldValues, allowChaining)
+    let wrappedFields = fieldValues.map(item => {
+      if(validIndexValue(item)){
+        return {id: item}
+      }else{
+        return item
+      }
+    })
+    let allowChaining = wrappedFields.length === 1
+    return new FindAll(this.fusion, this.query, wrappedFields, allowChaining)
   }
 }
 
@@ -375,7 +394,20 @@ class Find extends TermBase {
     this._extendWith()
   }
 
+  value(){
+    this.fusion.log("FINDING SOMETHING")
+    return super.value().then(resp => {
+      this.fusion.log("Testing")
+      if(resp.length > 0){
+        return resp[0]
+      }else{
+        return null
+      }
+    })
+  }
+
   static method(idOrObject){
+    checkNonNull('find', idOrObject)
     let q = validIndexValue(idOrObject) ? {id: idOrObject} : idOrObject
     return new Find(this.fusion, this.query, q)
   }
@@ -384,12 +416,13 @@ class Find extends TermBase {
 class Above extends TermBase {
   constructor(fusion, query, valueSpecs, direction){
     super(fusion, query, {
-      below: [valueSpecs, direction]
+      above: [valueSpecs, direction]
     })
     this._extendWith('findAll', 'order', 'below', 'limit')
   }
 
   static method(aboveSpec, bound="closed"){
+    checkNonNull('above', aboveSpec)
     return new Above(this.fusion, this.query, aboveSpec, bound)
   }
 }
@@ -397,12 +430,13 @@ class Above extends TermBase {
 class Below extends TermBase {
   constructor(fusion, query, valueSpecs, direction){
     super(fusion, query, {
-      above: [valueSpecs, direction],
+      below: [valueSpecs, direction],
     })
     this._extendWith('findAll', 'order', 'above', 'limit')
   }
 
   static method(belowSpec, bound="open"){
+    checkNonNull('below', belowSpec)
     return new Below(this.fusion, this.query, belowSpec, bound)
   }
 }
@@ -416,7 +450,9 @@ class Order extends TermBase {
   }
 
   static method(fields, direction='ascending'){
-    return new Order(this.fusion, this.query, fields, direction)
+    checkNonNull('order', fields)
+    let wrappedFields = Array.isArray(fields) ? fields : [fields]
+    return new Order(this.fusion, this.query, wrappedFields, direction)
   }
 }
 
@@ -427,6 +463,7 @@ class Limit extends TermBase {
   }
 
   static method(size){
+    checkNonNull('limit', size)
     return new Limit(this.fusion, this.query, size)
   }
 }
