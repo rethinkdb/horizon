@@ -70,11 +70,9 @@ findAllSuite = (getData) => {
   // Looking for `null` is an error since secondary index values cannot be
   // `null` in RethinkDB.
   it("#.findAll(null)", (done) => {
-    data.findAll(null).value().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    }).catch(done);
+    try {
+      data.findAll(null).value();
+    } catch(err) { done(); }
   });
 
   // Looking for an empty object is also an error
@@ -88,10 +86,9 @@ findAllSuite = (getData) => {
 
   // No args is ok, because people will be using `apply`
   it("#.findAll(undefined)", (done) => {
-    data.findAll().value().then((res) => {
-      assert.deepEqual([], res);
-      done();
-    }).catch(done);
+    try {
+      data.findAll().value();
+    } catch(err) { done(); }
   });
 
   // `findAll` lets us look for multiple documents. Let's try it on a primary
@@ -129,15 +126,13 @@ findAllSuite = (getData) => {
 
   // When one thing fails, everything fails.
   it("#.findAll(a, null, c)", (done) => {
-    data.findAll(1, null, 2).value().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    }).catch(done);
+    try {
+      data.findAll(1, null, 2).value();
+    } catch(err) { done(); }
   });
 
   // Let's try it again with an empty object.
-  it("#.findAll(a, null, c, field)", (done) => {
+  it("#.findAll(a, {}, {c:x})", (done) => {
     data.findAll(1, {}, { a: 20 }).value().catch((err) => {
       assert.isDefined(err);
       assert.isNotNull(err);

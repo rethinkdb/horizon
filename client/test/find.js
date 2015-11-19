@@ -34,20 +34,16 @@ findSuite = (getData) => {
   // Looking for `null` is an error. RethinkDB doesn't allow secondary
   // index values to be `null`.
   it("#.find(null)", (done) => {
-    data.find(null).value().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.find(null).value();
+    } catch(err) { done(); }
   });
 
   // Looking for `undefined` is also an error.
   it("#.find(undefined)", (done) => {
-    data.find().value().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.find().value();
+    } catch(err) { done(); }
   });
 
   // The document passed to `find` can't be empty
@@ -111,13 +107,9 @@ findSuite = (getData) => {
 
   // Passing multiple arguments to find should return a nice error
   it("#.find(arg1, arg2)", (done) => {
-    data.find(1, { id: 1 }).value().then((res) => {
-      done(new Error('Passing multiple arguments to `find` is illegal'));
-    }).catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.find(1, { id: 1 }).value();
+    } catch(err) { done(); }
   });
 
   } // Testing `find`

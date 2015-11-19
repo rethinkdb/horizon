@@ -61,20 +61,16 @@ insertSuite = (getData) => {
 
   // Inserting `null` is an error.
   it("#.insert(null)", (done) => {
-    data.insert(null).catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.insert(null);
+    } catch(err) { done(); }
   });
 
   // Inserting `undefined` is also an error.
   it("#.insert(undefined)", (done) => {
-    data.insert().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.insert();
+    } catch(err) { done(); }
   });
 
   // The `insert` command allows storing multiple documents in one call.

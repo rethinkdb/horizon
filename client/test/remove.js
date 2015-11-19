@@ -69,30 +69,24 @@ removeSuite = (getData) => {
 
   // Calling `remove` with no arguments is an error
   it("#.remove()", (done) => {
-    data.remove().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    }).catch(done);
+    try {
+      data.remove();
+    } catch(err) { done(); }
   });
 
   // Calling `remove` with null is an error
   it("#.remove(null)", (done) => {
-    data.remove(null).catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    }).catch(done);
+    try {
+      data.remove(null);
+    } catch(err) { done(); }
   });
 
   // Give an error if the user tries to use varargs (to help avoid
   // confusion)
   it("#.remove(too_many_args)", (done) => {
-    data.remove(1, 2).catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    }).then((val) => done(new Error(`Didn't fail ${val}`)));
+    try {
+      data.remove(1, 2);
+    } catch(err) { done(); }
   });
 
   // Check that the remaining documents are there

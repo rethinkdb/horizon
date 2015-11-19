@@ -73,20 +73,16 @@ storeSuite = (getData) => {
 
   // Storing `null` is an error.
   it("#.store(null)", (done) => {
-    data.store(null).catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.store(null);
+    } catch(err) { done(); }
   });
 
   // Storing `undefined` is also an error.
   it("#.store(undefined)", (done) => {
-    data.store().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.store();
+    } catch(err) { done(); }
   });
 
   // The `store` command allows storing multiple documents in one call.

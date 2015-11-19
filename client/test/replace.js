@@ -56,20 +56,16 @@ replaceSuite = (getData) => {
 
   // Calling `replace` with `null` is an error.
   it("#.replace(null)", (done) => {
-    data.replace(null).catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.replace(null);
+    } catch(err) { done(); }
   });
 
   // Calling `replace` with `undefined` is also an error.
   it("#.replace(undefined)", (done) => {
-    data.replace().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.replace();
+    } catch(err) { done(); }
   });
 
   // The `replace` command allows storing multiple documents in one call.

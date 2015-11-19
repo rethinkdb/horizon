@@ -44,11 +44,9 @@ limitSuite = (getData) => {
 
   // `limit(null)` is an error
   it("#.limit(null)", (done) => {
-    data.limit(null).value().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    }).catch(done);
+    try {
+      data.limit(null).value();
+    } catch(err) { done(); }
   });
 
   // `limit(-1)` is an error

@@ -56,20 +56,16 @@ updateSuite = (getData) => {
 
   // Calling `update` with `null` is an error.
   it("#.update(null)", (done) => {
-    data.update(null).catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.update(null);
+    } catch(err) { done(); }
   });
 
   // Calling `update` with `undefined` is also an error.
   it("#.update(undefined)", (done) => {
-    data.update().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.update();
+    } catch(err) { done(); }
   });
 
   // The `update` command allows storing multiple documents in one call.

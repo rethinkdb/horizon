@@ -44,7 +44,7 @@ function removeAllData(collection, done) {
 
     // Set up the fusion connection before running these tests.
     before((done) => {
-      fusion = new Fusion("localhost:8181", { secure: false });
+      fusion = new Fusion("localhost:8181", { secure: false, debug: true });
       fusion.on('connected', () => {
         data = fusion('test_data');
         done();

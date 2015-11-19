@@ -63,7 +63,7 @@ belowSuite = (getData) => {
 
   // `below` can't include any keys that are in `findAll`
   it("#.findAll(a).below(a)", (done) => {
-    data.findAll({ a: 20 }).below({ a: 3 }).value().catch((res) => {
+    data.findAll({ a: 20 }).below({ a: 3 }).value().catch((err) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
@@ -95,16 +95,20 @@ belowSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    })
+    }).then((res) => {
+      done(new Error("Should fail but doesn't."));
+    });
   });
 
   // Passing multiple keys to `below` isn't legal
-  it("#.order([a,id]).below(id)", (done) => {
+  it("#.order([a,id]).below(multiple)", (done) => {
     data.order(['a', 'id']).below({ a: 20, id: 20 }).value().catch((err) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    })
+    }).then((res) => {
+      done(new Error("Should fail but doesn't."));
+    });
   });
 
   // Nor is passing a field that isn't specified in `order`
@@ -127,20 +131,16 @@ belowSuite = (getData) => {
 
   // Starting with `null` is not ok
   it("#.below(null)", (done) => {
-    data.below(null).value().err((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.below(null).value();
+    } catch(err) { done(); }
   });
 
   // Empty value is not ok
   it("#.below()", (done) => {
-    data.below().value().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.below().value();
+    } catch(err) { done(); }
   });
 
   // Bad arguments are not ok

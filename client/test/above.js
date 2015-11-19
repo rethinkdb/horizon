@@ -10,8 +10,8 @@ aboveSuite = (getData) => {
   // By default `above` is closed
   it("#.order(id).above(5)", (done) => {
     data.order('id').above({ id: 5 }).value().then((res) => {
-      assert.deepEqual([{ id: 5, a: 50 },
-                        { id: 6, a: 60 }], res);
+      assert.deepEqual([{ id: 5, a: 60 },
+                        { id: 6, a: 50 }], res);
       done();
     }).catch(done);
   });
@@ -19,8 +19,8 @@ aboveSuite = (getData) => {
   // We can also pass that explicitly
   it("#.order(id).above(5, closed)", (done) => {
     data.order('id').above({ id: 5 }, 'closed').value().then((res) => {
-      assert.deepEqual([{ id: 5, a: 50 },
-                        { id: 6, a: 60 }], res);
+      assert.deepEqual([{ id: 5, a: 60 },
+                        { id: 6, a: 50 }], res);
       done();
     }).catch(done);
   });
@@ -28,7 +28,7 @@ aboveSuite = (getData) => {
   // But we can make it open
   it("#.order(id).above(5, open)", (done) => {
     data.order('id').above({ id: 5 }, 'open').value().then((res) => {
-      assert.deepEqual([{ id: 6, a: 60 }], res);
+      assert.deepEqual([{ id: 6, a: 50 }], res);
       done();
     }).catch(done);
   });
@@ -61,7 +61,7 @@ aboveSuite = (getData) => {
 
   // `above` can't include any keys that are in `findAll`
   it("#.findAll(a).above(a)", (done) => {
-    data.findAll({ a: 20 }).above({ a: 3 }).value().catch((res) => {
+    data.findAll({ a: 20 }).above({ a: 3 }).value().catch((err) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
@@ -74,17 +74,17 @@ aboveSuite = (getData) => {
       assert.deepEqual([{ id: 2, a: 20, b: 1 },
                         { id: 3, a: 20, b: 2 },
                         { id: 4, a: 20, b: 3 },
-                        { id: 5, a: 50 },
-                        { id: 6, a: 60 }], res);
+                        { id: 6, a: 50 },
+                        { id: 5, a: 60 }], res);
       done();
     }).catch(done);
   });
 
   // Let's try it on a non-primary key, but open
   it("#.order([a,id]).above([20], open)", (done) => {
-    data.order(['a', 'id']).above({ a: 20 }).value().then((res) => {
-      assert.deepEqual([{ id: 5, a: 50 },
-                        { id: 6, a: 60 }], res);
+    data.order(['a', 'id']).above({ a: 20 }, 'open').value().then((res) => {
+      assert.deepEqual([{ id: 5, a: 60 },
+                        { id: 6, a: 50 }], res);
       done();
     }).catch(done);
   });
@@ -95,16 +95,20 @@ aboveSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    })
+    }).then((res) => {
+      done(new Error("Should fail but doesn't."));
+    });
   });
 
   // Passing multiple keys to `above` isn't legal
-  it("#.order([a,id]).above(id)", (done) => {
+  it("#.order([a,id]).above(multiple)", (done) => {
     data.order(['a', 'id']).above({ a: 20, id: 20 }).value().catch((err) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    })
+    }).then((res) => {
+      done(new Error("Should fail but doesn't."));
+    });
   });
 
   // Nor is passing a field that isn't specified in `order`
@@ -127,20 +131,16 @@ aboveSuite = (getData) => {
 
   // Starting with `null` is not ok
   it("#.above(null)", (done) => {
-    data.above(null).value().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.above(null).value();
+    } catch(err) { done(); }
   });
 
   // Empty value is not ok
   it("#.above()", (done) => {
-    data.above().value().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.above().value();
+    } catch(err) { done(); }
   });
 
   // Bad arguments are not ok

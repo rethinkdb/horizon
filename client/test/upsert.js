@@ -73,20 +73,16 @@ upsertSuite = (getData) => {
 
   // Upserting `null` is an error.
   it("#.upsert(null)", (done) => {
-    data.upsert(null).catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.upsert(null);
+    } catch(err) { done(); }
   });
 
   // Upserting `undefined` is also an error.
   it("#.upsert(undefined)", (done) => {
-    data.store().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.store();
+    } catch(err) { done(); }
   });
 
   // The `upsert` command allows storing multiple documents in one call.

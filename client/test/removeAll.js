@@ -110,48 +110,34 @@ removeAllSuite = (getData) => {
 
   // Calling `removeAll` with anything but a single array is an error.
   it("#.removeAll()", (done) => {
-    data.removeAll().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.removeAll();
+    } catch(err) { done(); }
   });
   it("#.removeAll([a], b)", (done) => {
-    data.removeAll([1], 2)
-      .then(() => done(new Error("Should have gotten an error")))
-      .catch((err) => {
-        assert.isDefined(err);
-        assert.isNotNull(err);
-        done();
-      })
+    try {
+      data.removeAll([1], 2);
+    } catch(err) { done(); }
   });
   it("#.removeAll(null)", (done) => {
-    data.removeAll(null).catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.removeAll(null);
+    } catch(err) { done(); }
   });
   it("#.removeAll(int)", (done) => {
-    data.removeAll(1).catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.removeAll(1);
+    } catch(err) { done(); }
   });
   it("#.removeAll(string)", (done) => {
-    data.removeAll('1').catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.removeAll('1');
+    } catch(err) { done(); }
   });
   it("#.removeAll(obj)", (done) => {
-    data.removeAll({ 'id': 1 }).catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
+    try {
+      data.removeAll({ 'id': 1 });
+    } catch(err) { done(); }
   });
 
   // Check that the remaining documents are there
