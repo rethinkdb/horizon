@@ -63,5 +63,14 @@ chainingSuite = (getData) => {
     }).catch(done);
   });
 
+  // Can't chain off vararg `findAll`
+  it("#.findAll.order", (done) => {
+    data.findAll({ a: 20 }, { a: 50 }).order('id').value().catch((err) => {
+      assert.isDefined(err);
+      assert.isNotNull(err);
+      done();
+    });
+  });
+
   } // Testing more advanced chaining
 }
