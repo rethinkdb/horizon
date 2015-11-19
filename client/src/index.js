@@ -377,7 +377,7 @@ class Find extends TermBase {
 
   static method(idOrObject){
     let q = validIndexValue(idOrObject) ? {id: idOrObject} : idOrObject
-    return new Find(this.fusion, this.query, idOrObject)
+    return new Find(this.fusion, this.query, q)
   }
 }
 
