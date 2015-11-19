@@ -194,6 +194,7 @@ const remove_fusion_listener = (request_id) => {
 const dispatch_message = (raw) => {
   const msg = JSON.parse(raw);
   assert.notStrictEqual(msg.request_id, undefined);
+  assert.notStrictEqual(fusion_listeners, undefined);
   const listener = fusion_listeners.get(msg.request_id);
   assert.notStrictEqual(listener, undefined);
   listener(msg);

@@ -47,7 +47,7 @@ class Table {
   }
 
   create_index(fields, conn, done) {
-    logger.warn(`Auto-creating index on table "${this.name}" (dev mode): "${JSON.stringify(fields)}"`);
+    logger.warn(`Auto-creating index on table "${this.name}" (dev mode): ${JSON.stringify(fields)}`);
 
     const promise =
       r.uuid().do((index_id) =>
@@ -183,7 +183,7 @@ class Metadata {
   }
 
   handle_error(err, done) {
-    logger.debug(`Handling error ${err}, ${err.stack}`);
+    logger.debug(`Handling error: ${err.message}`);
     try {
       if (this._dev_mode) {
         if (err.constructor.name === 'TableMissing') {
@@ -197,7 +197,7 @@ class Metadata {
         }
       }
     } catch (new_err) {
-      logger.debug(`Error when handling error (${err.message}): ${new_err.message}`);
+      logger.debug(`Error when handling error: ${new_err.message}`);
       done(new_err);
     }
     done(err);

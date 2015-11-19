@@ -65,7 +65,6 @@ const all_tests = (table) => {
         type: 'subscribe',
         options: {
           collection: table,
-          field_name: 'id',
         },
       }));
     utils.add_fusion_listener(3, (msg) => {
