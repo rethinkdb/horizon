@@ -12,7 +12,7 @@ const all_tests = (table) => {
   before('Populate table', (done) => utils.populate_table(table, num_rows, done));
   beforeEach('Authenticate client', utils.fusion_default_auth);
 
-  it('table scan', (done) => {
+  it('table scan.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -28,7 +28,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('table scan order', (done) => {
+  it('table scan order.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -45,7 +45,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('table scan limit', (done) => {
+  it('table scan limit.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -62,7 +62,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('table scan order limit', (done) => {
+  it('table scan order limit.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -80,7 +80,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('table scan above', (done) => {
+  it('table scan above.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -97,7 +97,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('table scan below', (done) => {
+  it('table scan below.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -114,7 +114,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('table scan above below', (done) => {
+  it('table scan above below.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -132,7 +132,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find', (done) => {
+  it('find.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -149,7 +149,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find missing', (done) => {
+  it('find missing.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -166,7 +166,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find_all', (done) => {
+  it('find_all.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -183,7 +183,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find_all order', (done) => {
+  it('find_all order.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -201,7 +201,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find_all limit', (done) => {
+  it('find_all limit.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -219,7 +219,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find_all order limit', (done) => {
+  it('find_all order limit.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -238,7 +238,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find_all above', (done) => {
+  it('find_all above.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -256,7 +256,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find_all below', (done) => {
+  it('find_all below.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -274,7 +274,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find_all above below', (done) => {
+  it('find_all above below.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -293,7 +293,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find_all order above', (done) => {
+  it('find_all order above.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -312,7 +312,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find_all order below', (done) => {
+  it('find_all order below.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
@@ -331,7 +331,7 @@ const all_tests = (table) => {
       });
   });
 
-  it('find_all order above below', (done) => {
+  it('find_all order above below.', (done) => {
     utils.stream_test(
       {
         request_id: 0,

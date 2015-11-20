@@ -23,16 +23,18 @@ const make_reql = (raw_request, metadata) => {
       (options.above && Object.keys(options.above[0])) ||
       (options.below && Object.keys(options.below[0])) || [ ]);
 
-    const get_bound = (bound_value, extrema) => {
+    // TODO: check validity of obj, bound, and order keys
+    const get_bound = (name) => {
       const eval_key = (key) => {
         if (obj[key] !== undefined) {
-          check(!bound_value || bound_value[key] === undefined,
-                ``);
           return obj[key];
-        } else if (bound_value && bound_value[key] !== undefined) {
-          return bound_value[key];
+        } else if (options[name] && options[name][0][key] !== undefined) {
+          return options[name][0][key];
+        } else if (options[name] && options[name][1] === 'open') {
+          return name === 'above' ? r.maxval : r.minval;
+        } else {
+          return name === 'above' ? r.minval : r.maxval;
         }
-        return extrema;
       };
 
       if (index.name === 'id') {
@@ -41,13 +43,14 @@ const make_reql = (raw_request, metadata) => {
       return index.fields.map((k) => eval_key(k));
     };
 
-    // TODO: check that the above/below specifies the right key
-    const above_value = get_bound(optional_bound('above'), r.minval);
-    const below_value = get_bound(optional_bound('below'), r.maxval);
+    const above_value = get_bound('above');
+    const below_value = get_bound('below');
 
-    const optargs = { index: index.name,
+    const optargs = {
+      index: index.name,
       leftBound: options.above ? options.above[1] : 'closed',
-      rightBound: options.below ? options.below[1] : 'closed', };
+      rightBound: options.below ? options.below[1] : 'closed',
+    };
 
     if (options.order) {
       return reql.orderBy({ index: options.order[1] === 'ascending' ? index.name : r.desc(index.name) })
