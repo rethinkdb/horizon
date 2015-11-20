@@ -83,8 +83,6 @@ orderSuite = (getData, getTestData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    }).then((res) => {
-      done(new Error("Should be illegal to `order` by key present in `findAll`, but isn't."));
     });
   });
 

@@ -67,7 +67,7 @@ belowSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    }).catch(done);
+    });
   });
 
   // Let's try it on a non-primary index
@@ -95,8 +95,6 @@ belowSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    }).then((res) => {
-      done(new Error("Should fail but doesn't."));
     });
   });
 
@@ -106,8 +104,6 @@ belowSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    }).then((res) => {
-      done(new Error("Should fail but doesn't."));
     });
   });
 
@@ -117,7 +113,7 @@ belowSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    }).then((x) => done(new Error("Should fail but doesn't")));
+    });
   });
 
   // If chaining `below/above`, they must be passed the same key
@@ -126,7 +122,7 @@ belowSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    }).then((x) => done(new Error("Should fail but doesn't")));
+    });
   });
 
   // Starting with `null` is not ok

@@ -65,7 +65,7 @@ aboveSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    }).catch(done);
+    });
   });
 
   // Let's try it on a non-primary key
@@ -83,8 +83,8 @@ aboveSuite = (getData) => {
   // Let's try it on a non-primary key, but open
   it("#.order([a,id]).above([20], open)", (done) => {
     data.order(['a', 'id']).above({ a: 20 }, 'open').value().then((res) => {
-      assert.deepEqual([{ id: 5, a: 60 },
-                        { id: 6, a: 50 }], res);
+      assert.deepEqual([{ id: 6, a: 50 },
+                        { id: 5, a: 60 }], res);
       done();
     }).catch(done);
   });
@@ -95,8 +95,6 @@ aboveSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    }).then((res) => {
-      done(new Error("Should fail but doesn't."));
     });
   });
 
@@ -106,8 +104,6 @@ aboveSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    }).then((res) => {
-      done(new Error("Should fail but doesn't."));
     });
   });
 
@@ -117,7 +113,7 @@ aboveSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    }).then((x) => done(new Error("Should fail but doesn't")));
+    });
   });
 
   // If chaining `above/below`, they must be passed the same key
@@ -126,7 +122,7 @@ aboveSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    }).then((x) => done(new Error("Should fail but doesn't")));
+    });
   });
 
   // Starting with `null` is not ok
