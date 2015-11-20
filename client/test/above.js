@@ -117,7 +117,7 @@ aboveSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    })
+    }).then((x) => done(new Error("Should fail but doesn't")));
   });
 
   // If chaining `above/below`, they must be passed the same key
@@ -126,7 +126,7 @@ aboveSuite = (getData) => {
       assert.isDefined(err);
       assert.isNotNull(err);
       done();
-    }).catch(done);
+    }).then((x) => done(new Error("Should fail but doesn't")));
   });
 
   // Starting with `null` is not ok
