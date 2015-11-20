@@ -6,10 +6,12 @@ const { insert } = require('../schema/fusion_protocol');
 const Joi = require('joi');
 const r = require('rethinkdb');
 
-const make_reql = (raw_request) => {
+const make_reql = (raw_request, metadata) => {
   const { value: { data, collection }, error } = Joi.validate(raw_request.options, insert);
   if (error !== null) { throw new Error(error.details[0].message); }
-  return r.table(collection).insert(data, { conflict: 'error' });
+
+  const table = metadata.get_table(collection);
+  return r.table(table.name).insert(data, { conflict: 'error' });
 };
 
 // This is also used by the 'store' and 'upsert' endpoints

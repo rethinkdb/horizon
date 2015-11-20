@@ -2,8 +2,8 @@
 
 const query = require('./query');
 
-const make_reql = (raw_request) => {
-  return query.make_reql(raw_request).changes({ include_states: true });
+const make_reql = (raw_request, metadata) => {
+  return query.make_reql(raw_request, metadata).changes({ include_states: true });
 };
 
 const handle_response = (request, feed, send_cb) => {

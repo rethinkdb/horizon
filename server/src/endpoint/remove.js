@@ -5,11 +5,12 @@ const { remove } = require('../schema/fusion_protocol');
 const Joi = require('joi');
 const r = require('rethinkdb');
 
-const make_reql = (raw_request) => {
+const make_reql = (raw_request, metadata) => {
   const { value: { data, collection }, error } = Joi.validate(raw_request.options, remove);
   if (error !== null) { throw new Error(error.details[0].message); }
 
-  return r.table(collection)
+  const table = metadata.get_table(collection);
+  return r.table(table.name)
           .getAll(r.args(data.map((row) => row.id)), { index: 'id' })
           .delete();
 };
