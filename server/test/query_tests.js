@@ -191,7 +191,7 @@ const all_tests = (table) => {
         options: {
           collection: table,
           find_all: [ { id: 1 } ],
-          order: [ [ 'id' ], 'descending' ],
+          order: [ [ 'value' ], 'descending' ],
         },
       },
       (err, res) => {
@@ -227,7 +227,7 @@ const all_tests = (table) => {
         options: {
           collection: table,
           find_all: [ { id: 4 } ],
-          order: [ [ 'id' ], 'descending' ],
+          order: [ [ 'value' ], 'descending' ],
           limit: 3,
         },
       },

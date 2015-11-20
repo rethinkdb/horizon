@@ -18,10 +18,23 @@ const make_reql = (raw_request, metadata) => {
 
   const ordered_between = (obj) => {
     const optional_bound = (name) => (options[name] && options[name][0]) || { };
-    const index = table.get_matching_index(Object.keys(obj),
-      (options.order && options.order[0]) ||
-      (options.above && Object.keys(options.above[0])) ||
-      (options.below && Object.keys(options.below[0])) || [ ]);
+
+    const order_keys = (options.order && options.order[0]) ||
+                       (options.above && Object.keys(options.above[0])) ||
+                       (options.below && Object.keys(options.below[0])) ||
+                       [ ];
+    if (order_keys.length >= 1) {
+      const k = order_keys[0];
+      check(!options.above || options.above[0][k] !== undefined,
+            `"above" must be on the same field as the first in "order".`);
+      check(!options.below || options.below[0][k] !== undefined,
+            `"below" must be on the same field as "above" and the first in "order"`);
+    }
+    order_keys.forEach((k) => {
+      check(obj[k] === undefined,
+            `"${k}" cannot be used in "order", "above", or "below" when finding by that field.`);
+    });
+    const index = table.get_matching_index(Object.keys(obj), order_keys);
 
     // TODO: check validity of obj, bound, and order keys
     const get_bound = (name) => {
