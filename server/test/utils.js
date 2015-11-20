@@ -122,7 +122,7 @@ const populate_table = (table, rows, done) => {
   if (rows.constructor.name !== 'Array') {
     r.table(table).insert(
       r.range(rows).map(
-        (i) => ({ id: i, value: crypto.randomBytes(4).toString('hex') })
+        (i) => ({ id: i, value: i.mod(4) })
       )).run(rdb_conn).then(() => done());
   } else {
     r.table(table).insert(rows).run(rdb_conn).then(() => done());

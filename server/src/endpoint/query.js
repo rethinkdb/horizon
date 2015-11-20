@@ -19,12 +19,9 @@ const make_reql = (raw_request, metadata) => {
   const ordered_between = (obj) => {
     const optional_bound = (name) => (options[name] && options[name][0]) || { };
     const index = table.get_matching_index(Object.keys(obj),
-      (options.order && options.order[0]) || [ ]);
-    let sub_reql = reql;
-    if (options.order) {
-      sub_reql = sub_reql.orderBy({ index:
-         options.order[1] === 'ascending' ? index.name : r.desc(index.name) });
-    }
+      (options.order && options.order[0]) ||
+      (options.above && Object.keys(options.above[0])) ||
+      (options.below && Object.keys(options.below[0])) || [ ]);
 
     const get_bound = (bound_value, extrema) => {
       const eval_key = (key) => {
@@ -45,7 +42,6 @@ const make_reql = (raw_request, metadata) => {
     };
 
     // TODO: check that the above/below specifies the right key
-
     const above_value = get_bound(optional_bound('above'), r.minval);
     const below_value = get_bound(optional_bound('below'), r.maxval);
 
@@ -53,7 +49,12 @@ const make_reql = (raw_request, metadata) => {
       leftBound: options.above ? options.above[1] : 'closed',
       rightBound: options.below ? options.below[1] : 'closed', };
 
-    return sub_reql.between(above_value, below_value, optargs);
+    if (options.order) {
+      return reql.orderBy({ index: options.order[1] === 'ascending' ? index.name : r.desc(index.name) })
+                 .between(above_value, below_value, optargs);
+    } else {
+      return reql.between(above_value, below_value, optargs);
+    }
   };
 
   if (options.find) {

@@ -80,6 +80,58 @@ const all_tests = (table) => {
       });
   });
 
+  it('table scan above', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          above: [ { id: 5 }, 'closed' ],
+        },
+      },
+      (err, res) => {
+        assert.ifError(err);
+        assert.strictEqual(res.length, 5);
+        done();
+      });
+  });
+
+  it('table scan below', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          below: [ { id: 5 }, 'closed' ],
+        },
+      },
+      (err, res) => {
+        assert.ifError(err);
+        assert.strictEqual(res.length, 6);
+        done();
+      });
+  });
+
+  it('table scan above below', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          above: [ { id: 5 }, 'open' ],
+          below: [ { id: 7 }, 'open' ],
+        },
+      },
+      (err, res) => {
+        assert.ifError(err);
+        assert.strictEqual(res.length, 1);
+        done();
+      });
+  });
+
   it('find', (done) => {
     utils.stream_test(
       {
@@ -185,6 +237,120 @@ const all_tests = (table) => {
         done();
       });
   });
+
+  it('find_all above', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          find_all: [ { value: 1 } ],
+          above: [ { id: 3 }, 'open' ],
+        },
+      },
+      (err, res) => {
+        assert.ifError(err);
+        assert.strictEqual(res.length, 2);
+        done();
+      });
+  });
+
+  it('find_all below', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          find_all: [ { value: 1 } ],
+          below: [ { id: 5 }, 'open' ],
+        },
+      },
+      (err, res) => {
+        assert.ifError(err);
+        assert.strictEqual(res.length, 1);
+        done();
+      });
+  });
+
+  it('find_all above below', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          find_all: [ { value: 1 } ],
+          above: [ { id: 1 }, 'closed' ],
+          below: [ { id: 9 }, 'open' ],
+        },
+      },
+      (err, res) => {
+        assert.ifError(err);
+        assert.strictEqual(res.length, 2);
+        done();
+      });
+  });
+
+  it('find_all order above', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          find_all: [ { value: 1 } ],
+          order: [ [ 'id' ], 'ascending' ],
+          above: [ { id: 7 }, 'open' ],
+        },
+      },
+      (err, res) => {
+        assert.ifError(err);
+        assert.strictEqual(res.length, 1);
+        done();
+      });
+  });
+
+  it('find_all order below', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          find_all: [ { value: 0 } ],
+          order: [ [ 'id' ], 'descending' ],
+          below: [ { id: 8 }, 'open' ],
+        },
+      },
+      (err, res) => {
+        assert.ifError(err);
+        assert.strictEqual(res.length, 2);
+        done();
+      });
+  });
+
+  it('find_all order above below', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          find_all: [ { value: 0 } ],
+          order: [ [ 'id' ], 'descending' ],
+          above: [ { id: 3 }, 'closed' ],
+          below: [ { id: 9 }, 'closed' ],
+        },
+      },
+      (err, res) => {
+        assert.ifError(err);
+        assert.strictEqual(res.length, 2);
+        done();
+      });
+  });
+
 };
 
 const suite = (table) => describe('Query', () => all_tests(table));

@@ -414,9 +414,15 @@ describe('Schema', () => {
 
         it('wrong "limit" value', () => {
           const request = extend({ }, valid);
-          request.limit = 0;
-          const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"limit" must be a positive number');
+          {
+            request.limit = -1;
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"limit" must be greater than -1');
+          } {
+            request.limit = 1.5;
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"limit" must be an integer');
+          }
         });
       });
 

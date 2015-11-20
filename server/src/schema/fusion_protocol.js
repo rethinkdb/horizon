@@ -5,7 +5,7 @@ const Joi = require('joi');
 const read = Joi.object({
   collection: Joi.string().token().required(),
 
-  limit: Joi.number().positive().optional()
+  limit: Joi.number().integer().greater(-1).optional()
     .when('find', { is: Joi.any().required(), then: Joi.forbidden() }),
 
   order: Joi.array().ordered(
