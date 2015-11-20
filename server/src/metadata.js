@@ -14,9 +14,9 @@ class IndexMissing extends Error {
 }
 
 class TableMissing extends Error {
-  constructor(table) {
-    super(`Table "${table.name}" does not exist.`);
-    this.table = table;
+  constructor(name) {
+    super(`Table "${name}" does not exist.`);
+    this.name = name;
   }
 }
 
@@ -187,7 +187,7 @@ class Metadata {
     try {
       if (this._dev_mode) {
         if (err.constructor.name === 'TableMissing') {
-          return this.create_table(err.table, done);
+          return this.create_table(err.name, done);
         } else if (err.constructor.name === 'TableNotReady') {
           return err.table.on_ready(done);
         } else if (err.constructor.name === 'IndexMissing') {

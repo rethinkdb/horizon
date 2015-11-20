@@ -11,18 +11,20 @@ const read = Joi.object({
   order: Joi.array().ordered(
       Joi.array().items(Joi.string()).min(1).unique().label('fields').required(),
       Joi.string().valid('ascending', 'descending').label('direction').required()).optional()
-    .when('find', { is: Joi.any().required(), then: Joi.forbidden() })
-    .when('find_all', { is: Joi.array().min(2).required(), then: Joi.forbidden() }),
+    .when('find_all', { is: Joi.array().min(2).required(), then: Joi.forbidden() })
+    .when('find', { is: Joi.any().required(), then: Joi.forbidden() }),
 
   above: Joi.array().ordered(
-      Joi.object().min(1).unknown(true).label('boundary').required(),
+      Joi.object().length(1).unknown(true).label('value').required(),
       Joi.string().valid('open', 'closed').label('bound_type').required()).optional()
-    .when('order', { is: Joi.any().required(), otherwise: Joi.forbidden() }),
+    .when('find_all', { is: Joi.array().min(2).required(), then: Joi.forbidden() })
+    .when('find', { is: Joi.any().required(), then: Joi.forbidden() }),
 
   below: Joi.array().ordered(
-      Joi.object().min(1).unknown(true).label('boundary').required(),
+      Joi.object().length(1).unknown(true).label('value').required(),
       Joi.string().valid('open', 'closed').label('bound_type').required()).optional()
-    .when('order', { is: Joi.any().required(), otherwise: Joi.forbidden() }),
+    .when('find_all', { is: Joi.array().min(2).required(), then: Joi.forbidden() })
+    .when('find', { is: Joi.any().required(), then: Joi.forbidden() }),
 
   find: Joi.object().min(1).unknown(true).optional()
     .when('find_all', { is: Joi.any().required(), then: Joi.forbidden() }),

@@ -325,14 +325,14 @@ describe('Schema', () => {
 
         it('"above" without "order"', () => {
           const request = extend({ }, valid);
-          request.above = [ { }, 'open' ];
-          const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"above" is not allowed');
+          request.above = [ { id: 5 }, 'open' ];
+          const { value, error } = fusion_protocol.query.validate(request);
+          assert.ifError(error);
+          assert.deepStrictEqual(value, request);
         });
 
         it('wrong "above" type', () => {
           const request = extend({ }, valid);
-          request.order = [ [ 'id' ], 'ascending' ];
           request.above = true;
           const { error } = fusion_protocol.query.validate(request);
           utils.check_error(error, '"above" must be an array');
@@ -340,19 +340,18 @@ describe('Schema', () => {
 
         it('wrong "above" value', () => {
           const request = extend({ }, valid);
-          request.order = [ [ 'id' ], 'ascending' ];
           {
             request.above = [ ];
             const { error } = fusion_protocol.query.validate(request);
-            utils.check_error(error, '"above" does not contain [boundary, bound_type]');
+            utils.check_error(error, '"above" does not contain [value, bound_type]');
           } {
             request.above = [ 1, 'closed' ];
             const { error } = fusion_protocol.query.validate(request);
-            utils.check_error(error, '"boundary" must be an object');
+            utils.check_error(error, '"value" must be an object');
           } {
             request.above = [ { }, 'open' ];
             const { error } = fusion_protocol.query.validate(request);
-            utils.check_error(error, '"boundary" must have at least 1 child');
+            utils.check_error(error, '"value" must have 1 child');
           } {
             request.above = [ { id: 4 }, 5 ];
             const { error } = fusion_protocol.query.validate(request);
@@ -366,9 +365,10 @@ describe('Schema', () => {
 
         it('"below" without "order"', () => {
           const request = extend({ }, valid);
-          request.below = [ { }, 'open' ];
-          const { error } = fusion_protocol.query.validate(request);
-          utils.check_error(error, '"below" is not allowed');
+          request.below = [ { id: 1 }, 'open' ];
+          const { value, error } = fusion_protocol.query.validate(request);
+          assert.ifError(error);
+          assert.deepStrictEqual(value, request);
         });
 
         it('wrong "below" type', () => {
@@ -385,15 +385,15 @@ describe('Schema', () => {
           {
             request.below = [ ];
             const { error } = fusion_protocol.query.validate(request);
-            utils.check_error(error, '"below" does not contain [boundary, bound_type]');
+            utils.check_error(error, '"below" does not contain [value, bound_type]');
           } {
             request.below = [ 1, 'closed' ];
             const { error } = fusion_protocol.query.validate(request);
-            utils.check_error(error, '"boundary" must be an object');
+            utils.check_error(error, '"value" must be an object');
           } {
             request.below = [ { }, 'open' ];
             const { error } = fusion_protocol.query.validate(request);
-            utils.check_error(error, '"boundary" must have at least 1 child');
+            utils.check_error(error, '"value" must have 1 child');
           } {
             request.below = [ { id: 4 }, 5 ];
             const { error } = fusion_protocol.query.validate(request);
@@ -439,6 +439,20 @@ describe('Schema', () => {
           utils.check_error(error, '"order" is not allowed');
         });
 
+        it('above', () => {
+          const request = extend({ }, valid);
+          request.above = [ { id: 3 }, 'open' ];
+          const { error } = fusion_protocol.query.validate(request);
+          utils.check_error(error, '"above" is not allowed');
+        });
+
+        it('below', () => {
+          const request = extend({ }, valid);
+          request.below = [ { id: 4 }, 'closed' ];
+          const { error } = fusion_protocol.query.validate(request);
+          utils.check_error(error, '"below" is not allowed');
+        });
+
         it('limit', () => {
           const request = extend({ }, valid);
           request.limit = 4;
@@ -454,10 +468,64 @@ describe('Schema', () => {
         });
       });
 
-      describe('find_all', () => {
+      describe('find_all multiple', () => {
         const valid = {
           collection: 'fusion',
           find_all: [ { score: 2 }, { score: 5, id: 0 } ],
+        };
+
+        it('valid', () => {
+          const { value, error } = fusion_protocol.query.validate(valid);
+          assert.ifError(error);
+          assert.deepStrictEqual(value, valid);
+        });
+
+        it('order', () => {
+          const request = extend({ }, valid);
+          request.order = [ [ 'id' ], 'descending' ];
+          const { error } = fusion_protocol.query.validate(request);
+          utils.check_error(error, '"order" is not allowed');
+        });
+
+        it('limit', () => {
+          const request = extend({ }, valid);
+          request.limit = 2;
+          const { value, error } = fusion_protocol.query.validate(request);
+          assert.ifError(error);
+          assert.deepStrictEqual(value, request);
+        });
+
+        it('above', () => {
+          const request = extend({ }, valid);
+          {
+            request.above = [ { id: 3 }, 'closed' ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"above" is not allowed');
+          } {
+            request.order = [ [ 'id' ], 'ascending' ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"order" is not allowed');
+          }
+        });
+
+        it('below', () => {
+          const request = extend({ }, valid);
+          {
+            request.below = [ { id: 9 }, 'closed' ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"below" is not allowed');
+          } {
+            request.order = [ [ 'id' ], 'descending' ];
+            const { error } = fusion_protocol.query.validate(request);
+            utils.check_error(error, '"order" is not allowed');
+          }
+        });
+      });
+
+      describe('find_all one', () => {
+        const valid = {
+          collection: 'fusion',
+          find_all: [ { score: 8, id: 5 } ],
         };
 
         it('valid', () => {

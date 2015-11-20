@@ -114,42 +114,6 @@ const all_tests = (table) => {
       });
   });
 
-  it('find order', (done) => {
-    utils.stream_test(
-      {
-        request_id: 0,
-        type: 'query',
-        options: {
-          collection: table,
-          find: { id: 4 },
-          order: [ [ 'id' ], 'ascending' ],
-        },
-      },
-      (err, res) => {
-        assert.deepStrictEqual(res, [ ]);
-        utils.check_error(err, '"order" is not allowed');
-        done();
-      });
-  });
-
-  it('find limit', (done) => {
-    utils.stream_test(
-      {
-        request_id: 0,
-        type: 'query',
-        options: {
-          collection: table,
-          find: { id: 4 },
-          limit: 5,
-        },
-      },
-      (err, res) => {
-        assert.deepStrictEqual(res, [ ]);
-        utils.check_error(err, '"limit" is not allowed');
-        done();
-      });
-  });
-
   it('find_all', (done) => {
     utils.stream_test(
       {
@@ -174,13 +138,13 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          find_all: [ { id: 1 }, { id: 2 }, { id: 4 } ],
+          find_all: [ { id: 1 } ],
           order: [ [ 'id' ], 'descending' ],
         },
       },
       (err, res) => {
         assert.ifError(err);
-        assert.strictEqual(res.length, 3);
+        assert.strictEqual(res.length, 1);
         done();
       });
   });
@@ -210,14 +174,14 @@ const all_tests = (table) => {
         type: 'query',
         options: {
           collection: table,
-          find_all: [ { id: 4 }, { id: 5 }, { id: 1 }, { id: 2 } ],
+          find_all: [ { id: 4 } ],
           order: [ [ 'id' ], 'descending' ],
           limit: 3,
         },
       },
       (err, res) => {
         assert.ifError(err);
-        assert.strictEqual(res.length, 3);
+        assert.strictEqual(res.length, 1);
         done();
       });
   });
