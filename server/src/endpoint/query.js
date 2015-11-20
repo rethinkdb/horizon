@@ -69,7 +69,7 @@ const make_reql = (raw_request, metadata) => {
     reql = ordered_between({});
   }
 
-  if (options.find || options.limit) {
+  if (options.find || options.limit !== undefined) {
     reql = reql.limit(options.find ? 1 : options.limit);
   }
 
