@@ -12,7 +12,8 @@ const all_tests = (table) => {
 
   // Launch simultaneous queries that depend on a non-existent table, then
   // verify that only one table exists with that name.
-  it('table create race on read', (done) => {
+  it('table create race on read', function (done) {
+    this.timeout(5000);
     const query_count = 5;
     const table_name = crypto.randomBytes(8).toString('hex');
 
@@ -34,7 +35,8 @@ const all_tests = (table) => {
 
   // Same as the previous test, but it exists because the ReQL error message
   // is different for a read or a write when the table is unavailable.
-  it('table create race on write', (done) => {
+  it('table create race on write', function (done) {
+    this.timeout(5000);
     const query_count = 5;
     const table_name = crypto.randomBytes(8).toString('hex');
 

@@ -16,7 +16,10 @@ const all_suites = [
 const table = 'test';
 
 describe('Fusion Server', () => {
-  before('Start RethinkDB Server', utils.start_rdb_server);
+  before('Start RethinkDB Server', function (done) {
+    this.timeout(5000);
+    utils.start_rdb_server(done);
+  });
 
 
   beforeEach(
@@ -28,10 +31,15 @@ describe('Fusion Server', () => {
     function() { logger.info(`End test '${this.currentTest.title}'`); });
 
   describe('HTTP', () => {
-    before('Start Fusion Server', utils.start_unsecure_fusion_server);
+    before('Start Fusion Server', function (done) {
+      this.timeout(5000);
+      utils.start_unsecure_fusion_server(done);
+    });
     after('Close Fusion Server', utils.close_fusion_server);
-    before(`Creating general-purpose table: '${table}'`,
-           (done) => utils.create_table(table, done));
+    before(`Creating general-purpose table: '${table}'`, function (done) {
+      this.timeout(5000);
+      utils.create_table(table, done);
+    });
     beforeEach('Connect Fusion Client', utils.open_fusion_conn);
     afterEach('Close Fusion Client', utils.close_fusion_conn);
 
@@ -39,10 +47,15 @@ describe('Fusion Server', () => {
   });
 
   describe('HTTPS', () => {
-    before('Start Fusion Server', utils.start_secure_fusion_server);
+    before('Start Fusion Server', function (done) {
+      this.timeout(5000);
+      utils.start_unsecure_fusion_server(done);
+    });
     after('Close Fusion Server', utils.close_fusion_server);
-    before(`Creating general-purpose table: '${table}'`,
-           (done) => utils.create_table(table, done));
+    before(`Creating general-purpose table: '${table}'`, function (done) {
+      this.timeout(5000);
+      utils.create_table(table, done);
+    });
     beforeEach('Connect Fusion Client', utils.open_fusion_conn);
     afterEach('Close Fusion Client', utils.close_fusion_conn);
 
