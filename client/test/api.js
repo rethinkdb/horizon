@@ -113,7 +113,10 @@ var Fusion = require("Fusion");
         removeAllData(data, done);
       });
 
+      describe("Testing `find` subscriptions", findSubscriptionSuite(getData));
       describe("Testing `findAll` subscriptions", findAllSubscriptionSuite(getData));
+      describe("Testing `above` subscriptions", aboveSubscriptionSuite(getData));
+      describe("Testing `below` subscriptions", belowSubscriptionSuite(getData));
 
     }); // Test the subscriptions API
 

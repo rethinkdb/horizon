@@ -1,4 +1,4 @@
-findAllSubscriptionSuite = (getData) => {
+belowSubscriptionSuite = (getData) => {
   return () => {
 
   var data;
@@ -7,9 +7,9 @@ findAllSubscriptionSuite = (getData) => {
     data = getData();
   });
 
-  // Let's grab a specific document using `findAll`
-  it("#.findAll(id, [added, removed])", (done) => {
-    var query = data.findAll(1).subscribe();
+  // Let's grab a specific document using `below`
+  it("#.below(id, [added, removed])", (done) => {
+    var query = data.below({id: 2}).subscribe();
     var x = observe(query,
       ['added', 'removed']);
 
@@ -26,10 +26,30 @@ findAllSubscriptionSuite = (getData) => {
       done);
   });
 
-  // Let's grab a specific document using `findAll` and also test the `changed`
+  // Let's grab a specific document using `below` and also test the `changed`
   // event.
-  it("#.findAll(id, [added, removed, changed])", (done) => {
-    var query = data.findAll(1).subscribe();
+  it("#.below(id, [added, removed, changed])", (done) => {
+    var query = data.below({id: 2}).subscribe();
+    var x = observe(query,
+      ['added', 'removed', 'changed']);
+
+    var ops = Promise.all([
+      data.store({ id: 1, a: 1 }),
+      data.store({ id: 1, a: 2 }),
+      data.remove(1)]);
+
+    x.expect(ops,
+      [{type: 'added', a: 1, id: 1},
+       {type: 'changed',
+        old: {id: 1, a: 1},
+        new: {id: 1, a: 2}},
+       {type: 'removed', a: 2, id: 1}],
+      done);
+  });
+
+  // Secondary index, closed
+  it("#.below(a, closed, [added, removed, changed])", (done) => {
+    var query = data.below({a: 2}, 'closed').subscribe();
     var x = observe(query,
       ['added', 'removed', 'changed']);
 
@@ -48,8 +68,8 @@ findAllSubscriptionSuite = (getData) => {
   });
 
   // Let's make sure we don't see events that aren't ours
-  it("#.findAll(id):store(different_id)", (done) => {
-    var query = data.findAll(1).subscribe();
+  it("#.below(id):store(different_id)", (done) => {
+    var query = data.below({id: 1}).subscribe();
     var x = observe(query,
       ['added', 'removed']);
 
@@ -62,8 +82,8 @@ findAllSubscriptionSuite = (getData) => {
   });
 
   // Let's try subscribing to multiple IDs
-  it("#.findAll(id, id2, [added, removed, changed])", (done) => {
-    var query = data.findAll(1, 2).subscribe();
+  it("#.below(id, id2, [added, removed, changed])", (done) => {
+    var query = data.below({id: 3}).subscribe();
     var x = observe(query,
       ['added', 'removed', 'changed']);
 
@@ -93,9 +113,9 @@ findAllSubscriptionSuite = (getData) => {
   });
 
   // Let's make sure initial vals works correctly
-  it("#.findAll(initial+id, [added, removed])", (done) => {
+  it("#.below(initial+id, [added, removed])", (done) => {
     data.store({ id: 1, a: 1 }).then((res) => {
-      var query = data.findAll(1).subscribe();
+      var query = data.below({id: 2}).subscribe();
       var x = observe(query,
         ['added', 'removed']);
 
@@ -112,5 +132,5 @@ findAllSubscriptionSuite = (getData) => {
     });
   });
 
-  } // Testing `findAll` subscriptions
+  } // Testing `below` subscriptions
 }
