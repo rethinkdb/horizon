@@ -73,10 +73,10 @@ class ListenerSet {
   // Clean up the listeners this ListenerSet owns if this is an
   // absorbing ListenerSet it cleans up the underlying emitter the
   // listeners were registered on.
-  dispose(reason){
+  dispose(){
     let cleanup = () => this.unregistry.forEach(unregister => unregister())
     if(this.absorb){
-      return this.emitter.dispose(reason).then(() => {
+      return this.emitter.dispose().then(() => {
         cleanup()
       })
     }else{
@@ -195,9 +195,17 @@ function validIndexValue(val){
   return false
 }
 
+function eventsToPromise(resolveEvent, rejectEvent){
+  return new Promise((resolve, reject) => {
+    resolveEvent(resolve)
+    rejectEvent(reject)
+  })
+}
+
 
 Object.assign(module.exports, {
   ListenerSet,
   FusionEmitter,
   validIndexValue,
+  eventsToPromise,
 })

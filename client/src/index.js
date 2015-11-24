@@ -1,10 +1,14 @@
 require('babel-polyfill')
-const snakeCase = require('snake-case')
+const snakeCase = require('snake-case'),
+      Event = require("geval")
 const {
   FusionEmitter,
   ListenerSet,
   validIndexValue,
+  eventsToPromise,
 } = require('./utility.js')
+
+const WebSocket = require('./websocket-shim.js')
 
 const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 
@@ -61,14 +65,10 @@ function checkArgs(name, args,
   }
 }
 
+
 class Fusion extends FusionEmitter {
-  constructor(host, {secure: secure=true, debug: debug=true}={}){
+  constructor(host, {secure: secure=true}={}){
     super(`Fusion(${fusionCount++})`)
-    if(debug){
-      this.log = (...args) => console.debug(...args)
-    }else{
-      this.log = () => undefined
-    }
     // Allow calling a fusion object
     let self = name => this.collection(name)
     Object.setPrototypeOf(self, this)
@@ -77,24 +77,48 @@ class Fusion extends FusionEmitter {
     this.secure = secure
     this.requestCounter = 0
     this.socket = new FusionSocket(host, secure, this.log)
-    this.listenerSet = ListenerSet.absorbEmitter(this.socket)
-      .onceAndDispose('error', (err) => this.emit('error', err, self))
-      .on('connected', () => this.emit('connected', self))
-      .on('disconnected', () => this.emit('disconnected', self))
+    // Listeners to unregister on dispose
+    this.unregistry = [
+      this.socket.onError((err) => this.emit('error', err, self)),
+      this.socket.onConnected(() => this.emit('connected', self)),
+      this.socket.onDisconnected(() => this.emit('disconnected', self)),
+      this.socket.onMessage((msg) => {
+        if(msg.error !== undefined){
+          this.emit(errorEvent(msg.request_id), msg)
+        }else{
+          this.emit(responseEvent(msg.request_id), msg)
+        }
+      }),
+    ]
+
     // send handshake
-    this.handshakeResponse = this.socket.getPromise('connected').then(() => {
+    this.handshakeResponse = eventsToPromise(
+      this.socket.onConnected,
+      this.socket.onError
+    ).then(() => {
       let reqId = this.requestCounter++
       this.socket.send({request_id: reqId})
-      return this.socket.getPromise(responseEvent(reqId)).then((res) => {
+      return this.getPromise(responseEvent(reqId)).then((res) => {
         return res
       })
     }).catch(() => {})
     return self
   }
 
-  dispose(reason='Fusion object disposed'){
-    // The listenerSet owns the fusionSocket, so will dispose of it.
-    return this.listenerSet.dispose(reason)
+  // Can be called to turn logging on or off in the client driver
+  static enableLogging(debug){
+    if(debug){
+      Fusion.log = (...args) => console.debug(...args)
+    }else{
+      Fusion.log = () => undefined
+    }
+  }
+
+  dispose(){
+    this.unregistry.push(
+      this.socket.onDisconnected(
+        () => this.unregistry.forEach(unregister => unregister())))
+    this.socket.dispose()
   }
 
   collection(collectionName){
@@ -140,60 +164,75 @@ class Fusion extends FusionEmitter {
     this.handshakeResponse.then((handshake) => this.socket.send(req))
     return new RequestEmitter(requestId, this, 'subscribe')
   }
-
 }
+
+Fusion.log = () => undefined
+
 
 var socketCount = 0
 
-class FusionSocket extends FusionEmitter {
-  // Wraps native websockets in an EventEmitter, and deals with some
-  // simple protocol level things like serializing from/to JSON, and
-  // emitting events on request_ids
-  constructor(host, secure=true, debug_func){
-    super(`FusionSocket(${socketCount++})`)
-    this.log = debug_func
-    let hostString = (secure ? 'wss://' : 'ws://') + host
-    this._ws = new WebSocket(hostString, PROTOCOL_VERSION)
-    this._openWs = new Promise((resolve, reject) => {
-      this._ws.onopen = (event) => {
-        this.emit('connected', event)
-        resolve(this._ws)
-      }
-      this._ws.onerror = (event) => {
-        this.emit('error', event)
-        reject(event)
-      }
-      this._ws.onclose = (event) => {
-        this.emit('disconnected', event)
-        reject(event)
-      }
-    })
-    this._ws.onmessage = (event) => {
-      let data = JSON.parse(event.data)
-      this.log("Received", JSON.stringify(data, undefined, 2))
-      if(data.request_id === undefined){
-        this.emit("error", "Request id undefined", data)
-      }else if(data.error !== undefined){
-        this.emit(errorEvent(data.request_id), data)
-      }else {
-        this.emit(responseEvent(data.request_id), data)
-      }
+// Wraps native websockets in an EventEmitter, and deals with some
+// simple protocol level things like serializing from/to JSON
+function FusionSocket(host, secure=true){
+  this.toString = () => `FusionSocket(${socketCount++})`
+  let hostString = (secure ? 'wss://' : 'ws://') + host
+  let ws = new WebSocket(hostString, PROTOCOL_VERSION)
+
+  let broadcastConnected;
+  let broadcastError;
+  let broadcastDisconnected;
+  let broadcastMessage;
+
+  this.onConnected = Event(broadcast => {
+    broadcastConnected = broadcast
+  })
+  this.onMessage = Event(broadcast => {
+    broadcastMessage = broadcast
+  })
+  this.onDisconnected = Event(broadcast => {
+    broadcastDisconnected = broadcast
+  })
+  this.onError = Event(broadcast => {
+    broadcastError = broadcast
+  })
+
+  this.connectedPromise = new Promise((resolve, reject) => {
+    ws.onopen = (wsEvent) => {
+      broadcastConnected(wsEvent)
+      resolve(wsEvent)
+    }
+    ws.onerror = (wsEvent) => {
+      broadcastError(wsEvent)
+      reject(wsEvent)
+    }
+    ws.onclose = (wsEvent) => {
+      broadcastDisconnected(wsEvent)
+      reject(wsEvent)
+    }
+  })
+
+  ws.onmessage = (event) => {
+    let data = JSON.parse(event.data)
+    Fusion.log("Received", JSON.stringify(data, undefined, 2))
+    if(data.request_id === undefined){
+      broadcastError(`Received response with no request_id: ${event.data}`)
+    }else {
+      broadcastMessage(data)
     }
   }
 
-  send(message){
+  this.send = (message, event) => {
     if(typeof message !== 'string'){
       message = JSON.stringify(message, undefined, 4)
     }
-    this.log("Sending", message)
-    this._openWs.then((ws) => ws.send(message))
+    Fusion.log("Sending", message)
+    this.connectedPromise.then(() => ws.send(message))
   }
 
-  dispose(reason='FusionSocket disposed'){
-    this._ws.close(1000, reason)
-    return this.getPromise('disconnected')
+  this.dispose = () => {
+    ws.close(1000)
+    return eventsToPromise(this.onDisconnected, this.onError)
   }
-
 }
 
 // These are created for requests, will only get messages for the
@@ -206,11 +245,13 @@ class RequestEmitter extends FusionEmitter {
     this.fusion = fusion
     this.requestId = requestId
     this.queryType = queryType
-    this.remoteListeners = ListenerSet.onEmitter(this.fusion.socket)
+    this.remoteListeners = ListenerSet.onEmitter(this.fusion)
     //Forwards on fusion events to this emitter's listeners
+    this.unregistry = [
+      this.fusion.socket.onConnected(() => this.emit('connected', this)),
+      this.fusion.socket.onDisconnected(() => this.emit('disconnected', this)),
+    ]
     this.remoteListeners
-      .fwd('connected', this)
-      .fwd('disconnected', this)
       .onceAndDispose(errorEvent(requestId), (err) => {
         this.emit('error', err)
       }).on(responseEvent(requestId), (response) => {
@@ -255,13 +296,13 @@ class RequestEmitter extends FusionEmitter {
       return false
     }
   }
-  dispose(reason=`RequestEmitter for ${this.requestId} disposed`){
+  dispose(){
     if(this.type === 'subscription'){
       return this.fusion.endSubscription(this.requestId)
         .then(() => this.getPromise('complete'))
-        .then(() => this.remoteListeners.dispose(reason))
+        .then(() => this.remoteListeners.dispose())
     }else{
-      return this.remoteListeners.dispose(reason)
+      return this.remoteListeners.dispose()
     }
   }
 }
@@ -305,9 +346,6 @@ class TermBase {
         // Check if query object already has it. If so, insert a dummy
         // method that throws an error.
         if(snakeCase(key) in this.query){
-          if(snakeCase(key) === 'below'){
-            console.log(`${JSON.stringify(this.query)} already has "${snakeCase(key)}"`)
-          }
           this[key] = function(){
             throw new Error(`${key} has already been called on this query`)
           }
