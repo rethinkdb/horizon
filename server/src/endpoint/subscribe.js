@@ -3,8 +3,8 @@
 const query = require('./query');
 
 const make_reql = (raw_request, metadata) => {
-  return query.make_reql(raw_request, metadata).changes({ include_initial: true,
-                                                          include_states: true });
+  return query.make_reql(raw_request, metadata).changes(
+    { include_initial: true, include_states: true });
 };
 
 const handle_response = (request, feed, send_cb) => {

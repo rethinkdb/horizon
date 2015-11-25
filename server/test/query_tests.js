@@ -161,7 +161,7 @@ const all_tests = (table) => {
       },
       (err, res) => {
         assert.ifError(err);
-        assert.deepStrictEqual(res, [ ]);
+        assert.deepStrictEqual(res, [ null ]);
         done();
       });
   });

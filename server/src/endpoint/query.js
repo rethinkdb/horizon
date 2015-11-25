@@ -67,23 +67,23 @@ const make_reql = (raw_request, metadata) => {
     return reql.orderBy({ index: order }).between(above_value, below_value, optargs);
   };
 
-  if (options.find_all && options.find_all.length > 1) {
+  if (options.find) {
+    reql = ordered_between(options.find).nth(0).default(null);
+  } else if (options.find_all && options.find_all.length > 1) {
     reql = r.union.apply(r, options.find_all.map((x) => ordered_between(x)));
   } else {
-    reql = ordered_between((options.find_all && options.find_all[0]) ||
-                           options.find ||
-                           { });
+    reql = ordered_between((options.find_all && options.find_all[0]) || { });
   }
 
-  if (options.find || options.limit !== undefined) {
-    reql = reql.limit(options.find ? 1 : options.limit);
+  if (options.limit !== undefined) {
+    reql = reql.limit(options.limit);
   }
 
   return reql;
 };
 
 const handle_response = (request, res, send_cb) => {
-  if (res.constructor.name === 'Cursor') {
+  if (res !== null && res.constructor.name === 'Cursor') {
     request.add_cursor(res);
     res.each((err, item) => {
       if (err !== null) {
@@ -95,9 +95,10 @@ const handle_response = (request, res, send_cb) => {
       request.remove_cursor();
       send_cb({ data: [ ], state: 'complete' });
     });
-  } else {
-    check(res.constructor.name === 'Array', `Query got a non-array, non-cursor result`);
+  } else if (res !== null && res.constructor.name === 'Array') {
     send_cb({ data: res, state: 'complete' });
+  } else {
+    send_cb({ data: [ res ], state: 'complete' });
   }
 };
 
