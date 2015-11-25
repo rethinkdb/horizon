@@ -62,13 +62,9 @@ const make_reql = (raw_request, metadata) => {
       rightBound: options.below ? options.below[1] : 'closed',
     };
 
-    if (options.order) {
-      return reql.orderBy({
-          index: options.order[1] === 'ascending' ? index.name : r.desc(index.name)
-        }).between(above_value, below_value, optargs);
-    } else {
-      return reql.between(above_value, below_value, optargs);
-    }
+    const order = (options.order && options.order[1] === 'descending') ?
+      r.desc(index.name) : index.name;
+    return reql.orderBy({ index: order }).between(above_value, below_value, optargs);
   };
 
   if (options.find_all && options.find_all.length > 1) {
