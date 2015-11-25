@@ -174,8 +174,8 @@ var socketCount = 0
 // Wraps native websockets in an EventEmitter, and deals with some
 // simple protocol level things like serializing from/to JSON
 function FusionSocket(host, secure=true){
-  this.toString = () => `FusionSocket(${socketCount++})`
   let hostString = (secure ? 'wss://' : 'ws://') + host
+  this.toString = () => `FusionSocket([${socketCount++}]${hostString})`
   let ws = new WebSocket(hostString, PROTOCOL_VERSION)
 
   let broadcastConnected;
@@ -468,13 +468,7 @@ class Find extends TermBase {
   }
 
   value(){
-    return super.value().then(resp => {
-      if(resp.length > 0){
-        return resp[0]
-      }else{
-        return null
-      }
-    })
+    return super.value().then(resp => resp[0])
   }
 
   static method(idOrObject){
