@@ -1,41 +1,23 @@
 require('babel-polyfill')
-const snakeCase = require('snake-case'),
-      Event = require("geval")
+const snakeCase = require('snake-case')
 const {
   FusionEmitter,
   ListenerSet,
   validIndexValue,
-  eventsToPromise,
+  promiseOnEvents,
+  MultiEvent,
+  strictAssign,
+  ordinal,
+  setImmediate,
 } = require('./utility.js')
+
+const {EventEmitter} = require('events')
 
 const WebSocket = require('./websocket-shim.js')
 
 const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 
-function responseEvent(id){
-  return `response:${id}`
-}
-function errorEvent(id){
-  return `error:${id}`
-}
-
 var fusionCount = 0
-
-function ordinal(x){
-  if([11,12,13].indexOf(x) !== -1){
-    return `${x}th`
-  }
-  if(x % 10 === 1){
-    return `${x}st`
-  }
-  if(x % 10 === 2){
-    return `${x}nd`
-  }
-  if(x % 10 === 3){
-    return `${x}rd`
-  }
-  return `${x}th`
-}
 
 // Validation helper
 function checkArgs(name, args,
@@ -65,387 +47,489 @@ function checkArgs(name, args,
   }
 }
 
+function Fusion(host, {secure: secure=true}={}) {
+  // Hack so we can do fusion('foo') to create a new collection
+  let fusion = Collection(TermBase(createSubscription, query, writeOp))
+  Object.setPrototypeOf(fusion, new EventEmitter())
 
-class Fusion extends FusionEmitter {
-  constructor(host, {secure: secure=true}={}){
-    super(`Fusion(${fusionCount++})`)
-    // Allow calling a fusion object
-    let self = name => this.collection(name)
-    Object.setPrototypeOf(self, this)
+  // underlying WebSocket
+  let socket = FusionSocket(host, secure)
+  // Map requestId -> {broadcastError, broadcastResponse, dispose}
+  let outstanding = new Map()
+  // counter for correlating requests and responses
+  let requestCounter = 0
 
-    this.host = host
-    this.secure = secure
-    this.requestCounter = 0
-    this.socket = new FusionSocket(host, secure, this.log)
-    // Listeners to unregister on dispose
-    this.unregistry = [
-      this.socket.onError((err) => this.emit('error', err, self)),
-      this.socket.onConnected(() => this.emit('connected', self)),
-      this.socket.onDisconnected(() => this.emit('disconnected', self)),
-      this.socket.onMessage((msg) => {
-        if(msg.error !== undefined){
-          this.emit(errorEvent(msg.request_id), msg)
-        }else{
-          this.emit(responseEvent(msg.request_id), msg)
-        }
-      }),
-    ]
+  let cleanupListeners // set in dispose method
 
-    // send handshake
-    this.handshakeResponse = eventsToPromise(
-      this.socket.onConnected,
-      this.socket.onError
-    ).then(() => {
-      let reqId = this.requestCounter++
-      this.socket.send({request_id: reqId})
-      return this.getPromise(responseEvent(reqId)).then((res) => {
-        return res
+  Object.assign(fusion, MultiEvent({
+    onError(broadcast) {
+      socket.onError((err) => {
+        broadcast(err)
+        fusion.emit('error', err, fusion)
       })
-    }).catch(() => {})
-    return self
+    },
+    onConnected(broadcast) {
+      socket.onConnected(() => {
+        broadcast(fusion)
+        fusion.emit('connected', fusion)
+      })
+    },
+    onDisconnected(broadcast) {
+      socket.onDisconnected(() => {
+        broadcast(fusion)
+        fusion.emit('disconnected', fusion)
+      })
+    },
+    dispose(cleanupFusionEvents) {
+      return socket.dispose().then(() => {
+        setImmediate(() => {
+          cleanupFusionEvents()
+          fusion.removeAllListeners('error')
+          fusion.removeAllListeners('connected')
+          fusion.removeAllListeners('disconnected')
+        })
+      })
+    }
+  }))
+
+  socket.onMessage(socketMessageCallback)
+
+  let handshaken = socket
+        .connectedPromise
+        .then(() => createRequest((reqId, events) => {
+          return socket.send({request_id: reqId})
+            .then(handshake => new Promise((resolve, reject) => {
+              events.onResponse(resp => {
+                events.dispose()
+                resolve(resp)
+              })
+              events.onError(error => {
+                events.dispose()
+                reject(new Error(error.error))
+              })
+            }))
+        }))
+
+  return fusion
+
+  // Helpers and methods defined below
+
+  function createRequest(func){
+    let reqId = requestCounter++
+    let broadcastError, broadcastResponse
+    let event = MultiEvent({
+      onResponse(broadcast){
+        broadcastResponse = broadcast
+      },
+      onError(broadcast){
+        broadcastError = broadcast
+      },
+      dispose(cleanupEvents){
+        outstanding.delete(reqId)
+        setImmediate(cleanupEvents)
+        // we don't call .dispose on the value in outstanding since
+        // that's what's being called right now
+      }
+    })
+    outstanding.set(reqId, {
+      broadcastResponse,
+      broadcastError,
+      dispose: event.dispose
+    })
+    return func(reqId, event)
   }
 
-  // Can be called to turn logging on or off in the client driver
-  static enableLogging(debug){
-    if(debug){
-      Fusion.log = (...args) => console.debug(...args)
-    }else{
-      Fusion.log = () => undefined
+  function socketMessageCallback(data) {
+    if (!outstanding.has(data.request_id)) {
+      console.error(`Unrecognized request id in:`, data)
+    } else {
+      let req = outstanding.get(data.request_id)
+      if (data.error !== undefined) {
+        req.broadcastError(data)
+      } else {
+        req.broadcastResponse(data)
+      }
     }
   }
 
-  dispose(){
-    this.unregistry.push(
-      this.socket.onDisconnected(
-        () => this.unregistry.forEach(unregister => unregister())))
-    this.socket.dispose()
+  function send(type, data) {
+    return createRequest((reqId, events) => {
+      let req = {type: type, options: data, request_id: reqId}
+      let resp = eventsToPromise(events)
+      return handshaken
+        .then(handshake => socket.send(req))
+        .then(() => resp)
+    })
   }
 
-  collection(collectionName){
-    return new Collection(this, collectionName)
+  // Takes an event for responses, and coalesces them into a single
+  // array. When a response with `state: complete` is received, the
+  // promise is resolved with the array. If the errorEvent fires, the
+  // promise is rejected
+  function eventsToPromise(events) {
+    let results = []
+    return new Promise((resolve, reject) => {
+      events.onResponse(rawResponse => {
+        results.push.apply(results, rawResponse.data)
+        if (rawResponse.state === 'complete') {
+          events.dispose()
+          resolve(results)
+        }
+      })
+      events.onError((err) => {
+        events.dispose()
+        reject(new Error(err))
+      })
+    })
   }
 
-  writeOp(opType, collectionName, documents){
-    let command = {data: documents, collection: collectionName}
-    return this._send(opType, command).intoCollectingPromise('response')
+  function createSubscription(query, userOptions) {
+    return createRequest((reqId, events) => {
+      let req = {type: 'subscribe', options: query, request_id: reqId}
+      handshaken.then(handshake => socket.send(req))
+      return Subscription({
+        onResponse: events.onResponse,
+        onError: events.onError,
+        endSubscription: endSubscription(reqId),
+        onConnected: fusion.onConnected,
+        onDisconnected: fusion.onDisconnected,
+        userOptions,
+      })
+    })
   }
 
-  query(data){
-    return this._send('query', data).intoCollectingPromise('response')
+  function writeOp(opType, collectionName, documents) {
+    return send(opType, {data: documents, collection: collectionName})
   }
 
-  subscribe(query, updates=true){
-    if(updates){
-      return this._subscribe(query)
-    }else{
-      return this._send('query', query)
+  function query(data) {
+    return send('query', data)
+  }
+
+  function endSubscription(requestId) {
+    return () => {
+      // Can't use send since we need to set the requestId ourselves
+      return handshaken.then(handshake => {
+        return socket.send({request_id: requestId, type: 'end_subscription'})
+      })
     }
-  }
-
-  endSubscription(requestId){
-    return this.handshakeResponse.then(handshake => {
-      this.socket.send({request_id: requestId, type: 'end_subscription'})
-    })
-  }
-
-  _send(type, data){
-    let requestId = this.requestCounter++
-    let req = {type: type, options: data, request_id: requestId}
-    this.handshakeResponse.then((handshake) => {
-      this.socket.send(req)
-    })
-    return new RequestEmitter(requestId, this, 'query')
-  }
-
-  // Subscription queries, only handles returning an emitter
-  _subscribe(query){
-    let requestId = this.requestCounter++
-    let req = {type: 'subscribe', options: query, request_id: requestId}
-    this.handshakeResponse.then((handshake) => this.socket.send(req))
-    return new RequestEmitter(requestId, this, 'subscribe')
   }
 }
 
 Fusion.log = () => undefined
 
+Fusion.enableLogging = (debug=true) => {
+  if(debug){
+    Fusion.log = (...args) => console.debug(...args)
+    Fusion.logError = (...args) => console.error(...args)
+  }else{
+    Fusion.log = () => undefined
+    Fusion.logError = () => undefined
+  }
+}
 
 var socketCount = 0
 
-// Wraps native websockets in an EventEmitter, and deals with some
+// Wraps native websockets with an event interface and deals with some
 // simple protocol level things like serializing from/to JSON
-function FusionSocket(host, secure=true){
+function FusionSocket(host, secure=true) {
   let hostString = (secure ? 'wss://' : 'ws://') + host
-  this.toString = () => `FusionSocket([${socketCount++}]${hostString})`
   let ws = new WebSocket(hostString, PROTOCOL_VERSION)
+  let socket // Set inside the promise initialization function
 
-  let broadcastConnected;
-  let broadcastError;
-  let broadcastDisconnected;
-  let broadcastMessage;
+  let connectedPromise = new Promise((resolve, reject) => {
+    let broadcastError; // used in two branches onMessage and onError
+    socket = MultiEvent({
+      onConnected(broadcastConnected) {
+        ws.onopen = (wsEvent) => {
+          broadcastConnected(wsEvent)
+          resolve(wsEvent)
+        }
+      },
+      onDisconnected(broadcastDisconnected) {
+        ws.onclose = (wsEvent) => {
+          broadcastDisconnected(wsEvent)
+          reject(new Error(wsEvent))
+        }
+      },
+      onError(broadcastErr) {
+        ws.onerror = (wsEvent) => {
+          console.error("Got a connection error", wsEvent)
+          broadcastError = broadcastErr
+          broadcastErr(wsEvent)
+          reject(new Error(wsEvent))
+        }
+      },
+      onMessage(broadcastMessage) {
+        ws.onmessage = (event) => {
+          let data = JSON.parse(event.data)
+          if (data.error !== undefined) {
+            Fusion.logError("Received Error", JSON.stringify(data, undefined, 2))
+          } else {
+            Fusion.log("Received", JSON.stringify(data, undefined, 2))
+          }
+          if(data.request_id === undefined){
+            broadcastError(
+              `Received response with no request_id: ${event.data}`)
+          }else {
+            broadcastMessage(data)
+          }
+        }
+      },
+      dispose(cleanupEvents){
+        ws.close(1000)
+        return promiseOnEvents(socket.onDisconnected, socket.onError)
+          .then(() => {setImmediate(cleanupEvents)})
+      }
+    })
+  })
 
-  this.onConnected = Event(broadcast => {
-    broadcastConnected = broadcast
-  })
-  this.onMessage = Event(broadcast => {
-    broadcastMessage = broadcast
-  })
-  this.onDisconnected = Event(broadcast => {
-    broadcastDisconnected = broadcast
-  })
-  this.onError = Event(broadcast => {
-    broadcastError = broadcast
+  Object.assign(socket, {
+    // public methods & promise
+    toString,
+    connectedPromise,
+    send,
   })
 
-  this.connectedPromise = new Promise((resolve, reject) => {
-    ws.onopen = (wsEvent) => {
-      broadcastConnected(wsEvent)
-      resolve(wsEvent)
-    }
-    ws.onerror = (wsEvent) => {
-      broadcastError(wsEvent)
-      reject(wsEvent)
-    }
-    ws.onclose = (wsEvent) => {
-      broadcastDisconnected(wsEvent)
-      reject(wsEvent)
-    }
-  })
+  return socket
 
-  ws.onmessage = (event) => {
-    let data = JSON.parse(event.data)
-    Fusion.log("Received", JSON.stringify(data, undefined, 2))
-    if(data.request_id === undefined){
-      broadcastError(`Received response with no request_id: ${event.data}`)
-    }else {
-      broadcastMessage(data)
-    }
+  function toString(){
+    return `FusionSocket([${socketCount++}]${hostString})`
   }
 
-  this.send = (message, event) => {
-    if(typeof message !== 'string'){
+  function send(message, event) {
+    if (typeof message !== 'string') {
       message = JSON.stringify(message, undefined, 4)
     }
     Fusion.log("Sending", message)
-    this.connectedPromise.then(() => ws.send(message))
-  }
-
-  this.dispose = () => {
-    ws.close(1000)
-    return eventsToPromise(this.onDisconnected, this.onError)
+    return connectedPromise.then(() => ws.send(message))
   }
 }
 
-// These are created for requests, will only get messages for the
-// particular request id. Has extra methods for closing the request,
-// and for creating promises that resolve or reject based on events
-// from this emitter
-class RequestEmitter extends FusionEmitter {
-  constructor(requestId, fusion, queryType){
-    super(`RequestEmitter(${requestId})`)
-    this.fusion = fusion
-    this.requestId = requestId
-    this.queryType = queryType
-    this.remoteListeners = ListenerSet.onEmitter(this.fusion)
-    //Forwards on fusion events to this emitter's listeners
-    this.unregistry = [
-      this.fusion.socket.onConnected(() => this.emit('connected', this)),
-      this.fusion.socket.onDisconnected(() => this.emit('disconnected', this)),
-    ]
-    this.remoteListeners
-      .onceAndDispose(errorEvent(requestId), (err) => {
-        this.emit('error', err)
-      }).on(responseEvent(requestId), (response) => {
-        if(Array.isArray(response.data)){
-          let emitted = false
-          response.data.forEach(changeObj => {
-            emitted = this._emitChangeEvent(changeObj)
-          })
-          if(!emitted){
-              this.emit('response', response.data)
-          }
-        }else if(response.data !== undefined){
-          this.emit("response", response.data)
-        }
-        if(response.state === 'synced'){
-          this.emit('synced')
-        }else if(response.state === 'complete'){
-          this.emit('complete')
-        }
-      }).disposeOn('error')
-  }
 
-  _emitChangeEvent(changeObj){
-    if(changeObj.new_val === undefined && changeObj.old_val === undefined){
-      return false
+
+// This is the object returned for changefeed queries
+function Subscription({onResponse,
+                       onError,
+                       endSubscription,
+                       onConnected,
+                       onDisconnected,
+                       userOptions: userOptions = {},}={}) {
+  let emitter = new EventEmitter()
+  let hasChangeListener
+  emitter.onConnected = onConnected
+  emitter.onDisconnected = onDisconnected
+  emitter.onError = onError
+
+  let broadcastAdded, broadcastRemoved, broadcastChanged,
+      broadcastSynced, broadcastError
+
+  Object.assign(emitter, MultiEvent({
+    onAdded(broadcast) {
+      broadcastAdded = broadcast
+    },
+    onRemoved(broadcast){
+      broadcastRemoved = broadcast
+    },
+    onChanged(broadcast){
+      broadcastChanged = broadcast
+    },
+    onSynced(broadcast){
+      broadcastSynced = broadcast
+    },
+    dispose(cleanupSubscriptionEvents){
+      return endSubscription.then(() => {
+        setImmediate(() => {
+          cleanupSubscriptionEvents()
+          onResponse.dispose()
+          onError.dispose()
+          emitter.removeAllListeners()
+        })
+      })
     }
-    if(changeObj.new_val !== null && changeObj.old_val !== null){
-      if(this.listenerCount('changed') === 0){
-        this.emit('removed', changeObj.old_val)
-        this.emit('added', changeObj.new_val)
-      }else{
-        this.emit('changed', changeObj.new_val, changeObj.old_val)
-      }
-      return true
-    }else if(changeObj.new_val !== null && changeObj.old_val === null){
-      this.emit('added', changeObj.new_val)
-      return true
-    }else if(changeObj.new_val === null && changeObj.old_val !== null){
-      this.emit('removed', changeObj.old_val)
-      return true
-    }else{
-      return false
+  }))
+
+  emitter.onAdded(ev => emitter.emit('added', ev))
+  emitter.onRemoved(ev => emitter.emit('removed', ev))
+  emitter.onChanged(ev => emitter.emit('changed', ev.new_val, ev.old_val))
+  emitter.onSynced(ev => emitter.emit('synced', ev))
+  emitter.onError(ev => emitter.emit('error', ev))
+
+  Object.keys(userOptions).forEach(key => {
+    switch(key) {
+    case 'onAdded':
+    case 'onRemoved':
+    case 'onChanged':
+    case 'onSynced':
+    case 'onError':
+    case 'onConnected':
+    case 'onDisconnected':
+      emitter[key](userOptions[key])
     }
-  }
-  dispose(){
-    if(this.type === 'subscription'){
-      return this.fusion.endSubscription(this.requestId)
-        .then(() => this.getPromise('complete'))
-        .then(() => this.remoteListeners.dispose())
-    }else{
-      return this.remoteListeners.dispose()
+  })
+
+  let isAdded   = (c) => c.new_val !== null && c.old_val === null
+  let isRemoved = (c) => c.new_val === null && c.old_val !== null
+  let isChanged = (c) => c.new_val !== null && c.old_val !== null
+
+  onResponse(response => {
+    // Response won't be an error since that's handled by the Fusion
+    // object
+    if(response.data !== undefined) {
+      response.data.forEach(change => {
+        if(isChanged(change)) {
+          if(!hasChangeListener) {
+            broadcastRemoved(change.old_val)
+            broadcastAdded(change.new_val)
+          } else {
+            broadcastChanged(change)
+          }
+        } else if(isAdded(change)) {
+          broadcastAdded(change.new_val)
+        } else if(isRemoved(change)) {
+          broadcastRemoved(change.old_val)
+        } else {
+          console.error("Unknown object received on subscription: ", change)
+        }
+      })
     }
-  }
+    if(response.state === 'synced'){
+      broadcastSynced('synced')
+    }
+  })
+
+  return emitter
 }
 
-class TermBase {
 
-  constructor(fusion, query, mergeObj){
-    this.fusion = fusion
-    for(let key in Object.keys(mergeObj)){
-      if(key in query){
-        throw new Error(`${key} is already defined.`)
+// The outer method is called by Fusion to supply its internal
+// (private) functions for querying, subscribing and doing writes The
+// returned method is given to each Term, and is called with its
+// initializer, to customize the object returned.
+function TermBase(createSubscription, queryFunc, writeOp) {
+  let termBase = (initializer) => {
+    let term = {}
+    initializer(addMethods, writeOp)
+    return term
+
+    // Given a query object, this adds the subscribe and value methods
+    // to the term
+    function addMethods(queryObj, ...keys) {
+      term.subscribe = (options) => createSubscription(queryObj, options)
+      term.value = () => queryFunc(queryObj)
+
+      // Extend the object with the specified methods. Will fill in
+      // error-raising methods for methods not specified, or a method
+      // that complains that the method has already been added to the
+      // query object.
+      let methods = {
+        findAll: FindAll,
+        find: Find,
+        order: Order,
+        above: Above,
+        below: Below,
+        limit: Limit,
       }
-    }
-    this.query = Object.assign({}, query, mergeObj)
-  }
-
-  subscribe(updates=true){
-    // should create a changefeed query, return eventemitter
-    return this.fusion.subscribe(this.query, updates)
-  }
-
-  value(){
-    // return promise with no changefeed
-    return this.fusion.query(this.query)
-  }
-
-  // Extend the object with the specified methods. Will fill in
-  // error-raising methods for methods not specified, or if the method
-  // has already been added to the query object.
-  _extendWith(...keys){
-    let methods = {
-      findAll: FindAll.method,
-      find: Find.method,
-      order: Order.method,
-      above: Above.method,
-      below: Below.method,
-      limit: Limit.method,
-    }
-    for(let key in methods){
-      if(keys.indexOf(key) !== -1){
-        // Check if query object already has it. If so, insert a dummy
-        // method that throws an error.
-        if(snakeCase(key) in this.query){
-          this[key] = function(){
-            throw new Error(`${key} has already been called on this query`)
+      for(let key in methods){
+        if(keys.indexOf(key) !== -1){
+          // Check if query object already has it. If so, insert a dummy
+          // method that throws an error.
+          if(snakeCase(key) in queryObj){
+            term[key] = () => {
+              throw new Error(`${key} has already been called on this query`)
+            }
+          }else{
+            term[key] = methods[key](queryObj, termBase)
           }
+        } else {
+          term[key] = () => {
+            throw new Error(`it is not valid to chain the method ${key} from here`)
+          }
+        }
+      }
+      return term
+    }
+  }
+  return termBase
+}
+
+
+function Collection(termBase){
+  return function(collectionName) {
+    let query = {collection: collectionName}
+    let fusionWrite // set inside call to termBase
+
+    return Object.assign(termBase((addMethods, writeOp) => {
+      addMethods(query, 'find', 'findAll', 'order', 'above', 'below', 'limit')
+      fusionWrite = (name, args, documents) => {
+        checkArgs(name, args)
+        if(!Array.isArray(documents)){
+          documents = [documents]
+        }else if(documents.length === 0){
+          // Don't bother sending no-ops to the server
+          return Promise.resolve([])
+        }
+        return writeOp(name, collectionName, documents)
+      }
+    }), {
+      // Collection public write methods
+      store,
+      upsert,
+      insert,
+      replace,
+      update,
+      remove,
+      removeAll,
+    })
+
+    function store(documents){
+      return fusionWrite('store', arguments, documents)
+    }
+
+    function upsert(documents){
+      return fusionWrite('upsert', arguments, documents)
+    }
+
+    function insert(documents){
+      return fusionWrite('insert', arguments, documents)
+    }
+
+    function replace(documents){
+      return fusionWrite('replace', arguments, documents)
+    }
+
+    function update(documents){
+      return fusionWrite('update', arguments, documents)
+    }
+
+    function remove(documentOrId){
+      if(validIndexValue(documentOrId)){
+        documentOrId = {id: documentOrId}
+      }
+      return fusionWrite('remove', arguments, [documentOrId]).then(() => undefined)
+    }
+
+    function removeAll(documentsOrIds){
+      if(!Array.isArray(documentsOrIds)){
+        throw new Error("removeAll takes an array as an argument")
+      }
+      if(arguments.length > 1){
+        throw new Error("removeAll only takes one argument (an array)")
+      }
+      documentsOrIds = documentsOrIds.map(item => {
+        if(validIndexValue(item)){
+          return {id: item}
         }else{
-          this[key] = methods[key]
+          return item
         }
-      }else{
-        this[key] = function(){
-          throw new Error(`it is not valid to chain the method ${key} from here`)
-        }
-      }
+      })
+      return fusionWrite('remove', arguments, documentsOrIds).then(() => undefined)
     }
   }
 }
 
-class Collection extends TermBase {
-
-  constructor(fusion, collectionName){
-    super(fusion, {
-      collection: collectionName,
-    }, {})
-    this._collectionName = collectionName
-    this._extendWith('find', 'findAll', 'order', 'above', 'below', 'limit')
-  }
-
-  store(documents){
-    checkArgs('store', arguments)
-    return this._writeOp('store', documents)
-  }
-
-  upsert(documents){
-    checkArgs('upsert', arguments)
-    return this._writeOp('upsert', documents)
-  }
-
-  insert(documents){
-    checkArgs('insert', arguments)
-    return this._writeOp('insert', documents)
-  }
-
-  replace(documents){
-    checkArgs('replace', arguments)
-    return this._writeOp('replace', documents)
-  }
-
-  update(documents){
-    checkArgs('update', arguments)
-    return this._writeOp('update', documents)
-  }
-
-  remove(documentOrId){
-    checkArgs('remove', arguments)
-    if(validIndexValue(documentOrId)){
-      documentOrId = {id: documentOrId}
-    }
-    return this._writeOp('remove', [documentOrId]).then(() => undefined)
-  }
-
-  removeAll(documentsOrIds){
-    checkArgs('removeAll', arguments)
-    if(!Array.isArray(documentsOrIds)){
-      throw new Error("removeAll takes an array as an argument")
-    }
-    if(arguments.length > 1){
-      throw new Error("removeAll only takes one argument (an array)")
-    }
-    documentsOrIds = documentsOrIds.map(item => {
-      if(validIndexValue(item)){
-        return {id: item}
-      }else{
-        return item
-      }
-    })
-    return this._writeOp('remove', documentsOrIds).then(() => undefined)
-  }
-
-  _writeOp(name, documents){
-    if(!Array.isArray(documents)){
-      documents = [documents]
-    }else if(documents.length === 0){
-      // Don't bother sending no-ops to the server
-      return Promise.resolve([])
-    }
-    return this.fusion.writeOp(name, this._collectionName, documents)
-  }
-}
-
-class FindAll extends TermBase {
-  constructor(fusion, query, fieldValues, allowChaining){
-    super(fusion, query, {
-      find_all: fieldValues,
-    })
-    if(allowChaining){
-      this._extendWith('order', 'above', 'below', 'limit')
-    }else{
-      this._extendWith()
-    }
-  }
-
-  static method(...fieldValues){
+function FindAll(previousQuery, termBase) {
+  return function(...fieldValues) {
     checkArgs('findAll', arguments, {maxArgs: 100})
     let wrappedFields = fieldValues.map(item => {
       if(validIndexValue(item)){
@@ -454,82 +538,69 @@ class FindAll extends TermBase {
         return item
       }
     })
-    let allowChaining = wrappedFields.length === 1
-    return new FindAll(this.fusion, this.query, wrappedFields, allowChaining)
+    let findAllQuery = strictAssign(previousQuery, {find_all: wrappedFields})
+    return termBase((addMethods) => {
+      if(wrappedFields.length === 1){
+        addMethods(findAllQuery, 'order', 'above', 'below', 'limit')
+      }else{
+        addMethods(findAllQuery)
+      }
+    })
   }
 }
 
-class Find extends TermBase {
-  constructor(fusion, query, queryObject){
-    super(fusion, query, {
-      find: queryObject,
-    })
-    this._extendWith()
-  }
-
-  value(){
-    return super.value().then(resp => resp[0])
-  }
-
-  static method(idOrObject){
+function Find(previousQuery, termBase) {
+  return function(idOrObject) {
     checkArgs('find', arguments)
-    let q = validIndexValue(idOrObject) ? {id: idOrObject} : idOrObject
-    return new Find(this.fusion, this.query, q)
+    let findObject = validIndexValue(idOrObject) ? {id: idOrObject} : idOrObject
+    let findQuery = strictAssign(previousQuery, {find: findObject})
+    let term = termBase(addMethods => addMethods(findQuery))
+
+    // Wrap the .value() method with a callback that unwraps the resulting array
+    let superValue = term.value
+    term.value = () => superValue().then(resp => resp[0])
+    return term
   }
 }
 
-class Above extends TermBase {
-  constructor(fusion, query, valueSpecs, direction){
-    super(fusion, query, {
-      above: [valueSpecs, direction]
-    })
-    this._extendWith('findAll', 'order', 'below', 'limit')
-  }
-
-  static method(aboveSpec, bound="closed"){
+function Above(previousQuery, termBase) {
+  return function(aboveSpec, bound='closed') {
     checkArgs('above', arguments, {minArgs: 1, maxArgs: 2})
-    return new Above(this.fusion, this.query, aboveSpec, bound)
+    let aboveQuery = strictAssign(previousQuery, {above: [aboveSpec, bound]})
+    return termBase(addMethods => {
+      addMethods(aboveQuery, 'findAll', 'order', 'below', 'limit')
+    })
   }
 }
 
-class Below extends TermBase {
-  constructor(fusion, query, valueSpecs, direction){
-    super(fusion, query, {
-      below: [valueSpecs, direction],
-    })
-    this._extendWith('findAll', 'order', 'above', 'limit')
-  }
-
-  static method(belowSpec, bound="open"){
+function Below(previousQuery, termBase) {
+  return function(belowSpec, bound='open') {
     checkArgs('below', arguments, {minArgs: 1, maxArgs: 2})
-    return new Below(this.fusion, this.query, belowSpec, bound)
+    let belowQuery = strictAssign(previousQuery, {below: [belowSpec, bound]})
+    return termBase(addMethods => {
+      addMethods(belowQuery, 'findAll', 'order', 'above', 'limit')
+    })
   }
 }
 
-class Order extends TermBase {
-  constructor(fusion, query, fields, direction){
-    super(fusion, query, {
-      order: [fields, direction],
-    })
-    this._extendWith('findAll', 'above', 'below', 'limit')
-  }
-
-  static method(fields, direction='ascending'){
+function Order(previousQuery, termBase) {
+  return function(fields, direction='ascending') {
     checkArgs('order', arguments, {minArgs: 1, maxArgs: 2})
     let wrappedFields = Array.isArray(fields) ? fields : [fields]
-    return new Order(this.fusion, this.query, wrappedFields, direction)
+    let orderQuery = strictAssign(previousQuery, {
+      order: [wrappedFields, direction]
+    })
+    return termBase(addMethods => {
+      addMethods(orderQuery, 'findAll', 'above', 'below', 'limit')
+    })
   }
 }
 
-class Limit extends TermBase {
-  constructor(fusion, query, size){
-    super(fusion, query, {limit: size})
-    this._extendWith()
-  }
-
-  static method(size){
+function Limit(previousQuery, termBase) {
+  return function(size) {
     checkArgs('limit', arguments)
-    return new Limit(this.fusion, this.query, size)
+    let limitQuery = strictAssign(previousQuery, {limit: size})
+    return termBase(addMethods => addMethods(limitQuery))
   }
 }
 

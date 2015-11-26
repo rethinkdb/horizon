@@ -1,180 +1,7 @@
 require('babel-polyfill')
 const EventEmitter = require('events').EventEmitter
+const Event = require('geval')
 
-// Handles hooking up a group of listeners to a FusionEmitter, and
-// removing them all when certain events occur
-class ListenerSet {
-  constructor(emitter, {absorb: absorb=false}={}){
-    this.emitter = emitter
-    this.unregistry = []
-    this.absorb = absorb
-    let id = emitter.listenerSets++
-    this.toString = () => `ListenerSet(${id}) on ${emitter}`
-  }
-
-  // Create a new ListenerSet. When the .dispose method is called, the
-  // registered listeners will be removed from the underlying emitter.
-  static onEmitter(emitter){
-    return new ListenerSet(emitter)
-  }
-
-  // Create a new ListenerSet. When the ListenerSet is disposed the
-  // underlying emitter will have its .dispose method called. The use
-  // case for this is where the ListenerSet can consider itself to
-  // "own" the underlying emitter.
-  static absorbEmitter(emitter){
-    return new ListenerSet(emitter, {absorb: true})
-  }
-
-  // Add a listener to the underlying emitter. When this ListenerSet's
-  // .dispose method is called the listener will be removed.
-  on(event, listener){
-    this.unregistry.push(this.emitter.register(event, listener))
-    return this
-  }
-
-  // The listener for this event will be invoked once and removed. The
-  // listener is registered with the ListenerSet, so the listener will
-  // be removed if the ListenerSet is called before the event occurs.
-  once(event, listener){
-    this.unregistry.push(this.emitter.registerOnce(event, listener))
-    return this
-  }
-
-  // Forward events from the underlying emitter to the destination
-  // emitter. The listener on the underlying emitter will be
-  // registered in this ListenerSet and will be removed when the
-  // ListenerSet is cleaned up
-  fwd(srcEvent, dst, dstEvent=srcEvent){
-    this.unregistry.push(this.emitter.fwd(srcEvent, dst, dstEvent))
-    return this
-  }
-
-  // The given listener will be called once and then this ListenerSet
-  // will clean itself up.
-  onceAndDispose(event, listener){
-    let wrappedListener = (...args) => {
-      this.dispose("ListenerSet.onceAndDispose").then(() => listener(...args))
-    }
-    this.unregistry.push(this.emitter.registerOnce(event, wrappedListener))
-    return this
-  }
-
-  // When the given event is emitted on the underlying EventEmitter
-  // this ListenerSet will clean up all of its listeners
-  disposeOn(event){
-    this.unregistry.push(this.emitter.registerOnce(
-      event, () => {
-        this.dispose("ListenerSet.disposeOn")
-      }))
-    return this
-  }
-
-  // Clean up the listeners this ListenerSet owns if this is an
-  // absorbing ListenerSet it cleans up the underlying emitter the
-  // listeners were registered on.
-  dispose(){
-    let cleanup = () => this.unregistry.forEach(unregister => unregister())
-    if(this.absorb){
-      return this.emitter.dispose().then(() => {
-        cleanup()
-      })
-    }else{
-      return Promise.resolve().then(cleanup)
-    }
-  }
-
-}
-
-let emitterCount = 0
-
-// Adds some convenience functions on EventEmitters that makes it
-// easier to unregister a listener
-class FusionEmitter extends EventEmitter {
-  constructor(name=`FusionEmitter(${emitterCount++})`){
-    super()
-    this.listenerSets = 0
-    this.toString = () => name
-  }
-  // Returns a function that can be called to remove the listener
-  // Otherwise works the same as 'on' for the underlying socket
-  register(event, listener){
-    this.on(event, listener)
-    return () => {
-      this.removeListener(event, listener)
-    }
-  }
-
-  // Similar to `register` but wraps `once` instead of `on`
-  registerOnce(event, listener){
-    this.once(event, listener)
-    return () => {
-      this.removeListener(event, listener)
-    }
-  }
-
-  //Forwards events from the current emitter to another emitter,
-  //returning an unregistration function
-  fwd(srcEvent, dst, dstEvent=srcEvent){
-    return this.register(srcEvent, (...args) => dst.emit(dstEvent, ...args))
-  }
-
-  //Create a promise from this emitter, accepts on the given event
-  //and rejects on the second event which defaults to 'error'
-  getPromise(acceptEvent, rejectEvent='error'){
-    let listenerSet = ListenerSet.onEmitter(this)
-    return this._makePromise(listenerSet, acceptEvent, rejectEvent)
-  }
-
-  // The same as getPromise, but disposes the event emitter when it's
-  // resolved or rejected. The underlying EventEmitter shouldn't be
-  // used.
-  intoPromise(acceptEvent, rejectEvent='error'){
-    let listenerSet = ListenerSet.absorbEmitter(this)
-    return this._makePromise(listenerSet, acceptEvent, rejectEvent)
-  }
-
-  _makePromise(listenerSet, acceptEvent, rejectEvent){
-    return new Promise((resolve, reject) => {
-      listenerSet
-        .onceAndDispose(acceptEvent, resolve)
-        .onceAndDispose(rejectEvent, (err) => {
-          reject(new Error(err.error))
-        })
-    })
-  }
-
-  // Listens for all 'response' events, adding them to an
-  // internal array. Once a response comes in that has state: the
-  // complete event, it resolves the promise with all of the values
-  // obtained so far.  The promise is rejected if an error event is
-  // raised.
-  collectingPromise(addEvent='response', completeEvent='complete'){
-    let listenerSet = ListenerSet.onEmitter(this)
-    return this._collectPromise(listenerSet, addEvent, completeEvent)
-  }
-
-  // Same as collectingPromise except disposes the underlying
-  // EventEmitter when it is resolved or rejected
-  intoCollectingPromise(addEvent='response', completeEvent='complete'){
-    let listenerSet = ListenerSet.absorbEmitter(this)
-    return this._collectPromise(listenerSet, addEvent, completeEvent)
-  }
-
-  _collectPromise(listenerSet, addEvent, completeEvent){
-    return new Promise((resolve, reject) => {
-      let values = [];
-      listenerSet
-        .on(addEvent, (items) => {
-          values.push(...items)
-        }).onceAndDispose(completeEvent, () => {
-          resolve(values)
-        }).onceAndDispose('error', (err) => {
-          reject(new Error(err.error))
-        })
-    })
-  }
-}
 
 // Checks whether the return value is a valid primary or secondary
 // index value
@@ -195,17 +22,138 @@ function validIndexValue(val){
   return false
 }
 
-function eventsToPromise(resolveEvent, rejectEvent){
-  return new Promise((resolve, reject) => {
-    resolveEvent(resolve)
-    rejectEvent(reject)
-  })
+function promiseOnEvents(resolveEvent, rejectEvent){
+  let registry = []
+  return (new Promise((resolve, reject) => {
+    registry.push(resolveEvent(resolve))
+    registry.push(rejectEvent(rejectVal => reject(new Error(rejectVal))))
+  })).then(
+    success => {
+      emptyAndCallAll(registry)
+      return success
+    },
+    error => {
+      emptyAndCallAll(registry)
+      return error
+    }
+  )
 }
 
+function removeFromArray(registry, callback){
+  let index = registry.indexOf(callback)
+  if (index !== -1) {
+    registry.splice(index, 1)
+  }
+}
+
+function emptyAndCallAll(registry){
+  return () => {
+    let func = registry.pop()
+    while (func !== undefined) {
+      func()
+      func = registry.pop()
+    }
+  }
+}
+
+// Helper method for terms that merges new fields into an existing
+// object, throwing an exception if a field is merged in that already
+// exists
+function strictAssign(original, newFields) {
+  Object.keys(newFields).forEach(key => {
+    if (key in original) {
+      throw new Error(`${key} is already defined.`)
+    }
+  })
+  return Object.assign({}, original, newFields)
+}
+
+// A wrapper for geval Events that keeps track of removal functions
+// and calls them all when the .dispose method is called on the event
+function DisposableEvent(setupFunc){
+  let registry = []
+  let listener = Event(setupFunc)
+
+  function wrappedListener(eventhandler){
+    let remover = listener(eventhandler)
+    let wrappedRemover = () => {
+      removeFromArray(registry, remover)
+      remover()
+    }
+    registry.push(remover)
+    return wrappedRemover
+  }
+
+  wrappedListener.dispose = emptyAndCallAll(registry)
+
+  return wrappedListener
+}
+
+// Creates an object with multiple DisposablEvents within it
+// Example:
+// MultiEvent({
+//    ham: (broadcastHam) => {/* decide when to broadcastHam */},
+//    eggs: (broadcastEggs) => {/* decide when to broadcastEggs */},
+//    dispose: (cleanupEvents) => {cleanupEvents(); console.log("Disposed!")}
+// Will return:
+// {
+//   ham: Event,
+//   eggs: Event,
+//   dispose: () => {/* disposes ham and eggs then does console log*/},
+// }
+function MultiEvent(initializer){
+  let registry = []
+  let multiEvent = {}
+  for (let propName in initializer) {
+    if(propName === 'dispose'){
+      continue
+    }
+    let event = DisposableEvent(initializer[propName])
+    multiEvent[propName] = event
+    registry.push(event.dispose)
+  }
+  let cleanupEvents = emptyAndCallAll(registry)
+  let disposeAll
+  // If the user specified a disposal function, we pass them the event
+  // cleaner and return whatever they want to return
+  if (initializer.dispose !== undefined) {
+    disposeAll = () => initializer.dispose(cleanupEvents)
+  } else {
+    disposeAll = cleanupEvents
+  }
+  multiEvent.dispose = disposeAll
+  Object.keys(multiEvent).forEach(key => {
+    // Cleaning up any event will clean up all events
+    if (key !== 'dispose') {
+      multiEvent[key].dispose = disposeAll
+    }
+  })
+  return multiEvent
+}
+
+function ordinal(x){
+  if([11,12,13].indexOf(x) !== -1){
+    return `${x}th`
+  } else if(x % 10 === 1){
+    return `${x}st`
+  } else if(x % 10 === 2){
+    return `${x}nd`
+  } else if(x % 10 === 3){
+    return `${x}rd`
+  }
+  return `${x}th`
+}
+
+function setImmediate(callback) {
+  return Promise.resolve().then(callback)
+}
 
 Object.assign(module.exports, {
-  ListenerSet,
-  FusionEmitter,
   validIndexValue,
-  eventsToPromise,
+  MultiEvent,
+  DisposableEvent,
+  promiseOnEvents,
+  strictAssign,
+  ordinal,
+  setImmediate,
 })
