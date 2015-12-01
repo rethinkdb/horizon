@@ -22,28 +22,37 @@ var app = app || {};
 	// may not even be worth separating this logic
 	// out, but we do this to demonstrate one way to
 	// separate out parts of your application.
-	app.TodoModel = function (key) {
-		this.key = key;
-		this.todos = Utils.store(key);
+	app.TodoModel = function () {
+		this.todos = [];
 		this.onChanges = [];
 	};
+
+	todos.value().then(function(result){
+		app.TodoModel.todos = result;
+	}).catch(funnction(err){
+		console.log(err);
+	})
 
 	app.TodoModel.prototype.subscribe = function (onChange) {
 		this.onChanges.push(onChange);
 	};
 
 	app.TodoModel.prototype.inform = function () {
-		Utils.store(this.key, this.todos);
+		todos.store(this.todos)
 		this.onChanges.forEach(function (cb) { cb(); });
 	};
 
 	app.TodoModel.prototype.addTodo = function (title) {
-		this.todos = this.todos.concat({
+		const newTodo = {
 			id: Utils.uuid(),
 			title: title,
 			completed: false
-		});
+		};
 
+		todos.store(newTodo);
+		this.todos = this.todos.concat(newTodo);
+
+		// May want to stop this inform since we don't want to blindly save all todos
 		this.inform();
 	};
 
@@ -61,9 +70,13 @@ var app = app || {};
 
 	app.TodoModel.prototype.toggle = function (todoToToggle) {
 		this.todos = this.todos.map(function (todo) {
-			return todo !== todoToToggle ?
-				todo :
-				Utils.extend({}, todo, {completed: !todo.completed});
+			if (todo !=== todoToToggle){
+				return todo;
+			} else {
+				const updatedTodo = Utils.extend({}, todo, {completed: !todo.completed});
+				todos.replace(updatedTodo)
+				return updatedTodo;
+			}
 		});
 
 		this.inform();
@@ -71,7 +84,12 @@ var app = app || {};
 
 	app.TodoModel.prototype.destroy = function (todo) {
 		this.todos = this.todos.filter(function (candidate) {
-			return candidate !== todo;
+			if (candidate !== todo){
+				return true;
+			} else {
+				todos.remove(candidate);
+				return false;
+			}
 		});
 
 		this.inform();
@@ -79,7 +97,13 @@ var app = app || {};
 
 	app.TodoModel.prototype.save = function (todoToSave, text) {
 		this.todos = this.todos.map(function (todo) {
-			return todo !== todoToSave ? todo : Utils.extend({}, todo, {title: text});
+			if (todo !== todoToSave){
+				return todo;
+			} else {
+				const newTodo = Utils.extend({}, todo, {completed: !todo.completed});
+				todos.save(newTodo);
+				return newTodo;
+			}
 		});
 
 		this.inform();
@@ -87,7 +111,12 @@ var app = app || {};
 
 	app.TodoModel.prototype.clearCompleted = function () {
 		this.todos = this.todos.filter(function (todo) {
-			return !todo.completed;
+			if (todo.completed){
+				todos.remove(todo);
+				return false;
+			} else {
+				return true;
+			}
 		});
 
 		this.inform();
