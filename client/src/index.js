@@ -217,6 +217,7 @@ function Fusion(host, {secure: secure=true}={}) {
 }
 
 Fusion.log = () => undefined
+Fusion.logError = () => undefined
 
 Fusion.enableLogging = (debug=true) => {
   if(debug){
