@@ -78,21 +78,37 @@ class ReqlConnection {
     this.connection = undefined;
     this.reconnect_delay = 0;
     this._ready = false;
-    this._ready_promise = new Promise((resolve, reject) => this.reconnect(resolve, reject));
+    this._ready_promise = new Promise((resolve) => this.init_connection(resolve));
   }
 
-  reconnect(resolve, reject) {
+  reconnect(resolve) {
+     this.connection = undefined;
+     this.metadata = undefined;
+     this.clients.forEach((client) => client.reql_connection_lost());
+     this.clients.clear();
+     setTimeout(() => this.init_connection(resolve), this.reconnect_delay);
+     this.reconnect_delay = Math.min(this.reconnect_delay + 100, 1000);
+  }
+
+  init_connection(resolve) {
     logger.info(`Connecting to RethinkDB: ${this.host}:${this.port}`);
     r.connect({ host: this.host, port: this.port, db: this.db })
      .then((conn) => {
        logger.info(`Connection to RethinkDB established.`);
+       conn.on('close', () => this.reconnect(resolve));
        this.connection = conn;
-       this.reconnect_delay = 0;
        this.connection.on('error', (err) => this.handle_conn_error(err));
        this.metadata = new Metadata(this.connection, this.dev_mode, (err) => {
          if (err !== undefined) {
-           reject(err);
+           err = err.msg ? err.msg : err; // Shitty workaround for reql errors
+           logger.error(`Failed to synchronize with database server: ${err}`);
+           conn.close();
          } else {
+           conn.removeAllListeners('close');
+           conn.on('close', () => {
+             this._ready_promise = new Promise((res) => this.reconnect(res));
+           });
+           this.reconnect_delay = 0;
            this._ready = true;
            resolve();
          }
@@ -100,13 +116,7 @@ class ReqlConnection {
      },
      (err) => {
        logger.error(`Connection to RethinkDB terminated: ${err}`);
-       if (this.connection !== undefined) {
-         this.connection = undefined;
-         this.metadata = undefined;
-         this.clients.forEach((client) => client.reql_connection_lost());
-         setTimeout(() => this.reconnect(resolve, reject), this.reconnect_delay);
-         this.reconnect_delay = Math.min(this.reconnect_delay + 100, 1000);
-       }
+       this.reconnect(resolve);
      });
   }
 
@@ -157,17 +167,20 @@ class BaseServer {
         http_server.on('listening', () => { resolve(http_server.address().port); });
       }));
       this._ws_servers.set(host, new websocket.Server({ server: http_server,
-                                                        handleProtocols: accept_protocol })
+                                                        handleProtocols: accept_protocol,
+                                                        verifyClient: (info, cb) => this.verify_client(info, cb) })
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
-        .on('connection', (socket) => {
-          // Reject connections if we aren't synced with the database
-          if (!this._reql_conn.is_ready()) {
-            socket.close();
-          } else {
-            new fusion_client.Client(socket, this);
-          }
-        }));
+        .on('connection', (socket) => new fusion_client.Client(socket, this)));
     });
+  }
+
+  verify_client(info, cb) {
+    // Reject connections if we aren't synced with the database
+    if (!this._reql_conn.is_ready()) {
+      cb(false, 503, `Connection to the database is down.`);
+    } else {
+      cb(true);
+    }
   }
 
   add_endpoint(endpoint_name, make_reql, handle_response) {

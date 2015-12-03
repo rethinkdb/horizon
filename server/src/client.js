@@ -111,7 +111,7 @@ class Client {
 
   handle_open() {
     logger.debug(`Client connection established.`);
-    this.parent._clients.add(this);
+    this.parent._clients.add(this); // TODO: this is a race condition - the client could miss a reql_connection_lost call
   }
 
   handle_close() {
