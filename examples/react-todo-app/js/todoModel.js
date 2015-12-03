@@ -20,15 +20,15 @@ var app = app || {};
 	// may not even be worth separating this logic
 	// out, but we do this to demonstrate one way to
 	// separate out parts of your application.
-	app.TodoModel = function () {
+	app.TodoModel = function (table_key) {
 		this.todos = [];
 		this.onChanges = [];
-		this.todosDB = fusion("todos_react");
+		this.todosDB = fusion(table_key);
 
-		this.todosDB.value().then((function(result){
+		this.todosDB.value().then((result) => {
 			this.todos = result ? result : [];
 			this.inform();
-		}).bind(this));
+		});
 	};
 
 	app.TodoModel.prototype.subscribe = function (onChange) {
@@ -36,7 +36,6 @@ var app = app || {};
 	};
 
 	app.TodoModel.prototype.inform = function () {
-		this.todosDB.store(this.todos);
 		this.onChanges.forEach(function (cb) { cb(); });
 	};
 
@@ -48,10 +47,6 @@ var app = app || {};
 		};
 
 		this.todosDB.store(newTodo);
-		this.todos = this.todos.concat(newTodo);
-
-		// May want to stop this inform since we don't want to blindly save all todos
-		this.inform();
 	};
 
 	app.TodoModel.prototype.toggleAll = function (checked) {
@@ -59,65 +54,58 @@ var app = app || {};
 		// easier to reason about and React works very well with them. That's why
 		// we use map() and filter() everywhere instead of mutating the array or
 		// todo items themselves.
-		this.todos = this.todos.map(function (todo) {
+		this.todosDB.replace(this.todos.map(function (todo) {
 			return Utils.extend({}, todo, {completed: checked});
-		});
-
-		this.inform();
+		}));
 	};
 
 	app.TodoModel.prototype.toggle = function (todoToToggle) {
-		this.todos = this.todos.map((function (todo) {
-			if (todo !== todoToToggle){
-				return todo;
-			} else {
-				const updatedTodo = Utils.extend({}, todo, {completed:!todo.completed});
-				this.todosDB.replace(updatedTodo);
-				return updatedTodo;
-			}
-		}).bind(this));
-
-		this.inform();
+		this.todosDB.replace(
+			Utils.extend(
+				{},
+				todoToToggle,
+				{completed:!todoToToggle.completed}
+			)
+		);
 	};
 
 	app.TodoModel.prototype.destroy = function (todo) {
-		this.todos = this.todos.filter((function (candidate) {
-			if (candidate !== todo){
-				return true;
-			} else {
-				this.todosDB.remove(candidate);
-				return false;
-			}
-		}).bind(this));
-
-		this.inform();
+		this.todosDB.remove(todo);
 	};
 
 	app.TodoModel.prototype.save = function (todoToSave, text) {
-		this.todos = this.todos.map((function (todo) {
-			if (todo !== todoToSave){
-				return todo;
-			} else {
-				const newTodo = Utils.extend({}, todo, {completed: !todo.completed});
-				this.todosDB.save(newTodo);
-				return newTodo;
-			}
-		}).bind(this));
-
-		this.inform();
+		this.todosDB.store(Utils.extend({}, todoToSave, {title: text}));
 	};
 
 	app.TodoModel.prototype.clearCompleted = function () {
-		this.todos = this.todos.filter((function (todo) {
-			if (todo.completed){
-				this.todosDB.remove(todo);
-				return false;
-			} else {
-				return true;
-			}
-		}).bind(this));
+		const oldTodos = this.todos.slice();
 
-		this.inform();
+		this.todos = this.todos.filter((todo) => {
+			return !todo.completed;
+		});
+
+		// Send batched deletion of completed todos
+		this.todosDB.removeAll(oldTodos.filter((todo) => {
+			return !this.todos.includes(todo);
+		}));
 	};
 
+	app.TodoModel.prototype.subscribeChangefeeds = function(){
+		this.todosDB.subscribe()
+			.on("added", (added) => {
+				this.todos = this.todos.concat(added);
+				this.inform();
+			}).on("changed", (changed) => {
+				this.todos = this.todos.map((todo) => {
+					return todo.id !== changed.id ? todo : Utils.extend({}, todo, changed);
+				});
+				this.inform();
+			}).on("removed", (removed) => {
+				this.todos = this.todos.filter((todo) => {
+					return todo.id !== removed.id;
+				});
+				this.inform();
+			}
+		);
+	};
 })();

@@ -167,7 +167,7 @@ var app = app || {};
 		}
 	});
 
-	var model = new app.TodoModel('react-todos');
+	var model = new app.TodoModel("todos_react");
 
 	function render() {
 		React.render(
@@ -177,5 +177,6 @@ var app = app || {};
 	}
 
 	model.subscribe(render);
+	model.subscribeChangefeeds();
 	render();
 })();
