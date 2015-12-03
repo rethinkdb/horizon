@@ -314,7 +314,7 @@ function Subscription({ onResponse,
                        userOptions: userOptions = {} } = {}) {
   let emitter = new EventEmitter()
   let hasChangeListener, broadcastAdded, broadcastRemoved, broadcastChanged,
-    broadcastSynced
+    broadcastSynced, broadcastCompleted
   emitter.onConnected = onConnected
   emitter.onDisconnected = onDisconnected
   emitter.onError = onError
@@ -331,6 +331,9 @@ function Subscription({ onResponse,
     },
     onSynced(broadcast) {
       broadcastSynced = broadcast
+    },
+    onCompleted(broadcast) {
+      broadcastCompleted = broadcast
     },
     dispose(cleanupSubscriptionEvents) {
       return endSubscription.then(() => {
@@ -349,6 +352,7 @@ function Subscription({ onResponse,
   emitter.onChanged(ev => emitter.emit('changed', ev.new_val, ev.old_val))
   emitter.onSynced(ev => emitter.emit('synced', ev))
   emitter.onError(ev => emitter.emit('error', ev))
+  emitter.onCompleted(ev => emitter.emit('completed', ev))
 
   Object.keys(userOptions).forEach(key => {
     switch (key) {
@@ -359,6 +363,7 @@ function Subscription({ onResponse,
     case 'onError':
     case 'onConnected':
     case 'onDisconnected':
+    case 'onCompleted':
       emitter[key](userOptions[key])
     }
   })
@@ -390,6 +395,9 @@ function Subscription({ onResponse,
     }
     if (response.state === 'synced') {
       broadcastSynced('synced')
+    }
+    if (response.state === 'completed') {
+      broadcastCompleted('completed')
     }
   })
 
