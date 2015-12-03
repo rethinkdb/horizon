@@ -1,8 +1,8 @@
+'use strict'
+
 require('babel-polyfill')
 const snakeCase = require('snake-case')
 const {
-  FusionEmitter,
-  ListenerSet,
   validIndexValue,
   promiseOnEvents,
   MultiEvent,
@@ -11,46 +11,48 @@ const {
   setImmediate,
 } = require('./utility.js')
 
-const {EventEmitter} = require('events')
+const { EventEmitter } = require('events')
 
 const WebSocket = require('./websocket-shim.js')
 
 const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 
-var fusionCount = 0
-
 // Validation helper
-function checkArgs(name, args,
-                   {nullable: nullable=false,
-                    minArgs: minArgs=1,
-                    maxArgs: maxArgs=1}={}){
-  if(minArgs == maxArgs && args.length !== minArgs){
+function checkArgs(name, args, {
+                    nullable: nullable = false,
+                    minArgs: minArgs = 1,
+                    maxArgs: maxArgs = 1 } = {}) {
+  if (minArgs === maxArgs && args.length !== minArgs) {
     let plural = minArgs === 1 ? '' : 's'
     throw new Error(`${name} must receive exactly ${minArgs} argument${plural}`)
   }
-  if(args.length < minArgs){
+  if (args.length < minArgs) {
     let plural = minArgs === 1 ? '' : 's'
     throw new Error(`${name} must receive at least ${minArgs} argument${plural}.`)
   }
-  if(args.length > maxArgs){
+  if (args.length > maxArgs) {
     let plural = maxArgs === 1 ? '' : 's'
     throw new Error(`${name} accepts at most ${maxArgs} argument${plural}.`)
   }
-  for(let i = 0; i < args.length; i++){
-    if(!nullable && args[i] === null){
+  for (let i = 0; i < args.length; i++) {
+    if (!nullable && args[i] === null) {
       let ordinality = maxArgs !== 1 ? ` ${ordinal(i + 1)}` : ''
       throw new Error(`The${ordinality} argument to ${name} must be non-null`)
     }
-    if(args[i] === undefined){
-      throw new Error(`The ${ordinal(i+1)} argument to ${name} must be defined`)
+    if (args[i] === undefined) {
+      throw new Error(`The ${ordinal(i + 1)} argument to ${name} must be defined`)
     }
   }
 }
 
-function Fusion(host, {secure: secure=true}={}) {
+let fusionCount = 0
+
+function Fusion(host, { secure: secure = true } = {}) {
   // Hack so we can do fusion('foo') to create a new collection
   let fusion = Collection(TermBase(createSubscription, query, writeOp))
   Object.setPrototypeOf(fusion, new EventEmitter())
+  let count = fusionCount++
+  fusion.toString = () => `Fusion(${count})`
 
   // underlying WebSocket
   let socket = FusionSocket(host, secure)
@@ -59,11 +61,9 @@ function Fusion(host, {secure: secure=true}={}) {
   // counter for correlating requests and responses
   let requestCounter = 0
 
-  let cleanupListeners // set in dispose method
-
   Object.assign(fusion, MultiEvent({
     onError(broadcast) {
-      socket.onError((err) => {
+      socket.onError(err => {
         broadcast(err)
         fusion.emit('error', err, fusion)
       })
@@ -89,7 +89,7 @@ function Fusion(host, {secure: secure=true}={}) {
           fusion.removeAllListeners('disconnected')
         })
       })
-    }
+    },
   }))
 
   socket.onMessage(socketMessageCallback)
@@ -97,8 +97,8 @@ function Fusion(host, {secure: secure=true}={}) {
   let handshaken = socket
         .connectedPromise
         .then(() => createRequest((reqId, events) => {
-          return socket.send({request_id: reqId})
-            .then(handshake => new Promise((resolve, reject) => {
+          return socket.send({ request_id: reqId })
+            .then(() => new Promise((resolve, reject) => {
               events.onResponse(resp => {
                 events.dispose()
                 resolve(resp)
@@ -114,27 +114,27 @@ function Fusion(host, {secure: secure=true}={}) {
 
   // Helpers and methods defined below
 
-  function createRequest(func){
+  function createRequest(func) {
     let reqId = requestCounter++
     let broadcastError, broadcastResponse
     let event = MultiEvent({
-      onResponse(broadcast){
+      onResponse(broadcast) {
         broadcastResponse = broadcast
       },
-      onError(broadcast){
+      onError(broadcast) {
         broadcastError = broadcast
       },
-      dispose(cleanupEvents){
+      dispose(cleanupEvents) {
         outstanding.delete(reqId)
         setImmediate(cleanupEvents)
         // we don't call .dispose on the value in outstanding since
         // that's what's being called right now
-      }
+      },
     })
     outstanding.set(reqId, {
       broadcastResponse,
       broadcastError,
-      dispose: event.dispose
+      dispose: event.dispose,
     })
     return func(reqId, event)
   }
@@ -154,10 +154,10 @@ function Fusion(host, {secure: secure=true}={}) {
 
   function send(type, data) {
     return createRequest((reqId, events) => {
-      let req = {type: type, options: data, request_id: reqId}
+      let req = { type: type, options: data, request_id: reqId }
       let resp = eventsToPromise(events)
       return handshaken
-        .then(handshake => socket.send(req))
+        .then(() => socket.send(req))
         .then(() => resp)
     })
   }
@@ -176,17 +176,17 @@ function Fusion(host, {secure: secure=true}={}) {
           resolve(results)
         }
       })
-      events.onError((err) => {
+      events.onError(err => {
         events.dispose()
-        reject(new Error(err))
+        reject(new Error(JSON.stringify(err)))
       })
     })
   }
 
-  function createSubscription(query, userOptions) {
+  function createSubscription(queryOptions, userOptions) {
     return createRequest((reqId, events) => {
-      let req = {type: 'subscribe', options: query, request_id: reqId}
-      handshaken.then(handshake => socket.send(req))
+      let req = { type: 'subscribe', options: queryOptions, request_id: reqId }
+      handshaken.then(() => socket.send(req))
       return Subscription({
         onResponse: events.onResponse,
         onError: events.onError,
@@ -199,7 +199,7 @@ function Fusion(host, {secure: secure=true}={}) {
   }
 
   function writeOp(opType, collectionName, documents) {
-    return send(opType, {data: documents, collection: collectionName})
+    return send(opType, { data: documents, collection: collectionName })
   }
 
   function query(data) {
@@ -209,8 +209,8 @@ function Fusion(host, {secure: secure=true}={}) {
   function endSubscription(requestId) {
     return () => {
       // Can't use send since we need to set the requestId ourselves
-      return handshaken.then(handshake => {
-        return socket.send({request_id: requestId, type: 'end_subscription'})
+      return handshaken.then(() => {
+        return socket.send({ request_id: requestId, type: 'end_subscription' })
       })
     }
   }
@@ -219,21 +219,21 @@ function Fusion(host, {secure: secure=true}={}) {
 Fusion.log = () => undefined
 Fusion.logError = () => undefined
 
-Fusion.enableLogging = (debug=true) => {
-  if(debug){
+Fusion.enableLogging = (debug = true) => {
+  if (debug) {
     Fusion.log = (...args) => console.debug(...args)
     Fusion.logError = (...args) => console.error(...args)
-  }else{
+  } else {
     Fusion.log = () => undefined
     Fusion.logError = () => undefined
   }
 }
 
-var socketCount = 0
+let socketCount = 0
 
 // Wraps native websockets with an event interface and deals with some
 // simple protocol level things like serializing from/to JSON
-function FusionSocket(host, secure=true) {
+function FusionSocket(host, secure = true) {
   let hostString = (secure ? 'wss://' : 'ws://') + host
   let ws = new WebSocket(hostString, PROTOCOL_VERSION)
   let socket // Set inside the promise initialization function
@@ -242,46 +242,45 @@ function FusionSocket(host, secure=true) {
     let broadcastError; // used in two branches onMessage and onError
     socket = MultiEvent({
       onConnected(broadcastConnected) {
-        ws.onopen = (wsEvent) => {
+        ws.onopen = wsEvent => {
           broadcastConnected(wsEvent)
           resolve(wsEvent)
         }
       },
       onDisconnected(broadcastDisconnected) {
-        ws.onclose = (wsEvent) => {
+        ws.onclose = wsEvent => {
           broadcastDisconnected(wsEvent)
-          reject(new Error(wsEvent))
+          reject(new Error(`websocket closed`))
         }
       },
       onError(broadcastErr) {
-        ws.onerror = (wsEvent) => {
-          console.error("Got a connection error", wsEvent)
+        ws.onerror = wsEvent => {
           broadcastError = broadcastErr
-          broadcastErr(wsEvent)
-          reject(new Error(wsEvent))
+          broadcastError(wsEvent)
+          reject(new Error('websocket error'))
         }
       },
       onMessage(broadcastMessage) {
-        ws.onmessage = (event) => {
+        ws.onmessage = event => {
           let data = JSON.parse(event.data)
           if (data.error !== undefined) {
-            Fusion.logError("Received Error", JSON.stringify(data, undefined, 2))
+            Fusion.logError('Received Error', JSON.stringify(data, undefined, 2))
           } else {
-            Fusion.log("Received", JSON.stringify(data, undefined, 2))
+            Fusion.log('Received', JSON.stringify(data, undefined, 2))
           }
-          if(data.request_id === undefined){
+          if (data.request_id === undefined) {
             broadcastError(
               `Received response with no request_id: ${event.data}`)
-          }else {
+          } else {
             broadcastMessage(data)
           }
         }
       },
-      dispose(cleanupEvents){
+      dispose(cleanupEvents) {
         ws.close(1000)
         return promiseOnEvents(socket.onDisconnected, socket.onError)
-          .then(() => {setImmediate(cleanupEvents)})
-      }
+          .then(() => { setImmediate(cleanupEvents) })
+      },
     })
   })
 
@@ -294,51 +293,46 @@ function FusionSocket(host, secure=true) {
 
   return socket
 
-  function toString(){
+  function toString() {
     return `FusionSocket([${socketCount++}]${hostString})`
   }
 
-  function send(message, event) {
-    if (typeof message !== 'string') {
-      message = JSON.stringify(message, undefined, 4)
-    }
-    Fusion.log("Sending", message)
-    return connectedPromise.then(() => ws.send(message))
+  function send(message) {
+    let protoMessage = JSON.stringify(message, undefined, 4)
+    Fusion.log('Sending', message)
+    return connectedPromise.then(() => ws.send(protoMessage))
   }
 }
 
 
-
 // This is the object returned for changefeed queries
-function Subscription({onResponse,
+function Subscription({ onResponse,
                        onError,
                        endSubscription,
                        onConnected,
                        onDisconnected,
-                       userOptions: userOptions = {},}={}) {
+                       userOptions: userOptions = {} } = {}) {
   let emitter = new EventEmitter()
-  let hasChangeListener
+  let hasChangeListener, broadcastAdded, broadcastRemoved, broadcastChanged,
+    broadcastSynced
   emitter.onConnected = onConnected
   emitter.onDisconnected = onDisconnected
   emitter.onError = onError
-
-  let broadcastAdded, broadcastRemoved, broadcastChanged,
-      broadcastSynced, broadcastError
 
   Object.assign(emitter, MultiEvent({
     onAdded(broadcast) {
       broadcastAdded = broadcast
     },
-    onRemoved(broadcast){
+    onRemoved(broadcast) {
       broadcastRemoved = broadcast
     },
-    onChanged(broadcast){
+    onChanged(broadcast) {
       broadcastChanged = broadcast
     },
-    onSynced(broadcast){
+    onSynced(broadcast) {
       broadcastSynced = broadcast
     },
-    dispose(cleanupSubscriptionEvents){
+    dispose(cleanupSubscriptionEvents) {
       return endSubscription.then(() => {
         setImmediate(() => {
           cleanupSubscriptionEvents()
@@ -347,7 +341,7 @@ function Subscription({onResponse,
           emitter.removeAllListeners()
         })
       })
-    }
+    },
   }))
 
   emitter.onAdded(ev => emitter.emit('added', ev))
@@ -357,7 +351,7 @@ function Subscription({onResponse,
   emitter.onError(ev => emitter.emit('error', ev))
 
   Object.keys(userOptions).forEach(key => {
-    switch(key) {
+    switch (key) {
     case 'onAdded':
     case 'onRemoved':
     case 'onChanged':
@@ -369,32 +363,32 @@ function Subscription({onResponse,
     }
   })
 
-  let isAdded   = (c) => c.new_val !== null && c.old_val === null
-  let isRemoved = (c) => c.new_val === null && c.old_val !== null
-  let isChanged = (c) => c.new_val !== null && c.old_val !== null
+  let isAdded = c => c.new_val !== null && c.old_val === null
+  let isRemoved = c => c.new_val === null && c.old_val !== null
+  let isChanged = c => c.new_val !== null && c.old_val !== null
 
   onResponse(response => {
     // Response won't be an error since that's handled by the Fusion
     // object
-    if(response.data !== undefined) {
+    if (response.data !== undefined) {
       response.data.forEach(change => {
-        if(isChanged(change)) {
-          if(!hasChangeListener) {
+        if (isChanged(change)) {
+          if (!hasChangeListener) {
             broadcastRemoved(change.old_val)
             broadcastAdded(change.new_val)
           } else {
             broadcastChanged(change)
           }
-        } else if(isAdded(change)) {
+        } else if (isAdded(change)) {
           broadcastAdded(change.new_val)
-        } else if(isRemoved(change)) {
+        } else if (isRemoved(change)) {
           broadcastRemoved(change.old_val)
         } else {
-          console.error("Unknown object received on subscription: ", change)
+          console.error('Unknown object received on subscription: ', change)
         }
       })
     }
-    if(response.state === 'synced'){
+    if (response.state === 'synced') {
       broadcastSynced('synced')
     }
   })
@@ -408,7 +402,7 @@ function Subscription({onResponse,
 // returned method is given to each Term, and is called with its
 // initializer, to customize the object returned.
 function TermBase(createSubscription, queryFunc, writeOp) {
-  let termBase = (initializer) => {
+  let termBase = initializer => {
     let term = {}
     initializer(addMethods, writeOp)
     return term
@@ -416,7 +410,7 @@ function TermBase(createSubscription, queryFunc, writeOp) {
     // Given a query object, this adds the subscribe and value methods
     // to the term
     function addMethods(queryObj, ...keys) {
-      term.subscribe = (options) => createSubscription(queryObj, options)
+      term.subscribe = options => createSubscription(queryObj, options)
       term.value = () => queryFunc(queryObj)
 
       // Extend the object with the specified methods. Will fill in
@@ -431,15 +425,15 @@ function TermBase(createSubscription, queryFunc, writeOp) {
         below: Below,
         limit: Limit,
       }
-      for(let key in methods){
-        if(keys.indexOf(key) !== -1){
+      for (let key in methods) {
+        if (keys.indexOf(key) !== -1) {
           // Check if query object already has it. If so, insert a dummy
           // method that throws an error.
-          if(snakeCase(key) in queryObj){
+          if (snakeCase(key) in queryObj) {
             term[key] = () => {
               throw new Error(`${key} has already been called on this query`)
             }
-          }else{
+          } else {
             term[key] = methods[key](queryObj, termBase)
           }
         } else {
@@ -455,22 +449,23 @@ function TermBase(createSubscription, queryFunc, writeOp) {
 }
 
 
-function Collection(termBase){
+function Collection(termBase) {
   return function(collectionName) {
-    let query = {collection: collectionName}
+    let query = { collection: collectionName }
     let fusionWrite // set inside call to termBase
 
     return Object.assign(termBase((addMethods, writeOp) => {
       addMethods(query, 'find', 'findAll', 'order', 'above', 'below', 'limit')
       fusionWrite = (name, args, documents) => {
         checkArgs(name, args)
-        if(!Array.isArray(documents)){
-          documents = [documents]
-        }else if(documents.length === 0){
+        let wrappedDocs = documents
+        if (!Array.isArray(documents)) {
+          wrappedDocs = [ documents ]
+        } else if (documents.length === 0) {
           // Don't bother sending no-ops to the server
           return Promise.resolve([])
         }
-        return writeOp(name, collectionName, documents)
+        return writeOp(name, collectionName, wrappedDocs)
       }
     }), {
       // Collection public write methods
@@ -483,67 +478,65 @@ function Collection(termBase){
       removeAll,
     })
 
-    function store(documents){
+    function store(documents) {
       return fusionWrite('store', arguments, documents)
     }
 
-    function upsert(documents){
+    function upsert(documents) {
       return fusionWrite('upsert', arguments, documents)
     }
 
-    function insert(documents){
+    function insert(documents) {
       return fusionWrite('insert', arguments, documents)
     }
 
-    function replace(documents){
+    function replace(documents) {
       return fusionWrite('replace', arguments, documents)
     }
 
-    function update(documents){
+    function update(documents) {
       return fusionWrite('update', arguments, documents)
     }
 
-    function remove(documentOrId){
-      if(validIndexValue(documentOrId)){
-        documentOrId = {id: documentOrId}
-      }
-      return fusionWrite('remove', arguments, [documentOrId]).then(() => undefined)
+    function remove(documentOrId) {
+      let wrapped = validIndexValue(documentOrId) ? { id: documentOrId } : documentOrId
+      return fusionWrite('remove', arguments, [ wrapped ]).then(() => undefined)
     }
 
-    function removeAll(documentsOrIds){
-      if(!Array.isArray(documentsOrIds)){
-        throw new Error("removeAll takes an array as an argument")
+    function removeAll(documentsOrIds) {
+      if (!Array.isArray(documentsOrIds)) {
+        throw new Error('removeAll takes an array as an argument')
       }
-      if(arguments.length > 1){
-        throw new Error("removeAll only takes one argument (an array)")
+      if (arguments.length > 1) {
+        throw new Error('removeAll only takes one argument (an array)')
       }
-      documentsOrIds = documentsOrIds.map(item => {
-        if(validIndexValue(item)){
-          return {id: item}
-        }else{
+      let wrapped = documentsOrIds.map(item => {
+        if (validIndexValue(item)) {
+          return { id: item }
+        } else {
           return item
         }
       })
-      return fusionWrite('remove', arguments, documentsOrIds).then(() => undefined)
+      return fusionWrite('remove', arguments, wrapped).then(() => undefined)
     }
   }
 }
 
 function FindAll(previousQuery, termBase) {
   return function(...fieldValues) {
-    checkArgs('findAll', arguments, {maxArgs: 100})
+    checkArgs('findAll', arguments, { maxArgs: 100 })
     let wrappedFields = fieldValues.map(item => {
-      if(validIndexValue(item)){
-        return {id: item}
-      }else{
+      if (validIndexValue(item)) {
+        return { id: item }
+      } else {
         return item
       }
     })
-    let findAllQuery = strictAssign(previousQuery, {find_all: wrappedFields})
-    return termBase((addMethods) => {
-      if(wrappedFields.length === 1){
+    let findAllQuery = strictAssign(previousQuery, { find_all: wrappedFields })
+    return termBase(addMethods => {
+      if (wrappedFields.length === 1) {
         addMethods(findAllQuery, 'order', 'above', 'below', 'limit')
-      }else{
+      } else {
         addMethods(findAllQuery)
       }
     })
@@ -553,8 +546,8 @@ function FindAll(previousQuery, termBase) {
 function Find(previousQuery, termBase) {
   return function(idOrObject) {
     checkArgs('find', arguments)
-    let findObject = validIndexValue(idOrObject) ? {id: idOrObject} : idOrObject
-    let findQuery = strictAssign(previousQuery, {find: findObject})
+    let findObject = validIndexValue(idOrObject) ? { id: idOrObject } : idOrObject
+    let findQuery = strictAssign(previousQuery, { find: findObject })
     let term = termBase(addMethods => addMethods(findQuery))
 
     // Wrap the .value() method with a callback that unwraps the resulting array
@@ -565,9 +558,9 @@ function Find(previousQuery, termBase) {
 }
 
 function Above(previousQuery, termBase) {
-  return function(aboveSpec, bound='closed') {
-    checkArgs('above', arguments, {minArgs: 1, maxArgs: 2})
-    let aboveQuery = strictAssign(previousQuery, {above: [aboveSpec, bound]})
+  return function(aboveSpec, bound = 'closed') {
+    checkArgs('above', arguments, { minArgs: 1, maxArgs: 2 })
+    let aboveQuery = strictAssign(previousQuery, { above: [ aboveSpec, bound ] })
     return termBase(addMethods => {
       addMethods(aboveQuery, 'findAll', 'order', 'below', 'limit')
     })
@@ -575,9 +568,9 @@ function Above(previousQuery, termBase) {
 }
 
 function Below(previousQuery, termBase) {
-  return function(belowSpec, bound='open') {
-    checkArgs('below', arguments, {minArgs: 1, maxArgs: 2})
-    let belowQuery = strictAssign(previousQuery, {below: [belowSpec, bound]})
+  return function(belowSpec, bound = 'open') {
+    checkArgs('below', arguments, { minArgs: 1, maxArgs: 2 })
+    let belowQuery = strictAssign(previousQuery, { below: [ belowSpec, bound ] })
     return termBase(addMethods => {
       addMethods(belowQuery, 'findAll', 'order', 'above', 'limit')
     })
@@ -585,11 +578,11 @@ function Below(previousQuery, termBase) {
 }
 
 function Order(previousQuery, termBase) {
-  return function(fields, direction='ascending') {
-    checkArgs('order', arguments, {minArgs: 1, maxArgs: 2})
-    let wrappedFields = Array.isArray(fields) ? fields : [fields]
+  return function(fields, direction = 'ascending') {
+    checkArgs('order', arguments, { minArgs: 1, maxArgs: 2 })
+    let wrappedFields = Array.isArray(fields) ? fields : [ fields ]
     let orderQuery = strictAssign(previousQuery, {
-      order: [wrappedFields, direction]
+      order: [ wrappedFields, direction ],
     })
     return termBase(addMethods => {
       addMethods(orderQuery, 'findAll', 'above', 'below', 'limit')
@@ -600,7 +593,7 @@ function Order(previousQuery, termBase) {
 function Limit(previousQuery, termBase) {
   return function(size) {
     checkArgs('limit', arguments)
-    let limitQuery = strictAssign(previousQuery, {limit: size})
+    let limitQuery = strictAssign(previousQuery, { limit: size })
     return termBase(addMethods => addMethods(limitQuery))
   }
 }

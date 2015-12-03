@@ -1,20 +1,21 @@
+'use strict'
+
 require('babel-polyfill')
-const EventEmitter = require('events').EventEmitter
 const Event = require('geval')
 
 
 // Checks whether the return value is a valid primary or secondary
 // index value
-function validIndexValue(val){
-  if(val == null){
+function validIndexValue(val) {
+  if (val === null) {
     return false
   }
-  if(['boolean', 'number', 'string'].indexOf(typeof val) !== -1){
+  if ([ 'boolean', 'number', 'string' ].indexOf(typeof val) !== -1) {
     return true
   }
-  if(Array.isArray(val)){
+  if (Array.isArray(val)) {
     let containsBad = false
-    val.forEach((v) => {
+    val.forEach(v => {
       containsBad = containsBad || validIndexValue(v)
     })
     return containsBad
@@ -22,11 +23,11 @@ function validIndexValue(val){
   return false
 }
 
-function promiseOnEvents(resolveEvent, rejectEvent){
+function promiseOnEvents(resolveEvent, rejectEvent) {
   let registry = []
   return (new Promise((resolve, reject) => {
     registry.push(resolveEvent(resolve))
-    registry.push(rejectEvent(rejectVal => reject(new Error(rejectVal))))
+    registry.push(rejectEvent(rejectVal => reject(new Error(JSON.stringify(rejectVal)))))
   })).then(
     success => {
       emptyAndCallAll(registry)
@@ -39,14 +40,14 @@ function promiseOnEvents(resolveEvent, rejectEvent){
   )
 }
 
-function removeFromArray(registry, callback){
+function removeFromArray(registry, callback) {
   let index = registry.indexOf(callback)
   if (index !== -1) {
     registry.splice(index, 1)
   }
 }
 
-function emptyAndCallAll(registry){
+function emptyAndCallAll(registry) {
   return () => {
     let func = registry.pop()
     while (func !== undefined) {
@@ -70,11 +71,11 @@ function strictAssign(original, newFields) {
 
 // A wrapper for geval Events that keeps track of removal functions
 // and calls them all when the .dispose method is called on the event
-function DisposableEvent(setupFunc){
+function DisposableEvent(setupFunc) {
   let registry = []
   let listener = Event(setupFunc)
 
-  function wrappedListener(eventhandler){
+  function wrappedListener(eventhandler) {
     let remover = listener(eventhandler)
     let wrappedRemover = () => {
       removeFromArray(registry, remover)
@@ -101,11 +102,11 @@ function DisposableEvent(setupFunc){
 //   eggs: Event,
 //   dispose: () => {/* disposes ham and eggs then does console log*/},
 // }
-function MultiEvent(initializer){
+function MultiEvent(initializer) {
   let registry = []
   let multiEvent = {}
   for (let propName in initializer) {
-    if(propName === 'dispose'){
+    if (propName === 'dispose') {
       continue
     }
     let event = DisposableEvent(initializer[propName])
@@ -131,14 +132,14 @@ function MultiEvent(initializer){
   return multiEvent
 }
 
-function ordinal(x){
-  if([11,12,13].indexOf(x) !== -1){
+function ordinal(x) {
+  if ([ 11, 12, 13 ].indexOf(x) !== -1) {
     return `${x}th`
-  } else if(x % 10 === 1){
+  } else if (x % 10 === 1) {
     return `${x}st`
-  } else if(x % 10 === 2){
+  } else if (x % 10 === 2) {
     return `${x}nd`
-  } else if(x % 10 === 3){
+  } else if (x % 10 === 3) {
     return `${x}rd`
   }
   return `${x}th`
