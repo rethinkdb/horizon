@@ -2,7 +2,10 @@
 
 const Joi = require('joi');
 
-const read = Joi.object({
+const read = Joi.alternatives().try(Joi.object().keys({
+  collection: Joi.string().token().required(),
+  find: Joi.object().min(1).unknown(true).required(),
+}).unknown(false), Joi.object().keys({
   collection: Joi.string().token().required(),
 
   limit: Joi.number().integer().greater(-1).optional()
@@ -11,26 +14,20 @@ const read = Joi.object({
   order: Joi.array().ordered(
       Joi.array().items(Joi.string()).min(1).unique().label('fields').required(),
       Joi.string().valid('ascending', 'descending').label('direction').required()).optional()
-    .when('find_all', { is: Joi.array().min(2).required(), then: Joi.forbidden() })
-    .when('find', { is: Joi.any().required(), then: Joi.forbidden() }),
+    .when('find_all', { is: Joi.array().min(2).required(), then: Joi.forbidden() }),
 
   above: Joi.array().ordered(
       Joi.object().length(1).unknown(true).label('value').required(),
       Joi.string().valid('open', 'closed').label('bound_type').required()).optional()
-    .when('find_all', { is: Joi.array().min(2).required(), then: Joi.forbidden() })
-    .when('find', { is: Joi.any().required(), then: Joi.forbidden() }),
+    .when('find_all', { is: Joi.array().min(2).required(), then: Joi.forbidden() }),
 
   below: Joi.array().ordered(
       Joi.object().length(1).unknown(true).label('value').required(),
       Joi.string().valid('open', 'closed').label('bound_type').required()).optional()
-    .when('find_all', { is: Joi.array().min(2).required(), then: Joi.forbidden() })
-    .when('find', { is: Joi.any().required(), then: Joi.forbidden() }),
-
-  find: Joi.object().min(1).unknown(true).optional()
-    .when('find_all', { is: Joi.any().required(), then: Joi.forbidden() }),
+    .when('find_all', { is: Joi.array().min(2).required(), then: Joi.forbidden() }),
 
   find_all: Joi.array().items(Joi.object().min(1).label('item').unknown(true)).min(1).optional(),
-}).unknown(false);
+}).unknown(false));
 
 const write_id_optional = Joi.object({
   collection: Joi.string().token().required(),

@@ -68,7 +68,7 @@ const make_reql = (raw_request, metadata) => {
   };
 
   if (options.find) {
-    reql = ordered_between(options.find).nth(0).default(null);
+    reql = ordered_between(options.find).limit(1);
   } else if (options.find_all && options.find_all.length > 1) {
     reql = r.union.apply(r, options.find_all.map((x) => ordered_between(x)));
   } else {
