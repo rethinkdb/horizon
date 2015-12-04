@@ -563,7 +563,8 @@ function Find(previousQuery, termBase) {
 
     // Wrap the .value() method with a callback that unwraps the resulting array
     let superValue = term.value
-    term.value = () => superValue().then(resp => resp[0])
+    term.value = () => superValue().then(
+      resp => (resp.length === 0) ? null : resp[0])
     return term
   }
 }
