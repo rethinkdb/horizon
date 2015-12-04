@@ -1,7 +1,6 @@
 'use strict'
 
 require('babel-polyfill')
-const Event = require('geval')
 
 
 // Checks whether the return value is a valid primary or secondary
@@ -23,40 +22,6 @@ function validIndexValue(val) {
   return false
 }
 
-function promiseOnEvents(resolveEvent, rejectEvent) {
-  let registry = []
-  return (new Promise((resolve, reject) => {
-    registry.push(resolveEvent(resolve))
-    registry.push(rejectEvent(rejectVal => reject(new Error(JSON.stringify(rejectVal)))))
-  })).then(
-    success => {
-      emptyAndCallAll(registry)
-      return success
-    },
-    error => {
-      emptyAndCallAll(registry)
-      return error
-    }
-  )
-}
-
-function removeFromArray(registry, callback) {
-  let index = registry.indexOf(callback)
-  if (index !== -1) {
-    registry.splice(index, 1)
-  }
-}
-
-function emptyAndCallAll(registry) {
-  return () => {
-    let func = registry.pop()
-    while (func !== undefined) {
-      func()
-      func = registry.pop()
-    }
-  }
-}
-
 // Helper method for terms that merges new fields into an existing
 // object, throwing an exception if a field is merged in that already
 // exists
@@ -69,69 +34,6 @@ function strictAssign(original, newFields) {
   return Object.assign({}, original, newFields)
 }
 
-// A wrapper for geval Events that keeps track of removal functions
-// and calls them all when the .dispose method is called on the event
-function DisposableEvent(setupFunc) {
-  let registry = []
-  let listener = Event(setupFunc)
-
-  function wrappedListener(eventhandler) {
-    let remover = listener(eventhandler)
-    let wrappedRemover = () => {
-      removeFromArray(registry, remover)
-      remover()
-    }
-    registry.push(remover)
-    return wrappedRemover
-  }
-
-  wrappedListener.dispose = emptyAndCallAll(registry)
-  wrappedListener.listenerCount = () => registry.length
-
-  return wrappedListener
-}
-
-// Creates an object with multiple DisposablEvents within it
-// Example:
-// MultiEvent({
-//    ham: (broadcastHam) => {/* decide when to broadcastHam */},
-//    eggs: (broadcastEggs) => {/* decide when to broadcastEggs */},
-//    dispose: (cleanupEvents) => {cleanupEvents(); console.log("Disposed!")}
-// Will return:
-// {
-//   ham: Event,
-//   eggs: Event,
-//   dispose: () => {/* disposes ham and eggs then does console log*/},
-// }
-function MultiEvent(initializer) {
-  let registry = []
-  let multiEvent = {}
-  for (let propName in initializer) {
-    if (propName === 'dispose') {
-      continue
-    }
-    let event = DisposableEvent(initializer[propName])
-    multiEvent[propName] = event
-    registry.push(event.dispose)
-  }
-  let cleanupEvents = emptyAndCallAll(registry)
-  let disposeAll
-  // If the user specified a disposal function, we pass them the event
-  // cleaner and return whatever they want to return
-  if (initializer.dispose !== undefined) {
-    disposeAll = () => initializer.dispose(cleanupEvents)
-  } else {
-    disposeAll = cleanupEvents
-  }
-  multiEvent.dispose = disposeAll
-  Object.keys(multiEvent).forEach(key => {
-    // Cleaning up any event will clean up all events
-    if (key !== 'dispose') {
-      multiEvent[key].dispose = disposeAll
-    }
-  })
-  return multiEvent
-}
 
 function ordinal(x) {
   if ([ 11, 12, 13 ].indexOf(x) !== -1) {
@@ -146,16 +48,46 @@ function ordinal(x) {
   return `${x}th`
 }
 
+// setTimeout(0) in the browser has 5ms clamping. Promise.resolve()
+// will be scheduled immediately after the currently executing task (a
+// microtask)
 function setImmediate(callback) {
   return Promise.resolve().then(callback)
 }
 
+// Validation helper
+function checkArgs(name, args, {
+                    nullable: nullable = false,
+                    minArgs: minArgs = 1,
+                    maxArgs: maxArgs = 1 } = {}) {
+  if (minArgs === maxArgs && args.length !== minArgs) {
+    let plural = minArgs === 1 ? '' : 's'
+    throw new Error(`${name} must receive exactly ${minArgs} argument${plural}`)
+  }
+  if (args.length < minArgs) {
+    let plural = minArgs === 1 ? '' : 's'
+    throw new Error(`${name} must receive at least ${minArgs} argument${plural}.`)
+  }
+  if (args.length > maxArgs) {
+    let plural = maxArgs === 1 ? '' : 's'
+    throw new Error(`${name} accepts at most ${maxArgs} argument${plural}.`)
+  }
+  for (let i = 0; i < args.length; i++) {
+    if (!nullable && args[i] === null) {
+      let ordinality = maxArgs !== 1 ? ` ${ordinal(i + 1)}` : ''
+      throw new Error(`The${ordinality} argument to ${name} must be non-null`)
+    }
+    if (args[i] === undefined) {
+      throw new Error(`The ${ordinal(i + 1)} argument to ${name} must be defined`)
+    }
+  }
+}
+
+
 Object.assign(module.exports, {
   validIndexValue,
-  MultiEvent,
-  DisposableEvent,
-  promiseOnEvents,
   strictAssign,
   ordinal,
   setImmediate,
+  checkArgs,
 })
