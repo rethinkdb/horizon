@@ -313,8 +313,11 @@ function Subscription({ onResponse,
                        onDisconnected,
                        userOptions: userOptions = {} } = {}) {
   let emitter = new EventEmitter()
-  let hasChangeListener, broadcastAdded, broadcastRemoved, broadcastChanged,
-    broadcastSynced, broadcastCompleted
+  let broadcastAdded,
+    broadcastRemoved,
+    broadcastChanged,
+    broadcastSynced,
+    broadcastCompleted
   emitter.onConnected = onConnected
   emitter.onDisconnected = onDisconnected
   emitter.onError = onError
@@ -368,9 +371,9 @@ function Subscription({ onResponse,
     }
   })
 
-  let isAdded = c => c.new_val !== null && c.old_val === null
-  let isRemoved = c => c.new_val === null && c.old_val !== null
-  let isChanged = c => c.new_val !== null && c.old_val !== null
+  let isAdded = c => c.new_val != null && c.old_val == null
+  let isRemoved = c => c.new_val == null && c.old_val != null
+  let isChanged = c => c.new_val != null && c.old_val != null
 
   onResponse(response => {
     // Response won't be an error since that's handled by the Fusion
@@ -378,7 +381,7 @@ function Subscription({ onResponse,
     if (response.data !== undefined) {
       response.data.forEach(change => {
         if (isChanged(change)) {
-          if (!hasChangeListener) {
+          if (emitter.onChanged.listenerCount() <= 1) {
             broadcastRemoved(change.old_val)
             broadcastAdded(change.new_val)
           } else {
@@ -396,8 +399,8 @@ function Subscription({ onResponse,
     if (response.state === 'synced') {
       broadcastSynced('synced')
     }
-    if (response.state === 'completed') {
-      broadcastCompleted('completed')
+    if (response.state === 'complete') {
+      broadcastCompleted('complete')
     }
   })
 

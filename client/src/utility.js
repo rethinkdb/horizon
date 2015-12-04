@@ -86,6 +86,7 @@ function DisposableEvent(setupFunc) {
   }
 
   wrappedListener.dispose = emptyAndCallAll(registry)
+  wrappedListener.listenerCount = () => registry.length
 
   return wrappedListener
 }
