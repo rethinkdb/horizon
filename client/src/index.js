@@ -3,12 +3,10 @@
 require('babel-polyfill')
 
 const { setImmediate } = require('./utility.js')
-
 const { MultiEvent, promiseOnEvents } = require('./events.js')
-
 const { Collection, TermBase } = require('./ast.js')
-
 const WebSocket = require('./websocket-shim.js')
+const { serialize, deserialize } = require('./serialization.js')
 
 module.exports = Fusion
 
@@ -157,7 +155,8 @@ function Fusion(host, { secure: secure = true } = {}) {
   }
 
   function writeOp(opType, collectionName, documents) {
-    return send(opType, { data: documents, collection: collectionName })
+    let serializedDocs = serialize(documents)
+    return send(opType, { data: serializedDocs, collection: collectionName })
   }
 
   function query(data) {
@@ -230,7 +229,7 @@ function FusionSocket(host, secure = true) {
             broadcastError(
               `Received response with no request_id: ${event.data}`)
           } else {
-            broadcastMessage(data)
+            broadcastMessage(deserialize(data))
           }
         }
       },
