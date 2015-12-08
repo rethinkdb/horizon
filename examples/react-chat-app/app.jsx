@@ -100,11 +100,9 @@ var app = app || {};
           var currentMessages = this.state.messages;
 
           // Pop off the front to keep us at 10.
-          console.log(currentMessages);
           if (currentMessages.length >= 10){
             currentMessages.shift();
           }
-          console.log(currentMessages)
 
           // Set the state with the newest message
           this.setState({
