@@ -137,7 +137,6 @@ var app = app || {};
 						<input
 							className="toggle-all"
 							type="checkbox"
-							onChange={this.toggleAll}
 							checked={activeTodoCount === 0}
 						/>
 						<ul className="todo-list">
@@ -167,7 +166,7 @@ var app = app || {};
 		}
 	});
 
-	var model = new app.TodoModel("todos_react");
+	const model = new app.TodoModel("todos_react");
 
 	function render() {
 		React.render(

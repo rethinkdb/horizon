@@ -32,10 +32,24 @@ var app = app || {};
 			return uuid;
 		},
 
+
+    shouldComponentUpdate: function(_, nextState){
+      // Only rerender this component if the length in messages has changed.
+      return this.state.messages.length !== nextState.messages.length;
+    },
+
     getDefaultProps: function(){
+
+      const time = new Date().getMilliseconds();
+
+      // Precache the avatar image so it immediately shows on input enter.
+      const image = new Image();
+      image.src = `http://api.adorable.io/avatars/50/${time}.png`;
+
       return {
         fusion: fusion("react_messages"),
-        authorId: new Date().getMilliseconds()
+        avatarUrl: image.src,
+        authorId: time
       };
     },
 
@@ -47,35 +61,55 @@ var app = app || {};
     },
 
     componentDidMount: function(){
-      this.props.fusion.value().then((function(result){
-        this.setState({
-          messages: result
+
+      // Get limited 10 and sorted by date stored values from
+      //  the DB and setState with them.
+      this.props.fusion
+        .order("datetime", "descending")
+        .limit(10)
+        .value().then((function(result){
+          this.setState({
+            messages: result
         });
       }).bind(this));
+
+      // As soon as this component is mounted, enable the input
       this.setState({
         disabled: false,
       });
+
+      // Initiate the changefeeds
       this.subscribe();
     },
 
     save: function(message){
-      console.log("SUBMIT");
+      //Save method for handling messages
       this.props.fusion.store({
         id: this.uuid(),
         text: message,
-        authorId: this.props.authorId
+        authorId: this.props.authorId,
+        datetime: new Date()
       });
     },
 
     subscribe: function(){
       this.props.fusion.subscribe()
         .on("added", (function(added){
-          console.log("ADDED");
-          console.log(added);
+
+          // Grab current state of messages
+          var currentMessages = this.state.messages;
+
+          // Pop off the front to keep us at 10.
+          console.log(currentMessages);
+          if (currentMessages.length >= 10){
+            currentMessages.shift();
+          }
+          console.log(currentMessages)
+
+          // Set the state with the newest message
           this.setState({
-            messages: this.state.messages.concat(added)
+            messages: currentMessages.concat(added)
           });
-          // this.props.messages = this.props.messages.concat(added);
         }).bind(this));
     },
 
@@ -94,10 +128,13 @@ var app = app || {};
 
   app.ChatList = React.createClass({
     render: function(){
-      let messages = this.props.messages.map(function(message){
+
+      // Construct list of ChatMessages
+      const messages = this.props.messages.map(function(message){
         return <app.ChatMessage message={message} key={message.id}/>;
       }, this);
 
+      // Return assembled ChatList of Messages
       return (
         <div className="row">
           <ul>
@@ -123,31 +160,36 @@ var app = app || {};
 
   app.ChatInput = React.createClass({
     getDefaultProps: function(){
+      // Set default props for enter key
       return {
-        ENTER_KEY: 13,
-        ESCAPE_KEY: 27
+        ENTER_KEY: 13
       };
     },
 
     getInitialState: function(){
+      // Initial state of the inputText is blank ""
       return {
-        inputText:""
+        inputText: ""
       }
     },
 
     handleKeyDown: function(event){
+      // Checking if enter key has been pressed to handle contents of
+      //  input field value.
       if(event.keyCode === this.props.ENTER_KEY){
-        console.log("ENTER KEY DETECTED")
         const val = this.state.inputText.trim();
         if (val){
+          // Save the value
           this.props.onSave(val);
+          // Empty the input value
           this.setState({inputText: ""});
         }
       }
     },
 
     handleChange: function(event){
-      console.log("HANDLINGCHANGE - ChatInput")
+      // Every time the value of the input field changes we update the state
+      //  object to have the value of the input field.
       this.setState(
         {inputText: event.target.value}
       );
@@ -169,6 +211,7 @@ var app = app || {};
     }
   });
 
+  // Render this monster.
   ReactDOM.render(
     <app.ChatApp/>,
     document.getElementById('app')
