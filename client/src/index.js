@@ -5,7 +5,8 @@ require('babel-polyfill')
 const { setImmediate } = require('./utility.js')
 const { MultiEvent, promiseOnEvents } = require('./events.js')
 const { Collection, TermBase } = require('./ast.js')
-const WebSocket = require('./websocket-shim.js')
+
+const { WebSocket, Rx } = require('./shim.js')
 const { serialize, deserialize } = require('./serialization.js')
 
 module.exports = Fusion
@@ -103,7 +104,7 @@ function Fusion(host, { secure: secure = true } = {}) {
       if (data.error !== undefined) {
         req.broadcastError(data)
       } else {
-        req.broadcastResponse(data)
+        req.broadcastResponse({ state: data.state, data: data.data })
       }
     }
   }
@@ -343,5 +344,30 @@ function Subscription({ onResponse,
     }
   })
 
+  // If the Rx module is available, create observables
+  if (Rx) {
+    Object.assign(sub, {
+      observeChanged: observe(sub.onChanged, onError, sub.onCompleted),
+      observeAdded: observe(sub.onAdded, onError, sub.onCompleted),
+      observeRemoved: observe(sub.onRemoved, onError, sub.onCompleted),
+      observeConnected: observe(sub.onConnected, onError, sub.onCompleted),
+      observeDisconnected: observe(sub.onDisconnected, onError, sub.onCompleted),
+      observeSynced: observe(sub.onSynced, onError, sub.onCompleted),
+    })
+  }
+
   return sub
+
+  function observe(event, error, completed, dispose) {
+    return (maybeDispose = dispose) => Rx.Observable.create(observer => {
+      let disposeEvent = event(observer.onNext)
+      let disposeError = error(observer.onError)
+      let disposeCompleted = completed(observer.onCompleted)
+      return () => maybeDispose(function cleanup() {
+        disposeEvent()
+        disposeError()
+        disposeCompleted()
+      })
+    })
+  }
 }
