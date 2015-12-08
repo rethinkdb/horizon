@@ -1,0 +1,50 @@
+/* always present */
+.expand-transition {
+  transition: all .4s ease;
+  height: 30px;
+  padding: 10px;
+  background-color: #eee;
+  overflow: hidden;
+}
+
+/* .expand-enter defines the starting state for entering */
+/* .expand-leave defines the ending state for leaving */
+.expand-enter, .expand-leave {
+  height: 0;
+  padding: 0 10px;
+  opacity: 0;
+}
+
+#app ul {
+  list-style-type: none;
+}
+
+.message {
+  height: 50px;
+}
+
+.message img {
+  vertical-align:middle;
+}
+
+.message .text {
+  vertical-align:middle;
+  margin-left:5px;
+  font-family: 'Source Code Pro', "Raleway", "Helvetica Neue";
+  font-size:20px;
+}
+
+.message .datetime {
+  color:darkgrey;
+}
+
+#input {
+  margin-bottom:10%;
+}
+
+#input input {
+  height:100px;
+  font-size:5rem;
+  padding:10px;
+  font-family: 'Source Code Pro', "Raleway", "Helvetica Neue";
+}
