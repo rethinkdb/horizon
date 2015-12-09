@@ -44,9 +44,9 @@ var Observer = function(subscription, events) {
 Observer.prototype.expect = function(ops, events, done, log) {
   // Create the event stream
   var res = (Rx.Observable.merge.apply(null, this.streams)
-               .takeUntil(ops)
-               .toArray()
-               .toPromise());
+             .takeUntil(Rx.Observable.timer(50).toPromise().then(() => ops))
+             .toArray()
+             .toPromise());
 
   // All right, let's resolve this!
   res.then((res) => {
@@ -54,11 +54,15 @@ Observer.prototype.expect = function(ops, events, done, log) {
       console.log(JSON.stringify(events));
       console.log(JSON.stringify(res));
     }
-    assert.deepEqual(events, res);
+    assert.deepEqual(events, res, buildError(res, events));
     done();
   }).catch((err) => {
     done(err);
   }).finally;
+}
+
+function buildError(expected, obtained) {
+  return `Expected ${JSON.stringify(expected)} \n to equal ${JSON.stringify(obtained)}`
 }
 
 function observe(query, events) {

@@ -321,7 +321,7 @@ function Subscription({ onResponse,
     if (response.data !== undefined) {
       response.data.forEach(change => {
         if (isChanged(change)) {
-          if (sub.onChanged.listenerCount() <= 1) {
+          if (sub.onChanged.listenerCount() == 0) {
             broadcastRemoved(change.old_val)
             broadcastAdded(change.new_val)
           } else {
@@ -360,8 +360,8 @@ function Subscription({ onResponse,
 
   function observe(next, error, completed, dispose = sub.dispose) {
     return (maybeDispose = dispose) => Rx.Observable.create(observer => {
-      let disposeEvent = next((val) => observer.onNext(val))
-      let disposeError = error((err) => observer.onError(err))
+      let disposeEvent = next(val => observer.onNext(val))
+      let disposeError = error(err => observer.onError(err))
       let disposeCompleted = completed(() => observer.onCompleted())
       return () => maybeDispose(function cleanup() {
         disposeEvent()
