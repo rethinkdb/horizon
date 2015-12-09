@@ -1,4 +1,3 @@
-
 // This test suite covers various edge cases in the Fusion client library API.
 // It does not cover correctness of the full system in various circumstances.
 // The purpose of the API test suite is to act as a runnable, checkable spec for
@@ -28,8 +27,8 @@ var Fusion = require("Fusion");
 
     // Set up the fusion connection before running these tests.
     before((done) => {
-      fusion = new Fusion("localhost:8181", { secure: false, debug: false });
-      fusion.on('connected', () => {
+      fusion = Fusion("localhost:8181", { secure: false, debug: false });
+      fusion.onConnected(() => {
         data = fusion('test_data');
         done();
       });
@@ -37,7 +36,7 @@ var Fusion = require("Fusion");
 
     // Kill the fusion connection after running these tests.
     after((done) => {
-      fusion.on('disconnected', () => done());
+      fusion.onDisconnected(() => done());
       fusion.dispose();
     });
 

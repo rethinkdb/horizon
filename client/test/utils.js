@@ -1,4 +1,3 @@
-
 function removeAllData(collection, done) {
   // Read all elements from the collection
   collection.value().then((res) => {
@@ -19,18 +18,27 @@ function removeAllData(collection, done) {
 var Observer = function(subscription, events) {
   this.em = subscription;
   this.streams = _.map(events, (e) => {
-    return Rx.Observable.fromEvent(this.em, e, (x, y) => {
-      if(e == 'changed') {
-        return {new: x, old: y};
+    return observableFor(subscription, e).map((x) => {
+      if(e === 'changed') {
+        return { new: x.new_val, old: x.old_val };
       } else {
         return x;
       }
     }).map((x) => {
-      if(!x) x = {};
+      if(!x) { x = {}; }
       x['type'] = e;
       return x;
     });
   });
+
+  function observableFor(sub, e) {
+    switch(e) {
+    case 'changed': return sub.observeChanged();
+    case 'added': return sub.observeAdded();
+    case 'removed': return sub.observeRemoved();
+    default: throw new Error('Event type "' + e + '" not recognized')
+    }
+  }
 }
 
 Observer.prototype.expect = function(ops, events, done, log) {
@@ -59,7 +67,7 @@ function observe(query, events) {
 
 // Let's create a way to run promises in series
 function inSeries(args) {
-  if (args.length == 0) {
+  if(args.length == 0) {
     throw new Error('Need at least one promise');
   } else if (args.length == 1) {
     return args[0]();

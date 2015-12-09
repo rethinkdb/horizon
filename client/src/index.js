@@ -102,7 +102,7 @@ function Fusion(host, { secure: secure = true } = {}) {
     } else {
       let req = outstanding.get(data.request_id)
       if (data.error !== undefined) {
-        req.broadcastError(data)
+        req.broadcastError(new Error(data.error))
       } else {
         req.broadcastResponse({ state: data.state, data: data.data })
       }
@@ -287,7 +287,7 @@ function Subscription({ onResponse,
     onSynced(broadcast) { broadcastSynced = broadcast },
     onCompleted(broadcast) { broadcastCompleted = broadcast },
     dispose(cleanupSubscriptionEvents) {
-      return endSubscription.then(() => {
+      return endSubscription().then(() => {
         setImmediate(() => {
           cleanupSubscriptionEvents()
           onResponse.dispose()
@@ -358,11 +358,11 @@ function Subscription({ onResponse,
 
   return sub
 
-  function observe(event, error, completed, dispose) {
+  function observe(next, error, completed, dispose = sub.dispose) {
     return (maybeDispose = dispose) => Rx.Observable.create(observer => {
-      let disposeEvent = event(observer.onNext)
-      let disposeError = error(observer.onError)
-      let disposeCompleted = completed(observer.onCompleted)
+      let disposeEvent = next((val) => observer.onNext(val))
+      let disposeError = error((err) => observer.onError(err))
+      let disposeCompleted = completed(() => observer.onCompleted())
       return () => maybeDispose(function cleanup() {
         disposeEvent()
         disposeError()
