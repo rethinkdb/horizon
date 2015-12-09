@@ -161,8 +161,8 @@ class Client {
   }
 
   end_subscription(raw_request) {
-    const cursor = this.cursors.delete(raw_request.request_id);
-    if (cursor !== undefined) {
+    const cursor = this.cursors.get(raw_request.request_id);
+    if (this.cursors.delete(raw_request.request_id)) {
       cursor.close();
     }
   }
