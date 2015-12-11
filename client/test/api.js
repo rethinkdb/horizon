@@ -1,4 +1,3 @@
-
 // This test suite covers various edge cases in the Fusion client library API.
 // It does not cover correctness of the full system in various circumstances.
 // The purpose of the API test suite is to act as a runnable, checkable spec for
@@ -8,22 +7,6 @@
 chai.config.showDiff = true;
 var assert = chai.assert;
 var Fusion = require("Fusion");
-
-function removeAllData(collection, done) {
-  // Read all elements from the collection
-  collection.value().then((res) => {
-    // Now drop these elements
-    return collection.removeAll(res);
-  }).then((res) => {
-    // Make sure we deleted everything
-    return collection.value();
-  }).then((res) => {
-    assert.deepEqual([], res);
-    done();
-  }).catch((err) => {
-    done(err);
-  });
-}
 
   // Test the methods and event callbacks on the Fusion object.
   describe("Fusion Object API", fusionObjectSuite());
@@ -44,8 +27,8 @@ function removeAllData(collection, done) {
 
     // Set up the fusion connection before running these tests.
     before((done) => {
-      fusion = new Fusion("localhost:8181", { secure: false, debug: true });
-      fusion.on('connected', () => {
+      fusion = Fusion("localhost:8181", { secure: false, debug: false });
+      fusion.onConnected(() => {
         data = fusion('test_data');
         done();
       });
@@ -53,7 +36,7 @@ function removeAllData(collection, done) {
 
     // Kill the fusion connection after running these tests.
     after((done) => {
-      fusion.on('disconnected', () => done());
+      fusion.onDisconnected(() => done());
       fusion.dispose();
     });
 
@@ -120,5 +103,20 @@ function removeAllData(collection, done) {
                chainingSuite(getData));
 
     }); // Test the lookup API
+
+    // Test the subscriptions API
+    describe("Subscriptions API", () => {
+
+      // Drop all the existing data
+      beforeEach((done) => {
+        removeAllData(data, done);
+      });
+
+      describe("Testing `find` subscriptions", findSubscriptionSuite(getData));
+      describe("Testing `findAll` subscriptions", findAllSubscriptionSuite(getData));
+      describe("Testing `above` subscriptions", aboveSubscriptionSuite(getData));
+      describe("Testing `below` subscriptions", belowSubscriptionSuite(getData));
+
+    }); // Test the subscriptions API
 
   }); // Core API tests

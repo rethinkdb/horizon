@@ -84,29 +84,37 @@ class Table {
   create_index(fields, conn, done) {
     logger.warn(`Auto-creating index on table "${this.name}" (dev mode): ${JSON.stringify(fields)}`);
 
+    // This may error if two dev_mode instances try to create the table at the
+    // same time on multiple instances.  This could maybe be mitigated by adding
+    // a delay before `r.tableWait` below - but the time would depend on the
+    // latency of metadata propagation in the RethinkDB cluster.
     const promise =
-      r.uuid().do((index_id) =>
-        r.table(this.name).indexCreate(index_id, (row) =>
-          r.expr(fields).map((field_name) => row(field_name).default(r.minval))
-        ).do(() =>
-          r.db('fusion_internal').table('collections').get(this.name).update((row) =>
-            ({ indexes: row('indexes').add({ name: index_id, fields }) }))
-           .merge({ index_id })
-           .do((res) => r.table(this.name).indexWait(index_id).do(() => res))))
+      r.uuid(r.expr(fields).toJSON()).do((index_id) =>
+        r.db('fusion_internal').table('collections').get(this.name).update((row) =>
+          r.branch(row('indexes').hasFields(index_id),
+            r.error('Index already exists'),
+            { indexes: row('indexes').merge(r.object(index_id, fields)) })).do((res) =>
+          r.branch(res('replaced').eq(1),
+            r.table(this.name).indexCreate(index_id, (row) =>
+              r.expr(fields).map((field_name) => row(field_name).default(r.minval))),
+            null).do((res) => [
+              res.merge({ index_id }),
+              r.table(this.name).indexWait(index_id),
+            ]))).nth(0)
        .run(conn);
 
     const index = new Index('uninitialized', fields, promise);
     this.indexes.add(index);
 
     promise.then((res) => {
-      if (res.skipped) {
-        this.indexes.delete(index);
-        done(new Error(`Table "${this.name}" was missing in the database when adding an index.`));
+      if (res.created) {
+        logger.warn(`Index ${JSON.stringify(fields)} on table "${this.name}" created.`);
       } else {
-        index.name = res.index_id;
-        index.promise = undefined;
-        done();
+        logger.warn(`Index ${JSON.stringify(fields)} on table "${this.name}" created elsewhere.`);
       }
+      index.name = res.index_id;
+      index.promise = undefined;
+      done();
     }, (err) => {
       this.indexes.delete(index);
       done(err);
@@ -164,8 +172,8 @@ class Metadata {
       res.forEach((table) =>
         this._tables.set(table.name,
           new Table(table.name,
-            new Set(table.indexes.map((idx) =>
-              new Index(idx.name, idx.fields))))));
+            new Set(Object.keys(table.indexes).map((idx) =>
+              new Index(idx, table.indexes[idx]))))));
       logger.info(`Metadata synced with server, ready for queries.`);
       done();
     }, (err) => done(err));
@@ -196,33 +204,40 @@ class Metadata {
           return err.index.on_ready(done);
         }
       }
+      done(err);
     } catch (new_err) {
       logger.debug(`Error when handling error: ${new_err.message}`);
       done(new_err);
     }
-    done(err);
   }
 
   create_table(name, done) {
     logger.warn(`Auto-creating table (dev mode): "${name}"`);
     check(this._tables.get(name) === undefined, `Table "${name}" already exists.`);
 
+    // This may error if two dev_mode instances try to create the table at the
+    // same time on multiple instances.  This could maybe be mitigated by adding
+    // a delay before `r.tableWait` below - but the time would depend on the
+    // latency of metadata propagation in the RethinkDB cluster.
     const promise =
-      r.tableCreate(name).do(() =>
-        r.db('fusion_internal').table('collections').insert(
-          { id: name, indexes: [ { name: 'id', fields: [ 'id' ] } ] }))
+      r.db('fusion_internal').table('collections').insert(
+        { id: name, indexes: { 'id': [ 'id' ] } }).do((res) =>
+          r.branch(res('inserted').eq(1),
+                   r.tableCreate(name),
+                   r.table(name).wait()))
        .run(this._conn);
 
     const table = new Table(name, new Set([ new Index('id', [ 'id' ]) ]), promise);
     this._tables.set(name, table);
 
     promise.then((res) => {
-      if (!res.inserted) {
-        done(new Error(`Failed to add "${name}" to "fusion_internal".`));
+      if (res.tables_created) {
+        logger.warn(`Table "${name}" created.`);
       } else {
-        table.promise = undefined;
-        done();
+        logger.warn(`Table "${name}" created elsewhere.`);
       }
+      table.promise = undefined;
+      done();
     }, (err) => {
       this._tables.delete(name);
       done(err);

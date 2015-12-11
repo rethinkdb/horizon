@@ -11,18 +11,14 @@ const make_reql = (raw_request, metadata) => {
   const { value: options, error } = Joi.validate(raw_request.options, query);
   if (error !== null) { throw new Error(error.details[0].message); }
 
-  // Construct a set of all fields we need to index by
-  // The `get_fields` can be in any order, but the `order_fields` are strict
   const table = metadata.get_table(options.collection);
   let reql = r.table(table.name);
 
   const ordered_between = (obj) => {
-    const optional_bound = (name) => (options[name] && options[name][0]) || { };
-
     const order_keys = (options.order && options.order[0]) ||
                        (options.above && Object.keys(options.above[0])) ||
-                       (options.below && Object.keys(options.below[0])) ||
-                       [ ];
+                       (options.below && Object.keys(options.below[0])) || [ ];
+
     if (order_keys.length >= 1) {
       const k = order_keys[0];
       check(!options.above || options.above[0][k] !== undefined,
@@ -30,13 +26,14 @@ const make_reql = (raw_request, metadata) => {
       check(!options.below || options.below[0][k] !== undefined,
             `"below" must be on the same field as "above" and the first in "order"`);
     }
+
     order_keys.forEach((k) => {
       check(obj[k] === undefined,
             `"${k}" cannot be used in "order", "above", or "below" when finding by that field.`);
     });
+
     const index = table.get_matching_index(Object.keys(obj), order_keys);
 
-    // TODO: check validity of obj, bound, and order keys
     const get_bound = (name) => {
       const eval_key = (key) => {
         if (obj[key] !== undefined) {
@@ -65,35 +62,28 @@ const make_reql = (raw_request, metadata) => {
       rightBound: options.below ? options.below[1] : 'closed',
     };
 
-    if (options.order) {
-      return reql.orderBy({ index: options.order[1] === 'ascending' ? index.name : r.desc(index.name) })
-                 .between(above_value, below_value, optargs);
-    } else {
-      return reql.between(above_value, below_value, optargs);
-    }
+    const order = (options.order && options.order[1] === 'descending') ?
+      r.desc(index.name) : index.name;
+    return reql.orderBy({ index: order }).between(above_value, below_value, optargs);
   };
 
   if (options.find) {
-    reql = ordered_between(options.find);
-  } else if (options.find_all) {
-    if (options.find_all.length > 1) {
-      reql = r.union.apply(r, options.find_all.map((x) => ordered_between(x)));
-    } else {
-      reql = ordered_between(options.find_all[0]);
-    }
+    reql = ordered_between(options.find).limit(1);
+  } else if (options.find_all && options.find_all.length > 1) {
+    reql = r.union.apply(r, options.find_all.map((x) => ordered_between(x)));
   } else {
-    reql = ordered_between({});
+    reql = ordered_between((options.find_all && options.find_all[0]) || { });
   }
 
-  if (options.find || options.limit !== undefined) {
-    reql = reql.limit(options.find ? 1 : options.limit);
+  if (options.limit !== undefined) {
+    reql = reql.limit(options.limit);
   }
 
   return reql;
 };
 
 const handle_response = (request, res, send_cb) => {
-  if (res.constructor.name === 'Cursor') {
+  if (res !== null && res.constructor.name === 'Cursor') {
     request.add_cursor(res);
     res.each((err, item) => {
       if (err !== null) {
@@ -105,9 +95,10 @@ const handle_response = (request, res, send_cb) => {
       request.remove_cursor();
       send_cb({ data: [ ], state: 'complete' });
     });
-  } else {
-    check(res.constructor.name === 'Array', `Query got a non-array, non-cursor result`);
+  } else if (res !== null && res.constructor.name === 'Array') {
     send_cb({ data: res, state: 'complete' });
+  } else {
+    send_cb({ data: [ res ], state: 'complete' });
   }
 };
 

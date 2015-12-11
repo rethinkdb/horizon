@@ -98,7 +98,7 @@ const create_table = (table, done) => {
         conn.send(JSON.stringify({
           request_id: 0,
           type: 'query',
-          options: { collection: table, limit: 1 },
+          options: { collection: table, limit: 0 },
         }));
         conn.once('message', () => {
           conn.close();

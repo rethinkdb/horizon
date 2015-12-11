@@ -69,7 +69,7 @@ class Request {
 
     metadata.handle_error(err, (inner_err) => {
       if (inner_err) {
-        this.client.send_response(this, { error: err.message });
+        this.client.send_response(this, { error: inner_err.message });
       } else {
         setTimeout(() => this._run_reql(), 0);
       }
@@ -111,7 +111,7 @@ class Client {
 
   handle_open() {
     logger.debug(`Client connection established.`);
-    this.parent._clients.add(this);
+    this.parent._clients.add(this); // TODO: this is a race condition - the client could miss a reql_connection_lost call
   }
 
   handle_close() {
@@ -161,8 +161,8 @@ class Client {
   }
 
   end_subscription(raw_request) {
-    const cursor = this.cursors.delete(raw_request.request_id);
-    if (cursor !== undefined) {
+    const cursor = this.cursors.get(raw_request.request_id);
+    if (this.cursors.delete(raw_request.request_id)) {
       cursor.close();
     }
   }

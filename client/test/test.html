@@ -5,6 +5,7 @@
   <script src="../node_modules/mocha/mocha.js"></script>
   <script src="../node_modules/chai/chai.js"></script>
   <script src="../node_modules/lodash/index.js"></script>
+  <script src="../node_modules/rx/dist/rx.all.js"></script>
 </head>
 <body>
 
@@ -15,6 +16,9 @@
       mocha.setup('bdd');
       var expect = chai.expect;
   </script>
+
+  <!-- Load the test utilities -->
+  <script src="utils.js"></script>
 
   <!-- Testing the Fusion object -->
   <script src="fusionObject.js"></script>
@@ -39,6 +43,12 @@
   <script src="above.js"></script>
   <script src="below.js"></script>
   <script src="chaining.js"></script>
+
+  <!-- Subscription APIs -->
+  <script src="findSub.js"></script>
+  <script src="findAllSub.js"></script>
+  <script src="aboveSub.js"></script>
+  <script src="belowSub.js"></script>
 
   <!-- Load the suite runner -->
   <script src="api.js"></script>
