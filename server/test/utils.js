@@ -79,15 +79,33 @@ const start_rdb_server = (done) => {
   });
 };
 
-// Creates a table, no-op if it already exists
+const is_secure = () => {
+  assert.notStrictEqual(fusion_server, undefined);
+  return fusion_server.constructor.name !== 'UnsecureServer';
+};
+
+// Creates a table, no-op if it already exists, uses fusion server prereqs
 const create_table = (table, done) => {
-  assert.notStrictEqual(rdb_conn, undefined);
-  r.tableCreate(table).run(rdb_conn)
-   .then(() => done(),
-         (err) => {
-           assert(/Table `\w+\.\w+` already exists\./.test(err.msg));
-           done();
-         });
+  assert.notStrictEqual(fusion_server, undefined);
+  assert.notStrictEqual(fusion_port, undefined);
+  let conn = new websocket(`${is_secure() ? 'wss' : 'ws'}://localhost:${fusion_port}`,
+                           fusion.protocol, { rejectUnauthorized: false })
+    .once('error', (err) => assert.ifError(err))
+    .on('open', () => {
+      conn.send(JSON.stringify({ request_id: 0 })); // Authenticate
+      conn.once('message', () => {
+        // This 'query' should auto-create the table if it's missing
+        conn.send(JSON.stringify({
+          request_id: 0,
+          type: 'query',
+          options: { collection: table, limit: 1 },
+        }));
+        conn.once('message', () => {
+          conn.close();
+          done();
+        });
+      });
+    });
 };
 
 // Removes all data from a table - does not remove indexes
@@ -104,7 +122,7 @@ const populate_table = (table, rows, done) => {
   if (rows.constructor.name !== 'Array') {
     r.table(table).insert(
       r.range(rows).map(
-        (i) => ({ id: i, value: crypto.randomBytes(4).toString('hex') })
+        (i) => ({ id: i, value: i.mod(4) })
       )).run(rdb_conn).then(() => done());
   } else {
     r.table(table).insert(rows).run(rdb_conn).then(() => done());
@@ -115,13 +133,17 @@ const create_fusion_server = (backend, opts) => {
   opts.local_port = 0;
   opts.rdb_port = rdb_port;
   opts.db = db;
+  opts.dev_mode = true;
   return new backend(opts);
 };
 
 const start_unsecure_fusion_server = (done) => {
   assert.strictEqual(fusion_server, undefined);
   fusion_server = create_fusion_server(fusion.UnsecureServer, { });
-  fusion_server.local_port('localhost').then((p) => fusion_port = p, done());
+  fusion_server.local_port('localhost').then((p) => {
+    fusion_port = p;
+    fusion_server.ready().then(done);
+  });
 };
 
 const start_secure_fusion_server = (done) => {
@@ -143,18 +165,16 @@ const start_secure_fusion_server = (done) => {
       fs.unlinkSync(temp_file);
 
       fusion_server = create_fusion_server(fusion.Server, { key: key, cert: cert });
-      fusion_server.local_port('localhost').then((p) => fusion_port = p, done());
+      fusion_server.local_port('localhost').then((p) => {
+        fusion_port = p;
+        fusion_server.ready().then(done);
+      });
     });
 };
 
 const close_fusion_server = () => {
   if (fusion_server !== undefined) { fusion_server.close(); }
   fusion_server = undefined;
-};
-
-const is_secure = () => {
-  assert.notStrictEqual(fusion_server, undefined);
-  return fusion_server.constructor.name !== 'UnsecureServer';
 };
 
 const add_fusion_listener = (request_id, cb) => {
@@ -174,6 +194,7 @@ const remove_fusion_listener = (request_id) => {
 const dispatch_message = (raw) => {
   const msg = JSON.parse(raw);
   assert.notStrictEqual(msg.request_id, undefined);
+  assert.notStrictEqual(fusion_listeners, undefined);
   const listener = fusion_listeners.get(msg.request_id);
   assert.notStrictEqual(listener, undefined);
   listener(msg);

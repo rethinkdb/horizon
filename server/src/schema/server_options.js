@@ -13,6 +13,8 @@ const unsecure = Joi.object({
   rdb_host: Joi.string().hostname().default('localhost'),
   rdb_port: Joi.number().greater(0).less(max_port).default(28015),
 
+  dev_mode: Joi.boolean().default(false),
+
   db: Joi.string().token().default('fusion'),
 }).unknown(false);
 

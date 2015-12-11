@@ -1,9 +1,9 @@
 require('babel-polyfill')
+const snakeCase = require('snake-case')
 const {
   FusionEmitter,
   ListenerSet,
   validIndexValue,
-  promiseError,
 } = require('./utility.js')
 
 const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
@@ -15,13 +15,60 @@ function errorEvent(id){
   return `error:${id}`
 }
 
-
 var fusionCount = 0
 
-class Fusion extends FusionEmitter {
-  constructor(host, {secure: secure=true}={}){
-    super(`Fusion(${fusionCount++})`)
+function ordinal(x){
+  if([11,12,13].indexOf(x) !== -1){
+    return `${x}th`
+  }
+  if(x % 10 === 1){
+    return `${x}st`
+  }
+  if(x % 10 === 2){
+    return `${x}nd`
+  }
+  if(x % 10 === 3){
+    return `${x}rd`
+  }
+  return `${x}th`
+}
 
+// Validation helper
+function checkArgs(name, args,
+                   {nullable: nullable=false,
+                    minArgs: minArgs=1,
+                    maxArgs: maxArgs=1}={}){
+  if(minArgs == maxArgs && args.length !== minArgs){
+    let plural = minArgs === 1 ? '' : 's'
+    throw new Error(`${name} must receive exactly ${minArgs} argument${plural}`)
+  }
+  if(args.length < minArgs){
+    let plural = minArgs === 1 ? '' : 's'
+    throw new Error(`${name} must receive at least ${minArgs} argument${plural}.`)
+  }
+  if(args.length > maxArgs){
+    let plural = maxArgs === 1 ? '' : 's'
+    throw new Error(`${name} accepts at most ${maxArgs} argument${plural}.`)
+  }
+  for(let i = 0; i < args.length; i++){
+    if(!nullable && args[i] === null){
+      let ordinality = maxArgs !== 1 ? ` ${ordinal(i + 1)}` : ''
+      throw new Error(`The${ordinality} argument to ${name} must be non-null`)
+    }
+    if(args[i] === undefined){
+      throw new Error(`The ${ordinal(i+1)} argument to ${name} must be defined`)
+    }
+  }
+}
+
+class Fusion extends FusionEmitter {
+  constructor(host, {secure: secure=true, debug: debug=true}={}){
+    super(`Fusion(${fusionCount++})`)
+    if(debug){
+      this.log = (...args) => console.debug(...args)
+    }else{
+      this.log = () => undefined
+    }
     // Allow calling a fusion object
     let self = name => this.collection(name)
     Object.setPrototypeOf(self, this)
@@ -29,7 +76,7 @@ class Fusion extends FusionEmitter {
     this.host = host
     this.secure = secure
     this.requestCounter = 0
-    this.socket = new FusionSocket(host, secure)
+    this.socket = new FusionSocket(host, secure, this.log)
     this.listenerSet = ListenerSet.absorbEmitter(this.socket)
       .onceAndDispose('error', (err) => this.emit('error', err, self))
       .on('connected', () => this.emit('connected', self))
@@ -102,8 +149,9 @@ class FusionSocket extends FusionEmitter {
   // Wraps native websockets in an EventEmitter, and deals with some
   // simple protocol level things like serializing from/to JSON, and
   // emitting events on request_ids
-  constructor(host, secure=true){
+  constructor(host, secure=true, debug_func){
     super(`FusionSocket(${socketCount++})`)
+    this.log = debug_func
     let hostString = (secure ? 'wss://' : 'ws://') + host
     this._ws = new WebSocket(hostString, PROTOCOL_VERSION)
     this._openWs = new Promise((resolve, reject) => {
@@ -122,6 +170,7 @@ class FusionSocket extends FusionEmitter {
     })
     this._ws.onmessage = (event) => {
       let data = JSON.parse(event.data)
+      this.log("Received", JSON.stringify(data, undefined, 2))
       if(data.request_id === undefined){
         this.emit("error", "Request id undefined", data)
       }else if(data.error !== undefined){
@@ -134,8 +183,9 @@ class FusionSocket extends FusionEmitter {
 
   send(message){
     if(typeof message !== 'string'){
-      message = JSON.stringify(message)
+      message = JSON.stringify(message, undefined, 4)
     }
+    this.log("Sending", message)
     this._openWs.then((ws) => ws.send(message))
   }
 
@@ -216,57 +266,16 @@ class RequestEmitter extends FusionEmitter {
   }
 }
 
-
-class MockConnection extends Fusion {
-  constructor(hostString){
-    super()
-    this.hostString = hostString;
-    this.docs = [];
-    this.promises = {};
-    this.emitters = {};
-    this.requestCounter = 0;
-  }
-
-  send(type, data){
-    //Basically, don't actually send anything just store it in an array,
-    // inefficient search and no error handling but fine for mocking
-
-    switch(type){
-    case 'update':
-      this.docs.forEach(function(doc, index){
-        if (doc.id == data.id){
-          this.data[index] = data;
-        }
-      });
-      break;
-    case 'remove':
-      this.docs.forEach(function(doc, index){
-        if (doc.id == data.id){
-          this.data = this.data.splice(index);
-        }
-      });
-      break;
-    case 'store_replace':
-    case 'store_error':
-      this.docs.push(data);
-      break;
-    }
-
-    return Promise.resolve(true);
-  }
-
-  _onOpen(event){
-    for(let emitter of this.emitters){
-      emitter.emit('reconnected', event);
-    }
-  }
-}
-
-
 class TermBase {
 
-  constructor(fusion){
+  constructor(fusion, query, mergeObj){
     this.fusion = fusion
+    for(let key in Object.keys(mergeObj)){
+      if(key in query){
+        throw new Error(`${key} is already defined.`)
+      }
+    }
+    this.query = Object.assign({}, query, mergeObj)
   }
 
   subscribe(updates=true){
@@ -278,70 +287,79 @@ class TermBase {
     // return promise with no changefeed
     return this.fusion.query(this.query)
   }
+
+  // Extend the object with the specified methods. Will fill in
+  // error-raising methods for methods not specified, or if the method
+  // has already been added to the query object.
+  _extendWith(...keys){
+    let methods = {
+      findAll: FindAll.method,
+      find: Find.method,
+      order: Order.method,
+      above: Above.method,
+      below: Below.method,
+      limit: Limit.method,
+    }
+    for(let key in methods){
+      if(keys.indexOf(key) !== -1){
+        // Check if query object already has it. If so, insert a dummy
+        // method that throws an error.
+        if(snakeCase(key) in this.query){
+          if(snakeCase(key) === 'below'){
+            console.log(`${JSON.stringify(this.query)} already has "${snakeCase(key)}"`)
+          }
+          this[key] = function(){
+            throw new Error(`${key} has already been called on this query`)
+          }
+        }else{
+          this[key] = methods[key]
+        }
+      }else{
+        this[key] = function(){
+          throw new Error(`it is not valid to chain the method ${key} from here`)
+        }
+      }
+    }
+  }
 }
 
 class Collection extends TermBase {
 
   constructor(fusion, collectionName){
-    super(fusion)
+    super(fusion, {
+      collection: collectionName,
+    }, {})
     this._collectionName = collectionName
-    this.query = {collection: collectionName, field_name: 'id'}
-  }
-
-  find(id, {field: field='id'}={}){
-    return new Find(this.fusion, this.query, id, field)
-  }
-
-  findAll(...fieldValues){
-    var fieldName = 'id'
-    if(arguments.length > 0){
-      let last = fieldValues.slice(-1)[0]
-      if(!!last && typeof last === 'object' && last.field !== undefined){
-        fieldName = last.field
-        fieldValues = fieldValues.slice(0, -1)
-      }
-    }
-    return new FindAll(this.fusion, this.query, fieldValues, fieldName)
-  }
-
-  between(minVal, maxVal, field='id'){
-    return new Between(this.fusion, this.query, minVal, maxVal,field)
-  }
-
-  order(field='id', ascending=true){
-    return new Order(this.fusion, this.query, field, ascending)
+    this._extendWith('find', 'findAll', 'order', 'above', 'below', 'limit')
   }
 
   store(documents){
+    checkArgs('store', arguments)
     return this._writeOp('store', documents)
   }
 
   upsert(documents){
+    checkArgs('upsert', arguments)
     return this._writeOp('upsert', documents)
   }
 
   insert(documents){
+    checkArgs('insert', arguments)
     return this._writeOp('insert', documents)
   }
 
   replace(documents){
+    checkArgs('replace', arguments)
     return this._writeOp('replace', documents)
   }
 
   update(documents){
+    checkArgs('update', arguments)
     return this._writeOp('update', documents)
   }
 
   remove(documentOrId){
-    if(arguments.length > 1){
-      return promiseError("remove takes exactly one argument")
-    }
-    if(documentOrId === undefined){
-      return promiseError("remove must be given an argument")
-    }
-    if(documentOrId === null){
-      return promiseError("remove must receive a non-null argument")
-    }
+    checkArgs('remove', arguments)
     if(validIndexValue(documentOrId)){
       documentOrId = {id: documentOrId}
     }
@@ -349,11 +367,12 @@ class Collection extends TermBase {
   }
 
   removeAll(documentsOrIds){
+    checkArgs('removeAll', arguments)
     if(!Array.isArray(documentsOrIds)){
-      return promiseError("removeAll takes an array as an argument")
+      throw new Error("removeAll takes an array as an argument")
     }
     if(arguments.length > 1){
-      return promiseError("removeAll only takes one argument (an array)")
+      throw new Error("removeAll only takes one argument (an array)")
     }
     documentsOrIds = documentsOrIds.map(item => {
       if(validIndexValue(item)){
@@ -366,9 +385,7 @@ class Collection extends TermBase {
   }
 
   _writeOp(name, documents){
-    if(documents == null){
-      return promiseError(`${name} must receive a non-null argument`)
-    }else if(!Array.isArray(documents)){
+    if(!Array.isArray(documents)){
       documents = [documents]
     }else if(documents.length === 0){
       // Don't bother sending no-ops to the server
@@ -379,97 +396,108 @@ class Collection extends TermBase {
 }
 
 class FindAll extends TermBase {
-  constructor(fusion, query, fieldValues, fieldName){
-    super(fusion)
-    this._values = fieldValues
-    this._name = fieldName
-    this.query = Object.assign({}, query, {
-      selection: {type: 'find_all', args: fieldValues},
-      field_name: fieldName
+  constructor(fusion, query, fieldValues, allowChaining){
+    super(fusion, query, {
+      find_all: fieldValues,
     })
-  }
-
-  value(){
-    if(this._values.length === 0){
-      return Promise.resolve([])
+    if(allowChaining){
+      this._extendWith('order', 'above', 'below', 'limit')
     }else{
-      return super.value()
+      this._extendWith()
     }
   }
 
-  order(field='id', ascending=true){
-    return new Order(this.fusion, this.query, field, ascending)
-  }
-
-  limit(size){
-    return new Limit(this.fusion, this.query, size);
+  static method(...fieldValues){
+    checkArgs('findAll', arguments, {maxArgs: 100})
+    let wrappedFields = fieldValues.map(item => {
+      if(validIndexValue(item)){
+        return {id: item}
+      }else{
+        return item
+      }
+    })
+    let allowChaining = wrappedFields.length === 1
+    return new FindAll(this.fusion, this.query, wrappedFields, allowChaining)
   }
 }
 
 class Find extends TermBase {
-  constructor(fusion, query, docId, fieldName){
-    super(fusion)
-    this._id = docId
-    this._fieldName = fieldName
-    this.query = Object.assign({}, query, {
-      selection: {type: 'find', args: [docId]},
-      field_name: fieldName,
+  constructor(fusion, query, queryObject){
+    super(fusion, query, {
+      find: queryObject,
     })
+    this._extendWith()
   }
 
   value(){
-    return super.value().then(val => {
-      if(val != undefined){
-        return val[0] || null
+    return super.value().then(resp => {
+      if(resp.length > 0){
+        return resp[0]
       }else{
         return null
       }
     })
   }
-}
 
-class Between extends TermBase {
-  constructor(fusion, query, minVal, maxVal, fieldName){
-    super(fusion)
-    this._minVal = minVal
-    this._maxVal = maxVal
-    this._field = fieldName
-    this.query = Object.assign({}, query, {
-      selection: {type: 'between', args: [minVal, maxVal]},
-      field_name: fieldName
-    })
-  }
-
-  limit(size){
-    return new Limit(this.fusion, this.query, size);
+  static method(idOrObject){
+    checkArgs('find', arguments)
+    let q = validIndexValue(idOrObject) ? {id: idOrObject} : idOrObject
+    return new Find(this.fusion, this.query, q)
   }
 }
 
-class Order {
-  constructor(fusion, query, fieldName, ascending){
-    this.fusion = fusion
-    this._field = fieldName
-    this.query = Object.assign({}, query, {
-      order: ascending ? 'ascending' : 'descending',
-      field_name: fieldName
+class Above extends TermBase {
+  constructor(fusion, query, valueSpecs, direction){
+    super(fusion, query, {
+      above: [valueSpecs, direction]
     })
+    this._extendWith('findAll', 'order', 'below', 'limit')
   }
 
-  limit(size){
-    return new Limit(this.fusion, this.query, size)
+  static method(aboveSpec, bound="closed"){
+    checkArgs('above', arguments, {minArgs: 1, maxArgs: 2})
+    return new Above(this.fusion, this.query, aboveSpec, bound)
+  }
+}
+
+class Below extends TermBase {
+  constructor(fusion, query, valueSpecs, direction){
+    super(fusion, query, {
+      below: [valueSpecs, direction],
+    })
+    this._extendWith('findAll', 'order', 'above', 'limit')
   }
 
-  between(minVal, maxVal){
-    // between is forced to have the same field as this term
-    return new Between(this.fusion, this.query, minVal, maxVal, this.field)
+  static method(belowSpec, bound="open"){
+    checkArgs('below', arguments, {minArgs: 1, maxArgs: 2})
+    return new Below(this.fusion, this.query, belowSpec, bound)
+  }
+}
+
+class Order extends TermBase {
+  constructor(fusion, query, fields, direction){
+    super(fusion, query, {
+      order: [fields, direction],
+    })
+    this._extendWith('findAll', 'above', 'below', 'limit')
+  }
+
+  static method(fields, direction='ascending'){
+    checkArgs('order', arguments, {minArgs: 1, maxArgs: 2})
+    let wrappedFields = Array.isArray(fields) ? fields : [fields]
+    return new Order(this.fusion, this.query, wrappedFields, direction)
   }
 }
 
 class Limit extends TermBase {
   constructor(fusion, query, size){
-    super(fusion)
-    this._size = size
-    this.query = Object.assign({}, query, {limit: size})
+    super(fusion, query, {limit: size})
+    this._extendWith()
+  }
+
+  static method(size){
+    checkArgs('limit', arguments)
+    return new Limit(this.fusion, this.query, size)
   }
 }
 

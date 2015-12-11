@@ -15,8 +15,34 @@
       mocha.setup('bdd');
       var expect = chai.expect;
   </script>
-  <!--<script src="test.js"></script>-->
+
+  <!-- Testing the Fusion object -->
+  <script src="fusionObject.js"></script>
+
+  <!-- Testing insertion/storage commands -->
+  <script src="store.js"></script>
+  <script src="insert.js"></script>
+  <script src="upsert.js"></script>
+  <script src="update.js"></script>
+  <script src="replace.js"></script>
+
+  <!-- Test the removal commands -->
+  <script src="remove.js"></script>
+  <script src="removeAll.js"></script>
+
+  <!-- Read API -->
+  <script src="collection.js"></script>
+  <script src="find.js"></script>
+  <script src="findAll.js"></script>
+  <script src="order.js"></script>
+  <script src="limit.js"></script>
+  <script src="above.js"></script>
+  <script src="below.js"></script>
+  <script src="chaining.js"></script>
+
+  <!-- Load the suite runner -->
   <script src="api.js"></script>
+
   <script>
       mocha.run();
   </script>
