@@ -14,7 +14,7 @@ can run:
 
 ## Launch the server
 
-`node src/main.js --unsecure`
+`node --harmony-destructuring src/main.js --unsecure`
 This serves fusion queries on ws://localhost:8181, and connects to the RethinkDB server at localhost:31420.
 
 Available options:
