@@ -47,8 +47,10 @@ class Request {
 
       const reql = this.endpoint.make_reql(this.raw, metadata);
       logger.debug(`Running ${r.Error.printQuery(reql)}`);
-      reql.run(conn).then((res) => this._handle_response(res),
-                          (err) => this._handle_error(err));
+      reql.run(conn, { timeFormat: 'raw',
+                       binaryFormat: 'raw' })
+          .then((res) => this._handle_response(res),
+                (err) => this._handle_error(err));
     } catch (err) {
       this._handle_error(err);
     }

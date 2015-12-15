@@ -6,6 +6,7 @@ const assert = require('assert');
 const child_process = require('child_process');
 const crypto = require('crypto');
 const fs = require('fs');
+const http = require('http');
 const path = require('path');
 const r = require('rethinkdb');
 const websocket = require('ws');
@@ -66,10 +67,10 @@ const start_rdb_server = (done) => {
 
     const matches = line.match(/^Listening for client driver connections on port (\d+)$/);
     if (matches === null || matches.length !== 2) { return; }
+    rdb_port = parseInt(matches[1]);
 
     proc.stdout.removeAllListeners('data');
-    rdb_port = parseInt(matches[1]);
-    r.connect({ port: rdb_port, db: db }).then((c) => {
+    r.connect({ db, port: rdb_port }).then((c) => {
       rdb_conn = c;
       return r.dbCreate(db).run(c);
     }).then((res) => {
@@ -79,16 +80,11 @@ const start_rdb_server = (done) => {
   });
 };
 
-const is_secure = () => {
-  assert.notStrictEqual(fusion_server, undefined);
-  return fusion_server.constructor.name !== 'UnsecureServer';
-};
-
 // Creates a table, no-op if it already exists, uses fusion server prereqs
 const create_table = (table, done) => {
   assert.notStrictEqual(fusion_server, undefined);
   assert.notStrictEqual(fusion_port, undefined);
-  let conn = new websocket(`${is_secure() ? 'wss' : 'ws'}://localhost:${fusion_port}`,
+  let conn = new websocket(`ws://localhost:${fusion_port}`,
                            fusion.protocol, { rejectUnauthorized: false })
     .once('error', (err) => assert.ifError(err))
     .on('open', () => {
@@ -129,47 +125,16 @@ const populate_table = (table, rows, done) => {
   }
 };
 
-const create_fusion_server = (backend, opts) => {
-  opts.local_port = 0;
-  opts.rdb_port = rdb_port;
-  opts.db = db;
-  opts.dev_mode = true;
-  return new backend(opts);
-};
-
-const start_unsecure_fusion_server = (done) => {
+const start_fusion_server = (done) => {
   assert.strictEqual(fusion_server, undefined);
-  fusion_server = create_fusion_server(fusion.UnsecureServer, { });
-  fusion_server.local_port('localhost').then((p) => {
-    fusion_port = p;
+
+  const http_server = new http.Server();
+  http_server.listen(0, () => {
+    fusion_port = http_server.address().port;
+    fusion_server = new fusion.Server(http_server, { rdb_port, db, dev_mode: true});
     fusion_server.ready().then(done);
   });
-};
-
-const start_secure_fusion_server = (done) => {
-  assert.strictEqual(fusion_server, undefined);
-
-  // Generate key and cert
-  const temp_file = `./tmp.pem`;
-  child_process.exec(
-    `openssl req -x509 -nodes -batch -newkey rsa:2048 -keyout ${temp_file} -days 1`,
-    (err, stdout) => {
-      assert.ifError(err);
-      const cert_start = stdout.indexOf('-----BEGIN CERTIFICATE-----');
-      const cert_end = stdout.indexOf('-----END CERTIFICATE-----');
-      assert(cert_start !== -1 && cert_end !== -1);
-
-      const cert = stdout.slice(cert_start, cert_end) + '-----END CERTIFICATE-----\n';
-      const key = fs.readFileSync(temp_file);
-
-      fs.unlinkSync(temp_file);
-
-      fusion_server = create_fusion_server(fusion.Server, { key: key, cert: cert });
-      fusion_server.local_port('localhost').then((p) => {
-        fusion_port = p;
-        fusion_server.ready().then(done);
-      });
-    });
+  http_server.on('error', (err) => done(err));
 };
 
 const close_fusion_server = () => {
@@ -206,7 +171,7 @@ const open_fusion_conn = (done) => {
   fusion_authenticated = false;
   fusion_listeners = new Map();
   fusion_conn =
-    new websocket(`${is_secure() ? 'wss' : 'ws'}://localhost:${fusion_port}`,
+    new websocket(`ws://localhost:${fusion_port}`,
                   fusion.protocol, { rejectUnauthorized: false })
       .once('error', (err) => assert.ifError(err))
       .on('open', () => done());
@@ -267,6 +232,7 @@ const check_error = (err, msg) => {
 
 module.exports = {
   rdb_conn: () => rdb_conn,
+  rdb_port: () => rdb_port,
   fusion_conn: () => fusion_conn,
   fusion_port: () => fusion_port,
   fusion_listeners: () => fusion_listeners,
@@ -274,12 +240,11 @@ module.exports = {
   start_rdb_server,
   create_table, populate_table, clear_table,
 
-  start_secure_fusion_server, start_unsecure_fusion_server, close_fusion_server,
+  start_fusion_server, close_fusion_server,
   open_fusion_conn, close_fusion_conn,
   fusion_auth, fusion_default_auth,
   add_fusion_listener, remove_fusion_listener,
 
-  is_secure,
   stream_test,
   check_error,
 };

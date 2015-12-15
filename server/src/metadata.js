@@ -91,14 +91,12 @@ class Table {
     const promise =
       r.uuid(r.expr(fields).toJSON()).do((index_id) =>
         r.db('fusion_internal').table('collections').get(this.name).update((row) =>
-          r.branch(row('indexes').hasFields(index_id),
-            r.error('Index already exists'),
-            { indexes: row('indexes').merge(r.object(index_id, fields)) })).do((res) =>
+          ({ indexes: r.object(index_id, fields).merge(row('indexes')) })).do((res) =>
           r.branch(res('replaced').eq(1),
             r.table(this.name).indexCreate(index_id, (row) =>
               r.expr(fields).map((field_name) => row(field_name).default(r.minval))),
-            null).do((res) => [
-              res.merge({ index_id }),
+            { }).do((res2) => [
+              res2.merge({ index_id }),
               r.table(this.name).indexWait(index_id),
             ]))).nth(0)
        .run(conn);
@@ -221,7 +219,7 @@ class Metadata {
     // latency of metadata propagation in the RethinkDB cluster.
     const promise =
       r.db('fusion_internal').table('collections').insert(
-        { id: name, indexes: { 'id': [ 'id' ] } }).do((res) =>
+        { id: name, indexes: { id: [ 'id' ] } }).do((res) =>
           r.branch(res('inserted').eq(1),
                    r.tableCreate(name),
                    r.table(name).wait()))

@@ -2,8 +2,12 @@
 
 const fusion = require('./server');
 
-const fs = require('fs');
 const argparse = require('argparse');
+const http = require('http');
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
+const url = require('url');
 
 const parser = new argparse.ArgumentParser();
 parser.addArgument([ '--bind', '-b' ],
@@ -11,7 +15,7 @@ parser.addArgument([ '--bind', '-b' ],
     help: 'Local hostname to serve fusion on (repeatable).' });
 
 parser.addArgument([ '--port', '-p' ],
-  { type: 'int', metavar: 'PORT',
+  { type: 'int', defaultValue: 8181, metavar: 'PORT',
     help: 'Local port to serve fusion on.' });
 
 parser.addArgument([ '--connect', '-c' ],
@@ -41,12 +45,6 @@ parser.addArgument([ '--dev' ],
 const parsed = parser.parseArgs();
 const options = { };
 
-const param_if_not_null = (param) => { if (param !== null) { return param; } };
-
-options.local_port = param_if_not_null(parsed.port);
-options.local_hosts = param_if_not_null(parsed.bind);
-options.dev_mode = Boolean(parsed.dev);
-
 if (parsed.connect !== null) {
   const host_port = parsed.connect.split(':');
   if (host_port.length === 1) {
@@ -61,24 +59,72 @@ if (parsed.connect !== null) {
   }
 }
 
+// Function which handles just the /fusion.js endpoint
+const handle_http = (req, res) => {
+  const req_path = url.parse(req.url).pathname;
+  const file_path = path.resolve('../client/dist/build.js');
+  fusion.logger.debug(`HTTP request for "${req_path}"`);
+
+  if (req_path === '/fusion.js') {
+    fs.access(file_path, fs.R_OK | fs.F_OK, (exists) => {
+      if (exists) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end(`Client library not found\n`);
+      } else {
+        fs.readFile(file_path, 'binary', (err, file) => {
+          if (err) {
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end(`${err}\n`);
+          } else {
+            res.writeHead(200);
+            res.end(file, 'binary');
+          }
+        });
+      }
+    });
+  } else {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end(`Forbidden\n`);
+  }
+};
+
+const param_if_not_null = (param) => { if (param !== null) { return param; } };
+
+const local_port = param_if_not_null(parsed.port);
+const local_hosts = param_if_not_null(parsed.bind) || [ 'localhost' ];
+const http_servers = new Set();
+if (parsed.unsecure) {
+  fusion.logger.warn(`Creating unsecure HTTP server.`);
+  local_hosts.forEach((host) => {
+    http_servers.add(new http.Server(handle_http).listen(local_port, host));
+  });
+} else {
+  let key = fs.readFileSync(parsed.key_file || './key.pem');
+  let cert = fs.readFileSync(parsed.cert_file || './cert.pem');
+
+  local_hosts.forEach((host) => {
+    http_servers.add(new https.Server({ key, cert }, handle_http).listen(local_port, host));
+  });
+}
+
 if (parsed.debug) {
   fusion.logger.level = 'debug';
 }
 
-if (!parsed.unsecure) {
-  if (parsed.key_file !== null) {
-    options.key = fs.readFileSync(parsed.key_file);
-  } else {
-    options.key = fs.readFileSync('./key.pem');
-  }
+options.dev_mode = Boolean(parsed.dev);
 
-  if (parsed.cert_file !== null) {
-    options.cert = fs.readFileSync(parsed.cert_file);
-  } else {
-    options.cert = fs.readFileSync('./cert.pem');
-  }
-
-  new fusion.Server(options);
-} else {
-  new fusion.UnsecureServer(options);
-}
+// Wait for the http servers to be ready before launching the Fusion server
+let num_ready = 0;
+let fusion_server;
+http_servers.forEach((serv) => {
+  serv.on('listening', () => {
+    fusion.logger.info(`Listening on ${serv.address().address}:${serv.address().port}.`);
+    if (++num_ready == http_servers.size) {
+      fusion_server = new fusion.Server(http_servers, options);
+    }
+  });
+  serv.on('error', (err) => {
+    fusion.logger.error(`HTTP${parsed.unsecure ? '' : 'S'} server: ${err}`);
+    process.exit(1);
+  });
+});
