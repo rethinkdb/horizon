@@ -20,7 +20,6 @@
 		}
 	};
 
-	Vue.config.debug = true
 	exports.app = new Vue({
 
 		// the root element that will be compiled
@@ -30,7 +29,6 @@
 		data: {
 			todos: [],
 			newTodo: '',
-			tempTodo: {title: "", completed:false},
 			editedTodo: null,
 			visibility: 'all'
 		},
@@ -39,7 +37,7 @@
 		watch: {
 			todos: {
 				deep: true,
-				handler: todoStorage.saveAll,
+				handler: todoStorage.save,
 			},
 		},
 
@@ -68,20 +66,14 @@
 		//  note there's no DOM manipulation here at all.
 		methods: {
 
-			uuid: function() {
-  			var x = Math.floor(Math.random() * 100000000000);
-  			return Math.floor(Math.random() * x).toString(36) +
-        	Math.abs(Math.floor(Math.random() * x) ^ Date.now()).toString(36);
-			},
-
 			addTodo: function () {
 				const value = this.newTodo && this.newTodo.trim();
 				if (!value) {
 					return;
 				}
-				this.todos.push({
+				todoStorage.save({
 					title: value,
-					id: this.uuid(),
+					id: todoStorage.generateUUID(),
 					completed: false,
 					datetime: new Date(),
 				});
@@ -89,7 +81,6 @@
 			},
 
 			removeTodo: function (todo){
-				this.todos.$remove(todo);
 				todoStorage.remove(todo);
 			},
 
@@ -115,27 +106,33 @@
 			},
 
 			removeCompleted: function () {
-				this.todos = filters.active(this.todos);
+				filters.completed(this.todos).forEach(this.removeTodo);
 			},
 
+			// Changefeed Methods
+
 			addedChanges: function (doc) {
+				for(var i = 0; i < this.todos.length; i++){
+
+						// If we already have this document, don't duplicate.
+						//  Can't rely on Vuejs track-by= directive
+						if (this.todos[i].id === doc.id){
+							return;
+						}
+				}
 				this.todos.push(doc);
 			},
 
 			updatedChanges: function (doc) {
-				console.log("UPDATING");
-				var i = 0;
-				for(var todo of this.todos){
-					if (todo.id === doc.id && todo.title !== doc.title) {
+				for(var i = 0; i < this.todos.length; i++){
+					if (this.todos[i].id === doc.id) {
 						this.todos.$set(i, doc);
 						return;
 					}
-					i++;
 				}
 			},
 
-			deletedChanges: function (doc) {
-				console.log(doc);
+			removedChanges: function (doc) {
 				for(var todo of this.todos){
 					if(todo.id === doc.id){
 							this.todos.$remove(todo);
@@ -162,6 +159,6 @@
 	});
 
 	todoStorage.fetchAll(app);
-	todoStorage.changes(app.addedChanges, app.updatedChanges, app.deletedChanges);
+	todoStorage.changes(app.addedChanges, app.updatedChanges, app.removedChanges);
 
 })(window);

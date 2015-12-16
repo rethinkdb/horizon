@@ -11,10 +11,13 @@
 
   exports.todoStorage = {
 
-    todos: todos,
+    generateUUID: function(){
+			var x = Math.floor(Math.random() * 100000000000);
+			return Math.floor(Math.random() * x).toString(36) +
+      	Math.abs(Math.floor(Math.random() * x) ^ Date.now()).toString(36);
+    },
 
     fetchAll: function(app) {
-      console.log("FETCHING ALL")
       todos.value().then(function(result) {
 
         app.todos = app.todos.concat(result);
@@ -23,24 +26,25 @@
         console.error(error);
       });
     },
-    saveAll: function(newVal, oldVal) {
-			console.log("SAVEALL")
+    save: function(newVal, oldVal) {
 
-			if(!newVal.length){ return; }
+      // Can't compare oldVal to newVal because of Javascript limitations. Only
+      //  certain mutations to an array are detectable. So save every doc.
 
-			for (var newDoc of newVal){
-				for (var oldDoc of oldVal){
-          console.log(newDoc)
-          console.log(oldDoc)
-					if (newDoc.title !== oldDoc.title || newDoc.completed !== oldDoc.completed){
-						todos.store(newDoc);
-					}
-				}
-			}
+      if (Array.isArray(newVal)){
+          todos.replace(newVal)
+      } else {
+          todos.store(newVal);
+      }
+
     },
 
 		remove: function(doc){
-			todos.remove(doc);
+      if (!Array.isArray(doc)){
+          todos.remove(doc);
+      } else if (Array.isArray(doc)){
+          todos.removeAll(doc)
+      }
 		},
 
     changes: function(added, changed, removed) {
