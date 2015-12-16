@@ -23,7 +23,7 @@ function modifyType(value) {
   } else if (Array.isArray(value)) {
     return value.map(modifyType)
   } else if (value.$reql_type$ === 'TIME') {
-    let date = new Date()
+    const date = new Date()
     date.setTime(value.epoch_time * 1000)
     return date
   } else {
@@ -49,6 +49,7 @@ function jsonifyType(value) {
     return {
       $reql_type$: 'TIME',
       epoch_time: value.getTime() / 1000,
+      // Rethink will serialize this as "+00:00", but accepts Z
       timezone: 'Z',
     }
   } else {

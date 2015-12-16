@@ -1,39 +1,56 @@
-storeSuite = (getData) => {
-  return () => {
-
-  var data;
+'use strict'
+const storeSuite = getData => () => {
+  let data
 
   before(() => {
-    data = getData();
-  });
+    data = getData()
+  })
 
   // The `store` command stores documents in the database, and overwrites
   // them if they already exist.
-  it("#.store(single_then_overwrite)", (done) => {
-    data.store({ id: 1, a: 1, b: 1 }).then((res) => {
+  it('#.store(single_then_overwrite)', done => {
+    data.store({ id: 1, a: 1, b: 1 })
       // The promise should return an array with an ID of the inserted
       // document.
-      assert.deepEqual([1], res);
-
+      .do(res => assert.deepEqual(1, res))
       // Let's make sure we get back the document that we put in.
-      return data.find(1).value();
-    }).then((res) => {
+      .flatMap(() => data.find(1).fetch())
       // Check that we get back what we put in.
-      assert.deepEqual({ id: 1, a: 1, b: 1 }, res);
-
+      .do(res => assert.deepEqual([ { id: 1, a: 1, b: 1 } ], res))
       // Let's overwrite the document now
-      return data.store({ id: 1, c: 1 });
-    }).then((res) => {
+      .flatMap(() => data.store({ id: 1, c: 1 }))
       // We should have gotten the ID back again
-      assert.deepEqual([1], res);
-
+      .do(res => assert.deepEqual(1, res))
       // Make sure `store` overwrote the original document
-      return data.find(1).value();
-    }).then((res) => {
+      .flatMap(() => data.find(1).fetch())
       // Check that we get back what we put in.
-      assert.deepEqual({ id: 1, c: 1 }, res);
-      done();
-    }).catch(done);
+      .do(res => assert.deepEqual([ { id: 1, c: 1 } ], res))
+      .subscribe(doneObserver(done))
+
+    // data.store({ id: 1, a: 1, b: 1 }).then((res) => {
+    //   // The promise should return an array with an ID of the inserted
+    //   // document.
+    //   assert.deepEqual([1], res);
+
+    //   // Let's make sure we get back the document that we put in.
+    //   return data.find(1).value();
+    // }).then((res) => {
+    //   // Check that we get back what we put in.
+    //   assert.deepEqual({ id: 1, a: 1, b: 1 }, res);
+
+    //   // Let's overwrite the document now
+    //   return data.store({ id: 1, c: 1 });
+    // }).then((res) => {
+    //   // We should have gotten the ID back again
+    //   assert.deepEqual([1], res);
+
+    //   // Make sure `store` overwrote the original document
+    //   return data.find(1).value();
+    // }).then((res) => {
+    //   // Check that we get back what we put in.
+    //   assert.deepEqual({ id: 1, c: 1 }, res);
+    //   done();
+    // }).catch(done);
   });
 
   // If we store a document without an ID, the ID is generated for us.
@@ -133,5 +150,14 @@ storeSuite = (getData) => {
     }).catch(done);
   });
 
-  } // Testing `store`
-}
+  it("stores date objects and retrieves them again", (done) => {
+    var originalDate = new Date()
+    data.store({date: originalDate}).then((id) => {
+      console.log("Id:", id)
+      return data.find(id[0]).value()
+    }).then((result) => {
+      assert.deepEqual(originalDate, result.date)
+      done()
+    }).catch((err) => done(err))
+  })
+} // Testing `store`

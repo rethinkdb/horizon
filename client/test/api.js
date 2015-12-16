@@ -1,3 +1,4 @@
+'use strict'
 // This test suite covers various edge cases in the Fusion client library API.
 // It does not cover correctness of the full system in various circumstances.
 // The purpose of the API test suite is to act as a runnable, checkable spec for
@@ -6,42 +7,44 @@
 
 chai.config.showDiff = true;
 var assert = chai.assert;
-var Fusion = require("Fusion");
+var Fusion = require('Fusion');
+Rx.config.longStackSupport = true
 
   // Test the methods and event callbacks on the Fusion object.
-  describe("Fusion Object API", fusionObjectSuite());
+  describe('Fusion Object API', fusionObjectSuite)
 
   // Test the core client library API
-  describe("Core API tests", () => {
+  describe('Core API tests', () => {
     // The connection for our tests
-    var fusion;
-    var data;
+    let fusion
+    let data
 
-    getFusion = () => {
+    const getFusion = () => {
       return fusion;
     }
 
-    getData = () => {
+    const getData = () => {
       return data;
     }
 
     // Set up the fusion connection before running these tests.
-    before((done) => {
-      fusion = Fusion(location.host, { secure: (location.protocol === 'https'), path: 'fusion' });
+    before(done => {
+      fusion = Fusion('localhost:8181', { secure: false });
+      fusion.connect(err => done(err))
       fusion.onConnected(() => {
-        data = fusion('test_data');
-        done();
-      });
+        data = fusion('test_data')
+        done()
+      })
     });
 
     // Kill the fusion connection after running these tests.
-    after((done) => {
-      fusion.onDisconnected(() => done());
-      fusion.dispose();
+    after(done => {
+      fusion.dispose()
+      fusion.onDisconnected(() => done())
     });
 
     // Test the mutation commands
-    describe("Storage API", () => {
+    describe('Storage API', () => {
 
       // Drop all data after each test
       afterEach((done) => {
@@ -63,7 +66,7 @@ var Fusion = require("Fusion");
     // Test the lookup API
     describe("Lookup API", () => {
 
-      var testData = [
+      let testData = [
         { id: 1, a: 10 },
         { id: 2, a: 20, b: 1 },
         { id: 3, a: 20, b: 2 },
@@ -72,7 +75,7 @@ var Fusion = require("Fusion");
         { id: 6, a: 50 },
       ];
 
-      getTestData = () => {
+      let getTestData = () => {
         return testData;
       }
 

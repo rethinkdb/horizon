@@ -1,50 +1,44 @@
+'use strict'
 function removeAllData(collection, done) {
   // Read all elements from the collection
-  collection.value().then((res) => {
-    // Now drop these elements
-    return collection.removeAll(res);
-  }).then((res) => {
-    // Make sure we deleted everything
-    return collection.value();
-  }).then((res) => {
-    assert.deepEqual([], res);
-    done();
-  }).catch((err) => {
-    done(err);
-  });
+  collection.fetch() // all documents in the collection
+    .flatMap(docs => collection.removeAll(docs))
+    .flatMap(() => collection.fetch())
+    .flatMap(remaining => assert.deepEqual([], remaining))
+    .subscribe(done, done)
 }
 
 // Observe/expect infrastructure for subscriptions
 var Observer = function(subscription, events) {
   this.em = subscription;
-  this.streams = _.map(events, (e) => {
-    return observableFor(subscription, e).map((x) => {
-      if(e === 'changed') {
+  let observable = Rx.Observable.create(observer => {
+    let disposeResponse = subscription.onResponse(val => observer.onNext(val));
+    let disposeError = subscription.onError(err => observer.onError(err));
+    let disposeCompleted = subscription.onCompleted(() => observer.onCompleted());
+    return () => function cleanup() {
+      disposeResponse();
+      disposeError();
+      disposeCompleted();
+    };
+  });
+  this.streams = _.map(events, (eType) => {
+    return observable.filter(ev => ev.type === eType).map(x => {
+      if(eType === 'changed') {
         return { new: x.new_val, old: x.old_val };
       } else {
         return x;
       }
     }).map((x) => {
       if(!x) { x = {}; }
-      x['type'] = e;
       return x;
     });
   });
-
-  function observableFor(sub, e) {
-    switch(e) {
-    case 'changed': return sub.observeChanged();
-    case 'added': return sub.observeAdded();
-    case 'removed': return sub.observeRemoved();
-    default: throw new Error('Event type "' + e + '" not recognized')
-    }
-  }
 }
 
 Observer.prototype.expect = function(ops, events, done, log) {
   // Create the event stream
   var res = (Rx.Observable.merge.apply(null, this.streams)
-             .takeUntil(Rx.Observable.timer(50).toPromise().then(() => ops))
+             .takeUntil(Rx.Observable.timer().toPromise().then(() => ops))
              .toArray()
              .toPromise());
 
@@ -59,6 +53,24 @@ Observer.prototype.expect = function(ops, events, done, log) {
   }).catch((err) => {
     done(err);
   }).finally;
+}
+
+// Used to subscribe to observables and call done appropriately
+function doneObserver(done) {
+  return Rx.Observer.create(
+    () => {},
+    err => new Error(err),
+    () => done()
+  )
+}
+
+// Used to subscribe to observables when an error is expected
+function doneErrorObserver(done) {
+  return Rx.Observer.create(
+    () => {},
+    () => done(),
+    () => done(new Error('Unexpectedly completed'))
+  )
 }
 
 function buildError(expected, obtained) {
