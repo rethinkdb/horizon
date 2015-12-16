@@ -30,14 +30,19 @@ const websocket = require('ws');
 
 const protocol_name = 'rethinkdb-fusion-v0';
 
-const accept_protocol = (protocols, cb) => {
-  if (protocols.findIndex((x) => x === protocol_name) !== -1) {
-    cb(true, protocol_name);
-  } else {
-    logger.debug(`Rejecting client without "${protocol_name}" protocol (${protocols}).`);
-    cb(false, null);
+function accept_protocol(noprotocol){
+  if(noprotocol){
+    logger.warn("Creating WS with no protocol check")
   }
-};
+  return (protocols, cb) => {
+    if (protocols.findIndex((x) => x === protocol_name || noprotocol) !== -1) {
+      cb(true, protocol_name);
+    } else {
+      logger.debug(`Rejecting client without "${protocol_name}" protocol (${protocols}).`);
+      cb(false, null);
+    }
+  };
+} 
 
 // Function which handles just the /fusion.js endpoint
 const handle_http_request = (req, res) => {
@@ -157,7 +162,7 @@ class BaseServer {
         http_server.on('listening', () => { resolve(http_server.address().port); });
       }));
       this._ws_servers.set(host, new websocket.Server({ server: http_server,
-                                                        handleProtocols: accept_protocol })
+                                                        handleProtocols: accept_protocol(opts.noprotocol) })
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
         .on('connection', (socket) => {
           // Reject connections if we aren't synced with the database
