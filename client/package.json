@@ -4,6 +4,7 @@
   "description": "RethinkDB Fusion is an open-source developer platform for building realtime, scalable web apps. It is built on top of RethinkDB, and allows app developers to get started with building modern, engaging apps without writing any backend code.",
   "main": "index.js",
   "dependencies": {
+    "babel-polyfill": "^6.3.14",
     "snake-case": "^1.1.1"
   },
   "devDependencies": {
