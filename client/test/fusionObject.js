@@ -13,7 +13,7 @@ fusionObjectSuite = () => {
         // the Fusion object as its argument.
         assert.equal(fusion, _fusion);
 
-        // The dispose method fires the `disconnected` event (iff the client was
+        // The dispose method fires the `disconnected` event (if the client was
         // connected), then closes all connections and cleans up all resources
         // associated with the Fusion object.
         _fusion.dispose();
