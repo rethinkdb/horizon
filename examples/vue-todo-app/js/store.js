@@ -7,14 +7,15 @@
   const fusion = new Fusion("localhost:8181", {
     secure: true
   });
-  const todos = fusion("todos");
+  const todos = fusion("vuejs_todos");
 
   exports.todoStorage = {
+    todos: todos,
 
-    generateUUID: function(){
-			var x = Math.floor(Math.random() * 100000000000);
-			return Math.floor(Math.random() * x).toString(36) +
-      	Math.abs(Math.floor(Math.random() * x) ^ Date.now()).toString(36);
+      generateUUID: function() {
+      var x = Math.floor(Math.random() * 100000000000);
+      return Math.floor(Math.random() * x).toString(36) +
+        Math.abs(Math.floor(Math.random() * x) ^ Date.now()).toString(36);
     },
 
     fetchAll: function(app) {
@@ -26,36 +27,41 @@
         console.error(error);
       });
     },
-    save: function(newVal, oldVal) {
-
-      // Can't compare oldVal to newVal because of Vue/Javascript limitations. Only
-      //  certain mutations to an array are detectable. So save every doc.
-      if (Array.isArray(newVal)){
-          todos.replace(newVal)
-      } else {
-          todos.store(newVal);
-      }
+    save: function(newVal) {
+      console.log("SENDING STORE");
+      console.log(newVal)
+      todos.store(newVal);
 
     },
 
-    update: function(todo){
+    update: function(todo) {
+      console.log("SENDING UPDATE");
       console.log(todo);
-      todos.replace(todo);
+      todos.replace({
+        id: todo.id,
+        title: todo.title,
+        completed: todo.completed,
+        datetime: todo.datetime
+        // datetime: todo.datetime
+      })
+        .then(function(res){console.log(res);})
+        .catch(function(res){console.log(res);});
     },
 
-		remove: function(todo){
-      if (!Array.isArray(todo)){
-          todos.remove(todo);
-      } else if (Array.isArray(todo)){
-          todos.removeAll(todo)
-      }
-		},
+    remove: function(todo) {
+      console.log("SENDING DELETE")
+      todos.remove(todo);
+    },
 
     changes: function(added, changed, removed) {
-      todos.subscribe()
-        .on("added", added)
-        .on("changed", changed)
-        .on("removed", removed)
+      todos.subscribe({
+        onAdded: added,
+        onChanged: changed,
+        onRemoved: removed,
+        onConnected: function() {console.log("CONNECTED TO SERVER");},
+        onDisconnected: function() {console.log("DISCONNECTED FROM SERVER");},
+        onError: function(err) {console.log(err);}
+      });
     }
   };
 

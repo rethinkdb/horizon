@@ -35,12 +35,12 @@
 		},
 
 		// watch todos change for localStorage persistence
-		watch: {
-			todos: {
-				deep: false,
-				handler: todoStorage.save,
-			},
-		},
+		// watch: {
+		// 	// todos: {
+		// 	// 	deep: false,
+		// 	// 	handler: todoStorage.save,
+		// 	// },
+		// },
 
 		// computed properties
 		//  http://vuejs.org/guide/computed.html
@@ -72,12 +72,16 @@
 				if (!value) {
 					return;
 				}
-				todoStorage.save({
+				const todo = {
 					title: value,
 					id: todoStorage.generateUUID(),
 					completed: false,
 					datetime: new Date(),
-				});
+				};
+
+				console.log("%c OBJ BEFORE STORE","color: blue;")
+
+				todoStorage.save(todo);
 				this.newTodo = '';
 			},
 
@@ -120,6 +124,8 @@
 			// Changefeed Methods
 
 			addedChanges: function (doc) {
+				console.log("RECEIVED ADDITION")
+				console.log(doc)
 				for(var i = 0; i < this.todos.length; i++){
 
 						// If we already have this document, don't duplicate.
@@ -131,16 +137,19 @@
 				this.todos.push(doc);
 			},
 
-			updatedChanges: function (doc) {
+			updatedChanges: function (change) {
+				console.log("RECEIVED UPDATE")
+				console.log(change);
 				for(var i = 0; i < this.todos.length; i++){
-					if (this.todos[i].id === doc.id) {
-						this.todos.$set(i, doc);
+					if (this.todos[i].id === change.old_val.id) {
+						this.todos.$set(i, change.new_val);
 						return;
 					}
 				}
 			},
 
 			removedChanges: function (doc) {
+				console.log("RECEIVED DELETION")
 				for(var todo of this.todos){
 					if(todo.id === doc.id){
 							this.todos.$remove(todo);
@@ -166,7 +175,7 @@
 		}
 	});
 
-	todoStorage.fetchAll(app);
+	// todoStorage.fetchAll(app);
 	todoStorage.changes(app.addedChanges, app.updatedChanges, app.removedChanges);
 
 })(window);
