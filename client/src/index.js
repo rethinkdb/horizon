@@ -142,7 +142,7 @@ function Fusion(host, { secure: secure = true } = {}) {
 
   function createSubscription(queryOptions, userOptions) {
     return createRequest((reqId, events) => {
-      let req = { type: 'subscribe', options: queryOptions, request_id: reqId }
+      let req = { type: 'subscribe', options: serialize(queryOptions), request_id: reqId }
       handshaken.then(() => socket.send(req))
       return Subscription({
         onResponse: events.onResponse,
@@ -156,12 +156,11 @@ function Fusion(host, { secure: secure = true } = {}) {
   }
 
   function writeOp(opType, collectionName, documents) {
-    let serializedDocs = serialize(documents)
-    return send(opType, { data: serializedDocs, collection: collectionName })
+    return send(opType, { data: serialize(documents), collection: collectionName })
   }
 
   function query(data) {
-    return send('query', data)
+    return send('query', serialize(data))
   }
 
   function endSubscription(requestId) {

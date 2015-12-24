@@ -53,6 +53,7 @@ var Fusion = require("Fusion");
       describe("Testing `upsert`", upsertSuite(getData));
       describe("Testing `update`", updateSuite(getData));
       describe("Testing `replace`", replaceSuite(getData));
+      describe("Testing `times`", timesSuite(getData));
 
     }); // Storage API
 
