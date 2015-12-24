@@ -151,13 +151,93 @@ chat.subscribe({
 
 #### Collection
 
-##### above()
+##### above(*limit integer* || *{key: value}*, *closed string*)
+
+The `.above` method can only be chained onto an `.order(...)` method and limits the range of results returned.
+
+The first parameter if an integer will limit based on `id` and if an object is provided the limit will be on the key provided and its value.
+
+The second parameter allows only either "closed" or "open" as arguments for inclusive or exclusive behavior for the limit value.
 
 ###### Example
+
+```javascript
+
+chat.store([{
+  id: 1,
+  text: "Hello",
+  author: "kittybot"
+}, {
+  id: 2,
+  text: "Howdy!",
+  author: "grey"
+}, {
+  id: 3,
+  text: "Bonjour",
+  author: "coffeemug"
+}, {
+  id: 4,
+  text: "Gutentag",
+  author: "deontologician"
+}, {
+  id: 5,
+  text: "G'day 🇦🇺",
+  author: "dalanmiller"
+}]);
+
+// Returns docs with id 4 and 5
+chat.messages.order("id").above(3);
+
+// Returns docs with id 3, 4, and 5
+chat.messages.order("id").above(3, "closed");
+
+// Returns the documents with ids 1, 2, 4, and 5 (alphabetical)
+chat.messages.order("id").above({author: "d"});
+```
 
 ##### below()
 
+The `.below` method can only be chained onto an `.order(...)` method and limits the range of results returned.
+
+The first parameter if an integer will limit based on `id` and if an object is provided the limit will be on the key provided and its value.
+
+The second parameter allows only either "closed" or "open" as arguments for inclusive or exclusive behavior for the limit value.
+
 ###### Example
+
+```javascript
+
+chat.store([{
+  id: 1,
+  text: "Hello",
+  author: "kittybot"
+}, {
+  id: 2,
+  text: "Howdy!",
+  author: "grey"
+}, {
+  id: 3,
+  text: "Bonjour",
+  author: "coffeemug"
+}, {
+  id: 4,
+  text: "Gutentag",
+  author: "deontologician"
+}, {
+  id: 5,
+  text: "G'day 🇦🇺",
+  author: "dalanmiller"
+}]);
+
+// Returns docs with id 1 and 2
+chat.messages.order("id").below(3);
+
+// Returns docs with id 1, 2, and 3
+chat.messages.order("id").below(3, "closed");
+
+// Returns the document with id 3 (alphabetical)
+chat.messages.order("id").below({author: "d"});
+```
 
 ##### find(*object*)
 
