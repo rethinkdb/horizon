@@ -19,7 +19,7 @@ OR
 
 ### Getting Started
 
-First you need to ensure that you have grabbing the `fusion.js` client library.
+First you need to ensure that you have the `fusion.js` client library.
 
 Note: that you'll want to have `http` instead of `https` if you started Fusion Server with `--unsecure`. By default Fusion Server hosts the `fusion.js` client library on it's host on port 8181.
 
@@ -40,17 +40,15 @@ const fusion = new Fusion("localhost:8181");
 // );
 ```
 
-From here you can start to interact with RethinkDB collections through the Fusion Client collection object.  
+From here you can start to interact with RethinkDB collections through the Fusion collection.  
 
-Note: If you have `--dev` mode enabled on the Fusion Server, you do not have to worry about either collection creation or index creation.
+**Note:**  Having `--dev` mode enabled on the Fusion Server creates collections and indexes automatically.
 
 ```javascript
 const chat = fusion("messages");
 ```
 
-Now, `chat` is a Fusion collection and you can interact with it with a subset of the ReQL commands you love from RethinkDB.
-
-All the following methods return a Promise that you can chain `.then(...)` and `.catch(...)` to supply functions to listen for either success or error results from the server.
+Now, `chat` is a Fusion collection of documents. You can perform a variety of operations on this collection to filter them down to the ones you need.
 
 ```javascript
 
@@ -60,12 +58,12 @@ chats = [];
 retrieveMessages = () => {
   chat.value()
   // Retrieval successful, update our model
-  .then((res) => {
-    chats.concat(res);
+  .then((result) => {
+    chats.concat(result);
   })
   // Error occurred
-  .catch((err) => {
-    console.log(err);
+  .catch((error) => {
+    console.log(error);
   });
 }
 
@@ -73,12 +71,12 @@ retrieveMessages = () => {
 retrieveMessage = (id) => {
   chat.find(id).value()
     // Retrieval successful
-    .then((res) => {
-      chats.push(res);
+    .then((result) => {
+      chats.push(result);
     })
     // Error occurred
-    .catch((err) => {
-      console.log(err);
+    .catch((error) => {
+      console.log(error);
     });
 }
 
@@ -153,7 +151,7 @@ chat.subscribe({
 
 ##### above(*limit integer* || *{key: value}*, *closed string*)
 
-The `.above` method can only be chained onto an `.order(...)` method and limits the range of results returned.
+The `.above` method can be chained onto all methods with the exception of `.find` and `.limit` and restricts the range of results returned.
 
 The first parameter if an integer will limit based on `id` and if an object is provided the limit will be on the key provided and its value.
 
@@ -246,7 +244,8 @@ Retrieve a single object from the Fusion collection.
 ###### Example
 
 ```javascript
-// Using id
+// Using id, both are equivalent
+chats.find(1)
 chats.find({id:1})
 
 // Using another field
@@ -260,7 +259,7 @@ Retrieve multiple objects from the Fusion collection. Returns `[]` if queried do
 ###### Example
 
 ```javascript
-chats.findAll({id:1, id:2});
+chats.findAll({id: 1}, {id: 2});
 
 chats.findAll({name: "dalan"}, {id: 3});
 ```
@@ -284,7 +283,7 @@ chats.order("datetime", "descending").limit(5);
 
 ##### order(*string* [, *direction*="ascending"])
 
-Order the current query by the field indicated by the provided string. The second parameter is also a string that determines order direction. Default is ascending.
+Order the results of the query by the given field string. The second parameter is also a string that determines order direction. Default is ascending ⏫.
 
 ###### Example
 
@@ -300,7 +299,7 @@ chats.order("age", "descending");
 
 ##### remove(*id string* || *{id: integer}*)
 
-Remove a single document from the collection an `id` representing the id of the document to remove or an object that has an `id` key.
+Remove a single document from the collection. Takes an `id` representing the `id` of the document to remove or an object that has an `id` key.
 
 ###### Example
 
@@ -400,7 +399,11 @@ chat.onAdded = (newMessage) => {
 
 chat.subscribe({
   onAdded: (newMessage) => {},
-  onChanged: (newMessage, oldMessage) => {},
+  onChanged: (change) => {
+    // Change has both `new_val` and `old_val` keys
+    console.log(change.new_val);
+    console.log(change.old_val);
+  },
   onRemoved: (deletedMessage) =>  {},
   onError: (error) => {},
   onConnected: () => {},
