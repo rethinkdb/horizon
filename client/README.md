@@ -101,7 +101,7 @@ deleteMessage = (message) =>{
 }
 ```
 
-And lastly, the `.subscribe(...)` method exposes all the changefeeds awesomeness you could want from RethinkDB.
+And lastly, the `.subscribe(...)` method exposes all the changefeeds awesomeness you could want from RethinkDB. Using just `chat.subscribe`, any events on any of the documents in the collection will be pushed to you where you can specify functions to handle these changes. You can also `.subscribe` to changes on a query or a single document. 
 
 ```javascript
 chats = [];
