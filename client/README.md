@@ -207,19 +207,19 @@ The second parameter allows only either "closed" or "open" as arguments for incl
 
 chat.store([{
   id: 1,
-  text: "Hello",
+  text: "Top o' the morning to ya! 🇮🇪",
   author: "kittybot"
 }, {
   id: 2,
-  text: "Howdy!",
+  text: "Howdy! 🇺🇸",
   author: "grey"
 }, {
   id: 3,
-  text: "Bonjour",
+  text: "Bonjour 🇫🇷",
   author: "coffeemug"
 }, {
   id: 4,
-  text: "Gutentag",
+  text: "Gutentag 🇩🇪",
   author: "deontologician"
 }, {
   id: 5,
