@@ -9,8 +9,7 @@ const fs = require('fs');
 const all_tests = () => {
   [ 'http', 'https' ].forEach((transport) => {
     describe(transport, () => {
-      let proc;
-      let port;
+      let port, proc;
       before('Start standalone fusion server', (done) => {
         let args = [ '--connect', `localhost:${utils.rdb_port()}`, '--port', '0' ];
         if (transport === 'http') {
