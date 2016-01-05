@@ -193,7 +193,7 @@ chat.messages.order("id").above(3, "closed");
 chat.messages.order("id").above({author: "d"});
 ```
 
-##### below()
+##### below(limit integer || {key: value}, closed string)
 
 The `.below` method can only be chained onto an `.order(...)` method and limits the range of results returned.
 
