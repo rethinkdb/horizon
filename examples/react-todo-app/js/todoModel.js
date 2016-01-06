@@ -25,6 +25,8 @@ var app = app || {};
 		this.onChanges = [];
 		this.todosDB = fusion(table_key);
 
+		window.todosDB = this.todosDB;
+
 		this.todosDB.value().then((result) => {
 			this.todos = result ? result : [];
 			this.inform();
@@ -50,22 +52,16 @@ var app = app || {};
 	};
 
 	app.TodoModel.prototype.toggleAll = function (checked) {
-		// Note: it's usually better to use immutable data structures since they're
-		// easier to reason about and React works very well with them. That's why
-		// we use map() and filter() everywhere instead of mutating the array or
-		// todo items themselves.
+		console.log(checked);
 		this.todosDB.replace(this.todos.map(function (todo) {
 			return Utils.extend({}, todo, {completed: checked});
 		}));
 	};
 
 	app.TodoModel.prototype.toggle = function (todoToToggle) {
+		console.log(todoToToggle);
 		this.todosDB.replace(
-			Utils.extend(
-				{},
-				todoToToggle,
-				{completed:!todoToToggle.completed}
-			)
+			Utils.extend({}, todoToToggle, {completed: !todoToToggle.completed})
 		);
 	};
 
@@ -98,7 +94,7 @@ var app = app || {};
 			},
 		  onChanged: (changed) => {
 				this.todos = this.todos.map((todo) => {
-					return todo.id !== changed.id ? todo : Utils.extend({}, todo, changed);
+					return todo.id !== changed.new_val.id ? todo : Utils.extend({}, todo, changed.new_val);
 				});
 				this.inform();
 			},
