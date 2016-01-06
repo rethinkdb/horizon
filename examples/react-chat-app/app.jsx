@@ -56,12 +56,11 @@ var app = app || {};
     getInitialState: function(){
       return {
         disabled: true,
-        messages:[]
+        messages: []
       };
     },
 
     componentDidMount: function(){
-
       // Get limited 10 and sorted by date stored values from
       //  the DB and setState with them.
       this.props.fusion
@@ -93,8 +92,8 @@ var app = app || {};
     },
 
     subscribe: function(){
-      this.props.fusion.subscribe()
-        .on("added", (function(added){
+      this.props.fusion.subscribe({
+        onAdded: function(added){
 
           // Grab current state of messages
           var currentMessages = this.state.messages;
@@ -108,7 +107,8 @@ var app = app || {};
           this.setState({
             messages: currentMessages.concat(added)
           });
-        }).bind(this));
+        }.bind(this)
+      });
     },
 
     render: function(){
