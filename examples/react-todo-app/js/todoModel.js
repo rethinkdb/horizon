@@ -91,21 +91,23 @@ var app = app || {};
 	};
 
 	app.TodoModel.prototype.subscribeChangefeeds = function(){
-		this.todosDB.subscribe()
-			.on("added", (added) => {
+		this.todosDB.subscribe({
+			onAdded: (added) => {
 				this.todos = this.todos.concat(added);
 				this.inform();
-			}).on("changed", (changed) => {
+			},
+		  onChanged: (changed) => {
 				this.todos = this.todos.map((todo) => {
 					return todo.id !== changed.id ? todo : Utils.extend({}, todo, changed);
 				});
 				this.inform();
-			}).on("removed", (removed) => {
+			},
+			onRemoved: (removed) => {
 				this.todos = this.todos.filter((todo) => {
 					return todo.id !== removed.id;
 				});
 				this.inform();
 			}
-		);
+		});
 	};
 })();
