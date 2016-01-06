@@ -124,8 +124,6 @@
 			// Changefeed Methods
 
 			addedChanges: function (doc) {
-				console.log("RECEIVED ADDITION")
-				console.log(doc)
 				for(var i = 0; i < this.todos.length; i++){
 
 						// If we already have this document, don't duplicate.
@@ -138,8 +136,6 @@
 			},
 
 			updatedChanges: function (change) {
-				console.log("RECEIVED UPDATE")
-				console.log(change);
 				for(var i = 0; i < this.todos.length; i++){
 					if (this.todos[i].id === change.old_val.id) {
 						this.todos.$set(i, change.new_val);
@@ -149,7 +145,6 @@
 			},
 
 			removedChanges: function (doc) {
-				console.log("RECEIVED DELETION")
 				for(var todo of this.todos){
 					if(todo.id === doc.id){
 							this.todos.$remove(todo);

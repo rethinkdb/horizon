@@ -24,13 +24,6 @@ var app = app || {};
 		this.todos = [];
 		this.onChanges = [];
 		this.todosDB = fusion(table_key);
-
-		window.todosDB = this.todosDB;
-
-		this.todosDB.value().then((result) => {
-			this.todos = result ? result : [];
-			this.inform();
-		});
 	};
 
 	app.TodoModel.prototype.subscribe = function (onChange) {
