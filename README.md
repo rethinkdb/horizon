@@ -100,7 +100,8 @@ appInit: function() {
     onAdded: function(item) {
       // add the item to the data model
     },
-    onChanged: function(newItem, oldItem){
+    onChanged: function(changed){
+      // changed is an object with properties 'new_val' and 'old_val'
       // modify item in the data model
     },
     onRemoved: function(item){
