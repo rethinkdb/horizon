@@ -1,11 +1,9 @@
-# RethinkDB Fusion Vue.js TodoMVC Example
-
-
+# RethinkDB Fusion TodoMVC example using Vue.js
 
 ## Ideas for future
 
 - [ ] implement `presence` for other connected people ToDo-ing
-- [ ] Clear all completed edge case working but causing errors server side.
+
 
 ## Credit
 

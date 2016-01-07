@@ -1,19 +1,18 @@
 # Fusion Client Library
 
-## Building
+The Fusion client library is how your app will interact with the [Fusion server](/server).
+
+## Setup and Building
+
+You first need to install dependencies and then build the client library using Gulp.
 
 1. `npm install` && `npm install -g gulp`
 2. `gulp`
 
-## Running  tests
+## Running tests
 
-You have two options:
+* Open `test/test.html` in your browser after getting setup and while you also have Fusion server running.
 
-* `mocha-phantomjs --ssl-protocol=any --ignore-ssl-errors=true test/test.html`
-
-OR
-
-* Open `test/test.html` in your browser
 
 ## Docs
 
@@ -101,7 +100,7 @@ deleteMessage = (message) =>{
 }
 ```
 
-And lastly, the `.subscribe(...)` method exposes all the changefeeds awesomeness you could want from RethinkDB. Using just `chat.subscribe`, any events on any of the documents in the collection will be pushed to you where you can specify functions to handle these changes. You can also `.subscribe` to changes on a query or a single document. 
+And lastly, the `.subscribe(...)` method exposes all the changefeeds awesomeness you could want from RethinkDB. Using just `chat.subscribe`, any events on any of the documents in the collection will be pushed to you where you can specify functions to handle these changes. You can also `.subscribe` to changes on a query or a single document.
 
 ```javascript
 chats = [];
