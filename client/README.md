@@ -23,7 +23,11 @@ First you need to ensure that you have the `fusion.js` client library.
 Note: that you'll want to have `http` instead of `https` if you started Fusion Server with `--unsecure`. By default Fusion Server hosts the `fusion.js` client library on it's host on port 8181.
 
 ```javascript
+...
+<head>
 <script src="https://localhost:8181/fusion.js"></script>
+</head>
+...
 ```
 
 Then wherever you want to use Project Fusion you will need to `require` the Fusion client library and then connect to your running instance of Fusion Server.
@@ -146,7 +150,29 @@ chat.subscribe({
 
 #### Fusion
 
+Object which initializes the connection to a Fusion Server.
+
+###### Example
+
+```javascript
+const Fusion = require("fusion");
+const fusion = new Fusion("localhost:8181");
+```
+
 #### Collection
+
+Object which represents a collection of documents on which queries can be performed.
+
+###### Example
+```javascript
+
+const Fusion = require("fusion");
+const fusion = new Fusion("localhost:8181");
+
+//Fusion Collection
+const messages = fusion("messages");
+
+```
 
 ##### above(*limit integer* || *{key: value}*, *closed string*)
 
@@ -309,7 +335,7 @@ chat.remove(1);
 chat.remove({id:1})
 
 ```
-##### removeAll(*[id integer [, id integer]]* || *[{id: integer [,{id: integer}]}]*)
+##### removeAll(*[id integer [, id integer]]* || *{id: integer [,{id: integer}]}*)
 
 Remove multiple documents from the collection via an array of `id` integers or an array of objects that have an `id` key.
 
@@ -349,7 +375,7 @@ chat.replace({
 });
 ```
 
-##### upsert(*{}* || *[{} [,{}]]*)
+##### upsert(*{}* || *{} [,{}]*)
 
 The `upsert` method allows storing multiple documents in one call. If any of them exist, the existing version of the document will be updated with the new version supplied to the method.
 
