@@ -6,13 +6,13 @@ The Fusion client library is how your app will interact with the [Fusion server]
 
 You first need to install dependencies and then build the client library using Gulp.
 
-1. `npm install` && `npm install -g gulp`
-2. `gulp`
+1. `npm install`
+2a. `node build.js`
+2b. `node build.js watch`
 
 ## Running tests
 
 * Open `test/test.html` in your browser after getting setup and while you also have Fusion server running.
-
 
 ## Docs
 
