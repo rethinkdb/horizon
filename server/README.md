@@ -15,7 +15,16 @@ can run:
 ## Launch the server
 
 `node --harmony-destructuring src/main.js --unsecure`
-This serves fusion queries on ws://localhost:8181, and connects to the RethinkDB server at localhost:31420.  Run the server with `--help` for a list of available options.
+
+This serves fusion queries on ws://localhost:8181, and connects to the RethinkDB server at localhost:31420.
+
+Available options:
+  --bind HOST            local hostname to serve fusion on (repeatable), defaults to localhost
+  --port PORT            local port to serve fusion on, defaults to 8181
+  --connect HOST:PORT    host and port of the RethinkDB server to connect to, defaults to localhost:28015
+  --key-file PATH        path to the key file to use, defaults to ./key.pem
+  --cert-file PATH       path to the cert file to use, defaults to ./cert.pem
+  --unsecure             serve unsecure websockets, ignore --key-file and --cert-file
 
 ## Generate key files for SSL
 There are proper ways to get a certificate registered through a Certificate

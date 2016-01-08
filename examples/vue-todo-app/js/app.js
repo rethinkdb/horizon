@@ -20,28 +20,27 @@
 		}
 	};
 
-	Vue.config.debug = true
 	exports.app = new Vue({
 
 		// the root element that will be compiled
 		el: '.todoapp',
+		debug: true,
 
 		// app initial state
 		data: {
 			todos: [],
 			newTodo: '',
-			tempTodo: {title: "", completed:false},
 			editedTodo: null,
 			visibility: 'all'
 		},
 
 		// watch todos change for localStorage persistence
-		watch: {
-			todos: {
-				deep: true,
-				handler: todoStorage.saveAll,
-			},
-		},
+		// watch: {
+		// 	// todos: {
+		// 	// 	deep: false,
+		// 	// 	handler: todoStorage.save,
+		// 	// },
+		// },
 
 		// computed properties
 		//  http://vuejs.org/guide/computed.html
@@ -68,37 +67,37 @@
 		//  note there's no DOM manipulation here at all.
 		methods: {
 
-			uuid: function() {
-  			var x = Math.floor(Math.random() * 100000000000);
-  			return Math.floor(Math.random() * x).toString(36) +
-        	Math.abs(Math.floor(Math.random() * x) ^ Date.now()).toString(36);
-			},
-
 			addTodo: function () {
 				const value = this.newTodo && this.newTodo.trim();
 				if (!value) {
 					return;
 				}
-				this.todos.push({
+				const todo = {
 					title: value,
-					id: this.uuid(),
+					id: todoStorage.generateUUID(),
 					completed: false,
 					datetime: new Date(),
-				});
+				};
+
+				console.log("%c OBJ BEFORE STORE","color: blue;")
+
+				todoStorage.save(todo);
 				this.newTodo = '';
 			},
 
 			removeTodo: function (todo){
-				this.todos.$remove(todo);
 				todoStorage.remove(todo);
 			},
 
 			editTodo: function (todo) {
+				console.log("EDIT TODO")
 				this.beforeEditCache = todo.title;
 				this.editedTodo = todo;
+				this.updateTodo(todo);
 			},
 
 			doneEdit: function (todo) {
+				console.log("DONE EDIT")
 				if (!this.editedTodo) {
 					return;
 				}
@@ -109,33 +108,43 @@
 				}
 			},
 
+			updateTodo: function(todo){
+				todoStorage.update(todo);
+			},
+
 			cancelEdit: function (todo) {
 				this.editedTodo = null;
 				todo.title = this.beforeEditCache;
 			},
 
 			removeCompleted: function () {
-				this.todos = filters.active(this.todos);
+				filters.completed(this.todos).forEach(this.removeTodo);
 			},
 
+			// Changefeed Methods
+
 			addedChanges: function (doc) {
+				for(var i = 0; i < this.todos.length; i++){
+
+						// If we already have this document, don't duplicate.
+						//  Can't rely on Vuejs track-by= directive
+						if (this.todos[i].id === doc.id){
+							return;
+						}
+				}
 				this.todos.push(doc);
 			},
 
-			updatedChanges: function (doc) {
-				console.log("UPDATING");
-				var i = 0;
-				for(var todo of this.todos){
-					if (todo.id === doc.id && todo.title !== doc.title) {
-						this.todos.$set(i, doc);
+			updatedChanges: function (change) {
+				for(var i = 0; i < this.todos.length; i++){
+					if (this.todos[i].id === change.old_val.id) {
+						this.todos.$set(i, change.new_val);
 						return;
 					}
-					i++;
 				}
 			},
 
-			deletedChanges: function (doc) {
-				console.log(doc);
+			removedChanges: function (doc) {
 				for(var todo of this.todos){
 					if(todo.id === doc.id){
 							this.todos.$remove(todo);
@@ -161,7 +170,7 @@
 		}
 	});
 
-	todoStorage.fetchAll(app);
-	todoStorage.changes(app.addedChanges, app.updatedChanges, app.deletedChanges);
+	// todoStorage.fetchAll(app);
+	todoStorage.changes(app.addedChanges, app.updatedChanges, app.removedChanges);
 
 })(window);
