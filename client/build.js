@@ -7,8 +7,14 @@ let browserify = require('browserify')
 let watchify = require('watchify')
 let exorcist = require('exorcist')
 
+const BUILD_DIR = 'dist'
+
 function compile(watching) {
-  console.log('Building dist/bundle.js and dist/bundle.js.map')
+  if (!fs.existsSync(BUILD_DIR)) {
+    console.log(`Creating ./${BUILD_DIR}`)
+    fs.mkdirSync(BUILD_DIR)
+  }
+  console.log('Building dist/build.js and dist/build.js.map')
   let bundler = browserify({
     cache: {},
     packageCache: {},
@@ -46,9 +52,9 @@ function rebundle(bundler) {
       bundler.emit('end')
     })
     // exorcist splits out map to a separate file
-    .pipe(exorcist('dist/bundle.js.map'))
+    .pipe(exorcist(`${BUILD_DIR}/build.js.map`))
     // The unmapped remainder is the code itself
-    .pipe(fs.createWriteStream('dist/bundle.js'), 'utf8')
+    .pipe(fs.createWriteStream(`${BUILD_DIR}/build.js`), 'utf8')
 }
 
 function help() {
