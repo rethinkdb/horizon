@@ -14,7 +14,7 @@ function compile(watching) {
     console.log(`Creating ./${BUILD_DIR}`)
     fs.mkdirSync(BUILD_DIR)
   }
-  console.log('Building dist/build.js and dist/build.js.map')
+  console.log('Building dist/fusion.js and dist/fusion.js.map')
   let bundler = browserify({
     cache: {},
     packageCache: {},
@@ -52,9 +52,9 @@ function rebundle(bundler) {
       bundler.emit('end')
     })
     // exorcist splits out map to a separate file
-    .pipe(exorcist(`${BUILD_DIR}/build.js.map`))
+    .pipe(exorcist(`${BUILD_DIR}/fusion.js.map`))
     // The unmapped remainder is the code itself
-    .pipe(fs.createWriteStream(`${BUILD_DIR}/build.js`), 'utf8')
+    .pipe(fs.createWriteStream(`${BUILD_DIR}/fusion.js`), 'utf8')
 }
 
 function help() {

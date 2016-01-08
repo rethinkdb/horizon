@@ -59,29 +59,36 @@ if (parsed.connect !== null) {
   }
 }
 
+const serveFile = (file_path, res) => {
+  fs.access(file_path, fs.R_OK | fs.F_OK, (exists) => {
+    if (exists) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end(`Client library not found\n`);
+    } else {
+      fs.readFile(file_path, 'binary', (err, file) => {
+        if (err) {
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end(`${err}\n`);
+        } else {
+          res.writeHead(200);
+          res.end(file, 'binary');
+        }
+      });
+    }
+  });
+};
+
 // Function which handles just the /fusion.js endpoint
 const handle_http = (req, res) => {
   const req_path = url.parse(req.url).pathname;
-  const file_path = path.resolve('../client/dist/build.js');
   fusion.logger.debug(`HTTP request for "${req_path}"`);
 
   if (req_path === '/fusion.js') {
-    fs.access(file_path, fs.R_OK | fs.F_OK, (exists) => {
-      if (exists) {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end(`Client library not found\n`);
-      } else {
-        fs.readFile(file_path, 'binary', (err, file) => {
-          if (err) {
-            res.writeHead(500, { 'Content-Type': 'text/plain' });
-            res.end(`${err}\n`);
-          } else {
-            res.writeHead(200);
-            res.end(file, 'binary');
-          }
-        });
-      }
-    });
+    const file_path = path.resolve('../client/dist/fusion.js');
+    serveFile(file_path, res);
+  } else if (req_path === '/fusion.js.map') {
+    const file_path = path.resolve('../client/dist/fusion.js.map');
+    serveFile(file_path, res);
   } else {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
     res.end(`Forbidden\n`);
