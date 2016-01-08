@@ -2,15 +2,10 @@
 
 ## Building
 
-1. `npm install` && `npm install -g gulp`
-2. `gulp`
+1. `npm install`
+2a. `node build.js`
+2b. `node build.js watch`
 
 ## Running  tests
 
-You have two options:
-
-* `mocha-phantomjs --ssl-protocol=any --ignore-ssl-errors=true test/test.html`
-
-OR
-
-* Open `test/test.html` in your browser
+Open `test/test.html` in your browser
