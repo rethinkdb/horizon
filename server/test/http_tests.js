@@ -50,7 +50,7 @@ const all_tests = () => {
                                  port,
                                  path: '/fusion.js',
                                  rejectUnauthorized: false }, (res) => {
-          const code = fs.readFileSync('../client/dist/build.js');
+          const code = fs.readFileSync('../client/dist/fusion.js');
           let buffer = '';
           assert.strictEqual(res.statusCode, 200);
           res.on('data', (delta) => buffer += delta);
