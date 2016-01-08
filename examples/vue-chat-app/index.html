@@ -10,7 +10,7 @@
     <div class="row">
       <ul>
         <li v-for="message in limitedMessages" transition="expand" class="message">
-          <img height="50px" width="50px" src="{{message.id}}">
+          <img height="50px" width="50px" :src="message.id">
           <span class="text">
             {{ message.text }}
           </span>

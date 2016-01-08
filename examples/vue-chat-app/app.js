@@ -47,16 +47,8 @@ const app = new Vue({
       this.messages.push(newDoc);
     },
 
-    fetchAll: function(){
-      chat.value().then((result) => {
-        result.forEach((doc) => {
-          doc.datetime = new Date(Date.parse(doc.datetime));
-        })
-
-        this.messages = this.messages.concat(result);
-      });
-    }
   }
 });
-app.fetchAll();
-chat.subscribe().on("added", app.addedChange);
+chat.subscribe({
+  onAdded: app.addedChange
+});
