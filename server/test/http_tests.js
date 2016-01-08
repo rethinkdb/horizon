@@ -18,7 +18,7 @@ const all_tests = () => {
         proc = child_process.fork('./src/main.js', args, { silent: true });
 
         // Error if we didn't get the port before the server exited
-        proc.stdout.once('end', () => assert(port !== undefined));
+        proc.stdout.once('end', () => assert.notStrictEqual(port, undefined));
 
         let buffer = '';
         proc.stdout.on('data', (data) => {
