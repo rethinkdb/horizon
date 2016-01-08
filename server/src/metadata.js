@@ -57,11 +57,11 @@ class Index {
       if (pos < 0 || pos >= fuzzy_fields.length) { return false; }
     }
 
-    outer:
+    outer: // eslint-disable-line no-labels
     for (let i = 0; i <= fuzzy_fields.length && i + ordered_fields.length <= this.fields.length; ++i) {
       for (let j = 0; j < ordered_fields.length; ++j) {
         if (this.fields[i + j] !== ordered_fields[j]) {
-          continue outer;
+          continue outer; // eslint-disable-line no-labels
         }
       }
       return true;
