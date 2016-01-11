@@ -23,6 +23,10 @@ function compile(watching) {
     // All source files need to be babelified first
       sourceMapRelative: '.', // source maps will be relative to this dir
     })
+    .transform('uglifyify', {
+      // uglify all sources, not just application code
+      global: true,
+    })
 
   if (watching) {
     bundler.on('update', function() {
