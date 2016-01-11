@@ -1,3 +1,4 @@
+#!/usr/bin/env node --harmony-destructuring
 'use strict';
 
 const fusion = require('./server');

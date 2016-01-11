@@ -1,7 +1,7 @@
 {
   "name": "fusion-server",
   "version": "0.0.1",
-  "description": "Server for RethinkDB fusion",
+  "description": "Server for RethinkDB Project Fusion",
   "main": "main.js",
   "scripts": {
     "test": "./node_modules/.bin/mocha --compilers js:babel-core/register test/test.js test/schema.js"
@@ -12,6 +12,9 @@
   },
   "author": "RethinkDB",
   "license": "MIT",
+  "bin": {
+    "fusion": "./src/main.js"
+  },
   "bugs": {
     "url": "https://github.com/rethinkdb/fusion/issues"
   },
