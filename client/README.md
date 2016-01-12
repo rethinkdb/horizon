@@ -7,7 +7,7 @@ The Fusion client library is how your app will interact with the [Fusion server]
 You first need to install dependencies and then build the client library using the build script.
 
 1. `npm install`
-2. `./build.js build [--watch]`
+2. `./build.js [--watch]`
 
 ## Running tests
 
@@ -24,7 +24,7 @@ Note: that you'll want to have `http` instead of `https` if you started Fusion S
 ```javascript
 ...
 <head>
-<script src="https://localhost:8181/fusion.js"></script>
+<script src="//localhost:8181/fusion.js"></script>
 </head>
 ...
 ```

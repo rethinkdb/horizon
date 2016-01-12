@@ -1,5 +1,37 @@
-# Setup
-The server requires some setup before it can be used.
+# Fusion Server
+
+Middleware server built on top of RethinkDB which exposes an API protocol to front-end applications.
+
+## Setup & Installation
+
+### NodeJS
+
+The Fusion Server runs on NodeJS which you will need to install. Go to [nodejs.org](https://nodejs.org) for the latest stable version.
+
+### NPM Packages
+
+The server requires some setup before it can be used. But first, start you need to install dependencies.
+
+```sh
+# From within this directory
+npm install
+```
+
+### OpenSSL
+
+#### OSX
+
+```sh
+brew install openssl
+```
+
+#### Ubuntu
+
+Depending on what version of Ubuntu you have you will need to install different versions of OpenSSL. [Follow this guide here](https://help.ubuntu.com/community/OpenSSL#Practical_OpenSSL_Usage).
+
+### RethinkDB
+
+Check out [rethinkdb.com/install](https://rethinkdb.com/install) for the best method of installing RethinkDB on your platform.
 
 ## Requirements
 The fusion server requires some tools and libraries to be available before it
