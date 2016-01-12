@@ -123,12 +123,11 @@ options.dev_mode = Boolean(parsed.dev);
 
 // Wait for the http servers to be ready before launching the Fusion server
 let num_ready = 0;
-let fusion_server;
 http_servers.forEach((serv) => {
   serv.on('listening', () => {
     fusion.logger.info(`Listening on ${serv.address().address}:${serv.address().port}.`);
-    if (++num_ready == http_servers.size) {
-      fusion_server = new fusion.Server(http_servers, options);
+    if (++num_ready === http_servers.size) {
+      new fusion.Server(http_servers, options);
     }
   });
   serv.on('error', (err) => {

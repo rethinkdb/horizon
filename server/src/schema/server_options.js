@@ -15,4 +15,4 @@ const options = Joi.object({
   db: Joi.string().token().default('fusion'),
 }).unknown(false);
 
-module.exports = options
+module.exports = options;

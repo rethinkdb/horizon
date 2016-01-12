@@ -350,7 +350,6 @@ const all_tests = (table) => {
         done();
       });
   });
-
 };
 
 const suite = (table) => describe('Query', () => all_tests(table));

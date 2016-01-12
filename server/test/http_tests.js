@@ -9,17 +9,42 @@ const fs = require('fs');
 const all_tests = () => {
   [ 'http', 'https' ].forEach((transport) => {
     describe(transport, () => {
-      let proc;
-      let port;
+      let port, proc, key_file, cert_file;
+
+      before('Generate key and cert', (done) => {
+          if (transport === 'http') { done(); return; }
+
+          key_file = `key.${process.pid}.pem`;
+          cert_file = `cert.${process.pid}.pem`;
+
+          child_process.exec(
+            `openssl req -x509 -nodes -batch -newkey rsa:2048 -keyout ${key_file} -days 1`,
+            (err, stdout) => {
+              assert.ifError(err);
+              const cert_start = stdout.indexOf('-----BEGIN CERTIFICATE-----');
+              const cert_end = stdout.indexOf('-----END CERTIFICATE-----');
+              assert(cert_start !== -1 && cert_end !== -1);
+
+              const cert = stdout.slice(cert_start, cert_end) + '-----END CERTIFICATE-----\n';
+              fs.writeFile(cert_file, cert, done);
+            });
+      });
+
+      after('Remove key and cert', () => {
+        [ key_file, cert_file ].forEach((f) => { if (f) { fs.unlinkSync(f); } });
+      });
+
       before('Start standalone fusion server', (done) => {
         let args = [ '--connect', `localhost:${utils.rdb_port()}`, '--port', '0' ];
         if (transport === 'http') {
           args.push('--unsecure');
+        } else {
+          args.push('--key-file', key_file, '--cert-file', cert_file);
         }
         proc = child_process.fork('./src/main.js', args, { silent: true });
 
         // Error if we didn't get the port before the server exited
-        proc.stdout.once('end', () => assert(port !== undefined));
+        proc.stdout.once('end', () => assert.notStrictEqual(port, undefined));
 
         let buffer = '';
         proc.stdout.on('data', (data) => {
@@ -51,7 +76,7 @@ const all_tests = () => {
                                  port,
                                  path: '/fusion.js',
                                  rejectUnauthorized: false }, (res) => {
-          const code = fs.readFileSync('../client/dist/build.js');
+          const code = fs.readFileSync('../client/dist/fusion.js');
           let buffer = '';
           assert.strictEqual(res.statusCode, 200);
           res.on('data', (delta) => buffer += delta);
