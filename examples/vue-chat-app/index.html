@@ -1,5 +1,4 @@
 <html>
-
 <head>
   <link rel="stylesheet" href="app.css">
   <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro' rel='stylesheet' type='text/css'>
@@ -10,7 +9,7 @@
     <div class="row">
       <ul>
         <li v-for="message in limitedMessages" transition="expand" class="message">
-          <img height="50px" width="50px" :src="message.id">
+          <img height="50px" width="50px" :src="message.url">
           <span class="text">
             {{ message.text }}
           </span>

@@ -1,6 +1,6 @@
 /* always present */
 .expand-transition {
-  transition: all .4s ease;
+  transition: all .2s ease;
   height: 30px;
   padding: 10px;
   background-color: #eee;
