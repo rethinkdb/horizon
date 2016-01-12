@@ -1,9 +1,11 @@
+#!/usr/bin/env node
 'use strict'
 
-let fs = require('fs')
-let browserify = require('browserify')
-let watchify = require('watchify')
-let exorcist = require('exorcist')
+const fs = require('fs'),
+      browserify = require('browserify'),
+      watchify = require('watchify'),
+      exorcist = require('exorcist'),
+      program = require("commander");
 
 const BUILD_DIR = 'dist'
 
@@ -30,17 +32,17 @@ function compile(watching) {
 
   if (watching) {
     bundler.on('update', function() {
-      console.log('-> bundling...')
-      rebundle(bundler)
+      console.log('-> bundling...');
+      rebundle(bundler);
     })
     bundler.on('log', msg => {
-      console.log(msg)
-      console.log('Watching for changes...')
+      console.log(msg);
+      console.log('Watching for changes...');
     })
   } else {
     bundler.on('log', msg => {
-      console.log(msg)
-      bundler.close()
+      console.log(msg);
+      bundler.close();
     })
   }
 
@@ -49,34 +51,24 @@ function compile(watching) {
 
 function rebundle(bundler) {
   bundler.bundle()
-    .on('error', function(err) {
-      console.error(err)
-      bundler.emit('end')
+    .on('error', (err) => {
+      console.error(err);
+      bundler.emit('end');
     })
     // exorcist splits out map to a separate file
     .pipe(exorcist(`${BUILD_DIR}/fusion.js.map`))
     // The unmapped remainder is the code itself
-    .pipe(fs.createWriteStream(`${BUILD_DIR}/fusion.js`), 'utf8')
+    .pipe(fs.createWriteStream(`${BUILD_DIR}/fusion.js`), 'utf8');
 }
 
-function help() {
-  console.log(`node build.js [build | watch | help]`)
-  console.log(`  build (default) -- build client and exit`)
-  console.log(`  watch           -- build and watch for changes`)
-  console.log(`  help            -- output this help message`)
-  process.exit(0)
-}
+program
+  .version("0.0.1")
+  .option("-w, --watch", "Watch directory for changes");
 
-switch (process.argv.slice(2)[0]) {
-case 'watch':
-  compile(true)
-  break
-case '--help':
-case 'help':
-  help()
-  break
-case 'build':
-default:
-  compile(false)
-  break
-}
+program
+  .command("build")
+  .action( (command) => {
+    compile(program.watch);
+  });
+
+program.parse(process.argv);
