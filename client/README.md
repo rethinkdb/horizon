@@ -7,7 +7,7 @@ The Fusion client library is how your app will interact with the [Fusion server]
 You first need to install dependencies and then build the client library using the build script.
 
 1. `npm install`
-2. `node build.js build [--watch]`
+2. `./build.js build [--watch]`
 
 ## Running tests
 
