@@ -101,6 +101,12 @@ const param_if_not_null = (param) => { if (param !== null) { return param; } };
 const local_port = param_if_not_null(parsed.port);
 const local_hosts = param_if_not_null(parsed.bind) || [ 'localhost' ];
 const http_servers = new Set();
+
+if (local_hosts.indexOf('all') != -1) {
+    local_hosts.length = 0;
+    local_hosts.push('0.0.0.0');
+}
+
 if (parsed.unsecure) {
   fusion.logger.warn(`Creating unsecure HTTP server.`);
   local_hosts.forEach((host) => {

@@ -10,7 +10,7 @@ const options = Joi.object({
 
   dev_mode: Joi.boolean().default(false),
 
-  websocket_path: Joi.string().default(''),
+  path: Joi.string().default('fusion'),
 
   db: Joi.string().token().default('fusion'),
 }).unknown(false);
