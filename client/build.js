@@ -1,11 +1,10 @@
-#!/usr/bin/env node
 'use strict'
 
-const fs = require('fs'),
-      browserify = require('browserify'),
-      watchify = require('watchify'),
-      exorcist = require('exorcist'),
-      program = require("commander");
+const fs = require('fs')
+const browserify = require('browserify')
+const watchify = require('watchify')
+const exorcist = require('exorcist')
+const program = require('commander')
 
 const BUILD_DIR = 'dist'
 
@@ -32,17 +31,17 @@ function compile(watching) {
 
   if (watching) {
     bundler.on('update', function() {
-      console.log('-> bundling...');
-      rebundle(bundler);
+      console.log('-> bundling...')
+      rebundle(bundler)
     })
     bundler.on('log', msg => {
-      console.log(msg);
-      console.log('Watching for changes...');
+      console.log(msg)
+      console.log('Watching for changes...')
     })
   } else {
     bundler.on('log', msg => {
-      console.log(msg);
-      bundler.close();
+      console.log(msg)
+      bundler.close()
     })
   }
 
@@ -51,24 +50,19 @@ function compile(watching) {
 
 function rebundle(bundler) {
   bundler.bundle()
-    .on('error', (err) => {
-      console.error(err);
-      bundler.emit('end');
+    .on('error', err => {
+      console.error(err)
+      bundler.emit('end')
     })
     // exorcist splits out map to a separate file
     .pipe(exorcist(`${BUILD_DIR}/fusion.js.map`))
     // The unmapped remainder is the code itself
-    .pipe(fs.createWriteStream(`${BUILD_DIR}/fusion.js`), 'utf8');
+    .pipe(fs.createWriteStream(`${BUILD_DIR}/fusion.js`), 'utf8')
 }
 
 program
-  .version("0.0.1")
-  .option("-w, --watch", "Watch directory for changes");
+  .version('0.0.1')
+  .option('-w, --watch', 'Watch directory for changes')
+  .parse(process.argv)
 
-program
-  .command("build")
-  .action( (command) => {
-    compile(program.watch);
-  });
-
-program.parse(process.argv);
+compile(program.watch)
