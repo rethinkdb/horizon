@@ -113,26 +113,10 @@ const initApp = () => {
 ```
 ***Want to see more?*** Check out [our README for the Fusion client library](https://github.com/rethinkdb/fusion/tree/next/client#fusion-client-library), we have an initial set of docs as well as a expanded getting started guide to get you started with using Fusion.
 
-### How do I install it?
+### How do I get it?
 
-Right now you have to install it locally from the repo.
+Right now you have to install it locally from this repo. Follow the guides for [installing the Fusion server](/server#installation) and then read through on how to import the client library into your project.. 
 
-```sh
-# Move to the server directory
-cd server
-
-# Install fusion to your path
-npm install -g
-
-# Move up a dir and then to the client repo
-cd ../client
-
-# Build the client library
-./build.js build
-
-# Now run the fusion server
-fusion --dev
-```
 
 ### How is Fusion different from Firebase?
 

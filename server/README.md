@@ -2,7 +2,7 @@
 
 Middleware server built on top of RethinkDB which exposes an API protocol to front-end applications.
 
-## Setup & Installation
+## Installation
 
 ### NodeJS
 
