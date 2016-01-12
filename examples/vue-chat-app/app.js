@@ -13,12 +13,11 @@ const app = new Vue({
   },
 
   computed: {
+
     limitedMessages: function() {
       this.messages.sort(function(a, b) {
-        if (a.datetime > b.datetime) {
+        if (a.id > b.id) {
           return 1
-        } else if (a.datetime === b.datetime) {
-          return 0
         } else {
           return -1
         }
