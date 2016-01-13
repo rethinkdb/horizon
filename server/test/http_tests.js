@@ -12,22 +12,22 @@ const all_tests = () => {
       let port, proc, key_file, cert_file;
 
       before('Generate key and cert', (done) => {
-          if (transport === 'http') { done(); return; }
+        if (transport === 'http') { done(); return; }
 
-          key_file = `key.${process.pid}.pem`;
-          cert_file = `cert.${process.pid}.pem`;
+        key_file = `key.${process.pid}.pem`;
+        cert_file = `cert.${process.pid}.pem`;
 
-          child_process.exec(
-            `openssl req -x509 -nodes -batch -newkey rsa:2048 -keyout ${key_file} -days 1`,
-            (err, stdout) => {
-              assert.ifError(err);
-              const cert_start = stdout.indexOf('-----BEGIN CERTIFICATE-----');
-              const cert_end = stdout.indexOf('-----END CERTIFICATE-----');
-              assert(cert_start !== -1 && cert_end !== -1);
+        child_process.exec(
+          `openssl req -x509 -nodes -batch -newkey rsa:2048 -keyout ${key_file} -days 1`,
+          (err, stdout) => {
+            assert.ifError(err);
+            const cert_start = stdout.indexOf('-----BEGIN CERTIFICATE-----');
+            const cert_end = stdout.indexOf('-----END CERTIFICATE-----');
+            assert(cert_start !== -1 && cert_end !== -1);
 
-              const cert = stdout.slice(cert_start, cert_end) + '-----END CERTIFICATE-----\n';
-              fs.writeFile(cert_file, cert, done);
-            });
+            const cert = stdout.slice(cert_start, cert_end) + '-----END CERTIFICATE-----\n';
+            fs.writeFile(cert_file, cert, done);
+          });
       });
 
       after('Remove key and cert', () => {

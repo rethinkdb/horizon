@@ -4,7 +4,7 @@
   'use strict';
 
   const Fusion = require("Fusion");
-  const fusion = new Fusion("localhost:8181", {
+  const fusion = new Fusion("localhost:8181/fusion", {
     secure: true
   });
   const todos = fusion("vuejs_todos");
