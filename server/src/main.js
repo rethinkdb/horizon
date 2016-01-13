@@ -64,9 +64,9 @@ const local_port = param_if_not_null(parsed.port);
 const local_hosts = param_if_not_null(parsed.bind) || [ 'localhost' ];
 const http_servers = new Set();
 
-if (local_hosts.indexOf('all') != -1) {
-    local_hosts.length = 0;
-    local_hosts.push('0.0.0.0');
+if (local_hosts.indexOf('all') !== -1) {
+  local_hosts.length = 0;
+  local_hosts.push('0.0.0.0');
 }
 
 if (parsed.unsecure) {
