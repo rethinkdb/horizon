@@ -17,23 +17,29 @@ You first need to install dependencies and then build the client library using t
 
 ### Getting Started
 
-First you need to ensure that you have included the `fusion.js` client library.
+First you need to ensure that you have the `fusion.js` client library.
 
-```html
+Note: that you'll want to have `http` instead of `https` if you started Fusion Server with `--unsecure`. By default Fusion Server hosts the `fusion.js` client library on it's host on port 8181.
+
+```javascript
 ...
 <head>
-<script src="//localhost:8181/fusion.js"></script>
+<script src="https://localhost:8181/fusion.js"></script>
 </head>
 ...
 ```
 
 Then wherever you want to use Project Fusion you will need to `require` the Fusion client library and then connect to your running instance of Fusion Server.
 
-Note: if you started Fusion Server with `--unsecure`, you'll need to [add the unsecure flag](#fusion).
+Note: if you started Fusion Server with `--unsecure`, you'll need to follow the commented out example.
 
 ```javascript
 const Fusion = require("Fusion");
 const fusion = new Fusion("localhost:8181");
+
+// const fusion = new Fusion("localhost:8181",
+//  {secure: false}
+// );
 ```
 
 From here you can start to interact with RethinkDB collections through the Fusion collection.  
@@ -145,15 +151,11 @@ chat.subscribe({
 
 Object which initializes the connection to a Fusion Server.
 
-If Fusion server has been started with `--unsecure` then you will need to connect unsecurely by passing `{secure: false}` as a second parameter.
-
 ###### Example
 
 ```javascript
 const Fusion = require("fusion");
 const fusion = new Fusion("localhost:8181");
-
-const unsecure_fusion = new Fusion("localhost:8181", { unsecure: true});
 ```
 
 #### Collection
@@ -162,12 +164,13 @@ Object which represents a collection of documents on which queries can be perfor
 
 ###### Example
 ```javascript
-// Setup connection the Fusion server
+
 const Fusion = require("fusion");
 const fusion = new Fusion("localhost:8181");
 
-// Create fusion collection
+//Fusion Collection
 const messages = fusion("messages");
+
 ```
 
 ##### above(*limit integer* || *{key: value}*, *closed string*)
@@ -214,7 +217,7 @@ chat.messages.order("id").above(3, "closed");
 chat.messages.order("id").above({author: "d"});
 ```
 
-##### below([limit integer || {key: value}], closed string)
+##### below(limit integer || {key: value}, closed string)
 
 The `.below` method can only be chained onto an `.order(...)` method and limits the range of results returned.
 
