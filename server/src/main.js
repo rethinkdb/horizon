@@ -37,12 +37,27 @@ parser.addArgument([ '--unsecure' ],
   { defaultValue: false, action: 'storeTrue',
     help: 'Serve unsecure websockets, ignore --key-file and --cert-file.' });
 
+parser.addArgument([ '--auto-create-table' ],
+  { defaultValue: false, action: 'storeTrue',
+    help: 'Create tables used by requests if they do not exist.' });
+
+parser.addArgument([ '--auto-create-index' ],
+  { defaultValue: false, action: 'storeTrue',
+    help: 'Create indexes used by requests if they do not exist.' });
+
 parser.addArgument([ '--dev' ],
   { defaultValue: false, action: 'storeTrue',
-    help: 'Runs the server in development mode - automatic creation of indexes and tables.' });
+    help: 'Runs the server in development mode, this sets --debug, --unsecure, --auto-create-tables, and --auto-create-indexes.' });
 
 const parsed = parser.parseArgs();
 const options = { };
+
+if (parsed.dev) {
+  parsed.debug = true;
+  parsed.unsecure = true;
+  parsed.auto_create_table = true;
+  parsed.auto_create_index = true;
+}
 
 if (parsed.connect !== null) {
   const host_port = parsed.connect.split(':');
@@ -87,7 +102,8 @@ if (parsed.debug) {
   fusion.logger.level = 'debug';
 }
 
-options.dev_mode = Boolean(parsed.dev);
+options.auto_create_table = Boolean(parsed.auto_create_index);
+options.auto_create_index = Boolean(parsed.auto_create_table);
 
 // Wait for the http servers to be ready before launching the Fusion server
 let num_ready = 0;
