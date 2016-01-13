@@ -102,8 +102,8 @@ if (parsed.debug) {
   fusion.logger.level = 'debug';
 }
 
-options.auto_create_table = Boolean(parsed.auto_create_index);
-options.auto_create_index = Boolean(parsed.auto_create_table);
+options.auto_create_table = Boolean(parsed.auto_create_table);
+options.auto_create_index = Boolean(parsed.auto_create_index);
 
 // Wait for the http servers to be ready before launching the Fusion server
 let num_ready = 0;

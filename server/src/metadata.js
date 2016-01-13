@@ -84,7 +84,7 @@ class Table {
   create_index(fields, conn, done) {
     logger.warn(`Auto-creating index on table "${this.name}" (dev mode): ${JSON.stringify(fields)}`);
 
-    // This may error if two dev_mode instances try to create the table at the
+    // This may error if two dev mode instances try to create the table at the
     // same time on multiple instances.  This could maybe be mitigated by adding
     // a delay before `r.tableWait` below - but the time would depend on the
     // latency of metadata propagation in the RethinkDB cluster.
@@ -142,9 +142,10 @@ class Table {
 }
 
 class Metadata {
-  constructor(conn, dev_mode, done) {
+  constructor(conn, auto_create_table, auto_create_index, done) {
     this._conn = conn;
-    this._dev_mode = dev_mode;
+    this._auto_create_table = auto_create_table;
+    this._auto_create_index = auto_create_index;
     this._ready = false;
 
     let query =
@@ -154,7 +155,7 @@ class Metadata {
 
     // If we're in dev mode, add additional steps to ensure dbs and tables exist
     // Note that because of this, it is not safe to run multiple fusion servers in dev mode
-    if (this._dev_mode) {
+    if (this._auto_create_table) {
       query = r.expr([ 'fusion', 'fusion_internal' ])
        .forEach((db) => r.branch(r.dbList().contains(db), [], r.dbCreate(db)))
        .do(() =>
@@ -191,12 +192,15 @@ class Metadata {
   handle_error(err, done) {
     logger.debug(`Handling error: ${err.message}`);
     try {
-      if (this._dev_mode) {
+      if (this._auto_create_table) {
         if (err.constructor.name === 'TableMissing') {
           return this.create_table(err.name, done);
         } else if (err.constructor.name === 'TableNotReady') {
           return err.table.on_ready(done);
-        } else if (err.constructor.name === 'IndexMissing') {
+        }
+      }
+      if (this._auto_create_index) {
+        if (err.constructor.name === 'IndexMissing') {
           return err.table.create_index(err.fields, this._conn, done);
         } else if (err.constructor.name === 'IndexNotReady') {
           return err.index.on_ready(done);
@@ -213,7 +217,7 @@ class Metadata {
     logger.warn(`Auto-creating table (dev mode): "${name}"`);
     check(this._tables.get(name) === undefined, `Table "${name}" already exists.`);
 
-    // This may error if two dev_mode instances try to create the table at the
+    // This may error if two dev mode instances try to create the table at the
     // same time on multiple instances.  This could maybe be mitigated by adding
     // a delay before `r.tableWait` below - but the time would depend on the
     // latency of metadata propagation in the RethinkDB cluster.

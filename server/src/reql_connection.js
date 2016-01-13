@@ -6,11 +6,12 @@ const { Metadata } = require('./metadata');
 const r = require('rethinkdb');
 
 class ReqlConnection {
-  constructor(host, port, db, dev_mode, clients) {
+  constructor(host, port, db, auto_create_table, auto_create_index, clients) {
     this.host = host;
     this.port = port;
     this.db = db;
-    this.dev_mode = dev_mode;
+    this.auto_create_table = auto_create_table;
+    this.auto_create_index = auto_create_index;
     this.clients = clients;
     this.connection = undefined;
     this.reconnect_delay = 0;
@@ -35,7 +36,7 @@ class ReqlConnection {
        conn.on('close', () => this.reconnect(resolve));
        this.connection = conn;
        this.connection.on('error', (err) => this.handle_conn_error(err));
-       this.metadata = new Metadata(this.connection, this.dev_mode, (err) => {
+       this.metadata = new Metadata(this.connection, this.auto_create_table, this.auto_create_index, (err) => {
          if (err !== undefined) {
            const message = err.msg ? err.msg : err;
            logger.error(`Failed to synchronize with database server: ${message}`);

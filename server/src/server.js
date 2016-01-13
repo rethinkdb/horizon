@@ -65,7 +65,8 @@ class Server {
     this._reql_conn = new ReqlConnection(opts.rdb_host,
                                          opts.rdb_port,
                                          opts.db,
-                                         opts.dev_mode,
+                                         opts.auto_create_table,
+                                         opts.auto_create_index,
                                          this._clients);
 
     for (let key of Object.keys(endpoints)) {
