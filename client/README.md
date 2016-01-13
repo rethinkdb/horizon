@@ -29,33 +29,31 @@ First you need to ensure that you have included the `fusion.js` client library.
 
 Then wherever you want to use Project Fusion you will need to `require` the Fusion client library and then connect to your running instance of Fusion Server.
 
-Note: if you started Fusion Server with `--unsecure`, you'll need to [add the unsecure flag](#fusion).
+**Note:** if you started Fusion Server with `--unsecure`, you'll need to [add the unsecure flag](#fusion).
 
 ```javascript
 const Fusion = require("Fusion");
 const fusion = new Fusion("localhost:8181");
 ```
 
-From here you can start to interact with RethinkDB collections through the Fusion collection.  
-
-**Note:**  Having `--dev` mode enabled on the Fusion Server creates collections and indexes automatically.
+From here you can start to interact with RethinkDB collections through the Fusion collection. Having `--dev` mode enabled on the Fusion Server creates collections and indexes automatically so you can get your application setup with as little hassle as possible.
 
 ```javascript
 const chat = fusion("messages");
 ```
 
-Now, `chat` is a Fusion collection of documents. You can perform a variety of operations on this collection to filter them down to the ones you need.
+Now, `chat` is a Fusion collection of documents. You can perform a variety of operations on this collection to filter them down to the ones you need. Let's pretend we are building a simple chat application where the messages are displayed in ascending order. Here are some basic functions that would allow you to build such an app.
 
 ```javascript
 
-chats = [];
+let chats = [];
 
 // Retrieve all messages from the server
-retrieveMessages = () => {
-  chat.value()
+const retrieveMessages = () => {
+  chat.order("datetime")value()
   // Retrieval successful, update our model
   .then((result) => {
-    chats.concat(result);
+    chats = chats.concat(result);
   })
   // Error occurred
   .catch((error) => {
@@ -63,8 +61,8 @@ retrieveMessages = () => {
   });
 }
 
-// Retrieve and single item by id
-retrieveMessage = (id) => {
+// Retrieve an single item by id
+const retrieveMessage = (id) => {
   chat.find(id).value()
     // Retrieval successful
     .then((result) => {
@@ -77,7 +75,7 @@ retrieveMessage = (id) => {
 }
 
 // Store new item
-storeMessage = (message) => {
+const storeMessage = (message) => {
    chat.store(message)
     // Returns id of saved objects
     .then((result) => console.log(result))
@@ -87,22 +85,24 @@ storeMessage = (message) => {
 
 // Replace item that has equal `id` field
 //  or insert if it doesn't exist.
-updateMessage = (message) => {
+const updateMessage = (message) => {
   chat.replace(message);
 }
 
 // Remove item from collection
-deleteMessage = (message) =>{
+const deleteMessage = (message) =>{
   chat.remove(message);
 }
 ```
 
 And lastly, the `.subscribe(...)` method exposes all the changefeeds awesomeness you could want from RethinkDB. Using just `chat.subscribe`, any events on any of the documents in the collection will be pushed to you where you can specify functions to handle these changes. You can also `.subscribe` to changes on a query or a single document.
 
-```javascript
-chats = [];
+**Note:** By default, upon connecting to a changefeed you will receive all the results of that query through the `onAdded` function.
 
-chat.subscribe({
+```javascript
+let chats = [];
+
+chats.subscribe({
   // Initially returns all results from query
   onAdded: (newMessage) => {
     chats.push(newMessage);
