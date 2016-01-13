@@ -1,7 +1,7 @@
 #!/usr/bin/env node --harmony-destructuring
 'use strict';
 
-const fusion = require('./server');
+const fusion = require('./fusion');
 
 const argparse = require('argparse');
 const http = require('http');

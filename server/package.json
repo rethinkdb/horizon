@@ -2,7 +2,7 @@
   "name": "fusion-server",
   "version": "0.0.1",
   "description": "Server for RethinkDB Project Fusion",
-  "main": "main.js",
+  "main": "src/fusion.js",
   "scripts": {
     "test": "./node_modules/.bin/mocha --compilers js:babel-core/register test/test.js test/schema.js"
   },
