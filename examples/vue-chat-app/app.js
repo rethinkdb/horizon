@@ -1,6 +1,7 @@
 'use strict'
 
 const Fusion = require('Fusion')
+Fusion.enableLogging()
 const fusion = new Fusion('localhost:8181')
 const chat = fusion('chat')
 const app = new Vue({
@@ -23,7 +24,8 @@ const app = new Vue({
         }
       });
 
-      return this.messages.slice(Math.max(this.messages.length - 6, 1))
+      console.log(this.messages.slice(-8))
+      return this.messages.slice(-8)
     },
 
 
@@ -45,6 +47,7 @@ const app = new Vue({
     addedChange: function(newDoc) {
       // Parse string as proper Date Object
       this.messages.push(newDoc);
+      console.log(this.messages);
     },
 
   },
