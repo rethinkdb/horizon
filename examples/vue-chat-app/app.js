@@ -23,7 +23,7 @@ const app = new Vue({
         }
       });
 
-      return this.messages.slice(Math.max(this.messages.length - 6, 1))
+      return this.messages.slice(-8)
     },
 
 
