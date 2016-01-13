@@ -1,0 +1,19 @@
+{
+  "name": "express-fusion-example",
+  "version": "0.0.1",
+  "description": "Example of a fusion server within a express server.",
+  "bin": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "RethinkDB",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.13.3",
+    "fusion-server": "file:../../server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rethinkdb/fusion.git"
+  }
+}
