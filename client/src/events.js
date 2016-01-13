@@ -16,12 +16,12 @@ function DisposableEvent(setupFunc) {
 
   function wrappedListener(eventhandler) {
     let remover = listener(eventhandler)
-    let wrappedRemover = () => {
+    registry.push(remover)
+
+    return () => {
       removeFromArray(registry, remover)
       remover()
     }
-    registry.push(remover)
-    return wrappedRemover
   }
 
   wrappedListener.dispose = emptyAndCallAll(registry)
@@ -43,32 +43,29 @@ function DisposableEvent(setupFunc) {
 //   dispose: () => {/* disposes ham and eggs then does console log*/},
 // }
 function MultiEvent(initializer) {
-  let registry = []
   let multiEvent = {}
-  for (let propName in initializer) {
-    if (propName === 'dispose') {
-      continue
-    }
-    let event = DisposableEvent(initializer[propName])
-    multiEvent[propName] = event
-    registry.push(event.dispose)
-  }
+  let registry = []
+
   let cleanupEvents = emptyAndCallAll(registry)
-  let disposeAll
+
   // If the user specified a disposal function, we pass them the event
   // cleaner and return whatever they want to return
   if (initializer.dispose !== undefined) {
-    disposeAll = () => initializer.dispose(cleanupEvents)
+    multiEvent.dispose = () => initializer.dispose(cleanupEvents)
   } else {
-    disposeAll = cleanupEvents
+    multiEvent.dispose = cleanupEvents
   }
-  multiEvent.dispose = disposeAll
-  Object.keys(multiEvent).forEach(key => {
-    // Cleaning up any event will clean up all events
-    if (key !== 'dispose') {
-      multiEvent[key].dispose = disposeAll
+
+  for (let key in initializer) {
+    if (key === 'dispose') {
+      continue
     }
-  })
+    multiEvent[key] = DisposableEvent(initializer[key])
+    registry.push(multiEvent[key].dispose)
+    // Cleaning up any event will clean up all events
+    multiEvent[key].dispose = multiEvent.dispose
+  }
+
   return multiEvent
 }
 
@@ -98,10 +95,6 @@ function removeFromArray(registry, callback) {
 
 function emptyAndCallAll(registry) {
   return () => {
-    let func = registry.pop()
-    while (func !== undefined) {
-      func()
-      func = registry.pop()
-    }
+    registry.splice(0).forEach((func) => func())
   }
 }
