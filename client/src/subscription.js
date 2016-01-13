@@ -19,6 +19,7 @@ function Subscription({ onResponse,
   let broadcastAdded,
     broadcastRemoved,
     broadcastChanged,
+    broadcastValue,
     broadcastSynced,
     broadcastCompleted
   sub.onConnected = onConnected
@@ -29,6 +30,7 @@ function Subscription({ onResponse,
     onAdded(broadcast) { broadcastAdded = broadcast },
     onRemoved(broadcast) { broadcastRemoved = broadcast },
     onChanged(broadcast) { broadcastChanged = broadcast },
+    onValue(broadcast) { broadcastValue = broadcast },
     onSynced(broadcast) { broadcastSynced = broadcast },
     onCompleted(broadcast) { broadcastCompleted = broadcast },
     dispose(cleanupSubscriptionEvents) {
@@ -42,11 +44,14 @@ function Subscription({ onResponse,
     }
   }))
 
+  StateManager(sub, broadcastValue)
+
   Object.keys(userOptions).forEach(key => {
     switch (key) {
     case 'onAdded':
     case 'onRemoved':
     case 'onChanged':
+    case 'onValue':
     case 'onSynced':
     case 'onError':
     case 'onConnected':
@@ -95,6 +100,7 @@ function Subscription({ onResponse,
       observeChanged: observe(sub.onChanged, onError, sub.onCompleted),
       observeAdded: observe(sub.onAdded, onError, sub.onCompleted),
       observeRemoved: observe(sub.onRemoved, onError, sub.onCompleted),
+      observeValue: observe(sub.onValue, onError, sub.onCompleted),
       observeConnected: observe(sub.onConnected, onError, sub.onCompleted),
       observeDisconnected: observe(sub.onDisconnected, onError, sub.onCompleted),
       observeSynced: observe(sub.onSynced, onError, sub.onCompleted),
@@ -115,4 +121,45 @@ function Subscription({ onResponse,
       })
     })
   }
+}
+
+function StateManager (subscription, emitter) {
+  let data = []
+
+  function changeHandler (row) {
+    let i = findIndex(data, (val) => val.id === row.id)
+    if (i === -1) {
+      data.push(row)
+    }
+    else {
+      data[i] = row;
+    }
+
+    emitter(data.slice(0), i, row)
+  }
+
+  function removeHandler (row) {
+    let i = findIndex(data, (val) => val.id === row.id)
+    if (i !== -1) {
+      data.splice(i, 1)
+    }
+
+    emitter(data.slice(0), i, row)
+  }
+
+  subscription.onAdded(changeHandler)
+  subscription.onChanged((change) => changeHandler(change.new_val))
+  subscription.onRemoved(removeHandler)
+}
+
+function findIndex(arr, predicate) {
+  let len = arr.length;
+
+  for (let i = 0; i < len; i++) {
+    let value = arr[i];
+    if (predicate(value, i, arr)) {
+      return i;
+    }
+  }
+  return -1;
 }
