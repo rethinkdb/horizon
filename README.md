@@ -115,7 +115,7 @@ const initApp = () => {
 
 ### How do I get it?
 
-Right now you have to install it locally from this repo. Follow the guides for [installing the Fusion server](/server#installation) and then read through on how to import the client library into your project.. 
+Right now you have to install it locally from this repo. Follow the guides for [installing the Fusion server](/server#installation) and then read through on how to [import the client library](/client#getting-started) into your project.
 
 
 ### How is Fusion different from Firebase?

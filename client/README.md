@@ -1,23 +1,25 @@
 # Fusion Client Library
 
-The Fusion client library is how your app will interact with the [Fusion server](/server).
+The Fusion client library. Built to interact with the [Fusion Server](/server) websocket API. Provides all the tooling to build a fully-functional and reactive front-end web application.
 
-## Setup and Building
+## Building
 
-You first need to install dependencies and then build the client library using the build script.
+You first need to install dependencies and then you may build the client library using the build script.
 
 1. `npm install`
 2. `./build.js [--watch]`
 
 ## Running tests
 
-* Open `test/test.html` in your browser after getting setup and while you also have Fusion server running.
+* Open `test/test.html` in your browser after getting setup and while you also have Fusion server with the `--unsecure` flag running on `localhost`.
 
 ## Docs
 
 ### Getting Started
 
-First you need to ensure that you have included the `fusion.js` client library.
+While you could build and import this library, you wouldn't have any place to connect to! Once you have the [Fusion Server](/server) running, the Fusion client library is hosted by the server as seen in the getting started example below.
+
+First you need to ensure that you have included the `fusion.js` client library in your HTML.
 
 ```html
 ...
