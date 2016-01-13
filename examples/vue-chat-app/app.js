@@ -1,8 +1,7 @@
 'use strict'
 
 const Fusion = require('Fusion')
-Fusion.enableLogging()
-const fusion = new Fusion('localhost:8181')
+const fusion = new Fusion('localhost:8181/fusion')
 const chat = fusion('chat')
 const app = new Vue({
 
@@ -24,7 +23,6 @@ const app = new Vue({
         }
       });
 
-      console.log(this.messages.slice(-8))
       return this.messages.slice(-8)
     },
 

@@ -1,6 +1,7 @@
 'use strict';
 
 const query = require('./query');
+const logger = require('../logger');
 
 const make_reql = (raw_request, metadata) => {
   return query.make_reql(raw_request, metadata).changes(
