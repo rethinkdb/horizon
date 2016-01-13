@@ -9,28 +9,28 @@ var app = app || {};
   'use strict';
 
   //Setup RethinkDB
-	const Fusion = require("Fusion");
-	const fusion = new Fusion("localhost:8181/fusion", {
-		secure: true
-	});
+        const Fusion = require("Fusion");
+        const fusion = new Fusion("localhost:8181", {
+                secure: true
+        });
 
   app.ChatApp = React.createClass({
 
     uuid: function () {
-			/*jshint bitwise:false */
-			var i, random;
-			var uuid = '';
+                        /*jshint bitwise:false */
+                        var i, random;
+                        var uuid = '';
 
-			for (i = 0; i < 32; i++) {
-				random = Math.random() * 16 | 0;
-				if (i === 8 || i === 12 || i === 16 || i === 20) {
-					uuid += '-';
-				}
-				uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random))
-					.toString(16);
-			}
-			return uuid;
-		},
+                        for (i = 0; i < 32; i++) {
+                                random = Math.random() * 16 | 0;
+                                if (i === 8 || i === 12 || i === 16 || i === 20) {
+                                        uuid += '-';
+                                }
+                                uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random))
+                                        .toString(16);
+                        }
+                        return uuid;
+                },
 
 
     shouldComponentUpdate: function(_, nextState){

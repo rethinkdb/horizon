@@ -15,14 +15,14 @@ const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 
 let fusionCount = 0
 
-function Fusion(host, { secure: secure = true } = {}) {
+function Fusion(host, { secure: secure = true, path: path = 'fusion' } = {}) {
   // Hack so we can do fusion('foo') to create a new collection
   let fusion = Collection(TermBase(createSubscription, query, writeOp))
   let count = fusionCount++
   fusion.toString = () => `Fusion(${count})`
 
   // underlying WebSocket
-  let socket = FusionSocket(host, secure)
+  let socket = FusionSocket(host, secure, path)
   // Map requestId -> {broadcastError, broadcastResponse, dispose}
   let outstanding = new Map()
   // counter for correlating requests and responses
@@ -190,8 +190,8 @@ let socketCount = 0
 
 // Wraps native websockets with an event interface and deals with some
 // simple protocol level things like serializing from/to JSON
-function FusionSocket(host, secure = true) {
-  let hostString = (secure ? 'wss://' : 'ws://') + host
+function FusionSocket(host, secure, path) {
+  let hostString = `ws${secure ? 's' : ''}://${host}/${path}`
   let ws = new WebSocket(hostString, PROTOCOL_VERSION)
   let socket // Set inside the promise initialization function
 
