@@ -23,7 +23,6 @@ const app = new Vue({
         }
       });
 
-      console.log(this.messages.slice(-8))
       return this.messages.slice(-8)
     },
 
@@ -46,7 +45,6 @@ const app = new Vue({
     addedChange: function(newDoc) {
       // Parse string as proper Date Object
       this.messages.push(newDoc);
-      console.log(this.messages);
     },
 
   },
