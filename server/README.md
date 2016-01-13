@@ -1,16 +1,32 @@
 # Fusion Server
 
-Middleware server built on top of RethinkDB which exposes an API protocol to front-end applications.
+An extensible middleware server built on top of [RethinkDB](https://github.com/rethinkdb/rethinkdb) which exposes a websocket API to front-end applications.
+
+## Requirements
+The Fusion server requires some tools and libraries to be available before it
+can run:
+
+ * `node.js` - interpreter to run the Fusion server
+ * npm packages
+  * [`argparse`](https://www.npmjs.com/package/argparse) - parsing command line arguments
+  * [`joi`](https://www.npmjs.com/package/joi) - object schema validation
+  * [`rethinkdb`](https://www.npmjs.com/package/rethinkdb) - js client for connecting to a RethinkDB server
+  * [`winston`](https://www.npmjs.com/package/winston) - async logging
+  * [`ws`](https://www.npmjs.com/package/ws) - communicating with Fusion clients over websockets
+ * `openssl` - generating ssl certificates
+ * [`rethinkdb`](https://github.com/rethinkdb/rethinkdb) - for running a RethinkDB server
 
 ## Installation
 
-### NodeJS
+At the moment, there are a couple steps to getting Fusion running on your system. In the future, we plan to have most if not all of this compressed into a single `npm install -g fusion`.
 
-The Fusion Server runs on NodeJS which you will need to install. Go to [nodejs.org](https://nodejs.org) for the latest stable version.
+### Node.js
 
-### NPM Packages
+The Fusion server runs on NodeJS which you will need to install. Go to [nodejs.org](https://nodejs.org) for the latest stable version.
 
-The server requires some setup before it can be used. But first, start you need to install dependencies.
+### npm packages
+
+Like most javascript frameworks, this relies on a few other npm dependencies to function.
 
 ```sh
 # From within this directory
@@ -19,44 +35,52 @@ npm install
 
 ### OpenSSL
 
-#### OSX
+OpenSSL is required to generate the cert and key pair necessary to serve Fusion securely via HTTPS and WSS. Usually this is done on the production server where you are running Fusion, however to do this locally you'll need to have the OpenSSL installed.
 
-```sh
-brew install openssl
-```
-
-#### Ubuntu
-
-Depending on what version of Ubuntu you have you will need to install different versions of OpenSSL. [Follow this guide here](https://help.ubuntu.com/community/OpenSSL#Practical_OpenSSL_Usage).
+* **OSX**    - `brew install openssl`
+* **Ubuntu** -  [Follow this guide here](https://help.ubuntu.com/community/OpenSSL#Practical_OpenSSL_Usage).
+* **Windows** - [Unofficial list of Windows OpenSSL Binaries](https://wiki.openssl.org/index.php/Binaries)
 
 ### RethinkDB
 
 Check out [rethinkdb.com/install](https://rethinkdb.com/install) for the best method of installing RethinkDB on your platform.
 
-## Requirements
-The fusion server requires some tools and libraries to be available before it
-can run:
-
- * `node.js` - interpreter to run the fusion server
-  * package `ws` - for communicating with fusion clients over websockets
-  * package `winston` - for logging in the fusion server
-  * package `rethinkdb` - for connecting to a rethinkdb server
- * `openssl` - for generating ssl certificates
- * `rethinkdb` - for running a rethinkdb server
-
 ## Launch the server
 
-`node --harmony-destructuring src/main.js --unsecure`
 
-This serves fusion queries on ws://localhost:8181, and connects to the RethinkDB server at localhost:31420.
+Lastly, from within this directory you can run:
 
-Available options:
-  --bind HOST            local hostname to serve fusion on (repeatable), defaults to localhost
-  --port PORT            local port to serve fusion on, defaults to 8181
-  --connect HOST:PORT    host and port of the RethinkDB server to connect to, defaults to localhost:28015
-  --key-file PATH        path to the key file to use, defaults to ./key.pem
-  --cert-file PATH       path to the cert file to use, defaults to ./cert.pem
-  --unsecure             serve unsecure websockets, ignore --key-file and --cert-file
+```sh
+npm install -g
+```
+
+Which will install Fusion on your path and allow you to just type:
+
+```bash
+fusion --unsecure --dev
+```
+However, if you do a `git pull` you will need to rerun this command to update it. For a more bare metal approach just run:
+
+```sh
+node --harmony-destructuring ./src/main.js --dev --unsecure
+```
+
+This serves Fusion queries on `ws://localhost:8181`, serves the Fusion client library on `http://localhost:8181/fusion/fusion.js`, and connects to the RethinkDB server at `localhost:31420`.
+
+##### Available options
+
+Command Flag| Description
+------------|----------------------------------
+--bind HOST | Local hostname to serve Fusion on (repeatable).
+  --port PORT | Local port to serve fusion on. Defaults to `8181`.
+  --connect HOST:PORT | Host and port of the RethinkDB server to connect to. Defaults to localhost:28015
+  --key-file PATH | Path to the key file to use, defaults to `./key.pem`.
+  --cert-file PATH | Path to the cert file to use, defaults to `./cert.pem`.
+  --debug | Enable debug logging.
+  --unsecure | Serve unsecure websockets, ignore `--key-file` and `--cert-file`.
+  --auto-create-table | Create tables used by requests if they do not exist
+  --auto-create-index | Create indexes used by requests if they do not exist
+--dev | Runs the server in development mode, this sets `--debug`, `--unsecure`, `--auto-create-tables`, and `--auto-create-indexes`.
 
 ## Generate key files for SSL
 There are proper ways to get a certificate registered through a Certificate
@@ -65,7 +89,9 @@ generate a self-signed certificate.  This command will generate the certificate
 using the default options from `openssl`, and should not be used for anything
 serious:
 
-`openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -batch`
+```sh
+openssl req -x509 -newkey rsa:2048 -keyout fusion-key.pem -out fusion-cert.pem -days 365 -nodes -batch
+```
 
 Once a key file and cert file have been obtained, launch the server without the `--unsecure`
 flag, and provide the files in the `--key-file` and `--cert-file` options.
