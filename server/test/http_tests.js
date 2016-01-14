@@ -74,9 +74,9 @@ const all_tests = () => {
       it('localhost/fusion.js', (done) => {
         require(transport).get({ hostname: 'localhost',
                                  port,
-                                 path: '/fusion.js',
+                                 path: '/fusion/fusion.js',
                                  rejectUnauthorized: false }, (res) => {
-          const code = fs.readFileSync('../client/dist/fusion.js');
+          const code = fs.readFileSync('./node_modules/fusion-client/dist/fusion.js');
           let buffer = '';
           assert.strictEqual(res.statusCode, 200);
           res.on('data', (delta) => buffer += delta);

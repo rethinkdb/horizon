@@ -114,7 +114,7 @@ const start_rdb_server = (options, done) => {
 const create_table = (table, done) => {
   assert.notStrictEqual(fusion_server, undefined);
   assert.notStrictEqual(fusion_port, undefined);
-  let conn = new websocket(`ws://localhost:${fusion_port}`,
+  let conn = new websocket(`ws://localhost:${fusion_port}/fusion`,
                            fusion.protocol, { rejectUnauthorized: false })
     .once('error', (err) => assert.ifError(err))
     .on('open', () => {
@@ -202,7 +202,7 @@ const open_fusion_conn = (done) => {
   fusion_authenticated = false;
   fusion_listeners = new Map();
   fusion_conn =
-    new websocket(`ws://localhost:${fusion_port}`,
+    new websocket(`ws://localhost:${fusion_port}/fusion`,
                   fusion.protocol, { rejectUnauthorized: false })
       .once('error', (err) => assert.ifError(err))
       .on('open', () => done());
