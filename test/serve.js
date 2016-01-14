@@ -1,7 +1,7 @@
 #!/usr/bin/env node --harmony-destructuring
 'use strict'
 
-const server_test_utils = require('../server/test/utils');
+const utils = require('../server/test/utils');
 const fusion = require('../server');
 
 const assert = require('assert');
@@ -52,16 +52,7 @@ const build_proc = child_process.fork('../client/build.js',
 build_proc.on('exit', () => process.exit(1));
 process.on('exit', () => build_proc.kill('SIGTERM'));
 
-let build_buffer;
-build_proc.stdout.on('data', (data) => {
-  build_buffer += data.toString();
-
-  const endline_pos = build_buffer.indexOf('\n');
-  if (endline_pos === -1) { return; }
-
-  const line = build_buffer.slice(0, endline_pos);
-  build_buffer = build_buffer.slice(endline_pos + 1);
-
+utils.each_line_in_pipe(build_proc.stdout, (line) => {
   if (line.indexOf('bytes written') !== -1) {
       client_ready = true;
       const date = new Date();
@@ -76,15 +67,16 @@ const http_server = new http.Server((req, res) => {
 });
 
 // Launch rethinkdb - once we know the port we can attach fusion to the http server
-server_test_utils.start_rdb_server(() => {
-  assert.notStrictEqual(server_test_utils.rdb_port(), undefined);
-  console.log(`RethinkDB server listening on port ${server_test_utils.rdb_port()}.`);
+utils.start_rdb_server(() => {
+  assert.notStrictEqual(utils.rdb_port(), undefined);
+  console.log(`RethinkDB server listening for clients on port ${utils.rdb_port()}.`);
+  console.log(`RethinkDB server listening for HTTP on port ${utils.rdb_http_port()}.`);
 
   fusion.logger.level = 'debug';
   const fusion_server = new fusion.Server(http_server,
                                           { auto_create_table: true,
                                             auto_create_index: true,
-                                            rdb_port: server_test_utils.rdb_port() });
+                                            rdb_port: utils.rdb_port() });
 
   // Capture requests to `fusion.js` and `fusion.js.map` before the fusion server
   const extant_listeners = http_server.listeners('request').slice(0);

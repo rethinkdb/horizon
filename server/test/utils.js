@@ -20,8 +20,23 @@ logger.add(logger.transports.File, { filename: log_file });
 logger.remove(logger.transports.Console);
 
 // Variables used by most tests
-let rdb_port, rdb_conn, fusion_server, fusion_port, fusion_conn, fusion_listeners;
+let rdb_http_port, rdb_port, rdb_conn, fusion_server, fusion_port, fusion_conn, fusion_listeners;
 let fusion_authenticated = false;
+
+const each_line_in_pipe = (pipe, callback) => {
+  let buffer = '';
+  pipe.on('data', (data) => {
+    buffer += data.toString();
+
+    let endline_pos = buffer.indexOf('\n');
+    while (endline_pos !== -1) {
+      const line = buffer.slice(0, endline_pos);
+      buffer = buffer.slice(endline_pos + 1);
+      callback(line);
+      endline_pos = buffer.indexOf('\n');
+    }
+  });
+};
 
 const start_rdb_server = (done) => {
   const rmdirSync_recursive = (dir) => {
@@ -54,43 +69,37 @@ const start_rdb_server = (done) => {
   // Error if we didn't get the port before the server exited
   proc.stdout.once('end', () => assert(rdb_port !== undefined));
 
-  let buffer = '';
-  proc.stdout.on('data', (data) => {
-    buffer += data.toString();
-
-    const endline_pos = buffer.indexOf('\n');
-    if (endline_pos === -1) { return; }
-
-    const line = buffer.slice(0, endline_pos);
-    buffer = buffer.slice(endline_pos + 1);
-
-    logger.info(`rethinkdb stdout: ${line}`);
-    if (rdb_port === undefined) {
-        const matches = line.match(/^Listening for client driver connections on port (\d+)$/);
-        if (matches === null || matches.length !== 2) { return; }
-        rdb_port = parseInt(matches[1]);
-
-        r.connect({ db, port: rdb_port }).then((c) => {
-          rdb_conn = c;
-          return r.dbCreate(db).run(c);
-        }).then((res) => {
-          assert.strictEqual(res.dbs_created, 1);
-          done();
-        });
+  const maybe_start_rdb_connection = () => {
+    if (rdb_port !== undefined && rdb_http_port !== undefined) {
+      r.connect({ db, port: rdb_port }).then((c) => {
+        rdb_conn = c;
+        return r.dbCreate(db).run(c);
+      }).then((res) => {
+        assert.strictEqual(res.dbs_created, 1);
+        done();
+      });
     }
+  };
+
+  each_line_in_pipe(proc.stdout, (line) => {
+      logger.info(`rethinkdb stdout: ${line}`);
+      if (rdb_port === undefined) {
+        const matches = line.match(/^Listening for client driver connections on port (\d+)$/);
+        if (matches !== null && matches.length === 2) {
+          rdb_port = parseInt(matches[1]);
+          maybe_start_rdb_connection();
+        }
+      }
+      if (rdb_http_port === undefined) {
+        const matches = line.match(/^Listening for administrative HTTP connections on port (\d+)$/);
+        if (matches !== null && matches.length === 2) {
+          rdb_http_port = parseInt(matches[1]);
+          maybe_start_rdb_connection();
+        }
+      }
   });
 
-  proc.stderr.on('data', (data) => {
-    buffer += data.toString();
-
-    const endline_pos = buffer.indexOf('\n');
-    if (endline_pos === -1) { return; }
-
-    const line = buffer.slice(0, endline_pos);
-    buffer = buffer.slice(endline_pos + 1);
-
-    logger.info(`rethinkdb stderr: ${line}`);
-  });
+  each_line_in_pipe(proc.stderr, (line) => logger.info(`rethinkdb stderr: ${line}`));
 };
 
 // Creates a table, no-op if it already exists, uses fusion server prereqs
@@ -245,6 +254,7 @@ const check_error = (err, msg) => {
 
 module.exports = {
   rdb_conn: () => rdb_conn,
+  rdb_http_port: () => rdb_http_port,
   rdb_port: () => rdb_port,
   fusion_conn: () => fusion_conn,
   fusion_port: () => fusion_port,
@@ -260,4 +270,5 @@ module.exports = {
 
   stream_test,
   check_error,
+  each_line_in_pipe,
 };
