@@ -33,9 +33,9 @@ parser.addArgument([ '--debug' ],
   { defaultValue: false, action: 'storeTrue',
     help: 'Enable debug logging.' });
 
-parser.addArgument([ '--unsecure' ],
+parser.addArgument([ '--insecure' ],
   { defaultValue: false, action: 'storeTrue',
-    help: 'Serve unsecure websockets, ignore --key-file and --cert-file.' });
+    help: 'Serve insecure websockets, ignore --key-file and --cert-file.' });
 
 parser.addArgument([ '--auto-create-table' ],
   { defaultValue: false, action: 'storeTrue',
@@ -47,14 +47,14 @@ parser.addArgument([ '--auto-create-index' ],
 
 parser.addArgument([ '--dev' ],
   { defaultValue: false, action: 'storeTrue',
-    help: 'Runs the server in development mode, this sets --debug, --unsecure, --auto-create-tables, and --auto-create-indexes.' });
+    help: 'Runs the server in development mode, this sets --debug, --insecure, --auto-create-tables, and --auto-create-indexes.' });
 
 const parsed = parser.parseArgs();
 const options = { };
 
 if (parsed.dev) {
   parsed.debug = true;
-  parsed.unsecure = true;
+  parsed.insecure = true;
   parsed.auto_create_table = true;
   parsed.auto_create_index = true;
 }
@@ -84,8 +84,8 @@ if (local_hosts.indexOf('all') !== -1) {
   local_hosts.push('0.0.0.0');
 }
 
-if (parsed.unsecure) {
-  fusion.logger.warn(`Creating unsecure HTTP server.`);
+if (parsed.insecure) {
+  fusion.logger.warn(`Creating insecure HTTP server.`);
   local_hosts.forEach((host) => {
     http_servers.add(new http.Server().listen(local_port, host));
   });
@@ -126,7 +126,7 @@ http_servers.forEach((serv) => {
   });
 
   serv.on('error', (err) => {
-    fusion.logger.error(`HTTP${parsed.unsecure ? '' : 'S'} server: ${err}`);
+    fusion.logger.error(`HTTP${parsed.insecure ? '' : 'S'} server: ${err}`);
     process.exit(1);
   });
 });

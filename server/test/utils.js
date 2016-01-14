@@ -161,7 +161,8 @@ const start_fusion_server = (done) => {
   const http_server = new http.Server();
   http_server.listen(0, () => {
     fusion_port = http_server.address().port;
-    fusion_server = new fusion.Server(http_server, { rdb_port, db, dev_mode: true });
+    fusion_server = new fusion.Server(http_server,
+      { rdb_port, db, auto_create_table: true, auto_create_index: true });
     fusion_server.ready().then(done);
   });
   http_server.on('error', (err) => done(err));

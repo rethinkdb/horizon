@@ -19,7 +19,7 @@ You first need to install dependencies and then build the client library using t
 
 First you need to ensure that you have the `fusion.js` client library.
 
-Note: that you'll want to have `http` instead of `https` if you started Fusion Server with `--unsecure`. By default Fusion Server hosts the `fusion.js` client library on it's host on port 8181.
+Note: that you'll want to have `http` instead of `https` if you started Fusion Server with `--insecure`. By default Fusion Server hosts the `fusion.js` client library on it's host on port 8181.
 
 ```javascript
 ...
@@ -31,7 +31,7 @@ Note: that you'll want to have `http` instead of `https` if you started Fusion S
 
 Then wherever you want to use Project Fusion you will need to `require` the Fusion client library and then connect to your running instance of Fusion Server.
 
-Note: if you started Fusion Server with `--unsecure`, you'll need to follow the commented out example.
+Note: if you started Fusion Server with `--insecure`, you'll need to follow the commented out example.
 
 ```javascript
 const Fusion = require("Fusion");

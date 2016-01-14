@@ -14,7 +14,7 @@ can run:
 
 ## Launch the server
 
-`node --harmony-destructuring src/main.js --unsecure`
+`node --harmony-destructuring src/main.js --insecure`
 
 This serves fusion queries on ws://localhost:8181, and connects to the RethinkDB server at localhost:31420.
 
@@ -24,7 +24,7 @@ Available options:
   --connect HOST:PORT    host and port of the RethinkDB server to connect to, defaults to localhost:28015
   --key-file PATH        path to the key file to use, defaults to ./key.pem
   --cert-file PATH       path to the cert file to use, defaults to ./cert.pem
-  --unsecure             serve unsecure websockets, ignore --key-file and --cert-file
+  --insecure             serve insecure websockets, ignore --key-file and --cert-file
 
 ## Generate key files for SSL
 There are proper ways to get a certificate registered through a Certificate
@@ -35,7 +35,7 @@ serious:
 
 `openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -batch`
 
-Once a key file and cert file have been obtained, launch the server without the `--unsecure`
+Once a key file and cert file have been obtained, launch the server without the `--insecure`
 flag, and provide the files in the `--key-file` and `--cert-file` options.
 
 ## Running tests

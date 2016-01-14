@@ -37,7 +37,7 @@ const all_tests = () => {
       before('Start standalone fusion server', (done) => {
         let args = [ '--connect', `localhost:${utils.rdb_port()}`, '--port', '0' ];
         if (transport === 'http') {
-          args.push('--unsecure');
+          args.push('--insecure');
         } else {
           args.push('--key-file', key_file, '--cert-file', cert_file);
         }
