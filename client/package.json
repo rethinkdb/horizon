@@ -1,8 +1,8 @@
 {
-  "name": "fusion",
+  "name": "fusion-client",
   "version": "0.0.1",
   "description": "RethinkDB Fusion is an open-source developer platform for building realtime, scalable web apps. It is built on top of RethinkDB, and allows app developers to get started with building modern, engaging apps without writing any backend code.",
-  "main": "index.js",
+  "main": "dist/fusion.js",
   "dependencies": {
     "babel-polyfill": "^6.3.14",
     "geval": "^2.1.1",
@@ -23,7 +23,8 @@
     "watchify": "^3.6.1"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublish": "./build.js build"
   },
   "repository": {
     "type": "git",

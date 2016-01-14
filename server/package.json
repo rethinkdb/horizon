@@ -22,6 +22,7 @@
   "dependencies": {
     "argparse": "^1.0.3",
     "joi": "^7.0.0",
+    "fusion-client": "file:../client",
     "rethinkdb": "^2.1.1",
     "winston": "^2.1.0",
     "ws": "^0.8.0"
