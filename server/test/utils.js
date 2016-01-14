@@ -64,18 +64,32 @@ const start_rdb_server = (done) => {
     const line = buffer.slice(0, endline_pos);
     buffer = buffer.slice(endline_pos + 1);
 
-    const matches = line.match(/^Listening for client driver connections on port (\d+)$/);
-    if (matches === null || matches.length !== 2) { return; }
-    rdb_port = parseInt(matches[1]);
+    logger.info(`rethinkdb stdout: ${line}`);
+    if (rdb_port === undefined) {
+        const matches = line.match(/^Listening for client driver connections on port (\d+)$/);
+        if (matches === null || matches.length !== 2) { return; }
+        rdb_port = parseInt(matches[1]);
 
-    proc.stdout.removeAllListeners('data');
-    r.connect({ db, port: rdb_port }).then((c) => {
-      rdb_conn = c;
-      return r.dbCreate(db).run(c);
-    }).then((res) => {
-      assert.strictEqual(res.dbs_created, 1);
-      done();
-    });
+        r.connect({ db, port: rdb_port }).then((c) => {
+          rdb_conn = c;
+          return r.dbCreate(db).run(c);
+        }).then((res) => {
+          assert.strictEqual(res.dbs_created, 1);
+          done();
+        });
+    }
+  });
+
+  proc.stderr.on('data', (data) => {
+    buffer += data.toString();
+
+    const endline_pos = buffer.indexOf('\n');
+    if (endline_pos === -1) { return; }
+
+    const line = buffer.slice(0, endline_pos);
+    buffer = buffer.slice(endline_pos + 1);
+
+    logger.info(`rethinkdb stderr: ${line}`);
   });
 };
 

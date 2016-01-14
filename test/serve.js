@@ -10,8 +10,12 @@ const fs = require('fs');
 const http = require('http');
 const path = require('path');
 const url = require('url');
+const process = require('process');
 
 let client_ready = false;
+
+process.on('SIGINT', () => process.exit(0));
+process.on('SIGTERM', () => process.exit(0));
 
 const serve_file = (file_path, res) => {
   fs.access(file_path, fs.R_OK | fs.F_OK, (exists) => {
@@ -41,10 +45,28 @@ const serve_file = (file_path, res) => {
 // TODO: add options for keeping the rethinkdb data dir or changing the logging level or port
 
 // Run the client build
-const build_proc = child_process.fork('../client/build.js', [ 'build' ], { cwd: '../client/' });
-build_proc.on('exit', (res) => {
-  assert.strictEqual(res, 0);
-  client_ready = true;
+const build_proc = child_process.fork('../client/build.js',
+                                      [ 'build', '--watch' ],
+                                      { cwd: '../client/', silent: true });
+
+build_proc.on('exit', () => process.exit(1));
+process.on('exit', () => build_proc.kill('SIGTERM'));
+
+let build_buffer;
+build_proc.stdout.on('data', (data) => {
+  build_buffer += data.toString();
+
+  const endline_pos = build_buffer.indexOf('\n');
+  if (endline_pos === -1) { return; }
+
+  const line = build_buffer.slice(0, endline_pos);
+  build_buffer = build_buffer.slice(endline_pos + 1);
+
+  if (line.indexOf('bytes written') !== -1) {
+      client_ready = true;
+      const date = new Date();
+      console.log(`${date.toLocaleTimeString()} - fusion.js rebuilt.`);
+  }
 });
 
 // Launch HTTP server with fusion that will serve the test files
@@ -52,7 +74,6 @@ const http_server = new http.Server((req, res) => {
   const req_path = url.parse(req.url).pathname;
   serve_file(path.resolve('../client' + req_path), res);
 });
-
 
 // Launch rethinkdb - once we know the port we can attach fusion to the http server
 server_test_utils.start_rdb_server(() => {
@@ -85,4 +106,3 @@ server_test_utils.start_rdb_server(() => {
 
   http_server.listen(8181, () => console.log('HTTP server listening on port 8181.'));
 });
-
