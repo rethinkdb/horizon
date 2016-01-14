@@ -38,36 +38,44 @@ const each_line_in_pipe = (pipe, callback) => {
   });
 };
 
-const start_rdb_server = (done) => {
-  const rmdirSync_recursive = (dir) => {
-    try {
-      fs.readdirSync(dir).forEach((item) => {
-        const full_path = path.join(dir, item);
-        if (fs.statSync(full_path).isDirectory()) {
-          rmdirSync_recursive(full_path);
-        } else {
-          fs.unlinkSync(full_path);
-        }
-      });
-      fs.rmdirSync(dir);
-    } catch (err) { /* Do nothing */ }
-  };
-  rmdirSync_recursive(data_dir);
+const start_rdb_server = (options, done) => {
+  const keep = (options.keep === undefined) ? false : options.keep;
+  const bind = (options.bind === undefined) ? [ ] : options.bind;
 
-  const proc = child_process.spawn('rethinkdb', [ '--http-port', '0',
-                                                  '--cluster-port', '0',
-                                                  '--driver-port', '0',
-                                                  '--cache-size', '10',
-                                                  '--directory', data_dir ]);
+  if (!keep) {
+    const rmdirSync_recursive = (dir) => {
+      try {
+        fs.readdirSync(dir).forEach((item) => {
+          const full_path = path.join(dir, item);
+          if (fs.statSync(full_path).isDirectory()) {
+            rmdirSync_recursive(full_path);
+          } else {
+            fs.unlinkSync(full_path);
+          }
+        });
+        fs.rmdirSync(dir);
+      } catch (err) { /* Do nothing */ }
+    };
+    rmdirSync_recursive(data_dir);
+  }
+
+  const args = [ '--http-port', '0',
+                 '--cluster-port', '0',
+                 '--driver-port', '0',
+                 '--cache-size', '10',
+                 '--directory', data_dir ];
+  bind.forEach((host) => args.push('--bind', host));
+
+  const proc = child_process.spawn('rethinkdb', args);
+
   proc.once('error', (err) => assert.ifError(err));
 
   process.on('exit', () => {
     proc.kill('SIGKILL');
-    rmdirSync_recursive(data_dir);
   });
 
   // Error if we didn't get the port before the server exited
-  proc.stdout.once('end', () => assert(rdb_port !== undefined));
+  // proc.stdout.once('end', () => assert(rdb_port !== undefined));
 
   const maybe_start_rdb_connection = () => {
     if (rdb_port !== undefined && rdb_http_port !== undefined) {

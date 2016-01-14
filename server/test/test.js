@@ -15,7 +15,7 @@ before('Start RethinkDB Server',
        /** @this mocha */
        function(done) {
          this.timeout(5000);
-         utils.start_rdb_server(done);
+         utils.start_rdb_server({ }, done);
        });
 
 
