@@ -108,12 +108,23 @@ options.auto_create_index = Boolean(parsed.auto_create_index);
 // Wait for the http servers to be ready before launching the Fusion server
 let num_ready = 0;
 http_servers.forEach((serv) => {
+  serv.on('request', (req, res) => {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('File not found.');
+  });
+
+  serv.on('upgrade', (req, res) => {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Upgrade not defined at this endpoint.');
+  });
+
   serv.on('listening', () => {
     fusion.logger.info(`Listening on ${serv.address().address}:${serv.address().port}.`);
     if (++num_ready === http_servers.size) {
       new fusion.Server(http_servers, options);
     }
   });
+
   serv.on('error', (err) => {
     fusion.logger.error(`HTTP${parsed.unsecure ? '' : 'S'} server: ${err}`);
     process.exit(1);
