@@ -113,11 +113,6 @@ http_servers.forEach((serv) => {
     res.end('File not found.');
   });
 
-  serv.on('upgrade', (req, res) => {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Upgrade not defined at this endpoint.');
-  });
-
   serv.on('listening', () => {
     fusion.logger.info(`Listening on ${serv.address().address}:${serv.address().port}.`);
     if (++num_ready === http_servers.size) {
