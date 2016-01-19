@@ -14,6 +14,7 @@ program
   .option('-w, --watch', 'Watch directory for changes')
   .option('-U, --no-uglify', `Don't uglify output`)
   .option('-S, --no-sourcemaps', `Don't output sourcemaps`)
+  .option('-g, --expose-global', `Expose Fusion module as a global`)
   .parse(process.argv)
 
 compile(program.watch)
@@ -33,6 +34,7 @@ function compile(watching) {
     packageCache: {},
     plugin: [ watchify ],
     debug: program.sourcemaps,
+    standalone: program.exposeGlobal ? 'Fusion' : '',
   }).require('./src/index.js', { expose: 'Fusion' })
     .transform('babelify', {
     // All source files need to be babelified first
