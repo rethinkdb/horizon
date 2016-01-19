@@ -57,30 +57,30 @@ npm install -g
 Which will install Fusion on your path and allow you to just type:
 
 ```bash
-fusion --unsecure --dev
+fusion --dev
 ```
 However, if you do a `git pull` you will need to rerun this command to update it. For a more bare metal approach just run:
 
 ```sh
-node --harmony-destructuring ./src/main.js --dev --unsecure
+./src/main.js --dev --unsecure
 ```
 
-This serves Fusion queries on `ws://localhost:8181`, serves the Fusion client library on `http://localhost:8181/fusion/fusion.js`, and connects to the RethinkDB server at `localhost:31420`.
+This serves Fusion queries on `ws://localhost:8181`, serves the Fusion client library on `http://localhost:8181/fusion/fusion.js`, and connects to the RethinkDB server at `localhost:28015`.
 
 ##### Available options
 
 Command Flag| Description
 ------------|----------------------------------
---bind HOST | Local hostname to serve Fusion on (repeatable).
-  --port PORT | Local port to serve fusion on. Defaults to `8181`.
+  --bind HOST         | Local hostname to serve Fusion on (repeatable).
+  --port PORT         | Local port to serve fusion on. Defaults to `8181`.
   --connect HOST:PORT | Host and port of the RethinkDB server to connect to. Defaults to localhost:28015
-  --key-file PATH | Path to the key file to use, defaults to `./key.pem`.
-  --cert-file PATH | Path to the cert file to use, defaults to `./cert.pem`.
-  --debug | Enable debug logging.
-  --unsecure | Serve unsecure websockets, ignore `--key-file` and `--cert-file`.
+  --key-file PATH     | Path to the key file to use, defaults to `./key.pem`.
+  --cert-file PATH    | Path to the cert file to use, defaults to `./cert.pem`.
+  --debug             | Enable debug logging.
+  --unsecure          | Serve unsecure websockets, ignore `--key-file` and `--cert-file`.
   --auto-create-table | Create tables used by requests if they do not exist
   --auto-create-index | Create indexes used by requests if they do not exist
---dev | Runs the server in development mode, this sets `--debug`, `--unsecure`, `--auto-create-tables`, and `--auto-create-indexes`.
+  --dev               | Runs the server in development mode, this sets `--debug`, `--unsecure`, `--auto-create-tables`, and `--auto-create-indexes`.
 
 ## Generate key files for SSL
 There are proper ways to get a certificate registered through a Certificate
