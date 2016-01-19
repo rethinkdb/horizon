@@ -70,6 +70,7 @@ class Request {
     } else {
       metadata.handle_error(err, (inner_err) => {
         if (inner_err) {
+          logger.error(`Error (${inner_err}) when handling error (${err}).`);
           this.client.send_response(this, { error: inner_err.message });
         } else {
           setTimeout(() => this._run_reql(), 0);
