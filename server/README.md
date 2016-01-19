@@ -62,7 +62,7 @@ fusion --dev
 However, if you do a `git pull` you will need to rerun this command to update it. For a more bare metal approach just run:
 
 ```sh
-./src/main.js --dev --unsecure
+./src/main.js --dev
 ```
 
 This serves Fusion queries on `ws://localhost:8181`, serves the Fusion client library on `http://localhost:8181/fusion/fusion.js`, and connects to the RethinkDB server at `localhost:28015`.
