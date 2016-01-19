@@ -1,67 +1,62 @@
 # Fusion Client Library
 
-The Fusion client library is how your app will interact with the [Fusion server](/server).
+The Fusion client library. Built to interact with the [Fusion Server](/server) websocket API. Provides all the tooling to build a fully-functional and reactive front-end web application.
 
-## Setup and Building
+## Building
 
-You first need to install dependencies and then build the client library using the build script.
+You first need to install dependencies and then you may build the client library using the build script.
 
 1. `npm install`
-2. `./build.js build [--watch]`
+2. `./build.js [--watch]`
 
 ## Running tests
 
-* Open `test/test.html` in your browser after getting setup and while you also have Fusion server running.
+* Open `test/test.html` in your browser after getting setup and while you also have Fusion server with the `--insecure` flag running on `localhost`.
 
 ## Docs
 
 ### Getting Started
 
-First you need to ensure that you have the `fusion.js` client library.
+While you could build and import this library, you wouldn't have any place to connect to! Once you have the [Fusion Server](/server) running, the Fusion client library is hosted by the server as seen in the getting started example below.
 
-Note: that you'll want to have `http` instead of `https` if you started Fusion Server with `--insecure`. By default Fusion Server hosts the `fusion.js` client library on it's host on port 8181.
+First you need to ensure that you have included the `fusion.js` client library in your HTML.
+**Note**: that you'll want to have `http` instead of `https` if you started Fusion Server with `--insecure`. By default Fusion Server hosts the `fusion.js` client library on it's host on port 8181.
 
-```javascript
+```html
 ...
 <head>
-<script src="https://localhost:8181/fusion.js"></script>
+<script src="//localhost:8181/fusion.js"></script>
 </head>
 ...
 ```
 
 Then wherever you want to use Project Fusion you will need to `require` the Fusion client library and then connect to your running instance of Fusion Server.
 
-Note: if you started Fusion Server with `--insecure`, you'll need to follow the commented out example.
+**Note:** if you started Fusion Server with `--insecure`, you'll need to [add the insecure flag](#fusion).
 
 ```javascript
 const Fusion = require("Fusion");
 const fusion = new Fusion("localhost:8181");
-
-// const fusion = new Fusion("localhost:8181",
-//  {secure: false}
-// );
 ```
 
-From here you can start to interact with RethinkDB collections through the Fusion collection.  
-
-**Note:**  Having `--dev` mode enabled on the Fusion Server creates collections and indexes automatically.
+From here you can start to interact with RethinkDB collections through the Fusion collection. Having `--dev` mode enabled on the Fusion Server creates collections and indexes automatically so you can get your application setup with as little hassle as possible.
 
 ```javascript
 const chat = fusion("messages");
 ```
 
-Now, `chat` is a Fusion collection of documents. You can perform a variety of operations on this collection to filter them down to the ones you need.
+Now, `chat` is a Fusion collection of documents. You can perform a variety of operations on this collection to filter them down to the ones you need. Let's pretend we are building a simple chat application where the messages are displayed in ascending order. Here are some basic functions that would allow you to build such an app.
 
 ```javascript
 
-chats = [];
+let chats = [];
 
 // Retrieve all messages from the server
-retrieveMessages = () => {
-  chat.value()
+const retrieveMessages = () => {
+  chat.order("datetime")value()
   // Retrieval successful, update our model
   .then((result) => {
-    chats.concat(result);
+    chats = chats.concat(result);
   })
   // Error occurred
   .catch((error) => {
@@ -69,8 +64,8 @@ retrieveMessages = () => {
   });
 }
 
-// Retrieve and single item by id
-retrieveMessage = (id) => {
+// Retrieve an single item by id
+const retrieveMessage = (id) => {
   chat.find(id).value()
     // Retrieval successful
     .then((result) => {
@@ -83,7 +78,7 @@ retrieveMessage = (id) => {
 }
 
 // Store new item
-storeMessage = (message) => {
+const storeMessage = (message) => {
    chat.store(message)
     // Returns id of saved objects
     .then((result) => console.log(result))
@@ -93,22 +88,24 @@ storeMessage = (message) => {
 
 // Replace item that has equal `id` field
 //  or insert if it doesn't exist.
-updateMessage = (message) => {
+const updateMessage = (message) => {
   chat.replace(message);
 }
 
 // Remove item from collection
-deleteMessage = (message) =>{
+const deleteMessage = (message) =>{
   chat.remove(message);
 }
 ```
 
 And lastly, the `.subscribe(...)` method exposes all the changefeeds awesomeness you could want from RethinkDB. Using just `chat.subscribe`, any events on any of the documents in the collection will be pushed to you where you can specify functions to handle these changes. You can also `.subscribe` to changes on a query or a single document.
 
-```javascript
-chats = [];
+**Note:** By default, upon connecting to a changefeed you will receive all the results of that query through the `onAdded` function.
 
-chat.subscribe({
+```javascript
+let chats = [];
+
+chats.subscribe({
   // Initially returns all results from query
   onAdded: (newMessage) => {
     chats.push(newMessage);
@@ -151,11 +148,15 @@ chat.subscribe({
 
 Object which initializes the connection to a Fusion Server.
 
+If Fusion server has been started with `--unsecure` then you will need to connect unsecurely by passing `{secure: false}` as a second parameter.
+
 ###### Example
 
 ```javascript
 const Fusion = require("fusion");
 const fusion = new Fusion("localhost:8181");
+
+const unsecure_fusion = new Fusion("localhost:8181", { unsecure: true});
 ```
 
 #### Collection
@@ -164,13 +165,12 @@ Object which represents a collection of documents on which queries can be perfor
 
 ###### Example
 ```javascript
-
+// Setup connection the Fusion server
 const Fusion = require("fusion");
 const fusion = new Fusion("localhost:8181");
 
-//Fusion Collection
+// Create fusion collection
 const messages = fusion("messages");
-
 ```
 
 ##### above(*limit integer* || *{key: value}*, *closed string*)
@@ -217,7 +217,7 @@ chat.messages.order("id").above(3, "closed");
 chat.messages.order("id").above({author: "d"});
 ```
 
-##### below(limit integer || {key: value}, closed string)
+##### below([limit integer || {key: value}], closed string)
 
 The `.below` method can only be chained onto an `.order(...)` method and limits the range of results returned.
 

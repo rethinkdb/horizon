@@ -45,6 +45,7 @@ const app = new Vue({
     addedChange: function(newDoc) {
       // Parse string as proper Date Object
       this.messages.push(newDoc);
+      console.log(this.messages);
     },
 
   },

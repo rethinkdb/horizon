@@ -12,17 +12,17 @@ future. See https://github.com/rethinkdb/fusion/issues/7.
 
 Fusion consists of two components:
 
-- __Fusion server__ -- a middleware server that connects to/is built on
+- [__Fusion server__](/server) -- a middleware server that connects to/is built on
   top of RethinkDB, and exposes a simple API/protocol to front-end
   applications.
-- __Fusion client library__ -- a JavaScript client library that wraps
+- [__Fusion client library__](/client) -- a JavaScript client library that wraps
   Fusion server's protocol in a convenient API for front-end
   developers.
 
 The first version of Fusion will expose the following services to
 developers:
 
-- __Sync__ -- a streaming API for building realtime apps directly from the
+- __Subscribe__ -- a streaming API for building realtime apps directly from the
   browser without writing any backend code.
 - __Auth__ -- an authentication API that connects to common auth providers
   (e.g. Facebook, Google, GitHub).
@@ -67,44 +67,56 @@ their app.
 
 ### How do you start Fusion?
 
-This is still being designed, but roughly it will look like this:
-
-```
+```sh
 # Start RethinkDB
 $ rethinkdb
 
 # In another terminal, start Fusion
-$ fusion --rethinkdb-host localhost --rethinkdb-port 28015
-Clients can connect directly from the browser on port 8181
+$ fusion --dev
+
+# Clients can connect directly from the browser on port 8181
+# The fusion client library is served from host:8181/fusion.js
 ```
 
 ### What does the code look like?
 
-The API is still in development, but roughly here is what you'd write
-on the front-end for a todo list application:
+The API is still in development, but here is currently what you'd write
+on the front-end for a hypothetical todo list application:
 
 ```js
 // Connect to fusion
-this.fusion = new Fusion('localhost:8181');
+const fusion = new Fusion('localhost:8181');
+const todos = fusion("todo-items");
 
-// When a user adds a todo item
-onAddItem: function(e) {
-  this.fusion('todo-items').insert({
-    item: this.state.text;
+// Function called when a user adds a todo item in the UI
+const createTodo = (newTodo) => {
+  todos.insert({
+    item: newTodo.text,
+    created: new Date()
   });
-}
+};
 
 // Listen to updates from other users
-init: function() {
-  this.fusion('todo-items')
-      .on('added', function(item) {
-        // add the item to the data model
-      })
-      .on('removed', function(item) {
-        // remove the item from the data model
-      })
-}
+const initApp = () => {
+  todos.subscribe({
+    onAdded: (addedTodo) => {
+      // add the new todo to the data model
+    }),
+    onChanged: (changed) => {
+      // update data model with changed.new_val
+    },
+    onRemoved: (removedTodo) => {
+      // remove the item from the data model
+    }
+  });
+};
 ```
+***Want to see more?*** Check out [our README for the Fusion client library](https://github.com/rethinkdb/fusion/tree/next/client#fusion-client-library), we have an initial set of docs as well as a expanded getting started guide to get you started with using Fusion.
+
+### How do I get it?
+
+Right now you have to install it locally from this repo. Follow the guides for [installing the Fusion server](/server#installation) and then read through on how to [import the client library](/client#getting-started) into your project.
+
 
 ### How is Fusion different from Firebase?
 
@@ -117,7 +129,7 @@ There are a few major differences:
   data in RethinkDB, once your app grows beyond the basic Fusion API,
   you can start adding backend code of arbitrary complexity that has
   complete access to a fully-featured database.
-- Since Fusion is build on RethinkDB, we'll be able to expose services
+- Since Fusion is built on RethinkDB, we'll be able to expose services
   that are much more sophisticated than simple document sync
   (e.g. realtime analytics, streams on joined tables, etc.)
 
@@ -146,11 +158,9 @@ efficiently, and even the basic functionality is extremely difficult
 to scale.
 
 Fusion is built on RethinkDB, so the LiveQuery functionality is in the
-database. This allows for much more sophisticated streaming operations
-(e.g. feeds on joins and aggregations once RethinkDB supports them),
+database. This allows for much more sophisticated streaming operations,
 and scalability is dramatically simpler because the database has all
-the necessary information to allow for a scalable feeds
-implementation.
+the necessary information to allow for a scalable feeds implementation.
 
 ### How will Fusion be licensed?
 
