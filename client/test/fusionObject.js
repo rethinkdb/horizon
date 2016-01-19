@@ -4,7 +4,7 @@ fusionObjectSuite = () => {
     // Test object creation, the `dispose` method, and `connected/disconnected`
     // events.
     it("Fusion()", (done) => {
-      var fusion = Fusion("localhost:8181", { secure: false });
+      var fusion = Fusion(window.location.host, { secure: window.location.protocol == 'https:', path: 'fusion/fusion' });
       assert.isDefined(fusion);
       fusion.onConnected((_fusion) => {
         // This event is fired every time the client connects to the Fusion
