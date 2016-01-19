@@ -1,7 +1,7 @@
 #!/usr/bin/env node --harmony-destructuring
 'use strict';
 
-const fusion = require('./server');
+const fusion = require('./fusion');
 
 const argparse = require('argparse');
 const http = require('http');
@@ -33,16 +33,31 @@ parser.addArgument([ '--debug' ],
   { defaultValue: false, action: 'storeTrue',
     help: 'Enable debug logging.' });
 
-parser.addArgument([ '--unsecure' ],
+parser.addArgument([ '--insecure' ],
   { defaultValue: false, action: 'storeTrue',
-    help: 'Serve unsecure websockets, ignore --key-file and --cert-file.' });
+    help: 'Serve insecure websockets, ignore --key-file and --cert-file.' });
+
+parser.addArgument([ '--auto-create-table' ],
+  { defaultValue: false, action: 'storeTrue',
+    help: 'Create tables used by requests if they do not exist.' });
+
+parser.addArgument([ '--auto-create-index' ],
+  { defaultValue: false, action: 'storeTrue',
+    help: 'Create indexes used by requests if they do not exist.' });
 
 parser.addArgument([ '--dev' ],
   { defaultValue: false, action: 'storeTrue',
-    help: 'Runs the server in development mode - automatic creation of indexes and tables.' });
+    help: 'Runs the server in development mode, this sets --debug, --insecure, --auto-create-tables, and --auto-create-indexes.' });
 
 const parsed = parser.parseArgs();
 const options = { };
+
+if (parsed.dev) {
+  parsed.debug = true;
+  parsed.insecure = true;
+  parsed.auto_create_table = true;
+  parsed.auto_create_index = true;
+}
 
 if (parsed.connect !== null) {
   const host_port = parsed.connect.split(':');
@@ -69,8 +84,8 @@ if (local_hosts.indexOf('all') !== -1) {
   local_hosts.push('0.0.0.0');
 }
 
-if (parsed.unsecure) {
-  fusion.logger.warn(`Creating unsecure HTTP server.`);
+if (parsed.insecure) {
+  fusion.logger.warn(`Creating insecure HTTP server.`);
   local_hosts.forEach((host) => {
     http_servers.add(new http.Server().listen(local_port, host));
   });
@@ -87,19 +102,26 @@ if (parsed.debug) {
   fusion.logger.level = 'debug';
 }
 
-options.dev_mode = Boolean(parsed.dev);
+options.auto_create_table = Boolean(parsed.auto_create_table);
+options.auto_create_index = Boolean(parsed.auto_create_index);
 
 // Wait for the http servers to be ready before launching the Fusion server
 let num_ready = 0;
 http_servers.forEach((serv) => {
+  serv.on('request', (req, res) => {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('File not found.');
+  });
+
   serv.on('listening', () => {
     fusion.logger.info(`Listening on ${serv.address().address}:${serv.address().port}.`);
     if (++num_ready === http_servers.size) {
       new fusion.Server(http_servers, options);
     }
   });
+
   serv.on('error', (err) => {
-    fusion.logger.error(`HTTP${parsed.unsecure ? '' : 'S'} server: ${err}`);
+    fusion.logger.error(`HTTP${parsed.insecure ? '' : 'S'} server: ${err}`);
     process.exit(1);
   });
 });

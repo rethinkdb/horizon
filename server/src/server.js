@@ -7,6 +7,8 @@ const logger = require('./logger');
 const fusion_protocol = require('./schema/fusion_protocol');
 const server_options = require('./schema/server_options');
 
+const fusion_client_path = require.resolve('fusion-client');
+
 const endpoints = {
   insert: require('./endpoint/insert'),
   query: require('./endpoint/query'),
@@ -65,7 +67,8 @@ class Server {
     this._reql_conn = new ReqlConnection(opts.rdb_host,
                                          opts.rdb_port,
                                          opts.db,
-                                         opts.dev_mode,
+                                         opts.auto_create_table,
+                                         opts.auto_create_index,
                                          this._clients);
 
     for (let key of Object.keys(endpoints)) {
@@ -85,11 +88,12 @@ class Server {
       const extant_listeners = server.listeners('request').slice(0);
       server.removeAllListeners('request');
       server.on('request', (req, res) => {
+        // TODO: might be nice to indicate that `opts.path` accepts UPGRADE requests?
         const req_path = url.parse(req.url).pathname;
         if (req_path.indexOf(opts.path + '/fusion.js') === 0) {
-          serve_file(path.resolve('../client/dist/fusion.js'), res);
+          serve_file(fusion_client_path, res);
         } else if (req_path.indexOf(opts.path + '/fusion.js.map') === 0) {
-          serve_file(path.resolve('../client/dist/fusion.js.map'), res);
+          serve_file(fusion_client_path + '.map', res);
         } else {
           extant_listeners.forEach((l) => l.call(server, req, res));
         }

@@ -8,7 +8,8 @@ const options = Joi.object({
   rdb_host: Joi.string().hostname().default('localhost'),
   rdb_port: Joi.number().greater(0).less(max_port).default(28015),
 
-  dev_mode: Joi.boolean().default(false),
+  auto_create_table: Joi.boolean().default(false),
+  auto_create_index: Joi.boolean().default(false),
 
   path: Joi.string().default('/fusion'),
 

@@ -20,70 +20,101 @@ logger.add(logger.transports.File, { filename: log_file });
 logger.remove(logger.transports.Console);
 
 // Variables used by most tests
-let rdb_port, rdb_conn, fusion_server, fusion_port, fusion_conn, fusion_listeners;
+let rdb_http_port, rdb_port, rdb_conn, fusion_server, fusion_port, fusion_conn, fusion_listeners;
 let fusion_authenticated = false;
 
-const start_rdb_server = (done) => {
-  const rmdirSync_recursive = (dir) => {
-    try {
-      fs.readdirSync(dir).forEach((item) => {
-        const full_path = path.join(dir, item);
-        if (fs.statSync(full_path).isDirectory()) {
-          rmdirSync_recursive(full_path);
-        } else {
-          fs.unlinkSync(full_path);
-        }
-      });
-      fs.rmdirSync(dir);
-    } catch (err) { /* Do nothing */ }
-  };
-  rmdirSync_recursive(data_dir);
+const each_line_in_pipe = (pipe, callback) => {
+  let buffer = '';
+  pipe.on('data', (data) => {
+    buffer += data.toString();
 
-  const proc = child_process.spawn('rethinkdb', [ '--http-port', '0',
-                                                  '--cluster-port', '0',
-                                                  '--driver-port', '0',
-                                                  '--cache-size', '10',
-                                                  '--directory', data_dir ]);
+    let endline_pos = buffer.indexOf('\n');
+    while (endline_pos !== -1) {
+      const line = buffer.slice(0, endline_pos);
+      buffer = buffer.slice(endline_pos + 1);
+      callback(line);
+      endline_pos = buffer.indexOf('\n');
+    }
+  });
+};
+
+const start_rdb_server = (options, done) => {
+  const keep = (options.keep === undefined) ? false : options.keep;
+  const bind = (options.bind === undefined) ? [ ] : options.bind;
+
+  if (!keep) {
+    const rmdirSync_recursive = (dir) => {
+      try {
+        fs.readdirSync(dir).forEach((item) => {
+          const full_path = path.join(dir, item);
+          if (fs.statSync(full_path).isDirectory()) {
+            rmdirSync_recursive(full_path);
+          } else {
+            fs.unlinkSync(full_path);
+          }
+        });
+        fs.rmdirSync(dir);
+      } catch (err) { /* Do nothing */ }
+    };
+    rmdirSync_recursive(data_dir);
+  }
+
+  const args = [ '--http-port', '0',
+                 '--cluster-port', '0',
+                 '--driver-port', '0',
+                 '--cache-size', '10',
+                 '--directory', data_dir ];
+  bind.forEach((host) => args.push('--bind', host));
+
+  const proc = child_process.spawn('rethinkdb', args);
+
   proc.once('error', (err) => assert.ifError(err));
 
   process.on('exit', () => {
     proc.kill('SIGKILL');
-    rmdirSync_recursive(data_dir);
   });
 
   // Error if we didn't get the port before the server exited
-  proc.stdout.once('end', () => assert(rdb_port !== undefined));
+  // proc.stdout.once('end', () => assert(rdb_port !== undefined));
 
-  let buffer = '';
-  proc.stdout.on('data', (data) => {
-    buffer += data.toString();
+  const maybe_start_rdb_connection = () => {
+    if (rdb_port !== undefined && rdb_http_port !== undefined) {
+      r.connect({ db, port: rdb_port }).then((c) => {
+        rdb_conn = c;
+        return r.dbCreate(db).run(c);
+      }).then((res) => {
+        assert.strictEqual(res.dbs_created, 1);
+        done();
+      });
+    }
+  };
 
-    const endline_pos = buffer.indexOf('\n');
-    if (endline_pos === -1) { return; }
-
-    const line = buffer.slice(0, endline_pos);
-    buffer = buffer.slice(endline_pos + 1);
-
-    const matches = line.match(/^Listening for client driver connections on port (\d+)$/);
-    if (matches === null || matches.length !== 2) { return; }
-    rdb_port = parseInt(matches[1]);
-
-    proc.stdout.removeAllListeners('data');
-    r.connect({ db, port: rdb_port }).then((c) => {
-      rdb_conn = c;
-      return r.dbCreate(db).run(c);
-    }).then((res) => {
-      assert.strictEqual(res.dbs_created, 1);
-      done();
-    });
+  each_line_in_pipe(proc.stdout, (line) => {
+      logger.info(`rethinkdb stdout: ${line}`);
+      if (rdb_port === undefined) {
+        const matches = line.match(/^Listening for client driver connections on port (\d+)$/);
+        if (matches !== null && matches.length === 2) {
+          rdb_port = parseInt(matches[1]);
+          maybe_start_rdb_connection();
+        }
+      }
+      if (rdb_http_port === undefined) {
+        const matches = line.match(/^Listening for administrative HTTP connections on port (\d+)$/);
+        if (matches !== null && matches.length === 2) {
+          rdb_http_port = parseInt(matches[1]);
+          maybe_start_rdb_connection();
+        }
+      }
   });
+
+  each_line_in_pipe(proc.stderr, (line) => logger.info(`rethinkdb stderr: ${line}`));
 };
 
 // Creates a table, no-op if it already exists, uses fusion server prereqs
 const create_table = (table, done) => {
   assert.notStrictEqual(fusion_server, undefined);
   assert.notStrictEqual(fusion_port, undefined);
-  let conn = new websocket(`ws://localhost:${fusion_port}`,
+  let conn = new websocket(`ws://localhost:${fusion_port}/fusion`,
                            fusion.protocol, { rejectUnauthorized: false })
     .once('error', (err) => assert.ifError(err))
     .on('open', () => {
@@ -130,7 +161,8 @@ const start_fusion_server = (done) => {
   const http_server = new http.Server();
   http_server.listen(0, () => {
     fusion_port = http_server.address().port;
-    fusion_server = new fusion.Server(http_server, { rdb_port, db, dev_mode: true });
+    fusion_server = new fusion.Server(http_server,
+      { rdb_port, db, auto_create_table: true, auto_create_index: true });
     fusion_server.ready().then(done);
   });
   http_server.on('error', (err) => done(err));
@@ -170,7 +202,7 @@ const open_fusion_conn = (done) => {
   fusion_authenticated = false;
   fusion_listeners = new Map();
   fusion_conn =
-    new websocket(`ws://localhost:${fusion_port}`,
+    new websocket(`ws://localhost:${fusion_port}/fusion`,
                   fusion.protocol, { rejectUnauthorized: false })
       .once('error', (err) => assert.ifError(err))
       .on('open', () => done());
@@ -231,6 +263,7 @@ const check_error = (err, msg) => {
 
 module.exports = {
   rdb_conn: () => rdb_conn,
+  rdb_http_port: () => rdb_http_port,
   rdb_port: () => rdb_port,
   fusion_conn: () => fusion_conn,
   fusion_port: () => fusion_port,
@@ -246,4 +279,5 @@ module.exports = {
 
   stream_test,
   check_error,
+  each_line_in_pipe,
 };

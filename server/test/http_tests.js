@@ -1,15 +1,18 @@
 'use strict';
 
 const utils = require('./utils');
+const fusion = require('../');
 
 const assert = require('assert');
 const child_process = require('child_process');
 const fs = require('fs');
+const http = require('http');
+const https = require('https');
 
 const all_tests = () => {
   [ 'http', 'https' ].forEach((transport) => {
     describe(transport, () => {
-      let port, proc, key_file, cert_file;
+      let http_server, fusion_server, key_file, cert_file;
 
       before('Generate key and cert', (done) => {
         if (transport === 'http') { done(); return; }
@@ -34,49 +37,35 @@ const all_tests = () => {
         [ key_file, cert_file ].forEach((f) => { if (f) { fs.unlinkSync(f); } });
       });
 
-      before('Start standalone fusion server', (done) => {
-        let args = [ '--connect', `localhost:${utils.rdb_port()}`, '--port', '0' ];
+      before('Start fusion server', (done) => {
+        const four_o_four = (req, res) => {
+          res.writeHeader(404);
+          res.end();
+        };
+
         if (transport === 'http') {
-          args.push('--unsecure');
+          http_server = new http.createServer(four_o_four);
         } else {
-          args.push('--key-file', key_file, '--cert-file', cert_file);
+          http_server = new https.createServer({ key: fs.readFileSync(key_file),
+                                                 cert: fs.readFileSync(cert_file) },
+                                               four_o_four);
         }
-        proc = child_process.fork('./src/main.js', args, { silent: true });
 
-        // Error if we didn't get the port before the server exited
-        proc.stdout.once('end', () => assert.notStrictEqual(port, undefined));
+        fusion_server = fusion(http_server);
 
-        let buffer = '';
-        proc.stdout.on('data', (data) => {
-          buffer += data.toString();
-
-          const endline_pos = buffer.indexOf('\n');
-          if (endline_pos === -1) { return; }
-
-          const line = buffer.slice(0, endline_pos);
-          buffer = buffer.slice(endline_pos + 1);
-
-          const matches = line.match(/Listening on .*:(\d+)\.$/);
-          if (matches === null || matches.length !== 2) { return; }
-          port = parseInt(matches[1]);
-          proc.stdout.removeAllListeners('data');
-          done();
-        });
+        http_server.listen(0, done);
       });
 
       after('Shutdown standalone fusion server', () => {
-        if (proc) {
-          proc.kill('SIGKILL');
-          proc = undefined;
-        }
+        http_server.close();
       });
 
-      it('localhost/fusion.js', (done) => {
-        require(transport).get({ hostname: 'localhost',
-                                 port,
-                                 path: '/fusion.js',
+      it('localhost/fusion/fusion.js', (done) => {
+        require(transport).get({ host: http_server.address().address,
+                                 port: http_server.address().port,
+                                 path: '/fusion/fusion.js',
                                  rejectUnauthorized: false }, (res) => {
-          const code = fs.readFileSync('../client/dist/fusion.js');
+          const code = fs.readFileSync('./node_modules/fusion-client/dist/fusion.js');
           let buffer = '';
           assert.strictEqual(res.statusCode, 200);
           res.on('data', (delta) => buffer += delta);

@@ -27,7 +27,7 @@ var Fusion = require("Fusion");
 
     // Set up the fusion connection before running these tests.
     before((done) => {
-      fusion = Fusion("localhost:8181/fusion", { secure: false, debug: false });
+      fusion = Fusion("localhost:8181", { secure: false, path: 'fusion' });
       fusion.onConnected(() => {
         data = fusion('test_data');
         done();

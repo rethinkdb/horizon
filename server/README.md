@@ -47,7 +47,6 @@ Check out [rethinkdb.com/install](https://rethinkdb.com/install) for the best me
 
 ## Launch the server
 
-
 Lastly, from within this directory you can run:
 
 ```sh
@@ -77,10 +76,10 @@ Command Flag| Description
   --key-file PATH     | Path to the key file to use, defaults to `./key.pem`.
   --cert-file PATH    | Path to the cert file to use, defaults to `./cert.pem`.
   --debug             | Enable debug logging.
-  --unsecure          | Serve unsecure websockets, ignore `--key-file` and `--cert-file`.
+  --insecure          | Serve insecure websockets, ignore `--key-file` and `--cert-file`.
   --auto-create-table | Create tables used by requests if they do not exist
   --auto-create-index | Create indexes used by requests if they do not exist
-  --dev               | Runs the server in development mode, this sets `--debug`, `--unsecure`, `--auto-create-tables`, and `--auto-create-indexes`.
+  --dev               | Runs the server in development mode, this sets `--debug`, `--insecure`, `--auto-create-tables`, and `--auto-create-indexes`.
 
 ## Generate key files for SSL
 There are proper ways to get a certificate registered through a Certificate
@@ -93,7 +92,7 @@ serious:
 openssl req -x509 -newkey rsa:2048 -keyout fusion-key.pem -out fusion-cert.pem -days 365 -nodes -batch
 ```
 
-Once a key file and cert file have been obtained, launch the server without the `--unsecure`
+Once a key file and cert file have been obtained, launch the server without the `--insecure`
 flag, and provide the files in the `--key-file` and `--cert-file` options.
 
 ## Running tests
