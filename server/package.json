@@ -25,7 +25,7 @@
     "fusion-client": "file:../client",
     "rethinkdb": "^2.1.1",
     "winston": "^2.1.0",
-    "ws": "^0.8.0"
+    "ws": "^1.0.1"
   },
   "devDependencies": {
     "babel-core": "^6.0.20",
