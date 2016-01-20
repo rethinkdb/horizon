@@ -9,9 +9,19 @@ You first need to install dependencies and then you may build the client library
 1. `npm install`
 2. `./build.js [--watch]`
 
+### Build Options
+
+Flag                | Description
+--------------------|----------------------------
+-w, --watch         | Watch directory for changes
+-U, --no-uglify     | Don't uglify output
+-S, --no-sourcemaps | Don't output sourcemaps
+-g, --expose-global | Expose Fusion module as a global
+
+
 ## Running tests
 
-* Open `test/test.html` in your browser after getting setup and while you also have Fusion server with the `--insecure` flag running on `localhost`.
+* Open `test/test.html` in your browser after getting setup and while you also have Fusion server with the `--dev` flag running on `localhost`.
 
 ## Docs
 
