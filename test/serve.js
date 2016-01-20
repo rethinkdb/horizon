@@ -124,8 +124,7 @@ new Promise((resolve) => {
       serv.removeAllListeners('request');
       serv.on('request', (req, res) => {
         const req_path = url.parse(req.url).pathname;
-        if (req_path.indexOf('/fusion/fusion.js') === 0 ||
-            req_path.indexOf('/fusion/fusion.js.map') === 0) {
+        if (req_path === '/fusion/fusion.js' || req_path === '/fusion/fusion.js.map') {
           if (!client_ready) {
             res.writeHead(503, { 'Content-Type': 'text/plain' });
             res.end('Client build is ongoing, try again in a few seconds.');

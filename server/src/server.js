@@ -90,9 +90,9 @@ class Server {
       server.on('request', (req, res) => {
         // TODO: might be nice to indicate that `opts.path` accepts UPGRADE requests?
         const req_path = url.parse(req.url).pathname;
-        if (req_path.indexOf(opts.path + '/fusion.js') === 0) {
+        if (req_path === opts.path + '/fusion.js') {
           serve_file(fusion_client_path, res);
-        } else if (req_path.indexOf(opts.path + '/fusion.js.map') === 0) {
+        } else if (req_path === opts.path + '/fusion.js.map') {
           serve_file(fusion_client_path + '.map', res);
         } else {
           extant_listeners.forEach((l) => l.call(server, req, res));
