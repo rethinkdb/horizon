@@ -1,4 +1,3 @@
-#!/usr/bin/env node --harmony-destructuring
 'use strict'
 
 const utils = require('../server/test/utils');
@@ -16,6 +15,9 @@ const http = require('http');
 const path = require('path');
 const url = require('url');
 const process = require('process');
+
+const client_dir = path.resolve(__dirname, '../client');
+const examples_dir = path.resolve(__dirname, '../examples');
 
 const parser = new argparse.ArgumentParser();
 parser.addArgument([ '--port', '-p' ],
@@ -65,9 +67,9 @@ const serve_file = (file_path, res) => {
 // TODO: add options for keeping the rethinkdb data dir or changing the logging level or port
 
 // Run the client build
-const build_proc = child_process.fork('../client/build.js',
+const build_proc = child_process.fork(path.resolve(client_dir, 'build.js'),
                                       [ 'build', '--watch' ],
-                                      { cwd: '../client/', silent: true });
+                                      { cwd: client_dir, silent: true });
 
 build_proc.on('exit', () => process.exit(1));
 process.on('exit', () => build_proc.kill('SIGTERM'));
@@ -85,7 +87,7 @@ utils.each_line_in_pipe(build_proc.stdout, (line) => {
 const http_servers = options.bind.map((host) =>
   new http.Server((req, res) => {
     const req_path = url.parse(req.url).pathname;
-    serve_file(path.resolve('../client' + req_path), res);
+    serve_file(path.resolve(client_dir, req_path), res);
   }));
 
 // Determine the local IP addresses to tell `rethinkdb` to bind on
@@ -129,7 +131,7 @@ new Promise((resolve) => {
             res.writeHead(503, { 'Content-Type': 'text/plain' });
             res.end('Client build is ongoing, try again in a few seconds.');
           } else {
-            serve_file(path.resolve(req_path.replace('/fusion', '../client/dist')), res);
+            serve_file(path.resolve(client_dir, 'dist', req_path.replace('/fusion', '')), res);
           }
         } else {
           extant_listeners.forEach((l) => l.call(serv, req, res));

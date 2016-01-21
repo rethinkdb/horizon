@@ -1,7 +1,6 @@
-#!/usr/bin/env node --harmony-destructuring
 'use strict';
 
-const fusion = require('./fusion');
+const fusion = require('../');
 
 const argparse = require('argparse');
 const http = require('http');
@@ -90,8 +89,17 @@ if (parsed.insecure) {
     http_servers.add(new http.Server().listen(local_port, host));
   });
 } else {
-  let key = fs.readFileSync(parsed.key_file || './key.pem');
-  let cert = fs.readFileSync(parsed.cert_file || './cert.pem');
+  const read_file = (file) => {
+    try {
+      return fs.readFileSync(path.resolve(file));
+    } catch (err) {
+      console.log(`Could not access file ${file} for running a secure HTTP server.`);
+      process.exit(1);
+    }
+  };
+
+  const key = read_file(parsed.key_file);
+  const cert = read_file(parsed.cert_file);
 
   local_hosts.forEach((host) => {
     http_servers.add(new https.Server({ key, cert }).listen(local_port, host));
