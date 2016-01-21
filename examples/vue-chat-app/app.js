@@ -2,7 +2,7 @@
 
 const Fusion = require('Fusion')
 const fusion = new Fusion(location.host, {
-  secure: location.protocol == 'http:'
+  secure: location.protocol == 'https:'
 })
 const chat = fusion('chat')
 const app = new Vue({
