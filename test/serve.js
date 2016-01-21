@@ -64,8 +64,6 @@ const serve_file = (file_path, res) => {
   });
 };
 
-// TODO: add options for keeping the rethinkdb data dir or changing the logging level or port
-
 // Run the client build
 const build_proc = child_process.fork(path.resolve(client_dir, 'build.js'),
                                       [ 'build', '--watch' ],
@@ -87,7 +85,11 @@ utils.each_line_in_pipe(build_proc.stdout, (line) => {
 const http_servers = options.bind.map((host) =>
   new http.Server((req, res) => {
     const req_path = url.parse(req.url).pathname;
-    serve_file(path.resolve(client_dir, req_path), res);
+    if (req_path.indexOf('/examples/') === 0) {
+      serve_file(path.resolve(examples_dir, req_path.replace(/^[/]examples[/]/, '')), res);
+    } else {
+      serve_file(path.resolve(client_dir, req_path.replace(/^[/]/, '')), res);
+    }
   }));
 
 // Determine the local IP addresses to tell `rethinkdb` to bind on
@@ -131,7 +133,7 @@ new Promise((resolve) => {
             res.writeHead(503, { 'Content-Type': 'text/plain' });
             res.end('Client build is ongoing, try again in a few seconds.');
           } else {
-            serve_file(path.resolve(client_dir, 'dist', req_path.replace('/fusion', '')), res);
+            serve_file(path.resolve(client_dir, 'dist', req_path.replace('/fusion/', '')), res);
           }
         } else {
           extant_listeners.forEach((l) => l.call(serv, req, res));
