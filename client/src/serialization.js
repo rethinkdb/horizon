@@ -24,7 +24,7 @@ function modifyType(value) {
     return value.map(modifyType)
   } else if (value.$reql_type$ === 'TIME') {
     let date = new Date()
-    date.setTime(value.epoch_time)
+    date.setTime(value.epoch_time * 1000)
     return date
   } else {
     return modifyObject(value)
@@ -48,7 +48,7 @@ function jsonifyType(value) {
   } else if (value instanceof Date) {
     return {
       $reql_type$: 'TIME',
-      epoch_time: value.getTime(),
+      epoch_time: value.getTime() / 1000,
       timezone: 'Z',
     }
   } else {
