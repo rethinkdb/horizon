@@ -1,7 +1,9 @@
 'use strict'
 
 const Fusion = require('Fusion')
-const fusion = new Fusion('localhost:8181')
+const fusion = new Fusion(location.host, {
+  secure: location.protocol == 'http:'
+})
 const chat = fusion('chat')
 const app = new Vue({
 
@@ -31,7 +33,7 @@ const app = new Vue({
 
   methods: {
     addMessage: function() {
-      let text = this.newMessage.trim();
+      var text = this.newMessage.trim();
       if (text) {
         chat.store({
           text: text,
