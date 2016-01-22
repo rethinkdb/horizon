@@ -1,4 +1,4 @@
-#!/usr/bin/env node --harmony-destructuring
+#!/usr/bin/env node
 'use strict'
 
 const koa = require('koa');
