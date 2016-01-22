@@ -1,8 +1,8 @@
 'use strict';
 
-const { check } = require('./error');
+const check = require('./error').check;
 const logger = require('./logger');
-const { Metadata } = require('./metadata');
+const Metadata = require('./metadata').Metadata;
 const r = require('rethinkdb');
 
 class ReqlConnection {

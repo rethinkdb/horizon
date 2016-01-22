@@ -1,6 +1,6 @@
 'use strict';
 
-const { logger } = require('../src/server');
+const logger = require('../src/server').logger;
 const utils = require('./utils');
 
 const all_suites = [ 'http_tests',

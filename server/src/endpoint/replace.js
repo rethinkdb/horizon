@@ -1,17 +1,17 @@
 'use strict';
 
-const { replace } = require('../schema/fusion_protocol');
-const { handle_response } = require('./remove');
+const replace = require('../schema/fusion_protocol').replace;
+const handle_response = require('./remove').handle_response;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
 
 const make_reql = (raw_request, metadata) => {
-  const { value: { data, collection }, error } = Joi.validate(raw_request.options, replace);
-  if (error !== null) { throw new Error(error.details[0].message); }
+  const parsed = Joi.validate(raw_request.options, replace);
+  if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
 
-  const table = metadata.get_table(collection);
-  return r.expr(data).forEach((row) =>
+  const table = metadata.get_table(parsed.value.collection);
+  return r.expr(parsed.value.data).forEach((row) =>
         r.table(table.name).get(row('id')).replace((old) =>
           r.branch(old.ne(null), row,
            r.error(r.expr(`The document with id `)

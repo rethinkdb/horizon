@@ -13,7 +13,7 @@
   "author": "RethinkDB",
   "license": "MIT",
   "bin": {
-    "fusion": "./src/main.js"
+    "fusion": "src/main.js"
   },
   "bugs": {
     "url": "https://github.com/rethinkdb/fusion/issues"

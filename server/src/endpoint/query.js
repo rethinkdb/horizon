@@ -1,17 +1,18 @@
 'use strict';
 
-const { query } = require('../schema/fusion_protocol');
-const { check } = require('../error.js');
+const query = require('../schema/fusion_protocol').query;
+const check = require('../error.js').check;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
 
 // This is also used by the 'subscribe' endpoint
 const make_reql = (raw_request, metadata) => {
-  const { value: options, error } = Joi.validate(raw_request.options, query);
-  if (error !== null) { throw new Error(error.details[0].message); }
+  const parsed = Joi.validate(raw_request.options, query);
+  if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
+  const options = parsed.value;
 
-  const table = metadata.get_table(options.collection);
+  const table = metadata.get_table(parsed.options.collection);
   let reql = r.table(table.name);
 
   const ordered_between = (obj) => {
