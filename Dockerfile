@@ -1,12 +1,4 @@
-FROM node
-
-# RUN rm -rf /usr/local/lib/node_modules/npm \
-#  && git clone https://github.com/DIREKTSPEED-LTD/npm /usr/local/lib/node_modules/npm \
-#  && rm -rf /usr/local/lib/node_modules/npm/.git \
-#  && rm -f  /usr/bin/npm \
-#  && ln -s -f /usr/local/bin/npm /usr/bin/npm \
-#  && cd /usr/local/lib/node_modules/npm \
-#  && npm install
+FROM node:4
 
 RUN mkdir -p /usr/fusion
 COPY client /usr/fusion/client
@@ -17,4 +9,4 @@ RUN cd client; ./build.js
 RUN cd server; npm install -g
 
 EXPOSE 8181
-CMD ["fusion", "--dev"]
+CMD ["fusion", "--dev", "--bind", "all"]

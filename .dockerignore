@@ -7,3 +7,4 @@ client/build
 client/dist
 **/README.md
 *.log
+docker-compose.yml
