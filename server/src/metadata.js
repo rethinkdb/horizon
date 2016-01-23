@@ -1,6 +1,6 @@
 'use strict';
 
-const { check } = require('./error');
+const check = require('./error').check;
 const logger = require('./logger');
 
 const r = require('rethinkdb');

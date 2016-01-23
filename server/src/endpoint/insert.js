@@ -1,17 +1,17 @@
 'use strict';
 
-const { check } = require('../error');
-const { insert } = require('../schema/fusion_protocol');
+const check = require('../error').check;
+const insert = require('../schema/fusion_protocol').insert;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
 
 const make_reql = (raw_request, metadata) => {
-  const { value: { data, collection }, error } = Joi.validate(raw_request.options, insert);
-  if (error !== null) { throw new Error(error.details[0].message); }
+  const parsed = Joi.validate(raw_request.options, insert);
+  if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
 
-  const table = metadata.get_table(collection);
-  return r.table(table.name).insert(data, { conflict: 'error' });
+  const table = metadata.get_table(parsed.value.collection);
+  return r.table(table.name).insert(parsed.value.data, { conflict: 'error' });
 };
 
 // This is also used by the 'store' and 'upsert' endpoints

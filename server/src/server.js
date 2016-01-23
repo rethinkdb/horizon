@@ -1,8 +1,8 @@
 'use strict';
 
-const { check } = require('./error');
-const { Client } = require('./client');
-const { ReqlConnection } = require('./reql_connection');
+const check = require('./error').check;
+const Client = require('./client').Client;
+const ReqlConnection = require('./reql_connection').ReqlConnection;
 const logger = require('./logger');
 const fusion_protocol = require('./schema/fusion_protocol');
 const server_options = require('./schema/server_options');
@@ -26,7 +26,7 @@ const Joi = require('joi');
 const path = require('path');
 const url = require('url');
 const websocket = require('ws');
-const { _extend: extend } = require('util');
+const extend = require('util')._extend;
 
 const protocol_name = 'rethinkdb-fusion-v0';
 
@@ -134,11 +134,11 @@ class Server {
   }
 
   _get_endpoint(request) {
-    const { value, error } = Joi.validate(request, fusion_protocol.request);
-    if (error !== null) { throw new Error(error.details[0].message); }
+    const parsed = Joi.validate(request, fusion_protocol.request);
+    if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
 
-    const endpoint = this._endpoints.get(value.type);
-    check(endpoint !== undefined, `"${value.type}" is not a recognized endpoint.`);
+    const endpoint = this._endpoints.get(parsed.value.type);
+    check(endpoint !== undefined, `"${parsed.value.type}" is not a recognized endpoint.`);
     return endpoint;
   }
 }
