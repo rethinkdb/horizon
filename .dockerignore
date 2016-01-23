@@ -1,0 +1,9 @@
+**/node_modules
+test
+docs
+server/test
+client/test
+client/build
+client/dist
+**/README.md
+*.log

@@ -1,0 +1,11 @@
+rethinkdb:
+  image: rethinkdb
+  ports:
+    - "28015:28015"
+fusion:
+  build: .
+  command: fusion --dev -c r:28015
+  extra_hosts:
+    - "r:fusion_rethinkdb_1"
+  ports:
+    - "8181:8181"
