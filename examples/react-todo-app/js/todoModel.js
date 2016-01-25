@@ -12,7 +12,7 @@ var app = app || {};
         //Setup RethinkDB
         const Fusion = require("Fusion");
         const fusion = new Fusion("localhost:8181", {
-                secure: true
+          secure: false
         });
 
         // Generic "model" object. You can use whatever
