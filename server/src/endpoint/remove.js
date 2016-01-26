@@ -1,17 +1,17 @@
 'use strict';
 
-const { remove } = require('../schema/fusion_protocol');
+const remove = require('../schema/fusion_protocol').remove;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
 
 const make_reql = (raw_request, metadata) => {
-  const { value: { data, collection }, error } = Joi.validate(raw_request.options, remove);
-  if (error !== null) { throw new Error(error.details[0].message); }
+  const parsed = Joi.validate(raw_request.options, remove);
+  if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
 
-  const table = metadata.get_table(collection);
+  const table = metadata.get_table(parsed.value.collection);
   return r.table(table.name)
-          .getAll(r.args(data.map((row) => row.id)), { index: 'id' })
+          .getAll(r.args(parsed.value.data.map((row) => row.id)), { index: 'id' })
           .delete();
 };
 

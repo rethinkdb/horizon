@@ -63,7 +63,7 @@ let chats = [];
 
 // Retrieve all messages from the server
 const retrieveMessages = () => {
-  chat.order("datetime")value()
+  chat.order("datetime").value()
   // Retrieval successful, update our model
   .then((result) => {
     chats = chats.concat(result);

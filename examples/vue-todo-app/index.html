@@ -18,7 +18,7 @@
 				<ul class="todo-list">
 					<li class="todo" v-for="todo in filteredTodos | orderBy 'datetime' -1" :class="{completed: todo.completed, editing: todo == editedTodo}">
 						<div class="view">
-							<input class="toggle" type="checkbox" v-model="todo.completed" @click="updateTodo(todo)">
+							<input class="toggle" type="checkbox" v-model="todo.completed" v-on:change="updateTodo(todo)">
 							<label @dblclick="editTodo(todo)">{{todo.title}}</label>
 							<button class="destroy" @click="removeTodo(todo)"></button>
 						</div>
@@ -42,7 +42,7 @@
 		</section>
 		<footer class="info">
 			<p>Double-click to edit a todo</p>
-			<p>Written by <a href="http://evanyou.me">Evan You</a></p>
+			<p>Forked from <a href="http://evanyou.me">Evan You</a></p>
 			<p>Part of <a href="http://todomvc.com">TodoMVC</a></p>
 		</footer>
 		<script src="node_modules/todomvc-common/base.js"></script>

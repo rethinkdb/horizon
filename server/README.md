@@ -100,7 +100,7 @@ flag, and provide the files in the `--key-file` and `--cert-file` options.
 In addition to the requirements for the fusion server:
  * `mocha` - for running the test suites
 
-`mocha --harmony-destructuring test`
+`mocha test`
 This runs the suite of tests using ad-hoc instances of RethinkDB, Fusion, and generated SSL certificates.
 No preparation should be necessary aside from installing the required programs and modules.
 

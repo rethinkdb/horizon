@@ -32,12 +32,6 @@ var app = app || {};
                         return uuid;
                 },
 
-
-    shouldComponentUpdate: function(_, nextState){
-      // Only rerender this component if the length in messages has changed.
-      return this.state.messages.length !== nextState.messages.length;
-    },
-
     getDefaultProps: function(){
 
       const time = new Date().getMilliseconds();
@@ -61,17 +55,6 @@ var app = app || {};
     },
 
     componentDidMount: function(){
-      // Get limited 10 and sorted by date stored values from
-      //  the DB and setState with them.
-      this.props.fusion
-        .order("datetime", "descending")
-        .limit(10)
-        .value().then((function(result){
-          this.setState({
-            messages: result
-        });
-      }).bind(this));
-
       // As soon as this component is mounted, enable the input
       this.setState({
         disabled: false,
@@ -92,22 +75,32 @@ var app = app || {};
     },
 
     subscribe: function(){
-      this.props.fusion.subscribe({
+      this.props.fusion
+      .order("datetime", "descending")
+      .limit(8)
+      .subscribe({
         onAdded: function(added){
-
           // Grab current state of messages
-          var currentMessages = this.state.messages;
+          const currentMessages = this.state.messages.slice();
 
-          // Pop off the front to keep us at 10.
-          if (currentMessages.length >= 10){
+          // Pop off the front to keep us at 8.
+          if (currentMessages.length >= 8){
             currentMessages.shift();
           }
 
+          currentMessages.push(added);
+
           // Set the state with the newest message
           this.setState({
-            messages: currentMessages.concat(added)
+            messages: currentMessages
           });
-        }.bind(this)
+
+        }.bind(this),
+      onSynced: function(){
+        this.setState({
+          messages: this.state.messages.slice().reverse()
+        });
+      }.bind(this)
       });
     },
 
@@ -188,9 +181,9 @@ var app = app || {};
     handleChange: function(event){
       // Every time the value of the input field changes we update the state
       //  object to have the value of the input field.
-      this.setState(
-        {inputText: event.target.value}
-      );
+      this.setState({
+        inputText: event.target.value
+      });
     },
 
     render: function(){
