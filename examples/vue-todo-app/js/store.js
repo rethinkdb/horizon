@@ -4,8 +4,8 @@
   'use strict';
 
   const Fusion = require("Fusion");
-  const fusion = new Fusion("localhost:8181", {
-    secure: false
+  const fusion = new Fusion(location.host, {
+    secure: location.protocol == 'https:'
   });
   const todos = fusion("vuejs_todos");
 
