@@ -58,7 +58,8 @@
 				set: function (value) {
 					this.todos.forEach(function (todo) {
 						todo.completed = value;
-					});
+						this.updateTodo(todo);
+					}.bind(this));
 				}
 			},
 		},
@@ -79,8 +80,6 @@
 					datetime: new Date(),
 				};
 
-				console.log("%c OBJ BEFORE STORE","color: blue;")
-
 				todoStorage.save(todo);
 				this.newTodo = '';
 			},
@@ -90,14 +89,12 @@
 			},
 
 			editTodo: function (todo) {
-				console.log("EDIT TODO")
 				this.beforeEditCache = todo.title;
 				this.editedTodo = todo;
 				this.updateTodo(todo);
 			},
 
 			doneEdit: function (todo) {
-				console.log("DONE EDIT")
 				if (!this.editedTodo) {
 					return;
 				}
@@ -170,7 +167,6 @@
 		}
 	});
 
-	// todoStorage.fetchAll(app);
 	todoStorage.changes(app.addedChanges, app.updatedChanges, app.removedChanges);
 
 })(window);
