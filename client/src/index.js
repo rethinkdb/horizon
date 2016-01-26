@@ -15,7 +15,7 @@ const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
 
 let fusionCount = 0
 
-function Fusion(host, { secure: secure = true, path: path = 'fusion' } = {}) {
+function Fusion(host = location.host, { secure: secure = true, path: path = 'fusion' } = {}) {
   // Hack so we can do fusion('foo') to create a new collection
   let fusion = Collection(TermBase(createSubscription, query, writeOp))
   let count = fusionCount++
