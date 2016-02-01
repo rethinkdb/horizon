@@ -94,7 +94,6 @@ const defaults = {
 
 // Apply defaults first.
 config = Object.assign(config, defaults);
-fusion.logger.info(config);
 
 // If config file path given, check if valid file/path. Since
 //  `require` is being used here. Looking before leaping here,
@@ -135,35 +134,33 @@ if (parsed.config) {
   // Push all config file properties onto parsed ones.
   config = Object.assign(config, file_config);
 }
-fusion.logger.info(config);
 
 // Gather environment variables
 const envVars = {};
-
 for (let prop in process.env) {
   if (prop.startsWith('FUSION_')) {
-    envVars[prop] = process.env.prop;
+    try {
+      const varName = prop.toLowerCase().split('_')[1];
+      envVars[varName] = process.env[prop];
+    } catch(err) {
+      fusion.logger.error('Error occurred while parsing env variables.\n', err);
+      process.exit(1);
+    }
   }
 }
 
 // Apply environment variables on top of command line flags.
 config = Object.assign(config, envVars);
-fusion.logger.info(config);
 
 // Lastly, merge command line flags to running config settings.
 fusion.logger.info("wat", parsed);
-for (let prop in parsed) {
+for (var prop in parsed) {
+
   // Ensure isn't some inherited property non-sense and !null
-  console.log(prop);
-  console.log(parsed.hasOwnProperty(prop));
-  console.log(parsed.prop);
-  if (parsed.hasOwnProperty(prop) && parsed.prop) {
-    fusion.logger.info("wat");
-    config[prop] = parsed.prop;
+  if (parsed.hasOwnProperty(prop) && parsed[prop]) {
+    config[prop] = parsed[prop];
   }
 }
-
-fusion.logger.info(config);
 
 // Set proper flags for dev mode.
 if (config.dev) {
