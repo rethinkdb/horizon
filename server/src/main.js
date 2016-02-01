@@ -152,8 +152,7 @@ for (let prop in process.env) {
 // Apply environment variables on top of command line flags.
 config = Object.assign(config, envVars);
 
-// Lastly, merge command line flags to running config settings.
-fusion.logger.info("wat", parsed);
+// Lastly, merge command line flags to running config settings
 for (var prop in parsed) {
 
   // Ensure isn't some inherited property non-sense and !null
