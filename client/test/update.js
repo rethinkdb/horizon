@@ -6,21 +6,8 @@ const updateSuite = getData => () => {
     data = getData()
   })
 
-  // The `update` command updates documents already in the database. It
-  // errors if the document doesn't exist.
-  it('#.update(single_non_existent)', done => {
-    data.update({ id: 1, a: 1, b: 1 })
-      .subscribe(doneErrorObserver(done))
-  })
-
-  // It means you can't update a document without providing an id.
-  it("#.update(single_non_id)", done => {
-    data.update({ a: 1, b: 1 })
-      .subscribe(doneErrorObserver(done))
-  });
-
   // Let's store a document first, then update it.
-  it("#.update(single_existing)", done => {
+  it('allows updating an existing document', done => {
     data.store({ id: 1, a: { b: 1, c: 1 }, d: 1 }).toArray()
       // should return an array with an ID of the inserted document.
       .do(res => assert.deepEqual([ 1 ], res))
@@ -39,14 +26,27 @@ const updateSuite = getData => () => {
       .subscribe(doneObserver(done))
   })
 
+  // The `update` command updates documents already in the database. It
+  // errors if the document doesn't exist.
+  it(`fails if document doesn't exist`, done => {
+    data.update({ id: 1, a: 1, b: 1 })
+      .subscribe(doneErrorObserver(done))
+  })
+
+  // It means you can't update a document without providing an id.
+  it('fails if document has no id provided', done => {
+    data.update({ a: 1, b: 1 })
+      .subscribe(doneErrorObserver(done))
+  })
+
   // Calling `update` with `null` is an error.
-  it("#.update(null)", assertThrows(
+  it('fails if null is passed', assertThrows(
     'The argument to update must be non-null',
     () => data.update(null)
   ))
 
   // Calling `update` with `undefined` is also an error.
-  it("#.update(undefined)", assertThrows(
+  it('fails if undefined is passed', assertThrows(
     'The 1st argument to update must be defined',
     () => data.update(undefined)
   ))
@@ -58,7 +58,7 @@ const updateSuite = getData => () => {
 
   // The `update` command allows storing multiple documents in one call.
   // Let's update a few documents and make sure we get them back.
-  it("#.update(multiple)", done => {
+  it('allows updating multiple documents in one call', done => {
     data.store([
       { id: 1, a: { b: 1, c: 1 }, d: 1 },
       { id: 2, a: { b: 2, c: 2 }, d: 2 },
@@ -90,14 +90,14 @@ const updateSuite = getData => () => {
   // If any operation in a batch update fails, everything is reported as a
   // failure. Note that we're updating `null` below, and a document with
   // no ID. Both are failures.
-  it("#.update(multiple_one_null)", done => {
+  it('fails if any document in a batch fails to update', done => {
     data.update([ { id: 1, a: 1 }, null, { a: 1 } ])
       .subscribe(doneErrorObserver(done))
   })
 
   // Updating an empty batch of documents is ok, and returns an empty
   // array.
-  it("#.update(empty_batch)", done => {
+  it('allows updating an empty batch', done => {
     data.update([])
       .do(res => {
         // should return an array with the IDs of the documents in
