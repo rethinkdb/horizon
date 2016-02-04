@@ -67,8 +67,8 @@ const serve_file = (file_path, res) => {
 
 // Run the client build
 const build_proc = child_process.fork(path.resolve(client_dir, 'build.js'),
-                                      [ 'build', '--watch' ],
-                                      { cwd: client_dir, silent: false });
+                                      [ 'build', '--watch', '--no-uglify' ],
+                                      { cwd: client_dir, silent: true });
 
 build_proc.on('exit', () => process.exit(1));
 process.on('exit', () => build_proc.kill('SIGTERM'));

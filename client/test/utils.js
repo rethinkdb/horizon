@@ -1,11 +1,12 @@
 'use strict'
 function removeAllData(collection, done) {
   // Read all elements from the collection
-  collection.fetch() // all documents in the collection
+  collection.fetch({ asCursor: false }) // all documents in the collection
     .flatMap(docs => collection.removeAll(docs))
     .flatMap(() => collection.fetch())
-    .flatMap(remaining => assert.deepEqual([], remaining))
-    .subscribe(done, done)
+    .toArray()
+    .do(remaining => assert.deepEqual([], remaining))
+    .subscribe(doneObserver(done))
 }
 
 // Observe/expect infrastructure for subscriptions
@@ -59,7 +60,7 @@ Observer.prototype.expect = function(ops, events, done, log) {
 function doneObserver(done) {
   return Rx.Observer.create(
     () => {},
-    err => new Error(err),
+    err => done(new Error(err)),
     () => done()
   )
 }
@@ -71,6 +72,24 @@ function doneErrorObserver(done) {
     () => done(),
     () => done(new Error('Unexpectedly completed'))
   )
+}
+
+// Used to check for stuff that should throw an exception, rather than
+// erroring the observable stream
+function assertThrows(message, callback) {
+  return done => {
+    try {
+      callback()
+      done(new Error(`Didn't throw an exception`))
+    } catch (err) {
+      if (err.message === message) {
+        done()
+      } else {
+        done(new Error(`Threw the wrong exception. ` +
+                       `Expected "${message}", got "${err.message}"`))
+      }
+    }
+  }
 }
 
 function buildError(expected, obtained) {

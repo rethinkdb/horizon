@@ -47,9 +47,7 @@ Rx.config.longStackSupport = true
     describe('Storage API', () => {
 
       // Drop all data after each test
-      afterEach((done) => {
-        removeAllData(data, done);
-      });
+      afterEach(done => removeAllData(data, done))
 
       describe("Testing `store`", storeSuite(getData));
       describe("Testing `insert`", insertSuite(getData));

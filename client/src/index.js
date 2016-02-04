@@ -2,6 +2,7 @@
 
 require('babel-polyfill')
 
+const Rx = require('rx')
 const { Collection } = require('./ast.js')
 const FusionSocket = require('./socket.js')
 const { log, logError, enableLogging } = require('./logging.js')
@@ -62,7 +63,9 @@ function Fusion(host, { secure: secure = true, path: path = 'fusion' } = {}) {
     return socket
       .makeRequest({ type, options }) // send the raw request
       .concatMap(resp => resp.data) // unroll arrays being returned
-      .catch(e => new Error(e.error)) // on error, strip error message
+      .catch(e => Rx.Observable.create(observer => {
+        observer.onError(new Error(e.error))
+      })) // on error, strip error message
   }
 }
 

@@ -2,7 +2,7 @@
 
 const snakeCase = require('snake-case')
 
-const { Rx } = require('./shim.js')
+const Rx = require('rx')
 const { checkArgs,
         validIndexValue,
         assign,
@@ -68,7 +68,7 @@ class TermBase {
   // subscribed to)
   fetch(...args) {
     const [ options, cb ] = argParse('fetch', args, [
-      { type: 'options', default: { asCursor: false } },
+      { type: 'options', default: { asCursor: true } },
       { type: 'callback', default: null },
     ])
     const raw = this._sendRequest('query', this._query)
