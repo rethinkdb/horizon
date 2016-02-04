@@ -77,7 +77,7 @@ function doneErrorObserver(done) {
 // Used to check for stuff that should throw an exception, rather than
 // erroring the observable stream
 function assertThrows(message, callback) {
-  return done => {
+  const f = done => {
     try {
       callback()
       done(new Error(`Didn't throw an exception`))
@@ -90,6 +90,20 @@ function assertThrows(message, callback) {
       }
     }
   }
+  f.toString = () => `assertThrows(\n'${message}',\n  ${callback}\n)`
+  return f
+}
+
+function assertCompletes(observable) {
+  const f = done => observable().subscribe(doneObserver(done))
+  f.toString = () => `assertCompletes(\n(${observable}\n)`
+  return f
+}
+
+function assertErrors(observable) {
+  const f = done => observable().subscribe(doneErrorObserver(done))
+  f.toString = () => observable.toString()
+  return f
 }
 
 function buildError(expected, obtained) {
