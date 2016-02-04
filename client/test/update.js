@@ -7,37 +7,34 @@ const updateSuite = getData => () => {
   })
 
   // Let's store a document first, then update it.
-  it('allows updating an existing document', done => {
+  it('allows updating an existing document', assertCompletes(() =>
     data.store({ id: 1, a: { b: 1, c: 1 }, d: 1 }).toArray()
       // should return an array with an ID of the inserted document.
       .do(res => assert.deepEqual([ 1 ], res))
       // Let's make sure we get back the document that we put in.
-      .flatMap(() => data.find(1).fetch())
+      .flatMap(data.find(1).fetch())
       // Check that we get back what we put in.
       .do(res => assert.deepEqual(res, { id: 1, a: { b: 1, c: 1 }, d: 1 }))
       // Let's update the document now
-      .flatMap(() => data.update({ id: 1, a: { c: 2 } })).toArray()
+      .flatMap(data.update({ id: 1, a: { c: 2 } })).toArray()
       // We should have gotten the ID back again
       .do((res) => assert.deepEqual([ 1 ], res))
       // Make sure `upsert` updated the original document
-      .flatMap(() => data.find(1).fetch())
+      .flatMap(data.find(1).fetch())
       // Check that the document was updated correctly
       .do(res => assert.deepEqual(res, { id: 1, a: { b: 1, c: 2 }, d: 1 }))
-      .subscribe(doneObserver(done))
-  })
+  ))
 
   // The `update` command updates documents already in the database. It
   // errors if the document doesn't exist.
-  it(`fails if document doesn't exist`, done => {
+  it(`fails if document doesn't exist`, assertErrors(() =>
     data.update({ id: 1, a: 1, b: 1 })
-      .subscribe(doneErrorObserver(done))
-  })
+  ))
 
   // It means you can't update a document without providing an id.
-  it('fails if document has no id provided', done => {
+  it('fails if document has no id provided', assertErrors(() =>
     data.update({ a: 1, b: 1 })
-      .subscribe(doneErrorObserver(done))
-  })
+  ))
 
   // Calling `update` with `null` is an error.
   it('fails if null is passed', assertThrows(
@@ -58,7 +55,7 @@ const updateSuite = getData => () => {
 
   // The `update` command allows storing multiple documents in one call.
   // Let's update a few documents and make sure we get them back.
-  it('allows updating multiple documents in one call', done => {
+  it('allows updating multiple documents in one call', assertCompletes(() =>
     data.store([
       { id: 1, a: { b: 1, c: 1 }, d: 1 },
       { id: 2, a: { b: 2, c: 2 }, d: 2 },
@@ -66,38 +63,36 @@ const updateSuite = getData => () => {
       // should return an array with an ID of the inserted document.
       .do(res => assert.deepEqual([ 1, 2 ], res))
       // Let's make sure we get back the documents that we put in.
-      .flatMap(() => data.findAll(1, 2).fetch({ asCursor: false }))
+      .flatMap(data.findAll(1, 2).fetch({ asCursor: false }))
       // Check that we get back what we put in.
       .do(res => assert.sameDeepMembers(res, [
         { id: 1, a: { b: 1, c: 1 }, d: 1 },
         { id: 2, a: { b: 2, c: 2 }, d: 2 }
       ]))
       // All right. Let's update the documents now
-      .flatMap(() => data.update([ { id: 1, a: { c: 2 } }, { id: 2, d: 3 } ]))
+      .flatMap(data.update([ { id: 1, a: { c: 2 } }, { id: 2, d: 3 } ]))
       .toArray()
       // We should have gotten the ID back again
       .do(res => assert.deepEqual(res, [ 1, 2 ]))
       // Make sure `update` updated the documents properly
-      .flatMap(() => data.findAll(1, 2).fetch({ asCursor: false }))
+      .flatMap(data.findAll(1, 2).fetch({ asCursor: false }))
       // Check that we get back what we put in.
       .do(res => assert.sameDeepMembers(res, [
         { id: 1, a: { b: 1, c: 2 }, d: 1 },
         { id: 2, a: { b: 2, c: 2 }, d: 3 },
       ]))
-      .subscribe(doneObserver(done))
-  })
+  ))
 
   // If any operation in a batch update fails, everything is reported as a
   // failure. Note that we're updating `null` below, and a document with
   // no ID. Both are failures.
-  it('fails if any document in a batch fails to update', done => {
+  it('fails if any document in a batch fails to update', assertErrors(() =>
     data.update([ { id: 1, a: 1 }, null, { a: 1 } ])
-      .subscribe(doneErrorObserver(done))
-  })
+  ))
 
   // Updating an empty batch of documents is ok, and returns an empty
   // array.
-  it('allows updating an empty batch', done => {
+  it('allows updating an empty batch', assertCompletes(() =>
     data.update([])
       .do(res => {
         // should return an array with the IDs of the documents in
@@ -105,6 +100,5 @@ const updateSuite = getData => () => {
         assert.isArray(res)
         assert.lengthOf(res, 0)
       })
-      .subscribe(doneObserver(done))
-  })
+  ))
 } // Testing `update`

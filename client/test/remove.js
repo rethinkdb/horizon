@@ -20,8 +20,8 @@ const removeSuite = getData => () => {
 
   // Insert the test data and make sure it's in
   before(assertCompletes(() =>
-    data.store(testData).toArray()
-      .flatMap(data.fetch({ asCursor: false }))
+    data.store(testData).ignoreElements()
+      .concat(data.fetch({ asCursor: false }))
       // Make sure it's there
       .do(res => assert.sameDeepMembers(res, testData))
   ))

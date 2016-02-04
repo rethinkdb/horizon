@@ -8,27 +8,26 @@ const insertSuite = getData => () => {
 
   // The `insert` command stores documents in the database, and errors if
   // the documents already exist.
-  it('stores documents in db, errors if documents already exist', done => {
+  it('stores documents in db, errors if documents already exist', assertErrors(() =>
     data.insert({ id: 1, a: 1, b: 1 }).toArray()
       // Should return an array with an ID of the inserted
       // document.
       .do(res => assert.deepEqual([1], res))
       // Let's make sure we get back the document that we put in.
-      .flatMap(() => data.find(1).fetch())
+      .flatMap(data.find(1).fetch())
       // Check that we get back what we put in.
       .do(res => assert.deepEqual({ id: 1, a: 1, b: 1 }, res))
       // Let's attempt to overwrite the document now. This should error.
-      .flatMap(() => data.insert({ id: 1, c: 1 }))
-      .subscribe(doneErrorObserver(done))
-  })
+      .flatMap(data.insert({ id: 1, c: 1 }))
+  ))
 
   // If we insert a document without an ID, the ID is generated for us.
   // Let's run the same test as above (insert the document and then
   // attempt to overwrite it), but have the ID be generated for us.
-  it(`generates ids if documents don't already have one`, done => {
+  it(`generates ids if documents don't already have one`, assertErrors(() => {
     let new_id
 
-    data.insert({ a: 1, b: 1 }).toArray()
+    return data.insert({ a: 1, b: 1 }).toArray()
       // should return an array with an ID of the inserted document.
       .do(res => {
         assert.isArray(res)
@@ -42,8 +41,7 @@ const insertSuite = getData => () => {
       .do(res => assert.deepEqual({ id: new_id, a: 1, b: 1 }, res))
       // Let's attempt to overwrite the document now
       .flatMap(() => data.insert({ id: new_id, c: 1 }))
-      .subscribe(doneErrorObserver(done))
-  })
+  }))
 
   it('fails if null is passed', assertThrows(
     'The argument to insert must be non-null',
@@ -62,10 +60,14 @@ const insertSuite = getData => () => {
 
   // The `insert` command allows storing multiple documents in one call.
   // Let's insert a few kinds of documents and make sure we get them back.
-  it('can store multiple documents in one call', done => {
+  it('can store multiple documents in one call', assertCompletes(() => {
     let new_id_0, new_id_1
 
-    data.insert([ {}, { a: 1 }, { id: 1, a: 1 } ]).toArray()
+    return data.insert([
+        {},
+        { a: 1 },
+        { id: 1, a: 1 },
+    ]).toArray()
       .do(res => {
         // should return an array with the IDs of the documents in
         // order, including the generated IDS.
@@ -82,45 +84,42 @@ const insertSuite = getData => () => {
       .flatMap(() =>
                data.findAll(new_id_0, new_id_1, 1).fetch({ asCursor: false }))
       // We're supposed to get an array of documents we put in
-      .do(res => assert.sameDeepMembers([
+      .do(res => assert.sameDeepMembers(res, [
         { id: new_id_0 },
         { id: new_id_1, a: 1 },
         { id: 1, a: 1 },
-      ], res))
-      .subscribe(doneObserver(done))
-  })
+      ]))
+  }))
 
   // If any operation in a batch insert fails, everything is reported as a
   // failure.
-  it('fails if any operation in a batch fails', done => {
+  it('fails if any operation in a batch fails', assertErrors(() =>
     // Lets insert a document that will trigger a duplicate error when we
     // attempt to reinsert it
     data.insert({ id: 2, a: 2 })
       // should return an array with an ID of the inserted document.
-      .do(res => assert.deepEqual([ 2 ], res))
+      .do(res => assert.deepEqual(res, [ 2 ]))
       // Let's make sure we get back the document that we put in.
-      .flatMap(() => data.find(2).fetch())
+      .flatMap(data.find(2).fetch())
       // Check that we get back what we put in.
-      .do(res => assert.deepEqual({ id: 2, a: 2 }, res))
+      .do(res => assert.deepEqual(res, { id: 2, a: 2 }))
       // One of the documents in the batch already exists
-      .flatMap(() => data.insert([
+      .flatMap(data.insert([
         { id: 1, a: 1 },
         { id: 2, a: 2 },
         { id: 3, a: 3 },
       ]))
-      .subscribe(doneErrorObserver(done))
-  })
+  ))
 
   // Let's trigger a failure in an insert batch again, this time by making
   // one of the documents `null`.
-  it('fails if any member of batch is null', done => {
+  it('fails if any member of batch is null', assertErrors(() =>
     data.insert([ { a: 1 }, null, { id: 1, a: 1 } ])
-      .subscribe(doneErrorObserver(done))
-  })
+  ))
 
   // Inserting an empty batch of documents is ok, and returns an empty
   // array.
-  it('can store empty batches', done => {
+  it('can store empty batches', assertCompletes(() =>
     data.insert([])
       .do(res => {
         // should return an array with the IDs of the documents
@@ -128,6 +127,5 @@ const insertSuite = getData => () => {
         assert.isArray(res)
         assert.lengthOf(res, 0)
       })
-      .subscribe(doneObserver(done))
-  })
+  ))
 } // Testing `insert`
