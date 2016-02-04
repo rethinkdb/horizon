@@ -77,7 +77,7 @@ const storeSuite = getData => () => {
 
   // The `store` command allows storing multiple documents in one call.
   // Let's store a few kinds of documents and make sure we get them back.
-  it('can store multiple documents, including empty ones', done => {
+  it('can store multiple documents in one call', done => {
     let new_id_0, new_id_1
 
     data.store([ {}, { a: 1 }, { id: 1, a: 1 } ])
