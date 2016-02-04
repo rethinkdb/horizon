@@ -6,9 +6,9 @@ const upsertSuite = getData => () => {
     data = getData()
   })
 
-  // The `uspert` command stores documents in the database, and updates
+  // The `upsert` command stores documents in the database, and updates
   // them if they already exist.
-  it('#.upsert(single_then_update)', done => {
+  it(`updates existing documents or creates them if they don't exist`, done => {
     data.upsert({ id: 1, a: { b: 1, c: 1 }, d: 1 }).toArray()
       // should return an array with an ID of the inserted document.
       .do(res => assert.deepEqual(res, [ 1 ]))
@@ -30,7 +30,7 @@ const upsertSuite = getData => () => {
   // If we upsert a document without an ID, the ID is generated for us.
   // Let's run the same test as above (store the document and then update
   // it), but have the ID be generated for us.
-  it('#.upsert(single_no_id_then_update)', done => {
+  it('generates ids for documents without them', done => {
     let new_id
 
     data.upsert({ a: { b: 1, c: 1 }, d: 1 }).toArray()
@@ -57,13 +57,13 @@ const upsertSuite = getData => () => {
   })
 
   // Upserting `null` is an error.
-  it('#.upsert(null)', assertThrows(
+  it('fails if null is passed', assertThrows(
     'The argument to upsert must be non-null',
     () => data.upsert(null)
   ))
 
   // Upserting `undefined` is also an error.
-  it('#.upsert(undefined)', assertThrows(
+  it('fails if undefined is passed', assertThrows(
     'The 1st argument to upsert must be defined',
     () => data.upsert(undefined)
   ))
@@ -75,7 +75,7 @@ const upsertSuite = getData => () => {
 
   // The `upsert` command allows storing multiple documents in one call.
   // Let's upsert a few kinds of documents and make sure we get them back.
-  it('#.upsert(multiple_some_empty)', done => {
+  it('allows upserting multiple documents in one call', done => {
     let new_id_0, new_id_1
 
     data.upsert([ {}, { a: 1 }, { id: 1, a: 1 } ]).toArray()
@@ -102,16 +102,16 @@ const upsertSuite = getData => () => {
       .subscribe(doneObserver(done))
   })
 
-  // If any operation in a batch insert fails, everything is reported as a
-  // failure.
-  it('#.upsert(multiple_one_null)', done => {
+  // If any operation in a batch upsert fails, everything is reported
+  // as a failure.
+  it('fails if any document in the batch fails ', done => {
     data.upsert([ { a: 1 }, null, { id: 1, a: 1 } ])
       .subscribe(doneErrorObserver(done))
   })
 
   // Upserting an empty batch of documents is ok, and returns an empty
   // array.
-  it('#.upsert(empty_batch)', done => {
+  it('allows upserting an empty batch', done => {
     data.upsert([]).toArray()
       .do(res => {
         // should return an array with the IDs of the documents in

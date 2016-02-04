@@ -8,7 +8,7 @@ const storeSuite = getData => () => {
 
   // The `store` command stores documents in the database, and overwrites
   // them if they already exist.
-  it('will create or update a document', done => {
+  it('creates or replaces a document', done => {
     data.store({ id: 1, a: 1, b: 1 })
       // The promise should return an array with an ID of the inserted
       // document.
@@ -31,7 +31,7 @@ const storeSuite = getData => () => {
   // If we store a document without an ID, the ID is generated for us.
   // Let's run the same test as above (store the document and then
   // overwrite it), but have the ID be generated for us.
-  it('will generate an id for documents without one', done => {
+  it('generates ids for documents without them', done => {
     let new_id
 
     data.store({ a: 1, b: 1 }).toArray()
@@ -77,7 +77,7 @@ const storeSuite = getData => () => {
 
   // The `store` command allows storing multiple documents in one call.
   // Let's store a few kinds of documents and make sure we get them back.
-  it('can store multiple documents in one call', done => {
+  it('allows storing multiple documents in one call', done => {
     let new_id_0, new_id_1
 
     data.store([ {}, { a: 1 }, { id: 1, a: 1 } ])
@@ -115,7 +115,7 @@ const storeSuite = getData => () => {
 
   // Storing an empty batch of documents is ok, and returns an empty
   // array.
-  it('can store an empty batch', done => {
+  it('allows storing empty batches', done => {
     data.store([]).toArray()
       .do(res => {
         // The promise should return an array with the IDs of the documents
@@ -126,7 +126,7 @@ const storeSuite = getData => () => {
       .subscribe(doneObserver(done))
   })
 
-  it('can store date objects and retrieve them again', done => {
+  it('stores date objects and retrieves them again', done => {
     let originalDate = new Date()
     data.store({ date: originalDate }).toArray()
       .flatMap(id => data.find(id[0]).fetch())
