@@ -14,7 +14,7 @@ const all_tests = (table) => {
     conn.send('foobar');
     conn.once('close', (code, msg) => {
       assert.strictEqual(code, 1002);
-      assert.strictEqual(msg, 'Unparseable request: foobar');
+      assert.strictEqual(msg, 'Invalid JSON.');
       done();
     });
   });
@@ -25,7 +25,7 @@ const all_tests = (table) => {
     conn.send('{ }');
     conn.once('close', (code, msg) => {
       assert.strictEqual(code, 1002);
-      assert.strictEqual(msg, 'Unparseable request: { }');
+      assert.strictEqual(msg, 'Invalid request.');
       done();
     });
   });
@@ -49,7 +49,7 @@ const all_tests = (table) => {
   it('invalid endpoint', (done) => {
     utils.stream_test({ request_id: 2, type: 'fake', options: { } }, (err, res) => {
       assert.deepStrictEqual(res, [ ]);
-      assert.strictEqual(err.message, '"fake" is not a recognized endpoint.');
+      assert.strictEqual(err.message, '"fake" is not a registered request type.');
       done();
     });
   });

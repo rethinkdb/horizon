@@ -1,11 +1,12 @@
 'use strict';
 
+const Auth = require('./auth').Auth;
 const check = require('./error').check;
 const Client = require('./client').Client;
 const ReqlConnection = require('./reql_connection').ReqlConnection;
 const logger = require('./logger');
 const fusion_protocol = require('./schema/fusion_protocol');
-const server_options = require('./schema/server_options');
+const options_schema = require('./schema/server_options').server;
 
 const fusion_client_path = require.resolve('horizon-client');
 
@@ -23,7 +24,6 @@ const endpoints = {
 const assert = require('assert');
 const fs = require('fs');
 const Joi = require('joi');
-const path = require('path');
 const url = require('url');
 const websocket = require('ws');
 const extend = require('util')._extend;
@@ -60,8 +60,9 @@ const serve_file = (file_path, res) => {
 
 class Server {
   constructor(http_servers, user_opts) {
-    const opts = Joi.attempt(user_opts || { }, server_options);
-    this._endpoints = new Map();
+    const opts = Joi.attempt(user_opts || { }, options_schema);
+    this._request_handlers = new Map();
+    this._http_handlers = new Map();
     this._ws_servers = new Set();
     this._clients = new Set();
     this._reql_conn = new ReqlConnection(opts.rdb_host,
@@ -70,13 +71,23 @@ class Server {
                                          opts.auto_create_table,
                                          opts.auto_create_index,
                                          this._clients);
+    this._auth = new Auth(this, opts.auth);
 
     for (let key of Object.keys(endpoints)) {
-      this.add_endpoint(key, endpoints[key].make_reql, endpoints[key].handle_response);
+      this.add_request_handler(key, endpoints[key].make_reql, endpoints[key].handle_response);
     }
 
+    const verify_client = (info, cb) => {
+      // Reject connections if we aren't synced with the database
+      if (!this._reql_conn.is_ready()) {
+        cb(false, 503, `Connection to the database is down.`);
+      } else {
+        cb(true);
+      }
+    };
+
     const ws_options = { handleProtocols: accept_protocol, path: opts.path,
-                         verifyClient: (info, cb) => this.verify_client(info, cb) };
+                         verifyClient: verify_client };
 
     const add_websocket = (server) => {
       this._ws_servers.add(new websocket.Server(extend({ server }, ws_options))
@@ -84,44 +95,75 @@ class Server {
         .on('connection', (socket) => new Client(socket, this)));
     };
 
-    const add_client_js = (server) => {
+    const path_replace = new RegExp('^' + opts.path + '/');
+    const add_http_listener = (server) => {
+      // TODO: this doesn't play well with a user removing listeners (or maybe even `once`)
       const extant_listeners = server.listeners('request').slice(0);
       server.removeAllListeners('request');
       server.on('request', (req, res) => {
-        // TODO: might be nice to indicate that `opts.path` accepts UPGRADE requests?
         const req_path = url.parse(req.url).pathname;
-        if (req_path === opts.path + '/fusion.js') {
-          serve_file(fusion_client_path, res);
-        } else if (req_path === opts.path + '/fusion.js.map') {
-          serve_file(fusion_client_path + '.map', res);
+        if (req_path.indexOf(opts.path + '/') === 0) {
+          const sub_path = req_path.replace(path_replace, '');
+          const handler = this._http_handlers.get(sub_path);
+          if (handler !== undefined) {
+            logger.debug(`Handling HTTP request to fusion subpath: ${sub_path}`);
+            return handler(req, res);
+          }
+        }
+        if (extant_listeners.length === 0) {
+          res.statusCode = 404;
+          res.write('File not found.');
+          res.end();
         } else {
           extant_listeners.forEach((l) => l.call(server, req, res));
         }
       });
     };
 
+    this.add_http_handler('fusion.js', (req, res) => {
+      serve_file(fusion_client_path, res);
+    });
+
+    this.add_http_handler('fusion.js.map', (req, res) => {
+      serve_file(fusion_client_path + '.map', res);
+    });
+
     if (http_servers.forEach === undefined) {
       add_websocket(http_servers);
-      add_client_js(http_servers);
+      add_http_listener(http_servers);
     } else {
-      http_servers.forEach((s) => { add_websocket(s); add_client_js(s); });
+      http_servers.forEach((s) => { add_websocket(s); add_http_listener(s); });
     }
   }
 
-  verify_client(info, cb) {
-    // Reject connections if we aren't synced with the database
-    if (!this._reql_conn.is_ready()) {
-      cb(false, 503, `Connection to the database is down.`);
-    } else {
-      cb(true);
-    }
-  }
-
-  add_endpoint(endpoint_name, make_reql, handle_response) {
+  add_request_handler(request_name, make_reql, handle_response) {
     assert(make_reql !== undefined);
     assert(handle_response !== undefined);
-    assert(this._endpoints.get(endpoint_name) === undefined);
-    this._endpoints.set(endpoint_name, { make_reql: make_reql, handle_response: handle_response });
+    assert(this._request_handlers.get(request_name) === undefined);
+    this._request_handlers.set(request_name, { make_reql: make_reql, handle_response: handle_response });
+  }
+
+  get_request_handler(request) {
+    const parsed = Joi.validate(request, fusion_protocol.request);
+    if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
+
+    const handler = this._request_handlers.get(parsed.value.type);
+    check(handler !== undefined, `"${parsed.value.type}" is not a registered request type.`);
+    return handler;
+  }
+
+  remove_request_handler(request_name) {
+    return this._request_handlers.delete(request_name);
+  }
+
+  add_http_handler(sub_path, handler) {
+    assert(handler !== undefined);
+    assert(this._http_handlers.get(sub_path) === undefined);
+    this._http_handlers.set(sub_path, handler);
+  }
+
+  remove_http_handler(sub_path) {
+    return this._http_handlers.delete(sub_path);
   }
 
   ready() {
@@ -131,15 +173,6 @@ class Server {
   close() {
     this._ws_servers.forEach((s) => s.close());
     this._reql_conn.close();
-  }
-
-  _get_endpoint(request) {
-    const parsed = Joi.validate(request, fusion_protocol.request);
-    if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
-
-    const endpoint = this._endpoints.get(parsed.value.type);
-    check(endpoint !== undefined, `"${parsed.value.type}" is not a recognized endpoint.`);
-    return endpoint;
   }
 }
 

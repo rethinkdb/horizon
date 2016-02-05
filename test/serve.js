@@ -119,9 +119,14 @@ new Promise((resolve) => {
 
     fusion.logger.level = 'debug';
     const fusion_server = new fusion.Server(http_servers,
-                                            { auto_create_table: true,
+                                            {
+                                              auto_create_table: true,
                                               auto_create_index: true,
-                                              rdb_port: utils.rdb_port() });
+                                              rdb_port: utils.rdb_port(),
+                                              auth: {
+                                                allow_unauthenticated: true,
+                                              },
+                                            });
 
     // Capture requests to `fusion.js` and `fusion.js.map` before the fusion server
     http_servers.forEach((serv, i) => {

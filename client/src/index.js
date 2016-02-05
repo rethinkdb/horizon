@@ -54,7 +54,7 @@ function Fusion(host, { secure: secure = true, path: path = 'fusion' } = {}) {
   let handshaken = socket
         .connectedPromise
         .then(() => createRequest((reqId, events) => {
-          return socket.send({ request_id: reqId })
+          return socket.send({ request_id: reqId, method: 'unauthenticated' })
             .then(() => new Promise((resolve, reject) => {
               events.onResponse(resp => {
                 events.dispose()

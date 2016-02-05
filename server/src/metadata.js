@@ -159,7 +159,7 @@ class Metadata {
       query = r.expr([ 'fusion', 'fusion_internal' ])
        .forEach((db) => r.branch(r.dbList().contains(db), [], r.dbCreate(db)))
        .do(() =>
-         r.expr([ 'collections' ])
+         r.expr([ 'collections', 'users_auth', 'users' ])
           .forEach((table) => r.branch(r.db('fusion_internal').tableList().contains(table),
                                        [], r.db('fusion_internal').tableCreate(table)))
           .do(() => query));

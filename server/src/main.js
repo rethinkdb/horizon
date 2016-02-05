@@ -7,6 +7,7 @@ const argparse = require('argparse');
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
+const path = require('path');
 
 const parser = new argparse.ArgumentParser();
 parser.addArgument([ '--bind', '-b' ],
@@ -94,7 +95,7 @@ if (parsed.insecure) {
     try {
       return fs.readFileSync(path.resolve(file));
     } catch (err) {
-      console.log(`Could not access file ${file} for running a secure HTTP server.`);
+      console.log(`Could not access file ${file} for running a secure HTTP server: ${err}`);
       process.exit(1);
     }
   };
