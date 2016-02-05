@@ -1,153 +1,115 @@
-removeAllSuite = (getData) => {
-  return () => {
-
-  var data;
-  var testData = [
+'use strict'
+const removeAllSuite = getData => () => {
+  let data;
+  const testData = [
     { id: 1, a: 1 },
     { id: 2, a: 2 },
     { id: 3, a: 3 },
     { id: 4, a: 4 },
     { id: 'do_not_remove_1' },
-    { id: 'do_not_remove_2' }
-  ];
+    { id: 'do_not_remove_2' },
+  ]
 
   before(() => {
-    data = getData();
-  });
+    data = getData()
+  })
 
   // Drop all the existing data
-  before((done) => {
-    removeAllData(data, done);
-  });
+  before(done => {
+    removeAllData(data, done)
+  })
 
   // Insert the test data and make sure it's in
-  before((done) => {
-    data.store(testData).then((res) => {
-        return data.value();
-    }).then((res) => {
-      // Make sure it's there
-      assert.sameDeepMembers(testData, res);
-      done();
-    }).catch(done);
-  });
+  before(assertCompletes(() =>
+    data.store(testData).ignoreElements()
+     .concat(data.fetch({ asCursor: false }))
+     // Make sure it's there
+     .do(res => assert.sameDeepMembers(res, testData))
+  ))
 
   // All right, let's remove a document. The promise resolves with no
   // arguments.
-  it("#.removeAll([id])", (done) => {
-    data.removeAll([1]).then((res) => {
-      assert.isUndefined(res);
-
+  it('removes documents when an array of ids is passed', assertCompletes(() =>
+    data.removeAll([ 1 ])
+      .do(res => assert.equal(res, 1))
       // Let's make sure the removed document isn't there
-      return data.find(1).value();
-    }).then((res) => {
+      .flatMap(data.find(1).fetch())
       // Let's make sure the removed document isn't there
-      assert.isNull(res);
-      done();
-    }).catch(done);
-  });
+      .do(res => assert.isNull(res))
+  ))
 
   // Passing an array of objects to `removeAll` is also ok.
-  it("#.removeAll([obj])", (done) => {
-    data.removeAll([{ id: 2 }]).then((res) => {
-      assert.isUndefined(res);
-
+  it('removes documents when array elements are objects', assertCompletes(() =>
+    data.removeAll([ { id: 2 } ])
+      .do(res => assert.equal(res, 2))
       // Let's make sure the removed document isn't there
-      return data.find(2).value();
-    }).then((res) => {
+      .flatMap(data.find(2).fetch())
       // Let's make sure the removed document isn't there
-      assert.isNull(res);
-      done();
-    }).catch(done);
-  });
+      .do(res => assert.isNull(res))
+  ))
 
   // We can also remove multiple documents
-  it("#.removeAll([id, obj])", (done) => {
-    data.removeAll([3, 50, { id: 4 }]).then((res) => {
-      assert.isUndefined(res);
-
+  it('removes multiple documents by id or as objects', assertCompletes(() =>
+    data.removeAll([ 3, 50, { id: 4 } ]).toArray()
+      .do(res => assert.deepEqual(res, [ 3, 50, 4 ]))
       // Let's make sure the removed document isn't there
-      return data.findAll(3, 50, 4).value();
-    }).then((res) => {
+      .flatMap(data.findAll(3, 50, 4).fetch({ asCursor: false }))
       // Let's make sure the removed document isn't there
-      assert.deepEqual([], res);
-      done();
-    }).catch(done);
-  });
+      .do(res => assert.deepEqual(res, []))
+  ))
 
   // Removing a missing document shouldn't generate an error.
-  it("#.removeAll([missing])", (done) => {
-    data.removeAll(['abracadabra']).then((res) => {
-      assert.isUndefined(res);
-      done();
-    }).catch(done);
-  });
+  it('removes a non-existent document without error', assertCompletes(() =>
+    data.removeAll([ 'abracadabra' ])
+      .do(res => assert.equal(res, 'abracadabra'))
+  ))
 
   // Calling `removeAll` with an empty array is also ok.
-  it("#.removeAll([])", (done) => {
-    data.removeAll([]).then((res) => {
-      assert.isUndefined(res);
-      done();
-    }).catch(done);
-  });
+  it(`doesn't error when an empty array is passed`, assertCompletes(() =>
+    data.removeAll([])
+      .do(res => assert.fail())
+  ))
 
   // But an array with a `null` is an error.
-  it("#.removeAll([null])", (done) => {
-    data.removeAll([null]).catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
-  });
+  it('errors when a null in an array is passed', assertErrors(() =>
+    data.removeAll([ null ])
+  ))
 
   // If one thing fails, everything is reported as a failure.
-  it("#.removeAll([id, null, obj])", (done) => {
-    data.removeAll([3, null, { id: 4 }]).catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    });
-  });
+  it('reports failure if anything in a batch fails', assertErrors(() =>
+    data.removeAll([ 3, null, { id: 4 } ])
+  ))
 
   // Calling `removeAll` with anything but a single array is an error.
-  it("#.removeAll()", (done) => {
-    try {
-      data.removeAll();
-    } catch(err) { done(); }
-  });
-  it("#.removeAll([a], b)", (done) => {
-    try {
-      data.removeAll([1], 2);
-    } catch(err) { done(); }
-  });
-  it("#.removeAll(null)", (done) => {
-    try {
-      data.removeAll(null);
-    } catch(err) { done(); }
-  });
-  it("#.removeAll(int)", (done) => {
-    try {
-      data.removeAll(1);
-    } catch(err) { done(); }
-  });
-  it("#.removeAll(string)", (done) => {
-    try {
-      data.removeAll('1');
-    } catch(err) { done(); }
-  });
-  it("#.removeAll(obj)", (done) => {
-    try {
-      data.removeAll({ 'id': 1 });
-    } catch(err) { done(); }
-  });
+  it('throws when no arguments are passed', assertThrows(
+    'removeAll takes an array as an argument',
+    () => data.removeAll()
+  ))
+  it('throws when more than one argument is passed', assertThrows(
+    'removeAll must receive exactly 1 argument',
+    () => data.removeAll([ 1 ], 2)
+  ))
+  it('throws when null is passed', assertThrows(
+    'removeAll takes an array as an argument',
+    () => data.removeAll(null)
+  ))
+  it('throws when passed a number', assertThrows(
+    'removeAll takes an array as an argument',
+    () => data.removeAll(1)
+  ))
+  it('throws when passed a string', assertThrows(
+    'removeAll takes an array as an argument',
+    () => data.removeAll('1')
+  ))
+  it('throws when passed an object', assertThrows(
+    'removeAll takes an array as an argument',
+    () => data.removeAll({ id: 1 })
+  ))
 
   // Check that the remaining documents are there
-  it("#.remove.check.remaining", (done) => {
-    data.value().then((res) => {
-      var _ids = _.pluck(res, 'id');
-      assert.includeMembers(_ids, ['do_not_remove_1', 'do_not_remove_2']);
-      done();
-    }).catch(done);
-  });
-
-  } // Testing `removeAll`
-}
+  it(`doesn't remove documents not specified`, assertCompletes(() =>
+    data.fetch().pluck('id').toArray()
+      .do(res => assert.includeMembers(
+        res, [ 'do_not_remove_1', 'do_not_remove_2' ]))
+  ))
+} // Testing `removeAll`

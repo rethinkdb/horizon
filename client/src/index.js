@@ -60,8 +60,9 @@ function Fusion(host, { secure: secure = true, path: path = 'fusion' } = {}) {
   // Sends a fusion protocol request to the server, and pulls the data
   // portion of the response out.
   function sendRequest(type, options) {
+    const normalizedType = type === 'removeAll' ? 'remove' : type
     return socket
-      .makeRequest({ type, options }) // send the raw request
+      .makeRequest({ type: normalizedType, options }) // send the raw request
       .concatMap(resp => resp.data) // unroll arrays being returned
       .catch(e => Rx.Observable.create(observer => {
         observer.onError(new Error(e.error))

@@ -229,7 +229,7 @@ class Collection extends TermBase {
         return item
       }
     })
-    return writeOp.call(this, 'remove', arguments, wrapped, cb)
+    return writeOp.call(this, 'removeAll', arguments, wrapped, cb)
   }
 }
 
