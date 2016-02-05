@@ -54,7 +54,6 @@ describe('Core API tests', () => {
 
   // Test the lookup API
   describe('Lookup API', () => {
-
     const testData = [
       { id: 1, a: 10 },
       { id: 2, a: 20, b: 1 },
@@ -64,7 +63,7 @@ describe('Core API tests', () => {
       { id: 6, a: 50 },
     ]
 
-    let getTestData = () => {
+    const getTestData = () => {
       return testData
     }
 

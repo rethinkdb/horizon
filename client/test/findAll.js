@@ -97,7 +97,7 @@ const findAllSuite = getData => () => {
   // Let's try when everything is missing
   it('returns nothing when nothing matches', assertCompletes(() =>
     data.findAll({ field: 1 }, 200, { a: 200 }).fetch()
-      .do(res => assert.fail())
+      .do(() => assert.fail())
   ))
 
   // When one thing fails, everything fails.
@@ -110,5 +110,4 @@ const findAllSuite = getData => () => {
   it('errors if any argument passed is an empty object', assertErrors(() =>
     data.findAll(1, {}, { a: 20 }).fetch()
   ))
-
 } // Testing `findAll`
