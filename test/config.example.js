@@ -5,9 +5,9 @@ module.exports = config = {};
 config.insecure = true;
 config.port = 5151;
 config.dev =  true;
-config.auto_create_index: true,
-config.auto_create_table: false,
-config.cert_file: '/certs/cert.pem',
-config.connect: 'rethinkdb_server.local:28015',
-config.debug: true,
-config.key_file: './key.pem',
+config.auto_create_index = true;
+config.auto_create_table = false;
+config.cert_file = '/certs/cert.pem';
+config.connect = 'localhost:28015';
+config.debug = true;
+config.key_file = './key.pem';

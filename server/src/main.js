@@ -131,7 +131,7 @@ if (parsed.config) {
     file_config = require(parsed.config);
   }
 
-  // Push all config file properties onto parsed ones.
+  // Apply all config file properties onto defaults.
   config = Object.assign(config, file_config);
 }
 
@@ -140,7 +140,8 @@ const envVars = {};
 for (let prop in process.env) {
   if (prop.startsWith('FUSION_')) {
     try {
-      const varName = prop.toLowerCase().split('_')[1];
+      // Remove "FUSION_" from the environment variable
+      const varName = prop.toLowerCase().split('_').slice(1).join('_');
       envVars[varName] = process.env[prop];
     } catch(err) {
       fusion.logger.error('Error occurred while parsing env variables.\n', err);
@@ -149,14 +150,14 @@ for (let prop in process.env) {
   }
 }
 
-// Apply environment variables on top of command line flags.
+// Apply environment variables on top of default config.
 config = Object.assign(config, envVars);
 
-// Lastly, merge command line flags to running config settings
-for (var prop in parsed) {
+// Lastly, merge command line flags in to running config settings
+for (let prop in parsed) {
 
-  // Ensure isn't some inherited property non-sense and !null
-  if (parsed.hasOwnProperty(prop) && parsed[prop]) {
+  // Ensure isn't some inherited property non-sense and !undefined && !null
+  if (parsed.hasOwnProperty(prop) && typeof parsed[prop] !== 'undefined' && parsed[prop] !== null) {
     config[prop] = parsed[prop];
   }
 }
