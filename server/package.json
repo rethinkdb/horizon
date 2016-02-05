@@ -1,7 +1,7 @@
 {
-  "name": "fusion-server",
+  "name": "horizon",
   "version": "0.0.1",
-  "description": "Server for RethinkDB Project Fusion",
+  "description": "Server for RethinkDB Horizon",
   "main": "src/fusion.js",
   "scripts": {
     "test": "./node_modules/.bin/mocha --compilers js:babel-core/register test/test.js test/schema.js"
@@ -13,7 +13,7 @@
   "author": "RethinkDB",
   "license": "MIT",
   "bin": {
-    "fusion": "src/main.js"
+    "horizon": "src/main.js"
   },
   "bugs": {
     "url": "https://github.com/rethinkdb/fusion/issues"
@@ -22,7 +22,7 @@
   "dependencies": {
     "argparse": "^1.0.3",
     "joi": "^7.0.0",
-    "fusion-client": "file:../client",
+    "horizon-client": "^0.0.2-0",
     "rethinkdb": "^2.1.1",
     "winston": "^2.1.0",
     "ws": "^1.0.1"
