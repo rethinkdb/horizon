@@ -64,7 +64,7 @@ const findSuite = getData => () => {
   ))
 
   // Let's try this again for a field that doesn't exist.
-  it('returns nothing if no obect with the given field exists',
+  it('returns nothing if no object with the given field exists',
      assertCompletes(() => data
                      .find({ field: 'a' })
                      .fetch()
@@ -98,5 +98,4 @@ const findSuite = getData => () => {
     'find must receive exactly 1 argument',
     () => data.find(1, { id: 1 }).fetch()
   ))
-
 } // Testing `find`

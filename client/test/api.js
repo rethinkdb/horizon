@@ -71,11 +71,12 @@ describe('Core API tests', () => {
     // Drop all the existing data
     before(done => {
       removeAllData(data, done)
-    });
+    })
 
     // Insert the test data and make sure it's in
     before(assertCompletes(() =>
-      data.store(testData).ignoreElements()
+      data.store(testData)
+        .ignoreElements() // we don't care about the results
         .concat(data.fetch({ asCursor: false }))
         // Make sure it's there
         .do(res => assert.sameDeepMembers(res, testData))
@@ -84,7 +85,7 @@ describe('Core API tests', () => {
     describe('Testing full collection read',
              collectionSuite(getFusion, getData, getTestData))
     describe('Testing `find`', findSuite(getData))
-    describe("Testing `findAll`", findAllSuite(getData));
+    describe('Testing `findAll`', findAllSuite(getData))
     describe("Testing `order`", orderSuite(getData, getTestData));
     describe("Testing `limit`", limitSuite(getData));
     describe("Testing `above`", aboveSuite(getData));
