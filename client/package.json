@@ -1,10 +1,9 @@
 {
-  "name": "fusion-client",
-  "version": "0.0.1",
-  "description": "RethinkDB Fusion is an open-source developer platform for building realtime, scalable web apps. It is built on top of RethinkDB, and allows app developers to get started with building modern, engaging apps without writing any backend code.",
+  "name": "horizon-client",
+  "version": "0.0.2-0",
+  "description": "RethinkDB Horizon is an open-source developer platform for building realtime, scalable web apps.",
   "main": "dist/fusion.js",
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "babel-eslint": "^4.1.4",
     "babel-polyfill": "^6.3.14",
@@ -35,8 +34,9 @@
   "bugs": {
     "url": "https://github.com/rethinkdb/fusion/issues"
   },
-  
   "homepage": "https://github.com/rethinkdb/fusion",
-  
-  "files": ["dist/fusion.js", "dist/fusion.js.map"]
+  "files": [
+    "dist/fusion.js",
+    "dist/fusion.js.map"
+  ]
 }
