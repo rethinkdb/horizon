@@ -41,19 +41,19 @@ describe('Core API tests', () => {
     // Drop all data after each test
     afterEach(done => removeAllData(data, done))
 
-    describe('Testing `store`', storeSuite(getData));
-    describe('Testing `insert`', insertSuite(getData));
-    describe('Testing `upsert`', upsertSuite(getData));
-    describe('Testing `update`', updateSuite(getData));
-    describe('Testing `replace`', replaceSuite(getData));
-    describe('Testing `times`', timesSuite(getData));
+    describe('Testing `store`', storeSuite(getData))
+    describe('Testing `insert`', insertSuite(getData))
+    describe('Testing `upsert`', upsertSuite(getData))
+    describe('Testing `update`', updateSuite(getData))
+    describe('Testing `replace`', replaceSuite(getData))
+    describe('Testing `times`', timesSuite(getData))
   }) // Storage API
 
-  describe('Testing `remove`', removeSuite(getData));
-  describe("Testing `removeAll`", removeAllSuite(getData));
+  describe('Testing `remove`', removeSuite(getData))
+  describe('Testing `removeAll`', removeAllSuite(getData))
 
   // Test the lookup API
-  describe("Lookup API", () => {
+  describe('Lookup API', () => {
 
     const testData = [
       { id: 1, a: 10 },
@@ -62,31 +62,28 @@ describe('Core API tests', () => {
       { id: 4, a: 20, b: 3 },
       { id: 5, a: 60 },
       { id: 6, a: 50 },
-    ];
+    ]
 
     let getTestData = () => {
-      return testData;
+      return testData
     }
 
     // Drop all the existing data
-    before((done) => {
-      removeAllData(data, done);
+    before(done => {
+      removeAllData(data, done)
     });
 
     // Insert the test data and make sure it's in
-    before((done) => {
-      data.store(testData).then((res) => {
-        return data.value();
-      }).then((res) => {
+    before(assertCompletes(() =>
+      data.store(testData).ignoreElements()
+        .concat(data.fetch({ asCursor: false }))
         // Make sure it's there
-        assert.sameDeepMembers(testData, res);
-        done();
-      }).catch(done);
-    });
+        .do(res => assert.sameDeepMembers(res, testData))
+    ))
 
-    describe("Testing full collection read",
-             collectionSuite(getFusion, getData, getTestData));
-    describe("Testing `find`", findSuite(getData));
+    describe('Testing full collection read',
+             collectionSuite(getFusion, getData, getTestData))
+    describe('Testing `find`', findSuite(getData))
     describe("Testing `findAll`", findAllSuite(getData));
     describe("Testing `order`", orderSuite(getData, getTestData));
     describe("Testing `limit`", limitSuite(getData));
