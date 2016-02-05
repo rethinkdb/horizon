@@ -5,17 +5,38 @@ For now let's just leave this a placeholder, since we haven't gotten to authenti
 
 #### Handshake Request
 ```
-{ "request_id": <NUMBER> }
+{
+  "request_id": <NUMBER>,
+  "method": "unauthenticated" | "anonymous" | "token",
+  "token": <STRING>,
+}
 ```
+
+* `request_id` is a number uniquely identifying this request, it will be returned in the response.
+* `method` designates the type of authentication to be performed.
+  * `unauthenticated` performs no further steps and will not associate the connection with any user.
+  * `anonymous` will create a new account with no external authentication provider.
+  * `token` will associate the connection with the user in the fusion access token provided.
+* `token` is the fusion access token that the client must already possess.
+  * This field is required when `method` is `token`, and invalid otherwise.
 
 #### Handshake Response
 ```
-{ "request_id": <NUMBER>, "user_id": <VALUE> }
+{
+  "request_id": <NUMBER>,
+  "token": <STRING>
+}
 ```
+* `token` is the fusion access token that is associated with this connection.
+  * This token may be used to establish new connections under the same user account until the token expires.
 
 #### Handshake Error Response
 ```
-{ "request_id": <NUMBER>, "error": <STRING>, "error_code": <NUMBER> }
+{
+  "request_id": <NUMBER>,
+  "error": <STRING>,
+  "error_code": <NUMBER>
+}
 ```
 
 ### Requests
