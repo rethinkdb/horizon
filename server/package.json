@@ -1,7 +1,7 @@
 {
   "name": "horizon",
-  "version": "0.0.1",
-  "description": "Server for RethinkDB Horizon",
+  "version": "0.2.3",
+  "description": "Server for RethinkDB Horizon, an open-source developer platform for building realtime, scalable web apps.",
   "main": "src/fusion.js",
   "scripts": {
     "test": "./node_modules/.bin/mocha --compilers js:babel-core/register test/test.js test/schema.js"
@@ -22,7 +22,7 @@
   "dependencies": {
     "argparse": "^1.0.3",
     "joi": "^7.0.0",
-    "horizon-client": "^0.0.2-0",
+    "horizon-client": "^0.0.2-1",
     "jsonwebtoken": "^5.5.4",
     "pem": "^1.8.1",
     "rethinkdb": "^2.1.1",
