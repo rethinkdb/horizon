@@ -64,69 +64,6 @@ function checkArgs(name, args, {
   }
 }
 
-// Takes a spec of arguments (current types allowed: options,
-// callback) and normalizes the results of the ...spread operator so
-// that optional and default arguments are handled.
-// Each spec in specs has three keys:
-//   `type`: either 'options' or 'callback' currently
-//   `default`: default value to use if the argument isn't present.
-//
-// Example call:
-// function myFun(...args) {
-//   const [ callback, options ] = argParse('myFun', args, [
-//     { type: 'callback', default: null },
-//     { type: 'options', default: { foo: 'x' } },
-//   ])
-//  }
-function argParse(name, args, specs) {
-  specs.forEach((spec, index) => {
-    if (index > 0 && spec.type === specs[index - 1].type) {
-      throw new Error(`The ${ordinal(index)} spec for \`${name}\` ` +
-                      `is optional, and the spec that follows it also ` +
-                      `has the type \`${spec.type}\`.`)
-    }
-  })
-  const results = []
-  let argIndex = 0 // keeps track of which arg we're examining
-  for (let specIndex = 0; specIndex < specs.length; specIndex++) {
-    const spec = specs[specIndex]
-    const arg = args[argIndex]
-    switch (spec.type) {
-    case 'options':
-      if (Array.isArray(arg) || typeof arg !== 'object') {
-        // Not an options object, so we just use the default options
-        // Note that if spec.default is undefined, this will still
-        // push an empty options object.
-        results.push(assign(spec.default))
-      } else {
-        // Got an options object. Merge it with defaults and push it
-        results.push(assign(spec.default, arg))
-        argIndex++
-      }
-      break
-    case 'callback':
-      if (typeof arg !== 'function') {
-        if (spec.default !== undefined) {
-          results.push(spec.default)
-        } else {
-          // No default was provided, so the argument isn't optional
-          throw new Error(`The ${ordinal(argIndex + 1)} argument ` +
-                          `to \`${name}\` must be a callback.`)
-        }
-      } else {
-        // We have a proper callback, move to the next arg
-        results.push(arg)
-        argIndex++
-      }
-      break
-    default:
-      throw new Error(`The ${ordinal(specIndex + 1)} spec for \`${name}\` ` +
-                      `has the unrecognized type \`${spec.type}\``)
-    }
-  }
-  return results
-}
-
 function subscribeOrObservable(observable) {
   return (...args) => {
     if (args.length > 0) {
@@ -143,6 +80,5 @@ Object.assign(module.exports, {
   assign,
   ordinal,
   checkArgs,
-  argParse,
   subscribeOrObservable,
 })

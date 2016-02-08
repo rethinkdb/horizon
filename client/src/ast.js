@@ -5,8 +5,7 @@ const snakeCase = require('snake-case')
 const Rx = require('rx')
 const { checkArgs,
         validIndexValue,
-        assign,
-        argParse } = require('./utility.js')
+        assign } = require('./utility.js')
 const { serialize } = require('./serialization.js')
 
 
@@ -38,42 +37,25 @@ class TermBase {
   }
   // Returns a sequence of the result set. Every time it changes the
   // updated sequence will be emitted. If raw change objects are
-  // needed, pass the option 'rawChanges: true'. If a callback is
-  // passed, the query is run immediately. If no callback is passed,
-  // an observable is returned (which will lazily emit the query when
-  // it is subscribed to)
-  watch(...args) {
-    const [ options, cb ] = argParse('watch', args, [
-      { type: 'options', default: { rawChanges: false } },
-      { type: 'callback', default: null },
-    ])
+  // needed, pass the option 'rawChanges: true'. An observable is
+  // returned which will lazily emit the query when it is subscribed
+  // to
+  watch({ rawChanges = false } = {}) {
     const raw = this._sendRequest('subscribe', this._query)
-    const observable = options.rawChanges ?
-            raw : makePresentable(raw, this._query)
-    if (!cb) {
-      return observable
+    if (rawChanges) {
+      return raw
     } else {
-      // Translate node-style callback to Observer
-      return observable.subscribe(
-        val => cb(null, val),
-        err => cb(err)
-      )
+      return makePresentable(raw, this._query)
     }
   }
   // Grab a snapshot of the current query (non-changefeed). Emits an
   // array with all results. If you'd rather receive emit on every
-  // document, pass the option 'asCursor: true'. If a callback is
-  // passed, the query is run immediately. If no callback is passed,
-  // an observable is returned (which will lazily emit the query when
-  // subscribed to)
-  fetch(...args) {
-    const [ options, cb ] = argParse('fetch', args, [
-      { type: 'options', default: { asCursor: true } },
-      { type: 'callback', default: null },
-    ])
+  // document, pass the option 'asCursor: true'. An observable is
+  // returned which will lazily emit the query when subscribed to
+  fetch({ asCursor = true } = {}) {
     const raw = this._sendRequest('query', this._query)
-    const observable = options.asCursor ? raw : raw.toArray()
-    return !cb ? observable : observable.subscribe(...args)
+    const observable = asCursor ? raw : raw.toArray()
+    return observable
   }
   findAll(...fieldValues) {
     checkIfLegalToChain.call(this, 'findAll')
@@ -168,7 +150,7 @@ function sortByFields(arr, fields, ascending) {
 /** @this Collection
  Implements writeOps for the Collection class
 */
-function writeOp(name, args, documents, cb) {
+function writeOp(name, args, documents) {
   checkArgs(name, args)
   let wrappedDocs = documents
   if (!Array.isArray(documents)) {
@@ -179,16 +161,7 @@ function writeOp(name, args, documents, cb) {
     return Rx.Observable.empty()
   }
   const options = assign(this._query, { data: serialize(wrappedDocs) })
-  const observable = this._sendRequest(name, options)
-  if (cb) {
-    // If we have a callback, we send the write query
-    // immediately. They aren't using the observable interface.
-    observable.subscribe(
-      val => cb(null, val),
-      err => cb(err)
-    )
-  }
-  return observable
+  return this._sendRequest(name, options)
 }
 
 class Collection extends TermBase {
@@ -198,27 +171,27 @@ class Collection extends TermBase {
       'find', 'findAll', 'justInitial', 'order', 'above', 'below', 'limit' ]
     super(sendRequest, query, legalMethods)
   }
-  store(documents, cb) {
-    return writeOp.call(this, 'store', arguments, documents, cb)
+  store(documents) {
+    return writeOp.call(this, 'store', arguments, documents)
   }
-  upsert(documents, cb) {
-    return writeOp.call(this, 'upsert', arguments, documents, cb)
+  upsert(documents) {
+    return writeOp.call(this, 'upsert', arguments, documents)
   }
-  insert(documents, cb) {
-    return writeOp.call(this, 'insert', arguments, documents, cb)
+  insert(documents) {
+    return writeOp.call(this, 'insert', arguments, documents)
   }
-  replace(documents, cb) {
-    return writeOp.call(this, 'replace', arguments, documents, cb)
+  replace(documents) {
+    return writeOp.call(this, 'replace', arguments, documents)
   }
-  update(documents, cb) {
-    return writeOp.call(this, 'update', arguments, documents, cb)
+  update(documents) {
+    return writeOp.call(this, 'update', arguments, documents)
   }
-  remove(documentOrId, cb) {
+  remove(documentOrId) {
     const wrapped = validIndexValue(documentOrId) ?
           { id: documentOrId } : documentOrId
-    return writeOp.call(this, 'remove', arguments, wrapped, cb)
+    return writeOp.call(this, 'remove', arguments, wrapped)
   }
-  removeAll(documentsOrIds, cb) {
+  removeAll(documentsOrIds) {
     if (!Array.isArray(documentsOrIds)) {
       throw new Error('removeAll takes an array as an argument')
     }
@@ -229,7 +202,7 @@ class Collection extends TermBase {
         return item
       }
     })
-    return writeOp.call(this, 'removeAll', arguments, wrapped, cb)
+    return writeOp.call(this, 'removeAll', arguments, wrapped)
   }
 }
 

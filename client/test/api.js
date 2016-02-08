@@ -8,6 +8,7 @@
 chai.config.showDiff = true
 const assert = chai.assert
 const Fusion = require('Fusion')
+Rx.config.longStackSupport = true
 
 // Test the methods and event callbacks on the Fusion object.
 describe('Fusion Object API', fusionObjectSuite)
@@ -85,14 +86,14 @@ describe('Core API tests', () => {
              collectionSuite(getFusion, getData, getTestData))
     describe('Testing `find`', findSuite(getData))
     describe('Testing `findAll`', findAllSuite(getData))
-    describe("Testing `order`", orderSuite(getData, getTestData));
-    describe("Testing `limit`", limitSuite(getData));
-    describe("Testing `above`", aboveSuite(getData));
-    describe("Testing `below`", belowSuite(getData));
-    describe("Test `above/below/limit` chaining variations",
-             chainingSuite(getData));
+    describe('Testing `order`', orderSuite(getData, getTestData))
+    describe('Testing `limit`', limitSuite(getData))
+    describe('Testing `above`', aboveSuite(getData))
+    describe('Testing `below`', belowSuite(getData))
+    describe('Test `above/below/limit` chaining variations',
+             chainingSuite(getData))
 
-  }); // Test the lookup API
+  }) // Test the lookup API
 
   // Test the subscriptions API
   describe("Subscriptions API", () => {
