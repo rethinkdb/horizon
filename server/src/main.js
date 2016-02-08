@@ -3,80 +3,19 @@
 
 const fusion = require('../');
 
-const argparse = require('argparse');
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const cli = require('cli');
 
-const parser = new argparse.ArgumentParser({
-  addHelp: true,
-  description: 'Fusion Server',
-});
+// Get parser from cli helper
+const parser = cli.cli_parser();
 
-parser.addArgument([ '--bind', '-b' ], {
-  type: 'string',
-  action: 'append',
-  metavar: 'HOST',
-  help: 'Local hostname to serve fusion on (repeatable).',
-});
-
-parser.addArgument([ '--port', '-p' ], {
-  type: 'int',
-  defaultValue: 8181,
-  metavar: 'PORT',
-  help: 'Local port to serve fusion on.',
-});
-
-parser.addArgument([ '--connect', '-c' ], {
-  type: 'string',
-  metavar: 'HOST:PORT',
-  help: 'Host and port of the RethinkDB server to connect to.',
-});
-
-parser.addArgument([ '--key-file' ], {
-  type: 'string',
-  metavar: 'PATH',
-  help: 'Path to the key file to use, defaults to "./key.pem".',
-});
-
-parser.addArgument([ '--cert-file' ], {
-  type: 'string',
-  metavar: 'PATH',
-  help: 'Path to the cert file to use, defaults to "./cert.pem".',
-});
-parser.addArgument([ '--debug' ], {
-  action: 'storeTrue',
-  help: 'Enable debug logging.',
-});
-
-parser.addArgument([ '--insecure' ], {
-  action: 'storeTrue',
-  help: 'Serve insecure websockets, ignore --key-file and --cert-file.',
-});
-
-parser.addArgument([ '--auto-create-table' ], {
-  action: 'storeTrue',
-  help: 'Create tables used by requests if they do not exist.',
-});
-
-parser.addArgument([ '--auto-create-index' ], {
-  action: 'storeTrue',
-  help: 'Create indexes used by requests if they do not exist.',
-});
-
-parser.addArgument([ '--dev' ], {
-  action: 'storeTrue',
-  help: 'Runs the server in development mode, this sets --debug, --insecure, --auto-create-tables, and --auto-create-indexes.',
-});
-
-parser.addArgument([ '--config' ], {
-  type: 'string',
-  metavar: 'PATH',
-  help: 'Sets server configuration using the config file at the specified path',
-});
-
+// Parse given argument
 const parsed = parser.parseArgs();
+
+// Init empty config
 let config = {};
 const options = {};
 
@@ -95,72 +34,17 @@ const defaults = {
 // Apply defaults first.
 config = Object.assign(config, defaults);
 
-// If config file path given, check if valid file/path. Since
-//  `require` is being used here. Looking before leaping here,
-//  rather than using fs.open and reporting back error.
-//  Then apply config file settings to running config.
-if (parsed.config) {
-  // First check if permissions allow us to read file.
-  try {
-    fs.accessSync(parsed.config, fs.R_OK);
-  } catch (err) {
-    fusion.logger.error('Unable to access file, check file permissions.');
-    fusion.logger.error(err);
-    process.exit(1);
-  }
+// Apply config read from given config file if
+//  it exists.
+config = cli.read_from_config_file(config, parsed);
 
-  // Check if file is actually a file.
-  try {
-    const stat = fs.statSync(parsed.config);
-    if (!stat.isFile()) {
-      fusion.logger.error('Config path is not a file.');
-      process.exit(1);
-    }
-  } catch (err) {
-    fusion.logger.error('Error occurred while retrieving config file stats.');
-    fusion.logger.error(err);
-    process.exit(1);
-  }
+// Gather environment variables and apply
+//  them to config if present.
+config = cli.read_from_env_vars(config);
 
-  // Read and import file, flags receive precedence over
-  //  config file settings.
-  let file_config;
-  if (parsed.config.endsWith('.js')) {
-    file_config = require(path.resolve(parsed.config.slice(0, -3)));
-  } else {
-    file_config = require(parsed.config);
-  }
-
-  // Apply all config file properties onto defaults.
-  config = Object.assign(config, file_config);
-}
-
-// Gather environment variables
-const envVars = {};
-for (let prop in process.env) {
-  if (prop.startsWith('FUSION_')) {
-    try {
-      // Remove "FUSION_" from the environment variable
-      const varName = prop.toLowerCase().split('_').slice(1).join('_');
-      envVars[varName] = process.env[prop];
-    } catch(err) {
-      fusion.logger.error('Error occurred while parsing env variables.\n', err);
-      process.exit(1);
-    }
-  }
-}
-
-// Apply environment variables on top of default config.
-config = Object.assign(config, envVars);
-
-// Lastly, merge command line flags in to running config settings
-for (let prop in parsed) {
-
-  // Ensure isn't some inherited property non-sense and !undefined && !null
-  if (parsed.hasOwnProperty(prop) && typeof parsed[prop] !== 'undefined' && parsed[prop] !== null) {
-    config[prop] = parsed[prop];
-  }
-}
+// Lastly, merge command line flags in to running config
+//  settings
+config = cli.read_from_flags(config, parsed);
 
 // Set proper flags for dev mode.
 if (config.dev) {
