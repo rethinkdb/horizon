@@ -114,6 +114,39 @@ function observe(query, events) {
   return new Observer(query, events);
 }
 
+// Useful for asynchronously interleaving server actions with a
+// changefeed and testing the changes are as expected.
+//
+// Takes a sequence of actions and a changefeed query. Executes the
+// next action every time a value comes in over the feed. Asserts that
+// the expected values are returned from the final observable. The
+// changefeed is automatically limited to the length of the expected
+// array. Accepts a `debug` argument that receives every element in
+// the changefeed
+function observableInterleave(options) {
+  const startWith = options.startWith
+  const query = options.query
+  const operations = options.operations
+  const expected = options.expected
+  const equality = options.equality || assert.deepEqual
+  const debug = options.debug || (() => {})
+  let finalQuery = query
+  if (startWith !== undefined) {
+    finalQuery = query.startWith(startWith)
+  }
+  return finalQuery
+    .take(expected.length)
+    .do(debug)
+    .flatMap((val, i) => {
+      if (i < operations.length) {
+        return operations[i].ignoreElements()
+      } else {
+        return Rx.Observable.empty()
+      }
+    })
+    .sequenceEqual(expected, equality)
+}
+
 // Let's create a way to run promises in series
 function inSeries(args) {
   if(args.length == 0) {
