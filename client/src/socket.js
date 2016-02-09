@@ -210,7 +210,13 @@ class FusionSocket extends Rx.AnonymousSubject {
                 } else if (resp.data !== undefined) {
                   reqObserver.onNext(resp)
                 }
-                if (resp.state === 'complete') {
+                if (resp.state === 'synced') {
+                  // Create a little dummy object for sync notifications
+                  reqObserver.onNext({
+                    type: 'state',
+                    state: 'synced',
+                  })
+                } else if (resp.state === 'complete') {
                   reqObserver.onCompleted()
                 }
               },

@@ -101,11 +101,19 @@ function makePresentable(observable, query) {
   const orderedQuery = Boolean(query.order)
 
   if (pointQuery) {
+    const seedVal = null
     // Simplest case: just pass through new_val
-    return observable.map(change => change.new_val)
+    return observable.scan((previous, change) => {
+      if (change.state === 'synced') {
+        return previous
+      } else {
+        return change.new_val
+      }
+    }, seedVal)
   } else {
+    const seedVal = []
     // Need to incrementally add to and remove from an array
-    return observable.scan([], (previous, change) => {
+    return observable.scan((previous, change) => {
       const arr = previous.slice()
       switch (change.type) {
       case 'remove':
@@ -129,6 +137,10 @@ function makePresentable(observable, query) {
         arr[index] = change.new_val
         break
       }
+      case 'state': {
+        // just emit the accumulator unchanged
+        break
+      }
       default:
         throw new Error(
           `unrecognized 'type' field from server ${JSON.stringify(change)}`)
@@ -138,7 +150,7 @@ function makePresentable(observable, query) {
         sortByFields(arr, query.order[0], query.order[1] === 'ascending')
       }
       return arr
-    })
+    }, seedVal)
   }
 }
 

@@ -124,17 +124,12 @@ function observe(query, events) {
 // array. Accepts a `debug` argument that receives every element in
 // the changefeed
 function observableInterleave(options) {
-  const startWith = options.startWith
   const query = options.query
   const operations = options.operations
   const expected = options.expected
   const equality = options.equality || assert.deepEqual
   const debug = options.debug || (() => {})
-  let finalQuery = query
-  if (startWith !== undefined) {
-    finalQuery = query.startWith(startWith)
-  }
-  return finalQuery
+  return query
     .take(expected.length)
     .do(debug)
     .flatMap((val, i) => {

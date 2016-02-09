@@ -7,7 +7,6 @@ const findSubscriptionSuite = (getData) => () => {
   })
   it('returns an updating document', assertCompletes(() =>
     observableInterleave({
-      startWith: null,
       query: data.find(1).watch(),
       operations: [
         data.insert({ id: 1, val: 'foo' }),
@@ -26,7 +25,6 @@ const findSubscriptionSuite = (getData) => () => {
   // Let's grab a specific document using `find`
   it('receives results from store operations', assertCompletes(() =>
     observableInterleave({
-      startWith: null,
       query: data.find(1).watch(),
       operations: [
         data.store({ id: 1, a: 1 }),
@@ -35,8 +33,8 @@ const findSubscriptionSuite = (getData) => () => {
       ],
       expected: [
         null,
-        {id: 1, a: 1},
-        {id: 1, a: 2},
+        { id: 1, a: 1 },
+        { id: 1, a: 2 },
         null,
       ],
     })
@@ -45,7 +43,6 @@ const findSubscriptionSuite = (getData) => () => {
   // Let's make sure we don't see events that aren't ours
   it(`doesn't see events that don't belong to it`, assertCompletes(() =>
     observableInterleave({
-      startWith: null,
       query: data.find(1).watch(),
       operations: [ // only one operation
         data.store({ id: 2, a: 1 }) // irrelevant
