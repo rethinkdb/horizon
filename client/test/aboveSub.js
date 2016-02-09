@@ -108,17 +108,19 @@ const aboveSubscriptionSuite = getData => () => {
 
   // Let's make sure initial vals works correctly
   it(`handles initial values correctly`, assertCompletes(() =>
-    data.store({ id: 1, a: 1 }).concat(observableInterleave({
-      query: data.above({ id: 1 }).watch(),
-      operations: [
-        data.store({ id: 1, a: 2 }),
-        data.remove(1),
-      ],
-      expected: [
-        [ { id: 1, a: 1 } ],
-        [ { id: 1, a: 2 } ],
-        [],
-      ],
-    }))
+    data.store({ id: 1, a: 1 }).concat(
+      observableInterleave({
+        query: data.above({ id: 1 }).watch(),
+        operations: [
+          data.store({ id: 1, a: 2 }),
+          data.remove(1),
+        ],
+        expected: [
+          [ { id: 1, a: 1 } ],
+          [ { id: 1, a: 2 } ],
+          [],
+        ],
+      })
+    )
   ))
 } // Testing `above` subscriptions
