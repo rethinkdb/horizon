@@ -7,7 +7,7 @@ const logger = require('./logger');
 const fusion_protocol = require('./schema/fusion_protocol');
 const server_options = require('./schema/server_options');
 
-const fusion_client_path = require.resolve('fusion-client');
+const fusion_client_path = require.resolve('horizon-client');
 
 const endpoints = {
   insert: require('./endpoint/insert'),
