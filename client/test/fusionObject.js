@@ -35,11 +35,19 @@ var fusionObjectSuite = () => {
       // Note -- the connection string specifies a bad host.
       const fusion = Fusion('wrong_host', { secure: false })
       assert.isDefined(fusion)
+      let val = 0
       fusion.status().subscribe(status => {
         if (status.type === 'unconnected') {
+          assert.equal(val, 0)
           assert.deepEqual(status, { type: 'unconnected' })
+          val += 1
         } else if (status.type === 'error') {
+          assert.equal(val, 1)
           assert.deepEqual(status, { type: 'error' })
+          val += 1
+        } else if (status.type === 'disconnected') {
+          assert.equal(val, 2)
+          assert.deepEqual(status, { type: 'disconnected' })
           done()
         } else {
           done(new Error(`Got unexpected status: ${status.type}`))
