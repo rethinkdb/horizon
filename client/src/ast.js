@@ -239,9 +239,6 @@ class Find extends TermBase {
           { id: idOrObject } : idOrObject
     const query = assign(previousQuery, { find: findObject })
     super(sendRequest, query, [])
-    // We override the _sendRequest function to unwrap the array
-    // returned by the protocol. Find returns only a single result
-    this._sendRequest = (type_, query_) => sendRequest(type_, query_)
   }
 }
 
