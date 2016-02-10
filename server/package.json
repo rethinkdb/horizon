@@ -21,8 +21,9 @@
   "homepage": "https://github.com/rethinkdb/fusion#readme",
   "dependencies": {
     "argparse": "^1.0.3",
-    "joi": "^7.0.0",
+    "cookie": "^0.2.3",
     "horizon-client": "^0.0.2-1",
+    "joi": "^7.0.0",
     "jsonwebtoken": "^5.5.4",
     "pem": "^1.8.1",
     "rethinkdb": "^2.1.1",

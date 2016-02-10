@@ -61,6 +61,7 @@ const serve_file = (file_path, res) => {
 class Server {
   constructor(http_servers, user_opts) {
     const opts = Joi.attempt(user_opts || { }, options_schema);
+    this._name = opts.db;
     this._request_handlers = new Map();
     this._http_handlers = new Map();
     this._ws_servers = new Set();
