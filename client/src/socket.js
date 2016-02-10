@@ -6,7 +6,7 @@ const { serialize, deserialize } = require('./serialization.js')
 const { log } = require('./logging.js')
 
 const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
-const HANDSHAKE = {}
+const HANDSHAKE = { method: 'unauthenticated' }
 
 // Before connecting the first time
 const STATUS_UNCONNECTED = { type: 'unconnected' }
