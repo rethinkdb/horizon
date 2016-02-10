@@ -5,7 +5,7 @@ module.exports = config = {};
 config.insecure = true;
 config.port = 5151;
 config.dev =  true;
-config.auto_create_index = true;
+config.auto_create_index = false;
 config.auto_create_table = false;
 config.cert_file = '/certs/cert.pem';
 config.connect = 'localhost:28015';

@@ -15,7 +15,7 @@ const parser = cli.cli_parser();
 // Parse given argument
 const parsed = parser.parseArgs();
 
-// Init empty config
+// Init empty configs
 let config = {};
 const options = {};
 
