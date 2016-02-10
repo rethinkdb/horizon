@@ -1,4 +1,4 @@
 client/dist/
 rethinkdb_data_test
 rethinkdb_data/
-test/*.log
+**/*.log

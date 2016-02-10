@@ -3,7 +3,8 @@
 const logger = require('../src/server').logger;
 const utils = require('./utils');
 
-const all_suites = [ 'http_tests',
+const all_suites = [ 'cli_tests',
+                     'http_tests',
                      'prereq_tests',
                      'protocol_tests',
                      'query_tests',
