@@ -1,102 +1,76 @@
-removeSuite = (getData) => {
-  return () => {
-
-  var data;
-  var testData = [
+'use strict'
+const removeSuite = getData => () => {
+  let data
+  const testData = [
     { id: 1, a: 1 },
     { id: 2, a: 2 },
     { id: 3, a: 3 },
     { id: 'do_not_remove_1' },
-    { id: 'do_not_remove_2' }
-  ];
+    { id: 'do_not_remove_2' },
+  ]
 
   before(() => {
-    data = getData();
-  });
+    data = getData()
+  })
 
   // Drop all the existing data
-  before((done) => {
-    removeAllData(data, done);
-  });
+  before(done => {
+    removeAllData(data, done)
+  })
 
   // Insert the test data and make sure it's in
-  before((done) => {
-    data.store(testData).then((res) => {
-        return data.value();
-    }).then((res) => {
+  before(assertCompletes(() =>
+    data.store(testData).ignoreElements()
+      .concat(data.fetch({ asCursor: false }))
       // Make sure it's there
-      assert.sameDeepMembers(testData, res);
-      done();
-    }).catch(done);
-  });
+      .do(res => assert.sameDeepMembers(res, testData))
+  ))
 
-  // All right, let's remove a document. The promise resolves with no
-  // arguments.
-  it("#.remove(id)", (done) => {
-    data.remove(1).then((res) => {
-      assert.isUndefined(res);
-
+  it('removes a document when passed an id', assertCompletes(() =>
+    data.remove(1)
+      .do(res => assert.equal(res, 1))
       // Let's make sure the removed document isn't there
-      return data.find(1).value();
-    }).then((res) => {
+      .flatMap(() => data.find(1).fetch())
       // Let's make sure the removed document isn't there
-      assert.isNull(res);
-      done();
-    }).catch(done);
-  });
+      .do(res => assert.isNull(res))
+  ))
 
-  // Passing an object to `remove` is also ok.
-  it("#.remove(obj)", (done) => {
-    data.remove({ id: 2 }).then((res) => {
-      assert.isUndefined(res);
-
+  it('removes a document with an id field', assertCompletes(() =>
+    data.remove({ id: 2 })
+      .do(res => assert.equal(res, 2))
       // Let's make sure the removed document isn't there
-      return data.find(2).value();
-    }).then((res) => {
+      .flatMap(() => data.find(2).fetch())
       // Let's make sure the removed document isn't there
-      assert.isNull(res);
-      done();
-    }).catch(done);
-  });
+      .do(res => assert.isNull(res))
+  ))
 
-  // Removing a missing document shouldn't generate an error.
-  it("#.remove(missing)", (done) => {
-    data.remove('abracadabra').then((res) => {
-      assert.isUndefined(res);
-      done();
-    }).catch(done);
-  });
+  it(`removing a document that doesn't exist doesn't error`, assertCompletes(() =>
+    data.remove('abracadabra').do(res => assert.equal(res, 'abracadabra'))
+  ))
 
-  // Calling `remove` with no arguments is an error
-  it("#.remove()", (done) => {
-    try {
-      data.remove();
-    } catch(err) { done(); }
-  });
+  it('fails when called with no arguments', assertThrows(
+    'remove must receive exactly 1 argument',
+    () => data.remove()
+  ))
 
-  // Calling `remove` with null is an error
-  it("#.remove(null)", (done) => {
-    try {
-      data.remove(null);
-    } catch(err) { done(); }
-  });
+  it('fails when called with null', assertThrows(
+    'The argument to remove must be non-null',
+    () => data.remove(null)
+  ))
 
   // Give an error if the user tries to use varargs (to help avoid
   // confusion)
-  it("#.remove(too_many_args)", (done) => {
-    try {
-      data.remove(1, 2);
-    } catch(err) { done(); }
-  });
+  it('fails when called with more than one argument', assertThrows(
+    'remove must receive exactly 1 argument',
+    () => data.remove(1, 2)
+  ))
 
   // Check that the remaining documents are there
-  it("#.remove.check.remaining", (done) => {
-    data.value().then((res) => {
-      var _ids = _.pluck(res, 'id');
-      assert.includeMembers(_ids, ['do_not_remove_1', 'do_not_remove_2']);
-      done();
-    }).catch(done);
-  });
-
-  } // Testing `remove`
-}
+  it(`doesn't remove documents we didn't ask it to`, assertCompletes(() =>
+    data.fetch()
+      .pluck('id')
+      .toArray()
+      .do(res => assert.includeMembers(
+        res, [ 'do_not_remove_1', 'do_not_remove_2' ]))
+  ))
+} // Testing `remove`
