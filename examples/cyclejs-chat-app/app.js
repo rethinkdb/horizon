@@ -2,7 +2,6 @@
 
 ;(function() {
   const Fusion = require('Fusion')
-  Fusion.enableLogging()
   const makeDOMDriver = CycleDOM.makeDOMDriver
   const div = CycleDOM.div
   const input = CycleDOM.input
