@@ -18,16 +18,16 @@ const handle_response = (request, feed, send_cb) => {
     } else if (item.state === 'ready') {
       send_cb({ state: 'synced' });
     } else {
-      if (item.new_val !== null && item.old_val === null) {
+      if (item.new_val !== undefined && item.old_val === undefined) {
+        item.type = 'initial';
+      } else if (item.new_val === undefined && item.old_val !== undefined) {
+        item.type = 'uninitial';
+      } else if (item.new_val !== null && item.old_val === null) {
         item.type = 'add';
       } else if (item.new_val === null && item.old_val !== null) {
         item.type = 'remove';
       } else if (item.new_val !== null && item.old_val !== null) {
         item.type = 'change';
-      } else if (item.new_val !== undefined && item.old_val === undefined) {
-        item.type = 'initial';
-      } else if (item.new_val === undefined && item.old_val !== undefined) {
-        item.type = 'uninitial';
       } else {
         logger.error(`Unrecognized changefeed response type: ${item}`);
       }
