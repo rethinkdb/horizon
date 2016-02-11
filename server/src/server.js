@@ -158,8 +158,8 @@ class Server {
   }
 
   add_http_handler(sub_path, handler) {
-    assert(handler !== undefined);
-    assert(this._http_handlers.get(sub_path) === undefined);
+    assert.notStrictEqual(handler, undefined);
+    assert.strictEqual(this._http_handlers.get(sub_path), undefined);
     this._http_handlers.set(sub_path, handler);
   }
 
