@@ -11,8 +11,8 @@ const querystring = require('querystring');
 const url = require('url');
 
 const options_schema = Joi.object().keys({
-  app_id: Joi.string().required(),
-  app_secret: Joi.string().required(),
+  client_id: Joi.string().required(),
+  client_secret: Joi.string().required(),
   path: Joi.string().required(),
 }).unknown(false);
 
@@ -94,8 +94,6 @@ const get_nonce = (req, name) => {
 const add = (fusion, raw_options) => {
   const options = Joi.attempt(raw_options, options_schema);
 
-  logger.debug(`github.add options: ${JSON.stringify(options)}`);
-
   const auth_url = (host, path) =>
     url.format({ protocol: 'https', host: host, pathname: path });
 
@@ -103,7 +101,7 @@ const add = (fusion, raw_options) => {
     url.format({ protocol: 'https',
                  host: 'github.com',
                  pathname: '/login/oauth/authorize',
-                 query: { client_id: options.app_id,
+                 query: { client_id: options.client_id,
                           redirect_uri,
                           state } });
 
@@ -111,8 +109,8 @@ const add = (fusion, raw_options) => {
     url.format({ protocol: 'https',
                  host: 'github.com',
                  pathname: '/login/oauth/access_token',
-                 query: { client_id: options.app_id,
-                          client_secret: options.app_secret,
+                 query: { client_id: options.client_id,
+                          client_secret: options.client_secret,
                           code,
                           accept: 'json' } });
 

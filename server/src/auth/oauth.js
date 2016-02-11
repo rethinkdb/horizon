@@ -27,21 +27,24 @@ const extend_url_query = (path, query) => {
   return path_copy;
 };
 
-const do_get = (get_url, cb) => {
-  logger.debug(`oauth performing GET: ${get_url}`);
-  const options = url.parse(get_url);
-  options.headers = { 'accept': 'application/json', 'user-agent': 'node' };
-  https.get(options, (req) => {
-    const chunks = [];
-    req.on('data', (data) => {
-      chunks.push(data);
-    });
-    req.on('end', () => {
-      cb(null, chunks.join(''));
-    });
-  }).on('error', (err) => {
+const run_request = (req, cb) => {
+  req.on('response', (res) => {
+    if (res.statusCode !== 200) {
+      cb(new Error(`Request returned status code: ${res.statusCode}`));
+    } else {
+      const chunks = [];
+      res.on('data', (data) => {
+        chunks.push(data);
+      });
+      res.on('end', () => {
+        cb(null, chunks.join(''));
+      });
+    }
+  });
+  req.on('error', (err) => {
     cb(err);
   });
+  req.end();
 };
 
 const try_json_parse = (data) => {
@@ -78,7 +81,6 @@ const get_nonce = (req, name) => {
   const cookies = req.headers['cookie'];
   const field = nonce_cookie(name);
   if (cookies) {
-    logger.debug(`Checking cookie: ${cookies}`);
     const value = cookie.parse(cookies);
     return value[field];
   }
@@ -87,16 +89,14 @@ const get_nonce = (req, name) => {
 const options_schema = Joi.object({
   fusion: Joi.object().required(),
   provider: Joi.string().required(),
-  make_acquire_url: Joi.func().arity(1).required(), // take `state` and `return_url`, return string
+  make_acquire_url: Joi.func().arity(2).required(), // take `state` and `return_url`, return string
   make_token_request: Joi.func().arity(2).required(), // take `code` and `return_url`, return request
   make_inspect_request: Joi.func().arity(1).required(), // take `access_token`, return request
-  extract_id: Joi.func().arity(1).required(), // take `body`, return value
+  extract_id: Joi.func().arity(1).required(), // take `user_info`, return value
 }).unknown(false);
 
-const oauth_common = (raw_options) => {
+const add_oauth_provider = (raw_options) => {
   const options = Joi.attempt(raw_options, options_schema);
-
-  logger.debug(`oauth_common options: ${JSON.stringify(options)}`);
 
   const fusion = options.fusion;
   const provider = options.provider;
@@ -185,4 +185,5 @@ const oauth_common = (raw_options) => {
   });
 };
 
-module.exports = add;
+module.exports = add_oauth_provider;
+module.exports.run_request = run_request;
