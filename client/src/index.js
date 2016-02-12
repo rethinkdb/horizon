@@ -10,7 +10,10 @@ const { subscribeOrObservable } = require('./utility.js')
 
 module.exports = Fusion
 
-function Fusion(host, { secure: secure = true, path: path = 'fusion' } = {}) {
+function Fusion(host, { secure = true,
+                        path = 'fusion',
+                        lazyWrites = false,
+                       } = {}) {
   // Websocket Subject
   const socket = new FusionSocket(host, secure, path)
 
@@ -18,7 +21,7 @@ function Fusion(host, { secure: secure = true, path: path = 'fusion' } = {}) {
   // function so we can construct a collection simply by calling it
   // like fusion('my_collection')
   function fusion(name) {
-    return new Collection(sendRequest, name)
+    return new Collection(sendRequest, name, lazyWrites)
   }
 
   fusion.dispose = () => {

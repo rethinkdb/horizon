@@ -188,15 +188,23 @@ function writeOp(name, args, documents) {
     return Rx.Observable.empty()
   }
   const options = assign(this._query, { data: serialize(wrappedDocs) })
-  return this._sendRequest(name, options)
+  let observable = this._sendRequest(name, options)
+  if (!this._lazyWrites) {
+    // Need to buffer response since this becomes a hot observable and
+    // when we subscribe matters
+    observable = observable.shareReplay()
+    observable.subscribe()
+  }
+  return observable
 }
 
 class Collection extends TermBase {
-  constructor(sendRequest, collectionName) {
+  constructor(sendRequest, collectionName, lazyWrites) {
     const query = { collection: collectionName }
     const legalMethods = [
       'find', 'findAll', 'justInitial', 'order', 'above', 'below', 'limit' ]
     super(sendRequest, query, legalMethods)
+    this._lazyWrites = lazyWrites
   }
   store(documents) {
     return writeOp.call(this, 'store', arguments, documents)
