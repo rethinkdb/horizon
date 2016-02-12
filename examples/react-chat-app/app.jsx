@@ -71,37 +71,17 @@ var app = app || {};
         text: message,
         authorId: this.props.authorId,
         datetime: new Date()
-      });
+      }).subscribe();
     },
 
     subscribe: function(){
       this.props.fusion
-      .order("datetime", "descending")
-      .limit(8)
-      .subscribe({
-        onAdded: function(added){
-          // Grab current state of messages
-          const currentMessages = this.state.messages.slice();
-
-          // Pop off the front to keep us at 8.
-          if (currentMessages.length >= 8){
-            currentMessages.shift();
-          }
-
-          currentMessages.push(added);
-
-          // Set the state with the newest message
-          this.setState({
-            messages: currentMessages
-          });
-
-        }.bind(this),
-      onSynced: function(){
-        this.setState({
-          messages: this.state.messages.slice().reverse()
-        });
-      }.bind(this)
-      });
+        .order("datetime", "descending")
+        .limit(8)
+        .watch()
+        .subscribe(messages => {
+            this.setState({ messages: messages })
+        })
     },
 
     render: function(){
