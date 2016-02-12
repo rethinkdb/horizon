@@ -23,7 +23,7 @@ describe('Core API tests', () => {
 
   // Set up the fusion connection before running these tests.
   before(done => {
-    fusion = Fusion('localhost:8181', { secure: false });
+    fusion = Fusion('localhost:8181', { secure: false, lazyWrites: true });
     fusion.connect(err => done(err))
     fusion.onConnected(() => {
       data = fusion('test_data')
