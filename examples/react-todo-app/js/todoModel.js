@@ -11,7 +11,7 @@ var app = app || {};
 
         //Setup RethinkDB
         const Fusion = require("Fusion");
-        const fusion = new Fusion(location.host, {
+        const fusion = Fusion(location.host, {
                 secure: location.protocol == 'https:'
         });
 
@@ -41,29 +41,29 @@ var app = app || {};
                         completed: false
                 };
 
-                this.todosDB.store(newTodo);
+          this.todosDB.store(newTodo).subscribe();
         };
 
         app.TodoModel.prototype.toggleAll = function (checked) {
                 console.log(checked);
                 this.todosDB.replace(this.todos.map(function (todo) {
                         return Utils.extend({}, todo, {completed: checked});
-                }));
+                })).subscribe();
         };
 
         app.TodoModel.prototype.toggle = function (todoToToggle) {
                 console.log(todoToToggle);
                 this.todosDB.replace(
                         Utils.extend({}, todoToToggle, {completed: !todoToToggle.completed})
-                );
+                ).subscribe();
         };
 
         app.TodoModel.prototype.destroy = function (todo) {
-                this.todosDB.remove(todo);
+            this.todosDB.remove(todo).subscribe();
         };
 
         app.TodoModel.prototype.save = function (todoToSave, text) {
-                this.todosDB.store(Utils.extend({}, todoToSave, {title: text}));
+          this.todosDB.store(Utils.extend({}, todoToSave, {title: text})).subscribe();
         };
 
         app.TodoModel.prototype.clearCompleted = function () {
@@ -76,27 +76,13 @@ var app = app || {};
                 // Send batched deletion of completed todos
                 this.todosDB.removeAll(oldTodos.filter((todo) => {
                         return !this.todos.includes(todo);
-                }));
+                })).subscribe();
         };
 
         app.TodoModel.prototype.subscribeChangefeeds = function(){
-                this.todosDB.subscribe({
-                        onAdded: (added) => {
-                                this.todos = this.todos.concat(added);
-                                this.inform();
-                        },
-                  onChanged: (changed) => {
-                                this.todos = this.todos.map((todo) => {
-                                        return todo.id !== changed.new_val.id ? todo : Utils.extend({}, todo, changed.new_val);
-                                });
-                                this.inform();
-                        },
-                        onRemoved: (removed) => {
-                                this.todos = this.todos.filter((todo) => {
-                                        return todo.id !== removed.id;
-                                });
-                                this.inform();
-                        }
-                });
+                this.todosDB.watch().subscribe(todos => {
+                  this.todos = todos;
+                  this.inform()
+                })
         };
 })();
