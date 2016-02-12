@@ -14,47 +14,29 @@ const app = new Vue({
     messages: [],
   },
 
-  computed: {
-
-    limitedMessages: function() {
-      this.messages.sort(function(a, b) {
-        if (a.id > b.id) {
-          return 1
-        } else {
-          return -1
-        }
-      });
-
-      return this.messages.slice(-8)
-    },
-
-
-  },
-
   methods: {
     addMessage: function() {
       var text = this.newMessage.trim();
       if (text) {
         chat.store({
           text: text,
-          id: new Date(),
+          datetime: new Date(),
           url: this.avatar_url,
-        });
+        }).subscribe();
         this.newMessage = '';
       }
     },
 
-    addedChange: function(newDoc) {
-      // Parse string as proper Date Object
-      this.messages.push(newDoc);
+    messagesUpdate: function(newMessages) {
+      this.messages = newMessages;
       console.log(this.messages);
     },
-
   },
 });
-chat.order('id', 'ascending').subscribe({
-  onAdded: app.addedChange,
-});
+chat.order('datetime', 'descending')
+  .limit(8)
+  .watch()
+  .subscribe(app.messagesUpdate);
 
 // Image preloading
 const image = new Image();
