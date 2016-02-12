@@ -28,20 +28,21 @@ const extend_url_query = (path, query) => {
 };
 
 const run_request = (req, cb) => {
-  req.on('response', (res) => {
-    if (res.statusCode !== 200) {
-      cb(new Error(`Request returned status code: ${res.statusCode}`));
-    } else {
-      const chunks = [];
-      res.on('data', (data) => {
-        chunks.push(data);
-      });
-      res.on('end', () => {
+  logger.debug(`Initiating request to ${req._headers.host}${req.path}`);
+  req.once('response', (res) => {
+    const chunks = [];
+    res.on('data', (data) => {
+      chunks.push(data);
+    });
+    res.once('end', () => {
+      if (res.statusCode !== 200) {
+        cb(new Error(`Request returned status code: ${res.statusCode} (${res.statusMessage}): ${chunks.join('')}`));
+      } else {
         cb(null, chunks.join(''));
-      });
-    }
+      }
+    });
   });
-  req.on('error', (err) => {
+  req.once('error', (err) => {
     cb(err);
   });
   req.end();

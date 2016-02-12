@@ -1,5 +1,6 @@
 'use strict';
 
+const logger = require('../logger');
 const oauth = require('./oauth');
 
 const https = require('https');
@@ -23,25 +24,24 @@ const add = (fusion, raw_options) => {
 
   oauth_options.make_acquire_url = (state, redirect_uri) =>
     url.format({ protocol: 'https',
-                 host: 'github.com',
-                 pathname: '/login/oauth/authorize',
-                 query: { client_id, redirect_uri, state } });
+                 host: 'accounts.google.com',
+                 pathname: '/o/oauth2/v2/auth',
+                 query: { client_id, redirect_uri, state, response_type: 'code', scope: 'profile' } });
 
   oauth_options.make_token_request = (code, redirect_uri) => {
-    const req = https.request({ method: 'POST',
-                                host: 'github.com',
-                                path: '/login/oauth/access_token',
-                                headers: { 'accept': 'application/json' } });
-
-    req.write(querystring.stringify({ code, client_id, client_secret }));
-
-    return req;
+    const query_params = querystring.stringify({
+      code, client_id, client_secret, redirect_uri,
+      grant_type: 'authorization_code' });
+    return https.request({ method: 'POST',
+                           host: 'www.googleapis.com',
+                           path: `/oauth2/v4/token?${query_params}` });
   };
 
-  oauth_options.make_inspect_request = (access_token) =>
-    https.request({ host: 'api.github.com',
-                    path: `/user?${querystring.stringify({ access_token })}`,
-                    headers: { 'user-agent': 'node.js' } });
+  oauth_options.make_inspect_request = (access_token) => {
+    logger.debug(`using access token: ${access_token}`);
+    return https.request({ host: 'www.googleapis.com',
+                    path: `/oauth2/v1/userinfo?${querystring.stringify({ access_token })}`});
+  };
 
   oauth_options.extract_id = (user_info) => user_info && user_info.id;
 
