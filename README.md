@@ -75,7 +75,7 @@ $ rethinkdb
 $ fusion --dev
 
 # Clients can connect directly from the browser on port 8181
-# The fusion client library is served from host:8181/fusion.js
+# The fusion client library is served from host:8181/fusion/fusion.js
 ```
 
 ### What does the code look like?

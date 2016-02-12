@@ -16,7 +16,6 @@ Flag                | Description
 -w, --watch         | Watch directory for changes
 -U, --no-uglify     | Don't uglify output
 -S, --no-sourcemaps | Don't output sourcemaps
--g, --expose-global | Expose Fusion module as a global
 
 
 ## Running tests
@@ -35,14 +34,14 @@ First you need to ensure that you have included the `fusion.js` client library i
 ```html
 ...
 <head>
-<script src="//localhost:8181/fusion.js"></script>
+<script src="//localhost:8181/fusion/fusion.js"></script>
 </head>
 ...
 ```
 
 Then wherever you want to use Project Fusion you will need to `require` the Fusion client library and then connect to your running instance of Fusion Server.
 
-**Note:** if you started Fusion Server with `--insecure`, you'll need to [add the insecure flag](#fusion).
+**Note:** if you started Fusion Server with `--insecure`, you'll need to [disable the secure flag](#Fusion).
 
 ```javascript
 const Fusion = require("Fusion");
@@ -142,7 +141,7 @@ You can also get notifications when the client connects and disconnects from the
 
 Object which initializes the connection to a Fusion Server.
 
-If Fusion server has been started with `--unsecure` then you will need to connect unsecurely by passing `{secure: false}` as a second parameter.
+If Fusion server has been started with `--insecure` then you will need to connect unsecurely by passing `{secure: false}` as a second parameter.
 
 ###### Example
 
@@ -150,7 +149,7 @@ If Fusion server has been started with `--unsecure` then you will need to connec
 const Fusion = require("fusion")
 const fusion = Fusion("localhost:8181")
 
-const unsecure_fusion = Fusion('localhost:8181', { unsecure: true })
+const unsecure_fusion = Fusion('localhost:8181', { secure: false })
 ```
 
 #### Collection
@@ -403,8 +402,6 @@ chat.find(1).value().then((message) => {
 ##### watch({ rawChanges: false })
 
 Turns the query into a changefeed query, returning an observable that receives a live-updating view of the results every time they change.
-
-If you pass `rawChanges: true`, instead of
 
 ###### Example
 
