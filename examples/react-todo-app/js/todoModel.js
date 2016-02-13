@@ -41,29 +41,29 @@ var app = app || {};
                         completed: false
                 };
 
-          this.todosDB.store(newTodo).subscribe();
+          this.todosDB.store(newTodo);
         };
 
         app.TodoModel.prototype.toggleAll = function (checked) {
                 console.log(checked);
                 this.todosDB.replace(this.todos.map(function (todo) {
                         return Utils.extend({}, todo, {completed: checked});
-                })).subscribe();
+                }));
         };
 
         app.TodoModel.prototype.toggle = function (todoToToggle) {
                 console.log(todoToToggle);
                 this.todosDB.replace(
                         Utils.extend({}, todoToToggle, {completed: !todoToToggle.completed})
-                ).subscribe();
+                );
         };
 
         app.TodoModel.prototype.destroy = function (todo) {
-            this.todosDB.remove(todo).subscribe();
+            this.todosDB.remove(todo);
         };
 
         app.TodoModel.prototype.save = function (todoToSave, text) {
-          this.todosDB.store(Utils.extend({}, todoToSave, {title: text})).subscribe();
+          this.todosDB.store(Utils.extend({}, todoToSave, {title: text}));
         };
 
         app.TodoModel.prototype.clearCompleted = function () {
@@ -76,7 +76,7 @@ var app = app || {};
                 // Send batched deletion of completed todos
                 this.todosDB.removeAll(oldTodos.filter((todo) => {
                         return !this.todos.includes(todo);
-                })).subscribe();
+                }));
         };
 
         app.TodoModel.prototype.subscribeChangefeeds = function(){
