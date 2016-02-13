@@ -11,7 +11,7 @@ var app = app || {};
 
         //Setup RethinkDB
         const Fusion = require("Fusion");
-        const fusion = new Fusion(location.host, {
+        const fusion = Fusion(location.host, {
                 secure: location.protocol == 'https:'
         });
 
@@ -41,7 +41,7 @@ var app = app || {};
                         completed: false
                 };
 
-                this.todosDB.store(newTodo);
+          this.todosDB.store(newTodo);
         };
 
         app.TodoModel.prototype.toggleAll = function (checked) {
@@ -59,11 +59,11 @@ var app = app || {};
         };
 
         app.TodoModel.prototype.destroy = function (todo) {
-                this.todosDB.remove(todo);
+            this.todosDB.remove(todo);
         };
 
         app.TodoModel.prototype.save = function (todoToSave, text) {
-                this.todosDB.store(Utils.extend({}, todoToSave, {title: text}));
+          this.todosDB.store(Utils.extend({}, todoToSave, {title: text}));
         };
 
         app.TodoModel.prototype.clearCompleted = function () {
@@ -80,23 +80,9 @@ var app = app || {};
         };
 
         app.TodoModel.prototype.subscribeChangefeeds = function(){
-                this.todosDB.subscribe({
-                        onAdded: (added) => {
-                                this.todos = this.todos.concat(added);
-                                this.inform();
-                        },
-                  onChanged: (changed) => {
-                                this.todos = this.todos.map((todo) => {
-                                        return todo.id !== changed.new_val.id ? todo : Utils.extend({}, todo, changed.new_val);
-                                });
-                                this.inform();
-                        },
-                        onRemoved: (removed) => {
-                                this.todos = this.todos.filter((todo) => {
-                                        return todo.id !== removed.id;
-                                });
-                                this.inform();
-                        }
-                });
+                this.todosDB.watch().subscribe(todos => {
+                  this.todos = todos;
+                  this.inform()
+                })
         };
 })();

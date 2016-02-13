@@ -130,7 +130,7 @@
       // Send outgoing messages
       writeOps$$.switch().subscribe()
       // Return chat observable
-      return Fusion(host, options)
+      return Fusion(host, Object.assign({ lazyWrites: true }, options))
     }
   }
 })()
