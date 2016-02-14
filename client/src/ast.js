@@ -1,5 +1,3 @@
-'use strict'
-
 const snakeCase = require('snake-case')
 
 const Rx = require('rx')

@@ -1,5 +1,5 @@
 'use strict'
-const findAllSubscriptionSuite = getData => () => {
+const findAllSubscriptionSuite = window.findAllSubscriptionSuite = getData => () => {
   let data
 
   before(() => {
@@ -77,7 +77,7 @@ const findAllSubscriptionSuite = getData => () => {
         [ { id: 1, a: 1 }, { id: 2, a: 1 } ],
         [ { id: 1, a: 2 }, { id: 2, a: 1 } ],
         [ { id: 1, a: 2 }, { id: 2, a: 2 } ],
-        [ { id: 2, a: 1 } ],
+        [ { id: 2, a: 2 } ],
         [],
       ],
     })

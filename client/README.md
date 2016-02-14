@@ -4,24 +4,26 @@ The Horizon client library. Built to interact with the [Horizon Server](/server)
 
 ## Building
 
-You first need to install dependencies and then you may build the client library using the build script.
+Running `npm install` for the first time will build the browser bundle and lib files.
 
 1. `npm install`
-2. `./build.js [--watch]`
+2. `npm run dev` (or `npm run build` or `npm run compile`, see below)
 
 ### Build Options
 
-Flag                | Description
+Command             | Description
 --------------------|----------------------------
--w, --watch         | Watch directory for changes
--U, --no-uglify     | Don't uglify output
--S, --no-sourcemaps | Don't output sourcemaps
--g, --expose-global | Expose Horizon module as a global
-
+npm run dev         | Watch directory for changes, build dist/horizon.js unminified browser bundle
+npm run build       | Build dist/horizon.js minified production browser bundle
+npm run compile     | Compile src to lib for CommonJS module loaders (such as webpack, browserify)
+npm test            | Run tests in node
+npm run lint -s     | Lint src
+npm run devtest     | Run tests and linting continually
 
 ## Running tests
 
-* Open `test/test.html` in your browser after getting setup and while you also have Horizon server with the `--dev` flag running on `localhost`.
+* `npm test` or open `dist/test.html` in your browser after getting setup and while you also have Horizon server with the `--dev` flag running on `localhost`.
+* You can spin up a dev server by cloning the horizon repo and running `node serve.js` in `test` directory in repo root. Then tests can be accessed from <http://localhost:8181/dist/test.html>. Source maps work properly when served via http, not from file system. You can test the production version via `NODE_ENV=production node serve.js`.
 
 ## Docs
 
@@ -35,18 +37,18 @@ First you need to ensure that you have included the `horizon.js` client library 
 ```html
 ...
 <head>
-<script src="//localhost:8181/horizon.js"></script>
+<script src="//localhost:8181/horizon/horizon.js"></script>
 </head>
 ...
 ```
 
 Then wherever you want to use Project Horizon you will need to `require` the Horizon client library and then connect to your running instance of Horizon Server.
 
-**Note:** if you started Horizon Server with `--insecure`, you'll need to [add the insecure flag](#horizon).
+**Note:** if you started Horizon Server with `--insecure`, you'll need to [disable the secure flag](#Horizon).
 
 ```javascript
-const Horizon = require("Horizon");
-const horizon = new Horizon("localhost:8181");
+const Horizon = require("@horizon/client"); // or use global `window.Horizon`
+const horizon = new Horizon();
 ```
 
 From here you can start to interact with RethinkDB collections through the Horizon collection. Having `--dev` mode enabled on the Horizon Server creates collections and indexes automatically so you can get your application setup with as little hassle as possible.
@@ -142,15 +144,15 @@ You can also get notifications when the client connects and disconnects from the
 
 Object which initializes the connection to a Horizon Server.
 
-If Horizon server has been started with `--unsecure` then you will need to connect unsecurely by passing `{secure: false}` as a second parameter.
+If Horizon server has been started with `--insecure` then you will need to connect unsecurely by passing `{secure: false}` as a second parameter.
 
 ###### Example
 
 ```javascript
-const Horizon = require("horizon")
-const horizon = Horizon("localhost:8181")
+const Horizon = require("@horizon/client")
+const horizon = Horizon()
 
-const unsecure_horizon = Horizon('localhost:8181', { unsecure: true })
+const unsecure_horizon = Horizon({ secure: false })
 ```
 
 #### Collection
@@ -160,8 +162,8 @@ Object which represents a collection of documents on which queries can be perfor
 ###### Example
 ```javascript
 // Setup connection the Horizon server
-const Horizon = require("horizon")
-const horizon = Horizon("localhost:8181")
+const Horizon = require("@horizon/client")
+const horizon = Horizon()
 
 // Create horizon collection
 const messages = horizon('messages')
@@ -403,8 +405,6 @@ chat.find(1).value().then((message) => {
 ##### watch({ rawChanges: false })
 
 Turns the query into a changefeed query, returning an observable that receives a live-updating view of the results every time they change.
-
-If you pass `rawChanges: true`, instead of
 
 ###### Example
 
