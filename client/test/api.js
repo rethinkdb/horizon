@@ -5,11 +5,6 @@
 // API of the client library. This also doesn't cover subscriptions, there is a
 // separate test suite for that.
 
-chai.config.showDiff = true
-const assert = chai.assert
-const Horizon = require('Horizon')
-Rx.config.longStackSupport = true
-
 // Test the methods and event callbacks on the Horizon object.
 describe('Horizon Object API', horizonObjectSuite)
 

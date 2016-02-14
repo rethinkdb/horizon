@@ -47,7 +47,7 @@ test:
         background: true
   override:
     # Run client tests
-    - ./node_modules/gulp-cli/bin/gulp.js compile-tests; ./node_modules/mocha-phantomjs/bin/mocha-phantomjs --file $CIRCLE_TEST_REPORTS/xunit/client-tests.xml -R xunit --ignore-resource-errors test/test-es5.html:
+    - touch $CIRCLE_TEST_REPORTS/xunit/client-tests.xml; ./node_modules/.bin/mocha -R xunit dist/test.js > $CIRCLE_TEST_REPORTS/xunit/client-tests.xml:
         pwd: client
         parallel: true
 

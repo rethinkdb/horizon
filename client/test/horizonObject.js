@@ -3,7 +3,7 @@
 // Test object creation, the `dispose` method, and `connected/disconnected`
 // events.
 
-var horizonObjectSuite = () => {
+var horizonObjectSuite = window.horizonObjectSuite = () => {
   describe('Horizon', () => {
     it('connects and can track its status', done => {
       const horizon = Horizon('localhost:8181', { secure: false })

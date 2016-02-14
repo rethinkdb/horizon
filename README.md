@@ -72,7 +72,7 @@ $ rethinkdb
 $ horizon --dev
 
 # Clients can connect directly from the browser on port 8181
-# The horizon client library is served from host:8181/horizon.js
+# The horizon client library is served from host:8181/horizon/horizon.js
 ```
 
 ### What does the code look like?

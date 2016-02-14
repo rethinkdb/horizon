@@ -1,5 +1,5 @@
 'use strict'
-const removeSuite = getData => () => {
+const removeSuite = window.removeSuite = getData => () => {
   let data
   const testData = [
     { id: 1, a: 1 },

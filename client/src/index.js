@@ -1,7 +1,3 @@
-'use strict'
-
-require('babel-polyfill')
-
 const Rx = require('rx')
 const { Collection } = require('./ast.js')
 const HorizonSocket = require('./socket.js')
