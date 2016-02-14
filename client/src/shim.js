@@ -1,4 +1,4 @@
-'use strict'
+/* global WebSocket */
 
 // Check for websocket
 if (typeof WebSocket !== 'undefined') {

@@ -71,21 +71,26 @@ const serve_file = (file_path, res) => {
 };
 
 // Run the client build
-const build_proc = child_process.fork(path.resolve(client_dir, 'build.js'),
-                                      [ 'build', '--watch', '--no-uglify' ],
-                                      { cwd: client_dir, silent: true });
+const build_proc = child_process.spawn('npm', [ 'run', 'dev'],
+                                      { cwd: client_dir, stdio: 'pipe' });
+
+//let client_ready = false;
+//each_line_in_pipe(build_proc.stdout, (line) => {
+//  if (line.indexOf('bytes written') !== -1) {
+//      client_ready = true;
+//      const date = new Date();
+//      console.log(`${date.toLocaleTimeString()} - horizon.js rebuilt.`);
+//  }
+each_line_in_pipe(build_proc.stdout, (line) => {
+  console.log(line);
+});
+
+each_line_in_pipe(build_proc.stderr, (line) => {
+  console.error(line);
+});
 
 build_proc.on('exit', () => process.exit(1));
 process.on('exit', () => build_proc.kill('SIGTERM'));
-
-let client_ready = false;
-each_line_in_pipe(build_proc.stdout, (line) => {
-  if (line.indexOf('bytes written') !== -1) {
-      client_ready = true;
-      const date = new Date();
-      console.log(`${date.toLocaleTimeString()} - horizon.js rebuilt.`);
-  }
-});
 
 // Launch HTTP server with horizon that will serve the test files
 const http_servers = options.bind.map((host) =>
@@ -144,12 +149,7 @@ new Promise((resolve) => {
       serv.on('request', (req, res) => {
         const req_path = url.parse(req.url).pathname;
         if (req_path === '/horizon/horizon.js' || req_path === '/horizon/horizon.js.map') {
-          if (!client_ready) {
-            res.writeHead(503, { 'Content-Type': 'text/plain' });
-            res.end('Client build is ongoing, try again in a few seconds.');
-          } else {
-            serve_file(path.resolve(client_dir, 'dist', req_path.replace('/horizon/', '')), res);
-          }
+          serve_file(path.resolve(client_dir, 'dist', req_path.replace('/horizon/', '')), res);
         } else {
           extant_listeners.forEach((l) => l.call(serv, req, res));
         }

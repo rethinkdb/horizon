@@ -1,5 +1,5 @@
 'use strict'
-const chainingSuite = (getData) => () => {
+const chainingSuite = window.chainingSuite = (getData) => () => {
   let data
 
   before(() => {

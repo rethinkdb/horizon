@@ -1,5 +1,5 @@
 'use strict'
-function removeAllData(collection, done) {
+window.removeAllData = function removeAllData(collection, done) {
   // Read all elements from the collection
   collection.fetch({ asCursor: false }) // all documents in the collection
     .flatMap(docs => collection.removeAll(docs))
@@ -29,7 +29,7 @@ function doneErrorObserver(done) {
 
 // Used to check for stuff that should throw an exception, rather than
 // erroring the observable stream
-function assertThrows(message, callback) {
+window.assertThrows = function assertThrows(message, callback) {
   const f = done => {
     try {
       callback()
@@ -47,24 +47,16 @@ function assertThrows(message, callback) {
   return f
 }
 
-function assertCompletes(observable) {
+window.assertCompletes = function assertCompletes(observable) {
   const f = done => observable().subscribe(doneObserver(done))
   f.toString = () => `assertCompletes(\n(${observable}\n)`
   return f
 }
 
-function assertErrors(observable) {
+window.assertErrors = function assertErrors(observable) {
   const f = done => observable().subscribe(doneErrorObserver(done))
   f.toString = () => observable.toString()
   return f
-}
-
-function buildError(expected, obtained) {
-  return `Expected ${JSON.stringify(expected)} \n to equal ${JSON.stringify(obtained)}`
-}
-
-function observe(query, events) {
-  return new Observer(query, events);
 }
 
 // Useful for asynchronously interleaving server actions with a
@@ -76,21 +68,23 @@ function observe(query, events) {
 // changefeed is automatically limited to the length of the expected
 // array. Accepts a `debug` argument that receives every element in
 // the changefeed
-function observableInterleave(options) {
+window.observableInterleave = function observableInterleave(options) {
   const query = options.query
   const operations = options.operations
   const expected = options.expected
   const equality = options.equality || assert.deepEqual
   const debug = options.debug || (() => {})
+  const values = []
   return query
     .take(expected.length)
     .do(debug)
     .flatMap((val, i) => {
+      values.push(val)
       if (i < operations.length) {
         return operations[i].ignoreElements()
       } else {
         return Rx.Observable.empty()
       }
     })
-    .sequenceEqual(expected, equality)
+    .do(null, null, () => equality(values, expected))
 }
