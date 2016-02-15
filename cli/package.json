@@ -1,0 +1,27 @@
+{
+  "name": "horizon",
+  "version": "0.2.3",
+  "description": "An open-source developer platform for building realtime, scalable web apps.",
+  "main": "src/main.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rethinkdb/horizon.git"
+  },
+  "author": "RethinkDB",
+  "license": "MIT",
+  "bin": {
+    "hz": "src/main.js"
+  },
+  "bugs": {
+    "url": "https://github.com/rethinkdb/horizon/issues"
+  },
+  "homepage": "https://github.com/rethinkdb/horizon#readme",
+  "dependencies": {
+    "argparse": "^1.0.3",
+    "horizon-client": "^0.0.2-1",
+    "horizon-server": "^0.0.3"
+  },
+  "devDependencies": {
+  },
+  "preferGlobal": true
+}

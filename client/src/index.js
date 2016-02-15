@@ -10,10 +10,14 @@ const { subscribeOrObservable } = require('./utility.js')
 
 module.exports = Horizon
 
-function Horizon(host, { secure = true,
-                        path = 'horizon',
-                        lazyWrites = false,
-                       } = {}) {
+
+const loc = window.location
+
+function Horizon(host = `${loc.hostname}:${loc.port}`, {
+  secure = loc.protocol === 'https:',
+  path = 'horizon',
+  lazyWrites = false,
+} = {}) {
   // Websocket Subject
   const socket = new HorizonSocket(host, secure, path)
 

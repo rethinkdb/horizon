@@ -6,7 +6,7 @@ const horizon = require('../server');
 
 // We could make this a module, but we already require the server to be configured,
 // so reuse its argparse module
-const argparse = require('../server/node_modules/argparse');
+const argparse = require('../cli/node_modules/argparse');
 
 const assert = require('assert');
 const child_process = require('child_process');

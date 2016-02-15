@@ -38,7 +38,6 @@
   },
   "homepage": "https://github.com/rethinkdb/horizon",
   "files": [
-    "dist/horizon.js",
-    "dist/horizon.js.map"
+    "dist"
   ]
 }
