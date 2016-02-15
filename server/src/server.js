@@ -73,7 +73,6 @@ class Server {
                                          opts.auto_create_index,
                                          this._clients);
     this._auth = new Auth(this, opts.auth);
-
     for (let key of Object.keys(endpoints)) {
       this.add_request_handler(key, endpoints[key].make_reql, endpoints[key].handle_response);
     }
