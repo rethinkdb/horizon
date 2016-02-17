@@ -1,6 +1,5 @@
 'use strict';
 
-const utils = require('./utils');
 const fusion = require('../');
 
 const assert = require('assert');
@@ -12,7 +11,7 @@ const https = require('https');
 const all_tests = () => {
   [ 'http', 'https' ].forEach((transport) => {
     describe(transport, () => {
-      let http_server, fusion_server, key_file, cert_file;
+      let http_server, key_file, cert_file;
 
       before('Generate key and cert', (done) => {
         if (transport === 'http') { done(); return; }
@@ -51,7 +50,7 @@ const all_tests = () => {
                                                four_o_four);
         }
 
-        fusion_server = fusion(http_server);
+        fusion(http_server);
 
         http_server.listen(0, done);
       });
@@ -65,7 +64,7 @@ const all_tests = () => {
                                  port: http_server.address().port,
                                  path: '/fusion/fusion.js',
                                  rejectUnauthorized: false }, (res) => {
-          const code = fs.readFileSync('./node_modules/fusion-client/dist/fusion.js');
+          const code = fs.readFileSync('./node_modules/horizon-client/dist/fusion.js');
           let buffer = '';
           assert.strictEqual(res.statusCode, 200);
           res.on('data', (delta) => buffer += delta);

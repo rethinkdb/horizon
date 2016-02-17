@@ -90,21 +90,21 @@ const start_rdb_server = (options, done) => {
   };
 
   each_line_in_pipe(proc.stdout, (line) => {
-      logger.info(`rethinkdb stdout: ${line}`);
-      if (rdb_port === undefined) {
-        const matches = line.match(/^Listening for client driver connections on port (\d+)$/);
-        if (matches !== null && matches.length === 2) {
-          rdb_port = parseInt(matches[1]);
-          maybe_start_rdb_connection();
-        }
+    logger.info(`rethinkdb stdout: ${line}`);
+    if (rdb_port === undefined) {
+      const matches = line.match(/^Listening for client driver connections on port (\d+)$/);
+      if (matches !== null && matches.length === 2) {
+        rdb_port = parseInt(matches[1]);
+        maybe_start_rdb_connection();
       }
-      if (rdb_http_port === undefined) {
-        const matches = line.match(/^Listening for administrative HTTP connections on port (\d+)$/);
-        if (matches !== null && matches.length === 2) {
-          rdb_http_port = parseInt(matches[1]);
-          maybe_start_rdb_connection();
-        }
+    }
+    if (rdb_http_port === undefined) {
+      const matches = line.match(/^Listening for administrative HTTP connections on port (\d+)$/);
+      if (matches !== null && matches.length === 2) {
+        rdb_http_port = parseInt(matches[1]);
+        maybe_start_rdb_connection();
       }
+    }
   });
 
   each_line_in_pipe(proc.stderr, (line) => logger.info(`rethinkdb stderr: ${line}`));
@@ -118,14 +118,18 @@ const create_table = (table, done) => {
                            fusion.protocol, { rejectUnauthorized: false })
     .once('error', (err) => assert.ifError(err))
     .on('open', () => {
-      conn.send(JSON.stringify({ request_id: 0 })); // Authenticate
-      conn.once('message', () => {
-        // This 'query' should auto-create the table if it's missing
+      conn.send(JSON.stringify({ request_id: 123, method: 'unauthenticated' }));
+      conn.once('message', (data) => {
+        const response = JSON.parse(data);
+        assert.deepStrictEqual(response, { request_id: 123, token: response.token });
+
+        // This query should auto-create the table if it's missing
         conn.send(JSON.stringify({
           request_id: 0,
           type: 'query',
           options: { collection: table, limit: 0 },
         }));
+
         conn.once('message', () => {
           conn.close();
           done();
@@ -162,7 +166,14 @@ const start_fusion_server = (done) => {
   http_server.listen(0, () => {
     fusion_port = http_server.address().port;
     fusion_server = new fusion.Server(http_server,
-      { rdb_port, db, auto_create_table: true, auto_create_index: true });
+      { rdb_port,
+        db,
+        auto_create_table: true,
+        auto_create_index: true,
+        auth: {
+          allow_unauthenticated: true,
+        },
+      });
     fusion_server.ready().then(done);
   });
   http_server.on('error', (err) => done(err));
@@ -227,8 +238,8 @@ const fusion_auth = (req, cb) => {
 };
 
 const fusion_default_auth = (done) => {
-  fusion_auth({ request_id: -1 }, (res) => {
-    assert.deepEqual(res, { request_id: -1, user_id: 0 });
+  fusion_auth({ request_id: -1, method: 'unauthenticated' }, (res) => {
+    assert.deepStrictEqual(res, { request_id: -1, token: res.token });
     done();
   });
 };
