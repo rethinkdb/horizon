@@ -64,6 +64,7 @@ const make_nonce = (cb) => crypto.randomBytes(64, (err, res) => {
   }
 });
 
+// TODO: this base64 encoding isn't URL-friendly
 const nonce_to_state = (nonce) => crypto.createHash('sha256').update(nonce, 'base64').digest('base64');
 
 const set_nonce = (res, name, nonce) =>
