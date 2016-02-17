@@ -1,7 +1,7 @@
 'use strict';
 
 const logger = require('../logger');
-const oauth = require('./oauth');
+const auth_utils = require('./utils');
 
 const https = require('https');
 const Joi = require('joi');
@@ -25,7 +25,7 @@ const add = (fusion, raw_options) => {
   oauth_options.make_acquire_url = (state, redirect_uri) =>
     url.format({ protocol: 'https',
                  host: 'api.twitch.tv',
-                 pathname: 'kraken/oauth2/authorize',
+                 pathname: '/kraken/oauth2/authorize',
                  query: { client_id, redirect_uri, state, response_type: 'code', scope: 'user_read' } });
 
   oauth_options.make_token_request = (code, redirect_uri) => {
@@ -47,7 +47,7 @@ const add = (fusion, raw_options) => {
 
   oauth_options.extract_id = (user_info) => user_info && user_info._id;
 
-  oauth(oauth_options);
+  auth_utils.oauth2(oauth_options);
 };
 
 module.exports = add;

@@ -5,9 +5,7 @@ const logger = require('../logger');
 const cookie = require('cookie');
 const crypto = require('crypto');
 const extend = require('util')._extend;
-const https = require('https');
 const Joi = require('joi');
-const querystring = require('querystring');
 const url = require('url');
 
 const do_redirect = (res, redirect_url) => {
@@ -79,10 +77,9 @@ const clear_nonce = (res, name) =>
                                  { maxAge: -1, secure: true, httpOnly: true }));
 
 const get_nonce = (req, name) => {
-  const cookies = req.headers['cookie'];
   const field = nonce_cookie(name);
-  if (cookies) {
-    const value = cookie.parse(cookies);
+  if (req.headers.cookie) {
+    const value = cookie.parse(req.headers.cookie);
     return value[field];
   }
 };
@@ -96,7 +93,8 @@ const options_schema = Joi.object({
   extract_id: Joi.func().arity(1).required(), // take `user_info`, return value
 }).unknown(false);
 
-const add_oauth_provider = (raw_options) => {
+// Attaches an endpoint to the fusion server, providing an oauth2 redirect flow
+const oauth2 = (raw_options) => {
   const options = Joi.attempt(raw_options, options_schema);
 
   const fusion = options.fusion;
@@ -158,8 +156,8 @@ const add_oauth_provider = (raw_options) => {
           } else {
             // We have the user access token, get info on it so we can find the user
             run_request(make_inspect_request(access_token), (err2, inner_body) => {
-              const inner_info = try_json_parse(inner_body);
-              const user_id = inner_info && extract_id(inner_info);
+              const user_info = try_json_parse(inner_body);
+              const user_id = user_info && extract_id(user_info);
 
               if (err2) {
                 logger.error(`Error contacting oauth API: ${err2}`);
@@ -186,5 +184,10 @@ const add_oauth_provider = (raw_options) => {
   });
 };
 
-module.exports = add_oauth_provider;
-module.exports.run_request = run_request;
+module.exports = {
+  oauth2,
+  do_redirect, run_request,
+  make_nonce, set_nonce, get_nonce, clear_nonce, nonce_to_state,
+  extend_url_query,
+  try_json_parse,
+};

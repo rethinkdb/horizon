@@ -1,7 +1,7 @@
 'use strict';
 
 const logger = require('../logger');
-const oauth = require('./oauth');
+const auth_utils = require('./utils');
 
 const https = require('https');
 const Joi = require('joi');
@@ -32,20 +32,19 @@ const add = (fusion, raw_options) => {
     const query_params = querystring.stringify({
       code, client_id, client_secret, redirect_uri,
       grant_type: 'authorization_code' });
-    return https.request({ method: 'POST',
-                           host: 'www.googleapis.com',
-                           path: `/oauth2/v4/token?${query_params}` });
+    const path = `/oauth2/v4/token?${query_params}`;
+    return https.request({ method: 'POST', host: 'www.googleapis.com', path });
   };
 
   oauth_options.make_inspect_request = (access_token) => {
     logger.debug(`using access token: ${access_token}`);
-    return https.request({ host: 'www.googleapis.com',
-                    path: `/oauth2/v1/userinfo?${querystring.stringify({ access_token })}`});
+    const path = `/oauth2/v1/userinfo?${querystring.stringify({ access_token })}`;
+    return https.request({ host: 'www.googleapis.com', path });
   };
 
   oauth_options.extract_id = (user_info) => user_info && user_info.id;
 
-  oauth(oauth_options);
+  auth_utils.oauth2(oauth_options);
 };
 
 module.exports = add;

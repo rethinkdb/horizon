@@ -1,6 +1,6 @@
 'use strict';
 
-const oauth = require('./oauth');
+const auth_utils = require('./utils');
 
 const https = require('https');
 const Joi = require('joi');
@@ -31,9 +31,9 @@ const add = (fusion, raw_options) => {
     const req = https.request({ method: 'POST',
                                 host: 'github.com',
                                 path: '/login/oauth/access_token',
-                                headers: { 'accept': 'application/json' } });
+                                headers: { accept: 'application/json' } });
 
-    req.write(querystring.stringify({ code, client_id, client_secret }));
+    req.write(querystring.stringify({ code, client_id, client_secret, redirect_uri }));
 
     return req;
   };
@@ -45,7 +45,7 @@ const add = (fusion, raw_options) => {
 
   oauth_options.extract_id = (user_info) => user_info && user_info.id;
 
-  oauth(oauth_options);
+  auth_utils.oauth2(oauth_options);
 };
 
 module.exports = add;

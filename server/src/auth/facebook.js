@@ -1,7 +1,7 @@
 'use strict';
 
 const logger = require('../logger');
-const oauth = require('./oauth');
+const auth_utils = require('./utils');
 
 const https = require('https');
 const Joi = require('joi');
@@ -29,9 +29,9 @@ const add = (fusion, raw_options) => {
                    host: 'graph.facebook.com',
                    pathname: '/oauth/access_token',
                    query: { client_id, client_secret, grant_type: 'client_credentials' } }));
-  }
+  };
 
-  oauth.run_request(make_app_token_request(), (err, body) => {
+  auth_utils.run_request(make_app_token_request(), (err, body) => {
     const parsed = body && querystring.parse(body);
     app_token = parsed && parsed.access_token;
 
@@ -69,7 +69,7 @@ const add = (fusion, raw_options) => {
   oauth_options.extract_id = (user_info) =>
     user_info && user_info.data && user_info.data.user_id;
 
-  oauth(oauth_options);
+  auth_utils.oauth2(oauth_options);
 };
 
 module.exports = add;
