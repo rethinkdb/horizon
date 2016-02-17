@@ -8,7 +8,7 @@
   <div id="app" class="container">
     <div class="row">
       <ul>
-        <li v-for="message in limitedMessages" transition="expand" class="message">
+        <li v-for="message in messages" transition="expand" class="message">
           <img height="50px" width="50px" :src="message.url">
           <span class="text">
             {{ message.text }}
@@ -21,7 +21,10 @@
       </ul>
     </div>
     <div id="input" class="row">
-      <input class="u-full-width" v-model="newMessage" v-on:keyup.enter="addMessage"></input>
+      <input class="u-full-width"
+             v-model="newMessage"
+             v-on:keyup.enter="addMessage"
+             autofocus="true"></input>
     </div>
   </div>
   <script src="http://cdnjs.cloudflare.com/ajax/libs/vue/1.0.4/vue.min.js"></script>

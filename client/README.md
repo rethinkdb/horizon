@@ -59,97 +59,81 @@ Now, `chat` is a Fusion collection of documents. You can perform a variety of op
 
 ```javascript
 
-let chats = [];
+let chats = []
 
 // Retrieve all messages from the server
 const retrieveMessages = () => {
-  chat.order("datetime").value()
+  chat.order('datetime')
+  // fetch all results as an array, rather than one at a time
+  .fetch({ asCursor: false })
   // Retrieval successful, update our model
-  .then((result) => {
-    chats = chats.concat(result);
-  })
-  // Error occurred
-  .catch((error) => {
-    console.log(error);
-  });
+  .subscribe(newChats => {
+    chats = chats.concat(newChats)
+  },
+  // Error handler
+  error => console.log(error),
+  // onCompleted handler
+  () => console.log('All results received!')
+  )
 }
 
 // Retrieve an single item by id
-const retrieveMessage = (id) => {
-  chat.find(id).value()
+const retrieveMessage = id => {
+  chat.find(id).fetch()
     // Retrieval successful
-    .then((result) => {
+    .subscribe(result => {
       chats.push(result);
-    })
+    },
     // Error occurred
-    .catch((error) => {
-      console.log(error);
-    });
+    error => console.log(error))
 }
 
 // Store new item
 const storeMessage = (message) => {
    chat.store(message)
-    // Returns id of saved objects
-    .then((result) => console.log(result))
-    // Returns server error message
-    .catch((error) => console.log(error));
+    .forEach( // forEach is an alias of .subscribe
+      // Returns id of saved objects
+      result => console.log(result),
+      // Returns server error message
+      error => console.log(error)
+    )
 }
 
 // Replace item that has equal `id` field
 //  or insert if it doesn't exist.
-const updateMessage = (message) => {
-  chat.replace(message);
+const updateMessage = message => {
+  chat.replace(message)
 }
 
 // Remove item from collection
-const deleteMessage = (message) =>{
-  chat.remove(message);
+const deleteMessage = message => {
+  chat.remove(message)
 }
 ```
 
-And lastly, the `.subscribe(...)` method exposes all the changefeeds awesomeness you could want from RethinkDB. Using just `chat.subscribe`, any events on any of the documents in the collection will be pushed to you where you can specify functions to handle these changes. You can also `.subscribe` to changes on a query or a single document.
+And lastly, the `.watch` method exposes all the changefeeds awesomeness you could want from RethinkDB. Using just `chat.watch()`, and the updated results will be pushed to you any time they change on the server. You can also `.watch` changes on a query or a single document.
 
-**Note:** By default, upon connecting to a changefeed you will receive all the results of that query through the `onAdded` function.
 
 ```javascript
-let chats = [];
 
-chats.subscribe({
-  // Initially returns all results from query
-  onAdded: (newMessage) => {
-    chats.push(newMessage);
-  },
-
-  // Triggers on document modifications, receive old version and new version of document
-  onChanged: (newMessage, oldMessage) => {  
-    chats = chats.map((message) => {
-      if (message.id === newMessage.id){
-        return newMessage;
-      } else {
-        return message;
-      }
-    });
-  },
-
-  // Triggers when item is deleted
-  onRemoved: (deletedMessage) => {
-    chats = chats.map((message) => {
-      if (message.id !== deletedMessage.id){
-          return message
-      }
-    });  
+chats.watch().forEach(chats => {
+  // Each time through it will returns all results of your query
+    renderChats(allChats)
   },
 
   // When error occurs on server
-  onError: (error) => console.log(error),
+  error => console.log(error),
+)
+```
 
+You can also get notifications when the client connects and disconnects from the server
+
+``` js
   // Triggers when client successfully connects to server
-  onConnected: () => console.log("Connected to Fusion Server"),
+  fusion.onConnected().subscribe(() => console.log("Connected to Fusion Server"))
 
   // Triggers when disconnected from server
-  onDisconnected: () => console.log("Disconnected from Fusion Server")
-})
+  fusion.onDisconnected().subscribe(() => console.log("Disconnected from Fusion Server"))
 ```
 
 ### API
@@ -163,10 +147,10 @@ If Fusion server has been started with `--unsecure` then you will need to connec
 ###### Example
 
 ```javascript
-const Fusion = require("fusion");
-const fusion = new Fusion("localhost:8181");
+const Fusion = require("fusion")
+const fusion = Fusion("localhost:8181")
 
-const unsecure_fusion = new Fusion("localhost:8181", { unsecure: true});
+const unsecure_fusion = Fusion('localhost:8181', { unsecure: true })
 ```
 
 #### Collection
@@ -176,11 +160,11 @@ Object which represents a collection of documents on which queries can be perfor
 ###### Example
 ```javascript
 // Setup connection the Fusion server
-const Fusion = require("fusion");
-const fusion = new Fusion("localhost:8181");
+const Fusion = require("fusion")
+const fusion = Fusion("localhost:8181")
 
 // Create fusion collection
-const messages = fusion("messages");
+const messages = fusion('messages')
 ```
 
 ##### above(*limit integer* || *{key: value}*, *closed string*)
@@ -416,48 +400,76 @@ chat.find(1).value().then((message) => {
 
 ```
 
-##### subscribe([*{callback map}*])
+##### watch({ rawChanges: false })
 
-Subscription method which returns a subscription object where one can define functions for the appropriate callbacks.
+Turns the query into a changefeed query, returning an observable that receives a live-updating view of the results every time they change.
+
+If you pass `rawChanges: true`, instead of
 
 ###### Example
 
-```javascript
-chat.subscribe()
+This query will get all chats in an array every time a chat is added,
+removed or deleted.
 
-chat.onAdded = (newMessage) => {
-  console.log(newMessage);
-}
+```js
+fusion('chats').watch().forEach(allChats => {
+  console.log('Chats: ', allChats)
+})
 
-// OR
-
-chat.subscribe({
-  onAdded: (newMessage) => {},
-  onChanged: (change) => {
-    // Change has both `new_val` and `old_val` keys
-    console.log(change.new_val);
-    console.log(change.old_val);
-  },
-  onRemoved: (deletedMessage) =>  {},
-  onError: (error) => {},
-  onConnected: () => {},
-  onDisconnected: () => {}
-});
-
+// Sample output
+Chats: []
+Chats: [{ id: 1, chat: 'Hey there' }]
+Chats: [{ id: 1, chat: 'Hey there' }, {id: 2, chat: 'Ho there' }]
+Chats: [{ id: 2, chat: 'Ho there' }]
 ```
 
-##### value()
+Alternately, you can provide the `rawChanges: true` option to receive change documents from the server directly, instead of having the client maintain the array of results for you.
 
-Finishes a query and results in a Promise.
+``` js
+fusion('chats').watch({ rawChanges: true }).forEach(change => {
+  console.log('Chats changed:', change)
+})
+
+// Sample output
+Chat changed: { type: 'state', state: 'synced' }
+Chat changed: { type: 'added', new_val: { id: 1, chat: 'Hey there' }, old_val: null }
+Chat changed: { type: 'added', new_val: { id: 2, chat: 'Ho there' }, old_val: null }
+Chat changed: { type: 'removed', new_val: null, old_val: { id: 1, chat: 'Hey there' } }
+```
+
+##### fetch({ asCursor: true })
+
+Queries for the results of a query currently, without updating results when they change
 
 ##### Example
 
 ```javascript
 
 // Returns the entire contents of the collection
-chat.value().then((result) => {
-  // Array of all documents in the collection
-  console.log(result)
-})
+fusion('chats').fetch().subscribe(
+  result => console.log('Result:', result),
+  err => console.error(err),
+  () => console.log('Results fetched, query done!')
+)
 
+// Sample output
+Result: { id: 1, chat: 'Hey there' }
+Result: { id: 2, chat: 'Ho there' }
+Results fetched, query done!
 ```
+
+If you pass `asCursor: false`, you will get the entire result set at once as an array.
+
+``` js
+fusion('chats').fetch({ asCursor: false }).subscribe(
+  results => console.log('Results: ', result),
+  err => console.error(err),
+  () => console.log('Results fetched, query done!')
+)
+
+// Sample output
+Results: [ { id: 1, chat: 'Hey there' }, { id: 2, chat: 'Ho there' } ]
+Results fetched, query done!
+```
+
+Doing `.fetch({ asCursor: false })` is basically equivalent to `.fetch().toArray()`, but it can be less verbose in cases where you want a `fetch()` query to work similarly to a `.watch()` query.

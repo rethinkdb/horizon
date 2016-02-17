@@ -1,144 +1,113 @@
-findAllSuite = (getData) => {
-  return () => {
-
-  var data;
+'use strict'
+const findAllSuite = getData => () => {
+  let data
 
   before(() => {
-    data = getData();
-  });
+    data = getData()
+  })
 
   // Let's grab a specific document using `findAll`
-  it("#.findAll(id)", (done) => {
-    data.findAll(1).value().then((res) => {
-      assert.deepEqual([{ id: 1, a: 10 }], res);
-      done();
-    }).catch(done);
-  });
+  it('looks up documents by id when given a non-object', assertCompletes(() =>
+    data.findAll(1).fetch({ asCursor: false })
+      .do(res => assert.deepEqual(res, [ { id: 1, a: 10 } ]))
+  ))
 
   // This is equivalent to searching by field `id`
-  it("#.findAll(id: X)", (done) => {
-    data.findAll({ id: 1 }).value().then((res) => {
-      assert.deepEqual([{ id: 1, a: 10 }], res);
-      done();
-    }).catch(done);
-  });
+  it('looks up documents when the id field is given explicitly', assertCompletes(() =>
+    data.findAll({ id: 1 }).fetch({ asCursor: false })
+      .do(res => assert.deepEqual(res, [ { id: 1, a: 10 } ]))
+  ))
 
   // `findAll` returns `[]` if a document doesn't exist.
-  it("#.findAll(missing)", (done) => {
-    data.findAll('abracadabra').value().then((res) => {
-      assert.deepEqual([], res);
-      done();
-    }).catch(done);
-  });
+  it('returns nothing if no documents match', assertCompletes(() =>
+    data.findAll('abracadabra').fetch({ asCursor: false })
+      .do(res => assert.deepEqual(res, []))
+  ))
 
   // We can also `findAll` by a different (indexed!) field.
-  it("#.findAll(field)", (done) => {
-    data.findAll({ a: 10 }).value().then((res) => {
-      assert.deepEqual([{ id: 1, a: 10 }], res);
-      done();
-    }).catch(done);
-  });
+  it('returns objects matching non-primary fields', assertCompletes(() =>
+    data.findAll({ a: 10 }).fetch({ asCursor: false })
+      .do(res => assert.deepEqual(res, [{ id: 1, a: 10 } ]))
+  ))
 
   // Let's try this again for a value that doesn't exist.
-  it("#.findAll(field_no_value)", (done) => {
-    data.findAll({ a: 100 }).value().then((res) => {
-      assert.deepEqual([], res);
-      done();
-    }).catch(done);
-  });
+  it('returns nothing if no documents match the criteria', assertCompletes(() =>
+    data.findAll({ a: 100 }).fetch({ asCursor: false })
+      .do(res => assert.deepEqual(res, []))
+  ))
 
   // Let's try this again for a field that doesn't exist.
-  it("#.findAll(field_no_field)", (done) => {
-    data.findAll({ field: 'a' }).value().then((res) => {
-      assert.deepEqual([], res);
-      done();
-    }).catch(done);
-  });
+  it(`returns nothing if the field provided doesn't exist`, assertCompletes(() =>
+    data.findAll({ field: 'a' }).fetch({ asCursor: false })
+      .do(res => assert.deepEqual(res, []))
+  ))
 
   // Let's try this again, now with multiple results.
-  it("#.findAll(field_many_values)", (done) => {
-    data.findAll({ a: 20 }).value().then((res) => {
+  it('returns multiple values when several documents match', assertCompletes(() =>
+    data.findAll({ a: 20 }).fetch({ asCursor: false })
       // There are three docs where `a == 20`
-      assert.sameDeepMembers([{ id: 2, a: 20, b: 1 },
-                              { id: 3, a: 20, b: 2 },
-                              { id: 4, a: 20, b: 3 }],
-                             res);
-      done();
-    }).catch(done);
-  });
+      .do(res => assert.sameDeepMembers(res, [
+        { id: 2, a: 20, b: 1 },
+        { id: 3, a: 20, b: 2 },
+        { id: 4, a: 20, b: 3 },
+      ]))
+  ))
 
   // Looking for `null` is an error since secondary index values cannot be
   // `null` in RethinkDB.
-  it("#.findAll(null)", (done) => {
-    try {
-      data.findAll(null).value();
-    } catch(err) { done(); }
-  });
-
-  // Looking for an empty object is also an error
-  it("#.findAll({})", (done) => {
-    data.findAll({}).value().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    }).catch(done);
-  });
+  it('throws an error when null is passed', assertThrows(
+    'The 1st argument to findAll must be non-null',
+    () => data.findAll(null).fetch()
+  ))
 
   // No args is ok, because people will be using `apply`
-  it("#.findAll(undefined)", (done) => {
-    try {
-      data.findAll().value();
-    } catch(err) { done(); }
-  });
+  it('throws an error when passed no arguments', assertThrows(
+    'findAll must receive at least 1 argument.',
+    () => data.findAll().fetch()
+  ))
+
+  // Looking for an empty object is also an error
+  it('errors when an empty object is passed', assertErrors(() =>
+    data.findAll({}).fetch()
+  ))
 
   // `findAll` lets us look for multiple documents. Let's try it on a primary
   // key.
-  it("#.findAll(a, {id: b}, missing)", (done) => {
-    data.findAll(1, { id: 2 }, 20).value().then((res) => {
-      // There are three docs where `a == 20`
-      assert.sameDeepMembers([{ id: 1, a: 10 },
-                              { id: 2, a: 20, b: 1 }],
-                             res);
-      done();
-    }).catch(done);
-  });
+  it('can be passed multiple documents to look for', assertCompletes(() =>
+    data.findAll(1, { id: 2 }, 20).fetch({ asCursor: false })
+      // There are two docs where `a == 20`
+      .do(res => assert.sameDeepMembers(res, [
+        { id: 1, a: 10 },
+        { id: 2, a: 20, b: 1 },
+      ]))
+  ))
 
   // Let's try a mix of primary and secondary keys, with some missing
-  it("#.findAll({a: X}, {a: missing}, id, {id:missing})", (done) => {
-    data.findAll({ a: 20 }, { id: 200 }, 1, { a: 200 }).value().then((res) => {
+  it('can locate a mix of primary and secondary keys', assertCompletes(() =>
+    data.findAll({ a: 20 }, { id: 200 }, 1, { a: 200 }).fetch({ asCursor: false })
       // There are three docs where `a == 20`
-      assert.sameDeepMembers([{ id: 1, a: 10 },
-                              { id: 2, a: 20, b: 1 },
-                              { id: 3, a: 20, b: 2 },
-                              { id: 4, a: 20, b: 3 }],
-                             res);
-      done();
-    }).catch(done);
-  });
+      .do(res => assert.sameDeepMembers(res, [
+        { id: 1, a: 10 },
+        { id: 2, a: 20, b: 1 },
+        { id: 3, a: 20, b: 2 },
+        { id: 4, a: 20, b: 3 },
+      ]))
+  ))
 
   // Let's try when everything is missing
-  it("#.findAll({missing: id}, {a:missing}, missing)", (done) => {
-    data.findAll({ field: 1 }, 200, { a: 200 }).value().then((res) => {
-      assert.deepEqual([], res);
-      done();
-    }).catch(done);
-  });
+  it('returns nothing when nothing matches', assertCompletes(() =>
+    data.findAll({ field: 1 }, 200, { a: 200 }).fetch()
+      .do(() => assert.fail())
+  ))
 
   // When one thing fails, everything fails.
-  it("#.findAll(a, null, c)", (done) => {
-    try {
-      data.findAll(1, null, 2).value();
-    } catch(err) { done(); }
-  });
+  it('throws an error if any argument is null', assertThrows(
+    'The 2nd argument to findAll must be non-null',
+    () => data.findAll(1, null, 2).fetch()
+  ))
 
   // Let's try it again with an empty object.
-  it("#.findAll(a, {}, {c:x})", (done) => {
-    data.findAll(1, {}, { a: 20 }).value().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    }).catch(done);
-  });
-
-  } // Testing `findAll`
-}
+  it('errors if any argument passed is an empty object', assertErrors(() =>
+    data.findAll(1, {}, { a: 20 }).fetch()
+  ))
+} // Testing `findAll`

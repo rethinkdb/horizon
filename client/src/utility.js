@@ -1,8 +1,5 @@
 'use strict'
 
-require('babel-polyfill')
-
-
 // Checks whether the return value is a valid primary or secondary
 // index value
 function validIndexValue(val) {
@@ -22,18 +19,9 @@ function validIndexValue(val) {
   return false
 }
 
-// Helper method for terms that merges new fields into an existing
-// object, throwing an exception if a field is merged in that already
-// exists
-function strictAssign(original, newFields) {
-  Object.keys(newFields).forEach(key => {
-    if (key in original) {
-      throw new Error(`${key} is already defined.`)
-    }
-  })
-  return Object.assign({}, original, newFields)
+function assign(...args) {
+  return Object.assign({}, ...args)
 }
-
 
 function ordinal(x) {
   if ([ 11, 12, 13 ].indexOf(x) !== -1) {
@@ -48,33 +36,26 @@ function ordinal(x) {
   return `${x}th`
 }
 
-// setTimeout(0) in the browser has 5ms clamping. Promise.resolve()
-// will be scheduled immediately after the currently executing task (a
-// microtask)
-function setImmediate(callback) {
-  return Promise.resolve().then(callback)
-}
-
 // Validation helper
 function checkArgs(name, args, {
                     nullable: nullable = false,
                     minArgs: minArgs = 1,
                     maxArgs: maxArgs = 1 } = {}) {
   if (minArgs === maxArgs && args.length !== minArgs) {
-    let plural = minArgs === 1 ? '' : 's'
+    const plural = minArgs === 1 ? '' : 's'
     throw new Error(`${name} must receive exactly ${minArgs} argument${plural}`)
   }
   if (args.length < minArgs) {
-    let plural = minArgs === 1 ? '' : 's'
+    const plural = minArgs === 1 ? '' : 's'
     throw new Error(`${name} must receive at least ${minArgs} argument${plural}.`)
   }
   if (args.length > maxArgs) {
-    let plural = maxArgs === 1 ? '' : 's'
+    const plural = maxArgs === 1 ? '' : 's'
     throw new Error(`${name} accepts at most ${maxArgs} argument${plural}.`)
   }
   for (let i = 0; i < args.length; i++) {
     if (!nullable && args[i] === null) {
-      let ordinality = maxArgs !== 1 ? ` ${ordinal(i + 1)}` : ''
+      const ordinality = maxArgs !== 1 ? ` ${ordinal(i + 1)}` : ''
       throw new Error(`The${ordinality} argument to ${name} must be non-null`)
     }
     if (args[i] === undefined) {
@@ -83,11 +64,21 @@ function checkArgs(name, args, {
   }
 }
 
+function subscribeOrObservable(observable) {
+  return (...args) => {
+    if (args.length > 0) {
+      return observable.subscribe(...args)
+    } else {
+      return observable
+    }
+  }
+}
+
 
 Object.assign(module.exports, {
   validIndexValue,
-  strictAssign,
+  assign,
   ordinal,
-  setImmediate,
   checkArgs,
+  subscribeOrObservable,
 })

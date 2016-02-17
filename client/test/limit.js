@@ -1,85 +1,75 @@
-limitSuite = (getData) => {
-  return () => {
-
-  var data;
+'use strict'
+const limitSuite = getData => () => {
+  let data
 
   before(() => {
-    data = getData();
-  });
+    data = getData()
+  })
 
   // Limit returns an array of documents
-  it("#.order(id).limit(2)", (done) => {
-    data.order('id').limit(2).value().then((res) => {
-      assert.deepEqual([{ id: 1, a: 10 },
-                        { id: 2, a: 20, b: 1 }], res);
-      done();
-    }).catch(done);
-  });
+  it('can return an array of documents', assertCompletes(() =>
+    data.order('id').limit(2).fetch({ asCursor: false })
+      .do(res => assert.deepEqual(res, [
+        { id: 1, a: 10 },
+        { id: 2, a: 20, b: 1 },
+      ]))
+  ))
 
   // We can chain `limit` off a collection
-  it("#.limit(2)", (done) => {
-    data.limit(2).value().then((res) => {
-      assert.isArray(res);
-      assert.lengthOf(res, 2);
-      done();
-    }).catch(done);
-  });
+  it('can be called on a collection directly', assertCompletes(() =>
+    data.limit(2).fetch({ asCursor: false })
+      .do(res => {
+        assert.isArray(res)
+        assert.lengthOf(res, 2)
+      })
+  ))
 
   // Or off other things
-  it("#.findAll.limit(2)", (done) => {
-    data.findAll({ a: 20 }).limit(2).value().then((res) => {
-      assert.isArray(res);
-      assert.lengthOf(res, 2);
-      done();
-    }).catch(done);
-  });
+  it('can be called on findAll', assertCompletes(() =>
+    data.findAll({ a: 20 }).limit(2).fetch({ asCursor: false })
+      .do(res => {
+        assert.isArray(res)
+        assert.lengthOf(res, 2)
+      })
+  ))
 
   // `limit(0)` is ok
-  it("#.limit(0)", (done) => {
-    data.limit(0).value().then((res) => {
-      assert.deepEqual([], res);
-      done();
-    }).catch(done);
-  });
+  it('can accept an argument of 0', assertCompletes(() =>
+    data.limit(0).fetch({ asCursor: false })
+      .do(res => assert.deepEqual(res, []))
+  ))
 
   // `limit(null)` is an error
-  it("#.limit(null)", (done) => {
-    try {
-      data.limit(null).value();
-    } catch(err) { done(); }
-  });
+  it('throws if it receives null', assertThrows(
+    'The argument to limit must be non-null',
+    () => data.limit(null).fetch()
+  ))
 
   // `limit(-1)` is an error
-  it("#.limit(-1)", (done) => {
-    data.limit(-1).value().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    }).catch(done);
-  });
+  it('errors if it receives a negative argument', assertErrors(() =>
+    data.limit(-1).fetch()
+  ))
 
   // `limit(non_int)` is an error
-  it("#.limit('k')", (done) => {
-    data.limit('k').value().catch((err) => {
-      assert.isDefined(err);
-      assert.isNotNull(err);
-      done();
-    }).catch(done);
-  });
+  it(`errors if the argument to limit isn't a number`, assertErrors(() =>
+    data.limit('k').fetch()
+  ))
 
   // Chaining off of limit is illegal
-  it("#.limit('k').findAll", (done) => {
-    try { data.limit(1).findAll({ id: 1 }).value(); }
-    catch (e) { done(); }
-  });
-  it("#.limit('k').below", (done) => {
-    try { data.limit(1).below({ id: 1 }).value(); }
-    catch (e) { done(); }
-  });
-  it("#.limit('k').order", (done) => {
-    try { data.limit(1).order('id').value(); }
-    catch (e) { done(); }
-  });
-
-  } // Testing `limit`
-}
+  it('throws if findAll is called on it', assertThrows(
+    'findAll cannot be called on the current query',
+    () => data.limit(1).findAll({ id: 1 }).fetch()
+  ))
+  it('throws if below is called on it', assertThrows(
+    'below cannot be called on the current query',
+    () => data.limit(1).below({ id: 1 }).fetch()
+  ))
+  it('throws if above is called on it', assertThrows(
+    'above cannot be called on the current query',
+    () => data.limit(1).above({ id: 1 }).fetch()
+  ))
+  it('throws if order is called on it', assertThrows(
+    'order cannot be called on the current query',
+    () => data.limit(1).order('id').fetch()
+  ))
+} // Testing `limit`
