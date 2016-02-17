@@ -25,6 +25,7 @@
     "horizon-client": "^0.0.2-1",
     "joi": "^7.0.0",
     "jsonwebtoken": "^5.5.4",
+    "oauth": "^0.9.14",
     "pem": "^1.8.1",
     "rethinkdb": "^2.1.1",
     "winston": "^2.1.0",
