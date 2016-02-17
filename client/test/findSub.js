@@ -74,7 +74,6 @@ const findSubscriptionSuite = (getData) => () => {
           { id: 1, a: 2 },
           null,
         ],
-        debug: x => console.log('Getting vals:', x),
       })
     )
   ))

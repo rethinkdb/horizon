@@ -1,4 +1,3 @@
-
 <chat>
   <div class="container">
   <div class="row messages">
@@ -36,24 +35,21 @@
       this.db.store({
           text: this.input.value,
           datetime: new Date(),
-          url: this.avatar.src
+          url: this.avatar.src,
       });
       this.input.value = "";
     }
 
     // Setup changefeed
-    this.db.order("datetime", "descending").limit(8).subscribe({
-      onAdded: (newMessage) => {
-        this.messages.unshift(newMessage);
-        if (this.messages.length > 8){
-          this.messages.pop();
-        }
-        this.update();
-      },
-      onError: (error) => {
-        console.log(error);
-      }
-    })
+    this.db.order("datetime", "descending")
+          .limit(8)
+          .watch()
+          .subscribe(messages => {
+              this.messages = messages;
+              this.update();
+          },
+          error => console.log(error)
+          )
 
     </script>
 
