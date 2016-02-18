@@ -2,7 +2,7 @@
 
 const check = require('./error').check;
 const logger = require('./logger');
-const schemas = require('./schema/fusion_protocol');
+const schemas = require('./schema/horizon_protocol');
 
 const Joi = require('joi');
 const r = require('rethinkdb');

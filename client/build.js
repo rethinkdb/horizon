@@ -14,7 +14,7 @@ program
   .option('-w, --watch', 'Watch directory for changes')
   .option('-U, --no-uglify', `Don't uglify output`)
   .option('-S, --no-sourcemaps', `Don't output sourcemaps`)
-  .option('-g, --expose-global', `Expose Fusion module as a global`)
+  .option('-g, --expose-global', `Expose Horizon module as a global`)
   .parse(process.argv)
 
 compile(program.watch)
@@ -25,17 +25,17 @@ function compile(watching) {
     fs.mkdirSync(BUILD_DIR)
   }
   if (program.sourcemaps) {
-    console.log('Building dist/fusion.js and dist/fusion.js.map')
+    console.log('Building dist/horizon.js and dist/horizon.js.map')
   } else {
-    console.log('Building dist/fusion.js')
+    console.log('Building dist/horizon.js')
   }
   let bundler = browserify({
     cache: {},
     packageCache: {},
     plugin: [ watchify ],
     debug: program.sourcemaps,
-    standalone: program.exposeGlobal ? 'Fusion' : '',
-  }).require('./src/index.js', { expose: 'Fusion' })
+    standalone: program.exposeGlobal ? 'Horizon' : '',
+  }).require('./src/index.js', { expose: 'Horizon' })
     .transform('babelify', {
     // All source files need to be babelified first
       sourceMapRelative: '.', // source maps will be relative to this dir
@@ -74,7 +74,7 @@ function rebundle(bundler) {
       bundler.emit('end')
     })
     // exorcist splits out map to a separate file
-    .pipe(exorcist(`${BUILD_DIR}/fusion.js.map`))
+    .pipe(exorcist(`${BUILD_DIR}/horizon.js.map`))
     // The unmapped remainder is the code itself
-    .pipe(fs.createWriteStream(`${BUILD_DIR}/fusion.js`), 'utf8')
+    .pipe(fs.createWriteStream(`${BUILD_DIR}/horizon.js`), 'utf8')
 }

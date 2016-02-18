@@ -90,7 +90,7 @@ class Table {
     // latency of metadata propagation in the RethinkDB cluster.
     const promise =
       r.uuid(r.expr(fields).toJSON()).do((index_id) =>
-        r.db('fusion_internal').table('collections').get(this.name).update((row) =>
+        r.db('horizon_internal').table('collections').get(this.name).update((row) =>
           ({ indexes: r.object(index_id, fields).merge(row('indexes')) })).do((res) =>
           r.branch(res('replaced').eq(1),
             r.table(this.name).indexCreate(index_id, (row) =>
@@ -149,19 +149,19 @@ class Metadata {
     this._ready = false;
 
     let query =
-      r.db('fusion_internal')
+      r.db('horizon_internal')
        .table('collections')
        .map((row) => ({ name: row('id'), indexes: row('indexes') })).coerceTo('array');
 
     // If we're in dev mode, add additional steps to ensure dbs and tables exist
-    // Note that because of this, it is not safe to run multiple fusion servers in dev mode
+    // Note that because of this, it is not safe to run multiple horizon servers in dev mode
     if (this._auto_create_table) {
-      query = r.expr([ 'fusion', 'fusion_internal' ])
+      query = r.expr([ 'horizon', 'horizon_internal' ])
        .forEach((db) => r.branch(r.dbList().contains(db), [], r.dbCreate(db)))
        .do(() =>
          r.expr([ 'collections', 'users_auth', 'users' ])
-          .forEach((table) => r.branch(r.db('fusion_internal').tableList().contains(table),
-                                       [], r.db('fusion_internal').tableCreate(table)))
+          .forEach((table) => r.branch(r.db('horizon_internal').tableList().contains(table),
+                                       [], r.db('horizon_internal').tableCreate(table)))
           .do(() => query));
     }
 
@@ -222,7 +222,7 @@ class Metadata {
     // a delay before `r.tableWait` below - but the time would depend on the
     // latency of metadata propagation in the RethinkDB cluster.
     const promise =
-      r.db('fusion_internal').table('collections').insert(
+      r.db('horizon_internal').table('collections').insert(
         { id: name, indexes: { id: [ 'id' ] } }).do((res) =>
           r.branch(res('inserted').eq(1),
                    r.tableCreate(name),

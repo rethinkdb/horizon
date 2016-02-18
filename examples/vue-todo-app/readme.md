@@ -1,4 +1,4 @@
-# RethinkDB Fusion TodoMVC example using Vue.js
+# RethinkDB Horizon TodoMVC example using Vue.js
 
 ## Ideas for future
 

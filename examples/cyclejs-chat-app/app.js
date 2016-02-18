@@ -1,7 +1,7 @@
 'use strict'
 
 ;(function() {
-  const Fusion = require('Fusion')
+  const Horizon = require('Horizon')
   const makeDOMDriver = CycleDOM.makeDOMDriver
   const div = CycleDOM.div
   const input = CycleDOM.input
@@ -14,7 +14,7 @@
   // we're interested in, as well as mapping to useful data (so
   // streams of strings, instead of observables of text input events)
   function intent(sources) {
-    const fusionCollection = sources.fusion(sources.config.collectionName)
+    const horizonCollection = sources.horizon(sources.config.collectionName)
     // Every time the enter key is hit in the text box
     const enterHit$ = sources.DOM
             .select('#input')
@@ -27,8 +27,8 @@
             .select('#input')
             .events('input')
             .map(ev => ev.target.value)
-    // all our chats from the fusion server
-    const messages$ = fusionCollection
+    // all our chats from the horizon server
+    const messages$ = horizonCollection
             .order('datetime', 'descending')
             .limit(sources.config.chatLength)
             .watch()
@@ -36,7 +36,7 @@
     // Every time the user hits enter, store the message to the server
     // Note: this is an observable of observables
     const writeOps$$ = enterHit$.map(text =>
-      fusionCollection.store({
+      horizonCollection.store({
         authorId: sources.config.authorId,
         datetime: new Date(),
         text,
@@ -96,8 +96,8 @@
     return {
       // Send the virtual tree to the real DOM
       DOM: view(state$),
-      // Send our messages to the fusion server
-      fusion: intents.writeOps$$,
+      // Send our messages to the horizon server
+      horizon: intents.writeOps$$,
     }
   }
 
@@ -105,8 +105,8 @@
   const drivers = {
     // Link the DOM driver to our app container
     DOM: makeDOMDriver('#app'),
-    // Create a connection to the fusion server
-    fusion: makeFusionDriver(location.host, {
+    // Create a connection to the horizon server
+    horizon: makeHorizonDriver(location.host, {
       secure: location.protocol === 'https:',
     }),
     // App-level configuration options
@@ -123,14 +123,14 @@
   // Run the application
   Cycle.run(main, drivers)
 
-  // Little CycleJS driver for fusion. This will probably be a small
+  // Little CycleJS driver for horizon. This will probably be a small
   // standalone library at some point
-  function makeFusionDriver(host, options) {
-    return function fusionDriver(writeOps$$) {
+  function makeHorizonDriver(host, options) {
+    return function horizonDriver(writeOps$$) {
       // Send outgoing messages
       writeOps$$.switch().subscribe()
       // Return chat observable
-      return Fusion(host, Object.assign({ lazyWrites: true }, options))
+      return Horizon(host, Object.assign({ lazyWrites: true }, options))
     }
   }
 })()

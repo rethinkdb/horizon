@@ -6,10 +6,10 @@ const assert = require('assert');
 const r = require('rethinkdb');
 
 const all_tests = (table) => {
-  beforeEach('Authenticate client', utils.fusion_default_auth);
+  beforeEach('Authenticate client', utils.horizon_default_auth);
 
   it('unparseable', (done) => {
-    const conn = utils.fusion_conn();
+    const conn = utils.horizon_conn();
     conn.removeAllListeners('error');
     conn.send('foobar');
     conn.once('close', (code, msg) => {
@@ -20,7 +20,7 @@ const all_tests = (table) => {
   });
 
   it('no request_id', (done) => {
-    const conn = utils.fusion_conn();
+    const conn = utils.horizon_conn();
     conn.removeAllListeners('error');
     conn.send('{ }');
     conn.once('close', (code, msg) => {
@@ -59,7 +59,7 @@ const all_tests = (table) => {
   // changefeed would have gotten an event.
   // We don't check any results, we're just seeing if the server crashes.
   it('client disconnect during changefeed', (done) => {
-    utils.fusion_conn().send(JSON.stringify(
+    utils.horizon_conn().send(JSON.stringify(
       {
         request_id: 3,
         type: 'subscribe',
@@ -67,11 +67,11 @@ const all_tests = (table) => {
           collection: table,
         },
       }));
-    utils.add_fusion_listener(3, (msg) => {
+    utils.add_horizon_listener(3, (msg) => {
       if (msg.error !== undefined) {
         throw new Error(msg.error);
       } else if (msg.state === 'synced') {
-        utils.close_fusion_conn();
+        utils.close_horizon_conn();
         r.table(table).insert({}).run(utils.rdb_conn())
          .then(() => done());
       }
@@ -82,7 +82,7 @@ const all_tests = (table) => {
   // disconnects.  Close the connection immediately after sending the request.
   // We don't check any results, we're just seeing if the server crashes.
   it('client disconnect during query', (done) => {
-    utils.fusion_conn().send(JSON.stringify(
+    utils.horizon_conn().send(JSON.stringify(
       {
         request_id: 4,
         type: 'query',
@@ -90,7 +90,7 @@ const all_tests = (table) => {
           collection: table,
           field_name: 'id',
         },
-      }), () => (utils.close_fusion_conn(), done()));
+      }), () => (utils.close_horizon_conn(), done()));
   });
 };
 

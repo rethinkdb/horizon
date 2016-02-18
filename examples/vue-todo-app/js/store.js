@@ -3,11 +3,11 @@
 
   'use strict';
 
-  const Fusion = require("Fusion");
-  const fusion = new Fusion(location.host, {
+  const Horizon = require("Horizon");
+  const horizon = new Horizon(location.host, {
     secure: location.protocol == 'https:'
   });
-  const todos = fusion("vuejs_todos");
+  const todos = horizon("vuejs_todos");
 
   exports.todoStorage = {
     todos: todos,

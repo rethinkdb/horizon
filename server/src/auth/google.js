@@ -14,13 +14,13 @@ const options_schema = Joi.object().keys({
   path: Joi.string().required(),
 }).unknown(false);
 
-const add = (fusion, raw_options) => {
+const add = (horizon, raw_options) => {
   const options = Joi.attempt(raw_options, options_schema);
   const client_id = options.client_id;
   const client_secret = options.client_secret;
   const provider = options.path;
 
-  const oauth_options = { fusion, provider };
+  const oauth_options = { horizon, provider };
 
   oauth_options.make_acquire_url = (state, redirect_uri) =>
     url.format({ protocol: 'https',

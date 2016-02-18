@@ -16,8 +16,8 @@ For now let's just leave this a placeholder, since we haven't gotten to authenti
 * `method` designates the type of authentication to be performed.
   * `unauthenticated` performs no further steps and will not associate the connection with any user.
   * `anonymous` will create a new account with no external authentication provider.
-  * `token` will associate the connection with the user in the fusion access token provided.
-* `token` is the fusion access token that the client must already possess.
+  * `token` will associate the connection with the user in the horizon access token provided.
+* `token` is the horizon access token that the client must already possess.
   * This field is required when `method` is `token`, and invalid otherwise.
 
 #### Handshake Response
@@ -27,7 +27,7 @@ For now let's just leave this a placeholder, since we haven't gotten to authenti
   "token": <STRING>
 }
 ```
-* `token` is the fusion access token that is associated with this connection.
+* `token` is the horizon access token that is associated with this connection.
   * This token may be used to establish new connections under the same user account until the token expires.
 
 #### Handshake Error Response
@@ -71,7 +71,7 @@ All requests match the following pattern:
   }
 }
 ```
-* `collection` describes which table to operate on in the fusion database.
+* `collection` describes which table to operate on in the horizon database.
 * `order` orders the results according to an array of fields - optional.
   * The first argument is an array of field names, most-significant first.
   * The second argument determines which direction the results are sorted in.
@@ -99,7 +99,7 @@ All requests match the following pattern:
   }
 }
 ```
-* `collection` describes which table to operate on in the fusion database
+* `collection` describes which table to operate on in the horizon database
 * `data` is the documents to be written (or removed)
   * `data[i].id` is required for `remove` operations, all other fields are optional
   * `data[i].id` may be omitted in an `insert`, `store`, or `upsert` operations: a new row will be inserted in the collection
@@ -112,7 +112,7 @@ All requests match the following pattern:
   * `remove` removes documents. It will not error if a document does not exist
 
 #### end_subscription
-Tells the fusion server to stop sending data for a given subscription.  Data may still be received until the server has processed this and sent a `"state": "complete"` response for the subscription.
+Tells the horizon server to stop sending data for a given subscription.  Data may still be received until the server has processed this and sent a `"state": "complete"` response for the subscription.
 ```
 {
   "request_id": <NUMBER>,
@@ -136,7 +136,7 @@ This can be sent for any request at any time.  Once an error response is sent, n
 * `error_code` is a code that can be used to identify the type of error, values TBD
 
 #### query, subscribe
-`query` and `subscribe` requests will result in a stream of results from the fusion server to the client.  The stream will be an ordered set of messages from the server following the structure below.  If an error occurs, the above Error Response structure will be used, and the stream is considered "complete".  An Error Response may still be sent even after a successful data response, but not after `"state": "complete"`.
+`query` and `subscribe` requests will result in a stream of results from the horizon server to the client.  The stream will be an ordered set of messages from the server following the structure below.  If an error occurs, the above Error Response structure will be used, and the stream is considered "complete".  An Error Response may still be sent even after a successful data response, but not after `"state": "complete"`.
 ```
 {
   "request_id": <NUMBER>,

@@ -37,7 +37,7 @@ const get_app_token = (nonce) => {
   return res && res.token;
 };
 
-const add = (fusion, raw_options) => {
+const add = (horizon, raw_options) => {
   const options = Joi.attempt(raw_options, options_schema);
   const provider = options.path;
   const consumer_key = options.consumer_key;
@@ -53,13 +53,13 @@ const add = (fusion, raw_options) => {
 
   const user_info_url = 'https://api.twitter.com/1.1/account/verify_credentials.json';
 
-  const make_success_url = (fusion_token) =>
-    url.format(auth_utils.extend_url_query(fusion._auth._success_redirect, { fusion_token }));
+  const make_success_url = (horizon_token) =>
+    url.format(auth_utils.extend_url_query(horizon._auth._success_redirect, { horizon_token }));
 
-  const make_failure_url = (fusion_error) =>
-    url.format(auth_utils.extend_url_query(fusion._auth._failure_redirect, { fusion_error }));
+  const make_failure_url = (horizon_error) =>
+    url.format(auth_utils.extend_url_query(horizon._auth._failure_redirect, { horizon_error }));
 
-  fusion.add_http_handler(provider, (req, res) => {
+  horizon.add_http_handler(provider, (req, res) => {
     const request_url = url.parse(req.url, true);
     const user_token = request_url.query && request_url.query.oauth_token;
     const verifier = request_url.query && request_url.query.oauth_verifier;
@@ -89,7 +89,7 @@ const add = (fusion, raw_options) => {
               res.end('error acquiring oauth token');
             } else {
               store_app_token(nonce, app_token_secret);
-              auth_utils.set_nonce(res, fusion._name, nonce);
+              auth_utils.set_nonce(res, horizon._name, nonce);
               auth_utils.do_redirect(res, url.format({ protocol: 'https',
                                                        host: 'api.twitter.com',
                                                        pathname: '/oauth/authenticate',
@@ -100,7 +100,7 @@ const add = (fusion, raw_options) => {
       });
     } else {
       // Make sure this is the same client who obtained the code to prevent CSRF attacks
-      const nonce = auth_utils.get_nonce(req, fusion._name);
+      const nonce = auth_utils.get_nonce(req, horizon._name);
       const state = request_url.query.state;
       const app_token = get_app_token(nonce);
 
@@ -126,8 +126,8 @@ const add = (fusion, raw_options) => {
                 res.statusCode = 500;
                 res.end('unparseable inspect response');
               } else {
-                fusion._auth.generate_jwt(provider, user_id, (err3, jwt) => {
-                  auth_utils.clear_nonce(res, fusion._name);
+                horizon._auth.generate_jwt(provider, user_id, (err3, jwt) => {
+                  auth_utils.clear_nonce(res, horizon._name);
                   auth_utils.do_redirect(res, err3 ?
                     make_failure_url('invalid user') :
                     make_success_url(jwt));

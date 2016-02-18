@@ -9,8 +9,8 @@ var app = app || {};
   'use strict';
 
   //Setup RethinkDB
-        const Fusion = require("Fusion");
-        const fusion = new Fusion(location.host, {
+        const Horizon = require("Horizon");
+        const horizon = new Horizon(location.host, {
                 secure: location.protocol == 'https:'
         });
 
@@ -41,7 +41,7 @@ var app = app || {};
       image.src = `http://api.adorable.io/avatars/50/${time}.png`;
 
       return {
-        fusion: fusion("react_messages"),
+        horizon: horizon("react_messages"),
         avatarUrl: image.src,
         authorId: time
       };
@@ -66,7 +66,7 @@ var app = app || {};
 
     save: function(message){
       //Save method for handling messages
-      this.props.fusion.store({
+      this.props.horizon.store({
         id: this.uuid(),
         text: message,
         authorId: this.props.authorId,
@@ -75,7 +75,7 @@ var app = app || {};
     },
 
     subscribe: function(){
-      this.props.fusion
+      this.props.horizon
         .order("datetime", "descending")
         .limit(8)
         .watch()

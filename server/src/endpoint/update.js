@@ -1,6 +1,6 @@
 'use strict';
 
-const update = require('../schema/fusion_protocol').update;
+const update = require('../schema/horizon_protocol').update;
 const handle_response = require('./remove').handle_response;
 
 const Joi = require('joi');

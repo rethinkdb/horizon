@@ -1,6 +1,6 @@
 'use strict';
 
-const fusion = require('../');
+const horizon = require('../');
 
 const assert = require('assert');
 const child_process = require('child_process');
@@ -36,7 +36,7 @@ const all_tests = () => {
         [ key_file, cert_file ].forEach((f) => { if (f) { fs.unlinkSync(f); } });
       });
 
-      before('Start fusion server', (done) => {
+      before('Start horizon server', (done) => {
         const four_o_four = (req, res) => {
           res.writeHeader(404);
           res.end();
@@ -50,21 +50,21 @@ const all_tests = () => {
                                                four_o_four);
         }
 
-        fusion(http_server);
+        horizon(http_server);
 
         http_server.listen(0, done);
       });
 
-      after('Shutdown standalone fusion server', () => {
+      after('Shutdown standalone horizon server', () => {
         http_server.close();
       });
 
-      it('localhost/fusion/fusion.js', (done) => {
+      it('localhost/horizon/horizon.js', (done) => {
         require(transport).get({ host: http_server.address().address,
                                  port: http_server.address().port,
-                                 path: '/fusion/fusion.js',
+                                 path: '/horizon/horizon.js',
                                  rejectUnauthorized: false }, (res) => {
-          const code = fs.readFileSync('./node_modules/horizon-client/dist/fusion.js');
+          const code = fs.readFileSync('./node_modules/horizon-client/dist/horizon.js');
           let buffer = '';
           assert.strictEqual(res.statusCode, 200);
           res.on('data', (delta) => buffer += delta);

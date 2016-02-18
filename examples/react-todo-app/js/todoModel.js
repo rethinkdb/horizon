@@ -10,8 +10,8 @@ var app = app || {};
         const Utils = app.Utils;
 
         //Setup RethinkDB
-        const Fusion = require("Fusion");
-        const fusion = Fusion(location.host, {
+        const Horizon = require("Horizon");
+        const horizon = Horizon(location.host, {
                 secure: location.protocol == 'https:'
         });
 
@@ -23,7 +23,7 @@ var app = app || {};
         app.TodoModel = function (table_key) {
                 this.todos = [];
                 this.onChanges = [];
-                this.todosDB = fusion(table_key);
+                this.todosDB = horizon(table_key);
         };
 
         app.TodoModel.prototype.subscribe = function (onChange) {

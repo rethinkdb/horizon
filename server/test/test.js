@@ -27,15 +27,15 @@ afterEach(
   /** @this mocha */
   function() { logger.info(`End test '${this.currentTest.title}'`); });
 
-describe('Fusion Server', () => {
-  before('Start Fusion Server',
+describe('Horizon Server', () => {
+  before('Start Horizon Server',
          /** @this mocha */
          function(done) {
            this.timeout(5000);
-           utils.start_fusion_server(done);
+           utils.start_horizon_server(done);
          });
 
-  after('Close Fusion Server', utils.close_fusion_server);
+  after('Close Horizon Server', utils.close_horizon_server);
 
   before(`Creating general-purpose table: '${table}'`,
          /** @this mocha */
@@ -44,7 +44,7 @@ describe('Fusion Server', () => {
            utils.create_table(table, done);
          });
 
-  beforeEach('Connect Fusion Client', utils.open_fusion_conn);
-  afterEach('Close Fusion Client', utils.close_fusion_conn);
+  beforeEach('Connect Horizon Client', utils.open_horizon_conn);
+  afterEach('Close Horizon Client', utils.close_horizon_conn);
   all_suites.forEach((s) => require('./' + s).suite(table));
 });

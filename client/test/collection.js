@@ -1,16 +1,16 @@
 'use strict'
-const collectionSuite = (getFusion, getData, getTestData) => () => {
-  let fusion, data, testData, empty_collection
+const collectionSuite = (getHorizon, getData, getTestData) => () => {
+  let horizon, data, testData, empty_collection
 
   before(() => {
-    fusion = getFusion()
+    horizon = getHorizon()
     data = getData()
     testData = getTestData()
   })
 
   // We'll need a separate empty collection
   before(done => {
-    empty_collection = fusion('empty_test_collection')
+    empty_collection = horizon('empty_test_collection')
     removeAllData(empty_collection, done)
   })
 

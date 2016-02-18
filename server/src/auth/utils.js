@@ -54,7 +54,7 @@ const try_json_parse = (data) => {
   }
 };
 
-const nonce_cookie = (name) => `${name}_fusion_nonce`;
+const nonce_cookie = (name) => `${name}_horizon_nonce`;
 
 const make_nonce = (cb) => crypto.randomBytes(64, (err, res) => {
   if (!err) {
@@ -86,7 +86,7 @@ const get_nonce = (req, name) => {
 };
 
 const options_schema = Joi.object({
-  fusion: Joi.object().required(),
+  horizon: Joi.object().required(),
   provider: Joi.string().required(),
   make_acquire_url: Joi.func().arity(2).required(), // take `state` and `return_url`, return string
   make_token_request: Joi.func().arity(2).required(), // take `code` and `return_url`, return request
@@ -94,11 +94,11 @@ const options_schema = Joi.object({
   extract_id: Joi.func().arity(1).required(), // take `user_info`, return value
 }).unknown(false);
 
-// Attaches an endpoint to the fusion server, providing an oauth2 redirect flow
+// Attaches an endpoint to the horizon server, providing an oauth2 redirect flow
 const oauth2 = (raw_options) => {
   const options = Joi.attempt(raw_options, options_schema);
 
-  const fusion = options.fusion;
+  const horizon = options.horizon;
   const provider = options.provider;
   const make_acquire_url = options.make_acquire_url;
   const make_token_request = options.make_token_request;
@@ -108,13 +108,13 @@ const oauth2 = (raw_options) => {
   const self_url = (host, path) =>
     url.format({ protocol: 'https', host: host, pathname: path });
 
-  const make_success_url = (fusion_token) =>
-    url.format(extend_url_query(fusion._auth._success_redirect, { fusion_token }));
+  const make_success_url = (horizon_token) =>
+    url.format(extend_url_query(horizon._auth._success_redirect, { horizon_token }));
 
-  const make_failure_url = (fusion_error) =>
-    url.format(extend_url_query(fusion._auth._failure_redirect, { fusion_error }));
+  const make_failure_url = (horizon_error) =>
+    url.format(extend_url_query(horizon._auth._failure_redirect, { horizon_error }));
 
-  fusion.add_http_handler(provider, (req, res) => {
+  horizon.add_http_handler(provider, (req, res) => {
     const request_url = url.parse(req.url, true);
     const return_url = self_url(req.headers.host, request_url.pathname);
     const code = request_url.query && request_url.query.code;
@@ -129,13 +129,13 @@ const oauth2 = (raw_options) => {
           res.statusCode = 503;
           res.end('error generating nonce');
         } else {
-          set_nonce(res, fusion._name, nonce);
+          set_nonce(res, horizon._name, nonce);
           do_redirect(res, make_acquire_url(nonce_to_state(nonce), return_url));
         }
       });
     } else {
       // Make sure this is the same client who obtained the code to prevent CSRF attacks
-      const nonce = get_nonce(req, fusion._name);
+      const nonce = get_nonce(req, horizon._name);
       const state = request_url.query.state;
 
       if (!nonce || !state || state !== nonce_to_state(nonce)) {
@@ -169,9 +169,9 @@ const oauth2 = (raw_options) => {
                 res.statusCode = 500;
                 res.end('unparseable inspect response');
               } else {
-                fusion._auth.generate_jwt(provider, user_id, (err3, jwt) => {
+                horizon._auth.generate_jwt(provider, user_id, (err3, jwt) => {
                   // Clear the nonce just so we aren't polluting clients' cookies
-                  clear_nonce(res, fusion._name);
+                  clear_nonce(res, horizon._name);
                   do_redirect(res, err3 ?
                     make_failure_url('invalid user') :
                     make_success_url(jwt));

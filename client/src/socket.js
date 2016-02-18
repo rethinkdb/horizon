@@ -5,7 +5,7 @@ const { WebSocket } = require('./shim.js')
 const { serialize, deserialize } = require('./serialization.js')
 const { log } = require('./logging.js')
 
-const PROTOCOL_VERSION = 'rethinkdb-fusion-v0'
+const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
 const HANDSHAKE = { method: 'unauthenticated' }
 
 // Before connecting the first time
@@ -24,7 +24,7 @@ const STATUS_DISCONNECTED = { type: 'disconnected' }
 // protocol level things like serializing from/to JSON, routing
 // request_ids, looking at the `state` field to decide when an
 // observable is closed.
-class FusionSocket extends Rx.AnonymousSubject {
+class HorizonSocket extends Rx.AnonymousSubject {
   constructor(host, secure, path) {
     const hostString = `ws${secure ? 's' : ''}://${host}/${path}`
     const msgBuffer = []
@@ -236,4 +236,4 @@ class FusionSocket extends Rx.AnonymousSubject {
   }
 }
 
-module.exports = FusionSocket
+module.exports = HorizonSocket

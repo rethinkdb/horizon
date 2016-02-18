@@ -1,5 +1,5 @@
 'use strict'
-// This test suite covers various edge cases in the Fusion client library API.
+// This test suite covers various edge cases in the Horizon client library API.
 // It does not cover correctness of the full system in various circumstances.
 // The purpose of the API test suite is to act as a runnable, checkable spec for
 // API of the client library. This also doesn't cover subscriptions, there is a
@@ -7,34 +7,34 @@
 
 chai.config.showDiff = true
 const assert = chai.assert
-const Fusion = require('Fusion')
+const Horizon = require('Horizon')
 Rx.config.longStackSupport = true
 
-// Test the methods and event callbacks on the Fusion object.
-describe('Fusion Object API', fusionObjectSuite)
+// Test the methods and event callbacks on the Horizon object.
+describe('Horizon Object API', horizonObjectSuite)
 
 // Test the core client library API
 describe('Core API tests', () => {
   // The connection for our tests
-  let fusion, data
+  let horizon, data
 
-  const getFusion = () => fusion
+  const getHorizon = () => horizon
   const getData = () => data
 
-  // Set up the fusion connection before running these tests.
+  // Set up the horizon connection before running these tests.
   before(done => {
-    fusion = Fusion('localhost:8181', { secure: false, lazyWrites: true });
-    fusion.connect(err => done(err))
-    fusion.onConnected(() => {
-      data = fusion('test_data')
+    horizon = Horizon('localhost:8181', { secure: false, lazyWrites: true });
+    horizon.connect(err => done(err))
+    horizon.onConnected(() => {
+      data = horizon('test_data')
       done()
     })
   })
 
-  // Kill the fusion connection after running these tests.
+  // Kill the horizon connection after running these tests.
   after(done => {
-    fusion.dispose()
-    fusion.onDisconnected(() => done())
+    horizon.dispose()
+    horizon.onDisconnected(() => done())
   })
 
   // Test the mutation commands
@@ -83,7 +83,7 @@ describe('Core API tests', () => {
     ))
 
     describe('Testing full collection read',
-             collectionSuite(getFusion, getData, getTestData))
+             collectionSuite(getHorizon, getData, getTestData))
     describe('Testing `find`', findSuite(getData))
     describe('Testing `findAll`', findAllSuite(getData))
     describe('Testing `order`', orderSuite(getData, getTestData))

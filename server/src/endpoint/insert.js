@@ -1,7 +1,7 @@
 'use strict';
 
 const check = require('../error').check;
-const insert = require('../schema/fusion_protocol').insert;
+const insert = require('../schema/horizon_protocol').insert;
 
 const Joi = require('joi');
 const r = require('rethinkdb');

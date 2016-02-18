@@ -2,7 +2,7 @@
   "name": "horizon-client",
   "version": "0.0.2-1",
   "description": "RethinkDB Horizon is an open-source developer platform for building realtime, scalable web apps.",
-  "main": "dist/fusion.js",
+  "main": "dist/horizon.js",
   "dependencies": {
     "babel-polyfill": "^6.3.14",
     "rx": "^4.0.7",
@@ -29,16 +29,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/rethinkdb/fusion.git"
+    "url": "https://github.com/rethinkdb/horizon.git"
   },
   "author": "RethinkDB",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/rethinkdb/fusion/issues"
+    "url": "https://github.com/rethinkdb/horizon/issues"
   },
-  "homepage": "https://github.com/rethinkdb/fusion",
+  "homepage": "https://github.com/rethinkdb/horizon",
   "files": [
-    "dist/fusion.js",
-    "dist/fusion.js.map"
+    "dist/horizon.js",
+    "dist/horizon.js.map"
   ]
 }
