@@ -7,9 +7,6 @@ realtime, scalable web apps. It is built on top of RethinkDB, and
 allows app developers to get started with building modern, engaging
 apps without writing any backend code.
 
-__NOTE:__ "Horizon" is a codename that we'll likely change in the
-future. See https://github.com/rethinkdb/horizon/issues/7.
-
 Horizon consists of two components:
 
 - [__Horizon server__](/server) -- a middleware server that connects to/is built on
