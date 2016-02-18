@@ -4,27 +4,27 @@ require('babel-polyfill')
 
 const Rx = require('rx')
 const { Collection } = require('./ast.js')
-const FusionSocket = require('./socket.js')
+const HorizonSocket = require('./socket.js')
 const { log, logError, enableLogging } = require('./logging.js')
 const { subscribeOrObservable } = require('./utility.js')
 
-module.exports = Fusion
+module.exports = Horizon
 
-function Fusion(host, { secure = true,
-                        path = 'fusion',
+function Horizon(host, { secure = true,
+                        path = 'horizon',
                         lazyWrites = false,
                        } = {}) {
   // Websocket Subject
-  const socket = new FusionSocket(host, secure, path)
+  const socket = new HorizonSocket(host, secure, path)
 
-  // This is the object returned by the Fusion function. It's a
+  // This is the object returned by the Horizon function. It's a
   // function so we can construct a collection simply by calling it
-  // like fusion('my_collection')
-  function fusion(name) {
+  // like horizon('my_collection')
+  function horizon(name) {
     return new Collection(sendRequest, name, lazyWrites)
   }
 
-  fusion.dispose = () => {
+  horizon.dispose = () => {
     socket.onCompleted()
   }
 
@@ -32,7 +32,7 @@ function Fusion(host, { secure = true,
   // server. Optionally provide an error handling function if the
   // socket experiences an error.
   // Note: Users of the Observable interface shouldn't need this
-  fusion.connect = onError => {
+  horizon.connect = onError => {
     if (!onError) {
       onError = err => { console.error(`Received an error: ${err}`) }
     }
@@ -44,23 +44,23 @@ function Fusion(host, { secure = true,
 
   // Either subscribe to status updates, or return an observable with
   // the current status and all subsequent status changes.
-  fusion.status = subscribeOrObservable(socket.status)
+  horizon.status = subscribeOrObservable(socket.status)
 
   // Convenience method for finding out when disconnected
-  fusion.onDisconnected = subscribeOrObservable(
+  horizon.onDisconnected = subscribeOrObservable(
     socket.status.filter(x => x.type === 'disconnected'))
 
   // Convenience method for finding out when opening
-  fusion.onConnected = subscribeOrObservable(
+  horizon.onConnected = subscribeOrObservable(
     socket.status.filter(x => x.type === 'connected'))
 
   // Convenience method for finding out when an error occurs
-  fusion.onSocketError = subscribeOrObservable(
+  horizon.onSocketError = subscribeOrObservable(
     socket.status.filter(x => x.type === 'error'))
 
-  return fusion
+  return horizon
 
-  // Sends a fusion protocol request to the server, and pulls the data
+  // Sends a horizon protocol request to the server, and pulls the data
   // portion of the response out.
   function sendRequest(type, options) {
     // Both remove and removeAll use the type 'remove' in the protocol
@@ -82,7 +82,7 @@ function Fusion(host, { secure = true,
   }
 }
 
-Fusion.log = log
-Fusion.logError = logError
-Fusion.enableLogging = enableLogging
-Fusion.Socket = FusionSocket
+Horizon.log = log
+Horizon.logError = logError
+Horizon.enableLogging = enableLogging
+Horizon.Socket = HorizonSocket

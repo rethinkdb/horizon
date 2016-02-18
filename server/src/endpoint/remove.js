@@ -1,6 +1,6 @@
 'use strict';
 
-const remove = require('../schema/fusion_protocol').remove;
+const remove = require('../schema/horizon_protocol').remove;
 
 const Joi = require('joi');
 const r = require('rethinkdb');

@@ -2,13 +2,13 @@
   "name": "horizon",
   "version": "0.2.3",
   "description": "Server for RethinkDB Horizon, an open-source developer platform for building realtime, scalable web apps.",
-  "main": "src/fusion.js",
+  "main": "src/horizon.js",
   "scripts": {
     "test": "./node_modules/.bin/mocha --compilers js:babel-core/register test/test.js test/schema.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rethinkdb/fusion.git"
+    "url": "git+https://github.com/rethinkdb/horizon.git"
   },
   "author": "RethinkDB",
   "license": "MIT",
@@ -16,9 +16,9 @@
     "horizon": "src/main.js"
   },
   "bugs": {
-    "url": "https://github.com/rethinkdb/fusion/issues"
+    "url": "https://github.com/rethinkdb/horizon/issues"
   },
-  "homepage": "https://github.com/rethinkdb/fusion#readme",
+  "homepage": "https://github.com/rethinkdb/horizon#readme",
   "dependencies": {
     "argparse": "^1.0.3",
     "cookie": "^0.2.3",

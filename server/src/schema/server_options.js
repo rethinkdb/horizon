@@ -9,9 +9,9 @@ const server = Joi.object({
   auto_create_table: Joi.boolean().default(false),
   auto_create_index: Joi.boolean().default(false),
 
-  path: Joi.string().default('/fusion'),
+  path: Joi.string().default('/horizon'),
 
-  db: Joi.string().token().default('fusion'),
+  db: Joi.string().token().default('horizon'),
 
   auth: Joi.object().default({ }),
 }).unknown(false);

@@ -5,10 +5,10 @@ const check = require('./error').check;
 const Client = require('./client').Client;
 const ReqlConnection = require('./reql_connection').ReqlConnection;
 const logger = require('./logger');
-const fusion_protocol = require('./schema/fusion_protocol');
+const horizon_protocol = require('./schema/horizon_protocol');
 const options_schema = require('./schema/server_options').server;
 
-const fusion_client_path = require.resolve('horizon-client');
+const horizon_client_path = require.resolve('horizon-client');
 
 const endpoints = {
   insert: require('./endpoint/insert'),
@@ -28,7 +28,7 @@ const url = require('url');
 const websocket = require('ws');
 const extend = require('util')._extend;
 
-const protocol_name = 'rethinkdb-fusion-v0';
+const protocol_name = 'rethinkdb-horizon-v0';
 
 const accept_protocol = (protocols, cb) => {
   if (protocols.findIndex((x) => x === protocol_name) !== -1) {
@@ -107,7 +107,7 @@ class Server {
           const sub_path = req_path.replace(path_replace, '');
           const handler = this._http_handlers.get(sub_path);
           if (handler !== undefined) {
-            logger.debug(`Handling HTTP request to fusion subpath: ${sub_path}`);
+            logger.debug(`Handling HTTP request to horizon subpath: ${sub_path}`);
             return handler(req, res);
           }
         }
@@ -121,12 +121,12 @@ class Server {
       });
     };
 
-    this.add_http_handler('fusion.js', (req, res) => {
-      serve_file(fusion_client_path, res);
+    this.add_http_handler('horizon.js', (req, res) => {
+      serve_file(horizon_client_path, res);
     });
 
-    this.add_http_handler('fusion.js.map', (req, res) => {
-      serve_file(fusion_client_path + '.map', res);
+    this.add_http_handler('horizon.js.map', (req, res) => {
+      serve_file(horizon_client_path + '.map', res);
     });
 
     if (http_servers.forEach === undefined) {
@@ -145,7 +145,7 @@ class Server {
   }
 
   get_request_handler(request) {
-    const parsed = Joi.validate(request, fusion_protocol.request);
+    const parsed = Joi.validate(request, horizon_protocol.request);
     if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
 
     const handler = this._request_handlers.get(parsed.value.type);

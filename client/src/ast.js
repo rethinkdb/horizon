@@ -92,7 +92,7 @@ class TermBase {
 // Turn a raw observable of server responses into user-presentable events
 //
 // `observable` is the base observable with full responses coming from
-//              the FusionSocket
+//              the HorizonSocket
 // `query` is the value of `options` in the request
 function makePresentable(observable, query) {
   // Whether the entire data structure is in each change

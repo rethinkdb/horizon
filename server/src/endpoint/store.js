@@ -1,6 +1,6 @@
 'use strict';
 
-const store = require('../schema/fusion_protocol').store;
+const store = require('../schema/horizon_protocol').store;
 const handle_response = require('./insert').handle_response;
 
 const Joi = require('joi');

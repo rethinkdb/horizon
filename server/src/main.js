@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const fusion = require('../');
+const horizon = require('../');
 
 const argparse = require('argparse');
 const http = require('http');
@@ -12,22 +12,22 @@ const path = require('path');
 const parser = new argparse.ArgumentParser();
 parser.addArgument([ '--bind', '-b' ],
   { type: 'string', action: 'append', metavar: 'HOST',
-    help: 'Local hostname to serve fusion on (repeatable).' });
+    help: 'Local hostname to serve horizon on (repeatable).' });
 
 parser.addArgument([ '--port', '-p' ],
   { type: 'int', defaultValue: 8181, metavar: 'PORT',
-    help: 'Local port to serve fusion on.' });
+    help: 'Local port to serve horizon on.' });
 
 parser.addArgument([ '--connect', '-c' ],
   { type: 'string', metavar: 'HOST:PORT',
     help: 'Host and port of the RethinkDB server to connect to.' });
 
 parser.addArgument([ '--key-file' ],
-  { type: 'string', defaultValue: './key.pem', metavar: 'PATH',
+  { type: 'string', defaultValue: './horizon-key.pem', metavar: 'PATH',
     help: 'Path to the key file to use, defaults to "./key.pem".' });
 
 parser.addArgument([ '--cert-file' ],
-  { type: 'string', defaultValue: './cert.pem', metavar: 'PATH',
+  { type: 'string', defaultValue: './horizon-cert.pem', metavar: 'PATH',
     help: 'Path to the cert file to use, defaults to "./cert.pem".' });
 
 parser.addArgument([ '--debug' ],
@@ -86,7 +86,7 @@ if (local_hosts.indexOf('all') !== -1) {
 }
 
 if (parsed.insecure) {
-  fusion.logger.warn(`Creating insecure HTTP server.`);
+  horizon.logger.warn(`Creating insecure HTTP server.`);
   local_hosts.forEach((host) => {
     http_servers.add(new http.Server().listen(local_port, host));
   });
@@ -109,13 +109,13 @@ if (parsed.insecure) {
 }
 
 if (parsed.debug) {
-  fusion.logger.level = 'debug';
+  horizon.logger.level = 'debug';
 }
 
 options.auto_create_table = Boolean(parsed.auto_create_table);
 options.auto_create_index = Boolean(parsed.auto_create_index);
 
-// Wait for the http servers to be ready before launching the Fusion server
+// Wait for the http servers to be ready before launching the Horizon server
 let num_ready = 0;
 http_servers.forEach((serv) => {
   serv.on('request', (req, res) => {
@@ -124,14 +124,14 @@ http_servers.forEach((serv) => {
   });
 
   serv.on('listening', () => {
-    fusion.logger.info(`Listening on ${serv.address().address}:${serv.address().port}.`);
+    horizon.logger.info(`Listening on ${serv.address().address}:${serv.address().port}.`);
     if (++num_ready === http_servers.size) {
-      new fusion.Server(http_servers, options);
+      new horizon.Server(http_servers, options);
     }
   });
 
   serv.on('error', (err) => {
-    fusion.logger.error(`HTTP${parsed.insecure ? '' : 'S'} server: ${err}`);
+    horizon.logger.error(`HTTP${parsed.insecure ? '' : 'S'} server: ${err}`);
     process.exit(1);
   });
 });

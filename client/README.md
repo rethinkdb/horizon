@@ -1,6 +1,6 @@
-# Fusion Client Library
+# Horizon Client Library
 
-The Fusion client library. Built to interact with the [Fusion Server](/server) websocket API. Provides all the tooling to build a fully-functional and reactive front-end web application.
+The Horizon client library. Built to interact with the [Horizon Server](/server) websocket API. Provides all the tooling to build a fully-functional and reactive front-end web application.
 
 ## Building
 
@@ -16,46 +16,46 @@ Flag                | Description
 -w, --watch         | Watch directory for changes
 -U, --no-uglify     | Don't uglify output
 -S, --no-sourcemaps | Don't output sourcemaps
--g, --expose-global | Expose Fusion module as a global
+-g, --expose-global | Expose Horizon module as a global
 
 
 ## Running tests
 
-* Open `test/test.html` in your browser after getting setup and while you also have Fusion server with the `--dev` flag running on `localhost`.
+* Open `test/test.html` in your browser after getting setup and while you also have Horizon server with the `--dev` flag running on `localhost`.
 
 ## Docs
 
 ### Getting Started
 
-While you could build and import this library, you wouldn't have any place to connect to! Once you have the [Fusion Server](/server) running, the Fusion client library is hosted by the server as seen in the getting started example below.
+While you could build and import this library, you wouldn't have any place to connect to! Once you have the [Horizon Server](/server) running, the Horizon client library is hosted by the server as seen in the getting started example below.
 
-First you need to ensure that you have included the `fusion.js` client library in your HTML.
-**Note**: that you'll want to have `http` instead of `https` if you started Fusion Server with `--insecure`. By default Fusion Server hosts the `fusion.js` client library on it's host on port 8181.
+First you need to ensure that you have included the `horizon.js` client library in your HTML.
+**Note**: that you'll want to have `http` instead of `https` if you started Horizon Server with `--insecure`. By default Horizon Server hosts the `horizon.js` client library on it's host on port 8181.
 
 ```html
 ...
 <head>
-<script src="//localhost:8181/fusion.js"></script>
+<script src="//localhost:8181/horizon.js"></script>
 </head>
 ...
 ```
 
-Then wherever you want to use Project Fusion you will need to `require` the Fusion client library and then connect to your running instance of Fusion Server.
+Then wherever you want to use Project Horizon you will need to `require` the Horizon client library and then connect to your running instance of Horizon Server.
 
-**Note:** if you started Fusion Server with `--insecure`, you'll need to [add the insecure flag](#fusion).
-
-```javascript
-const Fusion = require("Fusion");
-const fusion = new Fusion("localhost:8181");
-```
-
-From here you can start to interact with RethinkDB collections through the Fusion collection. Having `--dev` mode enabled on the Fusion Server creates collections and indexes automatically so you can get your application setup with as little hassle as possible.
+**Note:** if you started Horizon Server with `--insecure`, you'll need to [add the insecure flag](#horizon).
 
 ```javascript
-const chat = fusion("messages");
+const Horizon = require("Horizon");
+const horizon = new Horizon("localhost:8181");
 ```
 
-Now, `chat` is a Fusion collection of documents. You can perform a variety of operations on this collection to filter them down to the ones you need. Let's pretend we are building a simple chat application where the messages are displayed in ascending order. Here are some basic functions that would allow you to build such an app.
+From here you can start to interact with RethinkDB collections through the Horizon collection. Having `--dev` mode enabled on the Horizon Server creates collections and indexes automatically so you can get your application setup with as little hassle as possible.
+
+```javascript
+const chat = horizon("messages");
+```
+
+Now, `chat` is a Horizon collection of documents. You can perform a variety of operations on this collection to filter them down to the ones you need. Let's pretend we are building a simple chat application where the messages are displayed in ascending order. Here are some basic functions that would allow you to build such an app.
 
 ```javascript
 
@@ -130,27 +130,27 @@ You can also get notifications when the client connects and disconnects from the
 
 ``` js
   // Triggers when client successfully connects to server
-  fusion.onConnected().subscribe(() => console.log("Connected to Fusion Server"))
+  horizon.onConnected().subscribe(() => console.log("Connected to Horizon Server"))
 
   // Triggers when disconnected from server
-  fusion.onDisconnected().subscribe(() => console.log("Disconnected from Fusion Server"))
+  horizon.onDisconnected().subscribe(() => console.log("Disconnected from Horizon Server"))
 ```
 
 ### API
 
-#### Fusion
+#### Horizon
 
-Object which initializes the connection to a Fusion Server.
+Object which initializes the connection to a Horizon Server.
 
-If Fusion server has been started with `--unsecure` then you will need to connect unsecurely by passing `{secure: false}` as a second parameter.
+If Horizon server has been started with `--unsecure` then you will need to connect unsecurely by passing `{secure: false}` as a second parameter.
 
 ###### Example
 
 ```javascript
-const Fusion = require("fusion")
-const fusion = Fusion("localhost:8181")
+const Horizon = require("horizon")
+const horizon = Horizon("localhost:8181")
 
-const unsecure_fusion = Fusion('localhost:8181', { unsecure: true })
+const unsecure_horizon = Horizon('localhost:8181', { unsecure: true })
 ```
 
 #### Collection
@@ -159,12 +159,12 @@ Object which represents a collection of documents on which queries can be perfor
 
 ###### Example
 ```javascript
-// Setup connection the Fusion server
-const Fusion = require("fusion")
-const fusion = Fusion("localhost:8181")
+// Setup connection the Horizon server
+const Horizon = require("horizon")
+const horizon = Horizon("localhost:8181")
 
-// Create fusion collection
-const messages = fusion('messages')
+// Create horizon collection
+const messages = horizon('messages')
 ```
 
 ##### above(*limit integer* || *{key: value}*, *closed string*)
@@ -257,7 +257,7 @@ chat.messages.order("id").below({author: "d"});
 
 ##### find(*object*)
 
-Retrieve a single object from the Fusion collection.
+Retrieve a single object from the Horizon collection.
 
 ###### Example
 
@@ -272,7 +272,7 @@ chats.find({name: "dalan"})
 
 ##### findAll(*object* [, *object*])
 
-Retrieve multiple objects from the Fusion collection. Returns `[]` if queried documents do not exist.
+Retrieve multiple objects from the Horizon collection. Returns `[]` if queried documents do not exist.
 
 ###### Example
 
@@ -412,7 +412,7 @@ This query will get all chats in an array every time a chat is added,
 removed or deleted.
 
 ```js
-fusion('chats').watch().forEach(allChats => {
+horizon('chats').watch().forEach(allChats => {
   console.log('Chats: ', allChats)
 })
 
@@ -426,7 +426,7 @@ Chats: [{ id: 2, chat: 'Ho there' }]
 Alternately, you can provide the `rawChanges: true` option to receive change documents from the server directly, instead of having the client maintain the array of results for you.
 
 ``` js
-fusion('chats').watch({ rawChanges: true }).forEach(change => {
+horizon('chats').watch({ rawChanges: true }).forEach(change => {
   console.log('Chats changed:', change)
 })
 
@@ -446,7 +446,7 @@ Queries for the results of a query currently, without updating results when they
 ```javascript
 
 // Returns the entire contents of the collection
-fusion('chats').fetch().subscribe(
+horizon('chats').fetch().subscribe(
   result => console.log('Result:', result),
   err => console.error(err),
   () => console.log('Results fetched, query done!')
@@ -461,7 +461,7 @@ Results fetched, query done!
 If you pass `asCursor: false`, you will get the entire result set at once as an array.
 
 ``` js
-fusion('chats').fetch({ asCursor: false }).subscribe(
+horizon('chats').fetch({ asCursor: false }).subscribe(
   results => console.log('Results: ', result),
   err => console.error(err),
   () => console.log('Results fetched, query done!')

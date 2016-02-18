@@ -1,4 +1,4 @@
-# RethinkDB Fusion Chat example using Vue.js
+# RethinkDB Horizon Chat example using Vue.js
 
 <center>![](https://i.imgur.com/XFostB8.gif)</center>
 

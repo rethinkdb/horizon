@@ -4,9 +4,9 @@ rethinkdb:
     - "28015:28015"
     - "8080:8080"
 
-fusion:
+horizon:
   build: .
-  command: fusion --dev -c rethinkdb:28015 --bind all
+  command: horizon --dev -c rethinkdb:28015 --bind all
   links:
     - rethinkdb
   ports:

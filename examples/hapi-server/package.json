@@ -1,7 +1,7 @@
 {
-  "name": "hapi-fusion-example",
+  "name": "hapi-horizon-example",
   "version": "0.0.1",
-  "description": "Example of a fusion server within a hapi server.",
+  "description": "Example of a horizon server within a hapi server.",
   "bin": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,11 +9,11 @@
   "author": "RethinkDB",
   "license": "MIT",
   "dependencies": {
-    "fusion-server": "file:../../server",
+    "horizon-server": "file:../../server",
     "hapi": "^12.1.0"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rethinkdb/fusion.git"
+    "url": "git+https://github.com/rethinkdb/horizon.git"
   }
 }

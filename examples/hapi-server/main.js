@@ -2,13 +2,13 @@
 'use strict'
 
 const Hapi = require('hapi');
-const fusion = require('fusion-server');
+const horizon = require('horizon-server');
 
 const server = new Hapi.Server();
 server.connection({ port: 8181 });
 
 const http_servers = server.connections.map((c) => c.listener);
-const fusion_server = fusion(http_servers);
+const horizon_server = horizon(http_servers);
 
 server.start(() => {
   console.log(`Listening on port 8181.`);

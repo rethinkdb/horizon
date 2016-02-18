@@ -2,7 +2,7 @@
 'use strict'
 
 const utils = require('../server/test/utils');
-const fusion = require('../server');
+const horizon = require('../server');
 
 // We could make this a module, but we already require the server to be configured,
 // so reuse its argparse module
@@ -23,11 +23,11 @@ const examples_dir = path.resolve(__dirname, '../examples');
 const parser = new argparse.ArgumentParser();
 parser.addArgument([ '--port', '-p' ],
   { type: 'int', defaultValue: 8181, metavar: 'PORT',
-    help: 'Local port to serve HTTP assets and fusion on.' });
+    help: 'Local port to serve HTTP assets and horizon on.' });
 
 parser.addArgument([ '--bind', '-b' ],
   { type: 'string', defaultValue: [ 'localhost' ], action: 'append', metavar: 'HOST',
-    help: 'Local hostname(s) to serve HTTP and fusion on (repeatable).' });
+    help: 'Local hostname(s) to serve HTTP and horizon on (repeatable).' });
 
 parser.addArgument([ '--keep', '-k' ],
   { defaultValue: false, action: 'storeTrue',
@@ -78,11 +78,11 @@ utils.each_line_in_pipe(build_proc.stdout, (line) => {
   if (line.indexOf('bytes written') !== -1) {
       client_ready = true;
       const date = new Date();
-      console.log(`${date.toLocaleTimeString()} - fusion.js rebuilt.`);
+      console.log(`${date.toLocaleTimeString()} - horizon.js rebuilt.`);
   }
 });
 
-// Launch HTTP server with fusion that will serve the test files
+// Launch HTTP server with horizon that will serve the test files
 const http_servers = options.bind.map((host) =>
   new http.Server((req, res) => {
     const req_path = url.parse(req.url).pathname;
@@ -111,14 +111,14 @@ new Promise((resolve) => {
     dns.lookup(host, { all: true }, add_results);
   });
 }).then((local_addresses) => {
-  // Launch rethinkdb - once we know the port we can attach fusion to the http server
+  // Launch rethinkdb - once we know the port we can attach horizon to the http server
   utils.start_rdb_server({ bind: local_addresses, keep: options.keep }, () => {
     assert.notStrictEqual(utils.rdb_port(), undefined);
     console.log(`RethinkDB server listening for clients on port ${utils.rdb_port()}.`);
     console.log(`RethinkDB server listening for HTTP on port ${utils.rdb_http_port()}.`);
 
-    fusion.logger.level = 'debug';
-    const fusion_server = new fusion.Server(http_servers,
+    horizon.logger.level = 'debug';
+    const horizon_server = new horizon.Server(http_servers,
                                             {
                                               auto_create_table: true,
                                               auto_create_index: true,
@@ -128,18 +128,18 @@ new Promise((resolve) => {
                                               },
                                             });
 
-    // Capture requests to `fusion.js` and `fusion.js.map` before the fusion server
+    // Capture requests to `horizon.js` and `horizon.js.map` before the horizon server
     http_servers.forEach((serv, i) => {
       const extant_listeners = serv.listeners('request').slice(0);
       serv.removeAllListeners('request');
       serv.on('request', (req, res) => {
         const req_path = url.parse(req.url).pathname;
-        if (req_path === '/fusion/fusion.js' || req_path === '/fusion/fusion.js.map') {
+        if (req_path === '/horizon/horizon.js' || req_path === '/horizon/horizon.js.map') {
           if (!client_ready) {
             res.writeHead(503, { 'Content-Type': 'text/plain' });
             res.end('Client build is ongoing, try again in a few seconds.');
           } else {
-            serve_file(path.resolve(client_dir, 'dist', req_path.replace('/fusion/', '')), res);
+            serve_file(path.resolve(client_dir, 'dist', req_path.replace('/horizon/', '')), res);
           }
         } else {
           extant_listeners.forEach((l) => l.call(serv, req, res));

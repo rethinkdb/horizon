@@ -23,10 +23,10 @@
   </div>
 
   <script>
-    Fusion = require("Fusion");
-    fusion = new window.Fusion("localhost:8181", {secure: location.protocol == "https"});
+    Horizon = require("Horizon");
+    horizon = new window.Horizon("localhost:8181", {secure: location.protocol == "https"});
     this.messages = [];
-    this.db = fusion("riotjs_chat");
+    this.db = horizon("riotjs_chat");
 
     this.avatar = new Image()
     this.avatar.src = "http://api.adorable.io/avatars/50/" + new Date().getTime() + ".png";

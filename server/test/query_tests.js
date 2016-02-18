@@ -10,7 +10,7 @@ const all_tests = (table) => {
 
   before('Clear table', (done) => utils.clear_table(table, done));
   before('Populate table', (done) => utils.populate_table(table, num_rows, done));
-  beforeEach('Authenticate client', utils.fusion_default_auth);
+  beforeEach('Authenticate client', utils.horizon_default_auth);
 
   it('table scan.', (done) => {
     utils.stream_test(

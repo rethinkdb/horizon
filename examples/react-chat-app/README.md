@@ -1,4 +1,4 @@
-# Fusion Chat example using React
+# Horizon Chat example using React
 
 <center>![](https://i.imgur.com/XFostB8.gif)</center>
 

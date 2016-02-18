@@ -1,6 +1,6 @@
 'use strict';
 
-const query = require('../schema/fusion_protocol').query;
+const query = require('../schema/horizon_protocol').query;
 const check = require('../error.js').check;
 
 const Joi = require('joi');

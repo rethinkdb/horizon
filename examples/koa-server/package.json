@@ -1,7 +1,7 @@
 {
-  "name": "koa-fusion-example",
+  "name": "koa-horizon-example",
   "version": "0.0.1",
-  "description": "Example of a fusion server within a koa server.",
+  "description": "Example of a horizon server within a koa server.",
   "bin": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,11 +9,11 @@
   "author": "RethinkDB",
   "license": "MIT",
   "dependencies": {
-    "fusion-server": "file:../../server",
+    "horizon-server": "file:../../server",
     "koa": "^1.1.2"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rethinkdb/fusion.git"
+    "url": "git+https://github.com/rethinkdb/horizon.git"
   }
 }

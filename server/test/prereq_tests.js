@@ -8,7 +8,7 @@ const r = require('rethinkdb');
 
 const all_tests = (table) => {
   beforeEach('clear table', (done) => utils.clear_table(table, done));
-  beforeEach('authenticate', (done) => utils.fusion_default_auth(done));
+  beforeEach('authenticate', (done) => utils.horizon_default_auth(done));
 
   // Launch simultaneous queries that depend on a non-existent table, then
   // verify that only one table exists with that name.

@@ -3,18 +3,18 @@
 // Test object creation, the `dispose` method, and `connected/disconnected`
 // events.
 
-var fusionObjectSuite = () => {
-  describe('Fusion', () => {
+var horizonObjectSuite = () => {
+  describe('Horizon', () => {
     it('connects and can track its status', done => {
-      const fusion = Fusion('localhost:8181', { secure: false })
-      assert.isDefined(fusion)
-      fusion.status(
+      const horizon = Horizon('localhost:8181', { secure: false })
+      assert.isDefined(horizon)
+      horizon.status(
         stat => {
           switch (stat.type) {
           case 'unconnected':
             break
           case 'connected':
-            fusion.dispose()
+            horizon.dispose()
             break
           case 'error':
             done(new Error('Got an error in socket status'))
@@ -28,15 +28,15 @@ var fusionObjectSuite = () => {
         },
         () => done(new Error('Got an error in status'))
       )
-      fusion.connect(err => done(err))
+      horizon.connect(err => done(err))
     })
 
     it('errors when it gets the wrong host', done => {
       // Note -- the connection string specifies a bad host.
-      const fusion = Fusion('wrong_host', { secure: false })
-      assert.isDefined(fusion)
+      const horizon = Horizon('wrong_host', { secure: false })
+      assert.isDefined(horizon)
       let val = 0
-      fusion.status().subscribe(status => {
+      horizon.status().subscribe(status => {
         if (status.type === 'unconnected') {
           assert.equal(val, 0)
           assert.deepEqual(status, { type: 'unconnected' })
@@ -53,7 +53,7 @@ var fusionObjectSuite = () => {
           done(new Error(`Got unexpected status: ${status.type}`))
         }
       })
-      fusion.connect(() => {}) // no-op error handler, already covered
+      horizon.connect(() => {}) // no-op error handler, already covered
     })
   })
 }

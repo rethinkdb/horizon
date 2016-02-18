@@ -69,7 +69,7 @@ const all_tests = (table) => {
 
   beforeEach('Clear table', (done) => utils.clear_table(table, done));
   beforeEach('Populate table', (done) => utils.populate_table(table, original_data, done));
-  beforeEach('Authenticate', (done) => utils.fusion_default_auth(done));
+  beforeEach('Authenticate', (done) => utils.horizon_default_auth(done));
 
   describe('Store', () => {
     const test_case = (ids, done) => {
