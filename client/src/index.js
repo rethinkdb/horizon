@@ -13,7 +13,8 @@ module.exports = Horizon
 
 const loc = window.location
 
-function Horizon(host = `${loc.hostname}:${loc.port}`, {
+function Horizon({
+  host = `${loc.hostname}:${loc.port}`,
   secure = loc.protocol === 'https:',
   path = 'horizon',
   lazyWrites = false,
