@@ -9,14 +9,49 @@ machine:
     version:
       4.2.2
 
+  post:
+    - source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
+    - wget -qO- https://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -
+    - sudo apt-get update
+    - sudo apt-get install rethinkdb
+
+## Set artifacts
+general:
+  artifacts:
+    - "client/npm-debug.log"
+    - "server/npm-debug.log"
+
 ## Customize dependencies
 dependencies:
-  pre:
-    - cd client; npm install; ./node_modules/gulp-cli/bin/gulp compile-tests
-    - cd server; npm install
+  # Cache directories for speed
+  cache_directories:
+    - client/node_modules
+    - server/node_modules
+  override:
+    # Stop default services
+    - sudo service redis-server stop
+    - sudo service postgresql stop
+    - sudo service mysql stop
+
+    # Prepare for client tests
+    - npm prune && npm install:
+        pwd: client
+    # Prepare for server tests
+    - npm prune && npm install:
+        pwd: server
 
 ## Customize test commands
 test:
-  post:
-    - cd server; npm test
-    - cd client; mocha-phantomjs test/test-es5.html
+  pre:
+    - ./test/serve.js:
+        background: true
+  override:
+    # Run client tests
+    - ./node_modules/gulp-cli/bin/gulp.js compile-tests; ./node_modules/mocha-phantomjs/bin/mocha-phantomjs --file $CIRCLE_TEST_REPORTS/xunit/client-tests.xml -R xunit --ignore-resource-errors test/test-es5.html:
+        pwd: client
+        parallel: true
+
+    # Run server tests
+    - touch $CIRCLE_TEST_REPORTS/xunit/server-tests.xml; ./node_modules/.bin/mocha --compilers js:babel-core/register -R xunit test/test.js test/schema.js > $CIRCLE_TEST_REPORTS/xunit/server-tests.xml:
+        pwd: server
+        parallel: true

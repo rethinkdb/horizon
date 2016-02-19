@@ -20,15 +20,18 @@
     "chai": "^3.4.0",
     "commander": "^2.9.0",
     "exorcist": "^0.4.0",
+    "gulp": "^3.9.1",
+    "gulp-babel": "^6.1.2",
     "gulp-cli": "^1.2.1",
     "gulp-rename": "^1.2.2",
     "mocha": "^2.3.3",
+    "mocha-phantomjs": "^4.0.2",
     "rx": "^4.0.7",
     "uglifyify": "^3.0.1",
     "watchify": "^3.7.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "./node_modules/gulp-cli/bin/gulp.js compile-tests; ./node_modules/mocha-phantomjs/bin/mocha-phantomjs test/test-es5.html",
     "prepublish": "./build.js"
   },
   "repository": {
