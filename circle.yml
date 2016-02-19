@@ -1,0 +1,24 @@
+## Customize the test machine
+machine:
+
+  timezone:
+    America/Los_Angeles # Set the timezone
+
+  # Version of ruby to use
+  node:
+    version:
+      4.2.2
+
+## Customize dependencies
+dependencies:
+  pre:
+    - cd client; npm install
+    - cd server; npm install
+
+## Customize test commands
+test:
+  post:
+    - cd server; npm test
+## Custom notifications
+notify:
+  branches:
