@@ -12,7 +12,7 @@ machine:
 ## Customize dependencies
 dependencies:
   pre:
-    - cd client; npm install; gulp compile-tests
+    - cd client; npm install; ./node_modules/gulp-cli/bin/gulp compile-tests
     - cd server; npm install
 
 ## Customize test commands
