@@ -1,0 +1,117 @@
+'use strict';
+
+var removeAllSuite = function removeAllSuite(getData) {
+  return function () {
+    var data = undefined;
+    var testData = [{ id: 1, a: 1 }, { id: 2, a: 2 }, { id: 3, a: 3 }, { id: 4, a: 4 }, { id: 'do_not_remove_1' }, { id: 'do_not_remove_2' }];
+
+    before(function () {
+      data = getData();
+    });
+
+    // Drop all the existing data
+    before(function (done) {
+      removeAllData(data, done);
+    });
+
+    // Insert the test data and make sure it's in
+    before(assertCompletes(function () {
+      return data.store(testData).ignoreElements().concat(data.fetch({ asCursor: false }))
+      // Make sure it's there
+      .do(function (res) {
+        return assert.sameDeepMembers(res, testData);
+      });
+    }));
+
+    // All right, let's remove a document. The promise resolves with no
+    // arguments.
+    it('removes documents when an array of ids is passed', assertCompletes(function () {
+      return data.removeAll([1]).do(function (res) {
+        return assert.equal(res, 1);
+      })
+      // Let's make sure the removed document isn't there
+      .flatMap(data.find(1).fetch())
+      // Let's make sure the removed document isn't there
+      .do(function (res) {
+        return assert.isNull(res);
+      });
+    }));
+
+    // Passing an array of objects to `removeAll` is also ok.
+    it('removes documents when array elements are objects', assertCompletes(function () {
+      return data.removeAll([{ id: 2 }]).do(function (res) {
+        return assert.equal(res, 2);
+      })
+      // Let's make sure the removed document isn't there
+      .flatMap(data.find(2).fetch())
+      // Let's make sure the removed document isn't there
+      .do(function (res) {
+        return assert.isNull(res);
+      });
+    }));
+
+    // We can also remove multiple documents
+    it('removes multiple documents by id or as objects', assertCompletes(function () {
+      return data.removeAll([3, 50, { id: 4 }]).toArray().do(function (res) {
+        return assert.deepEqual(res, [3, 50, 4]);
+      })
+      // Let's make sure the removed document isn't there
+      .flatMap(data.findAll(3, 50, 4).fetch({ asCursor: false }))
+      // Let's make sure the removed document isn't there
+      .do(function (res) {
+        return assert.deepEqual(res, []);
+      });
+    }));
+
+    // Removing a missing document shouldn't generate an error.
+    it('removes a non-existent document without error', assertCompletes(function () {
+      return data.removeAll(['abracadabra']).do(function (res) {
+        return assert.equal(res, 'abracadabra');
+      });
+    }));
+
+    // Calling `removeAll` with an empty array is also ok.
+    it('doesn\'t error when an empty array is passed', assertCompletes(function () {
+      return data.removeAll([]).do(function (res) {
+        return assert.fail();
+      });
+    }));
+
+    // But an array with a `null` is an error.
+    it('errors when a null in an array is passed', assertErrors(function () {
+      return data.removeAll([null]);
+    }));
+
+    // If one thing fails, everything is reported as a failure.
+    it('reports failure if anything in a batch fails', assertErrors(function () {
+      return data.removeAll([3, null, { id: 4 }]);
+    }));
+
+    // Calling `removeAll` with anything but a single array is an error.
+    it('throws when no arguments are passed', assertThrows('removeAll takes an array as an argument', function () {
+      return data.removeAll();
+    }));
+    it('throws when more than one argument is passed', assertThrows('removeAll must receive exactly 1 argument', function () {
+      return data.removeAll([1], 2);
+    }));
+    it('throws when null is passed', assertThrows('removeAll takes an array as an argument', function () {
+      return data.removeAll(null);
+    }));
+    it('throws when passed a number', assertThrows('removeAll takes an array as an argument', function () {
+      return data.removeAll(1);
+    }));
+    it('throws when passed a string', assertThrows('removeAll takes an array as an argument', function () {
+      return data.removeAll('1');
+    }));
+    it('throws when passed an object', assertThrows('removeAll takes an array as an argument', function () {
+      return data.removeAll({ id: 1 });
+    }));
+
+    // Check that the remaining documents are there
+    it('doesn\'t remove documents not specified', assertCompletes(function () {
+      return data.fetch().pluck('id').toArray().do(function (res) {
+        return assert.includeMembers(res, ['do_not_remove_1', 'do_not_remove_2']);
+      });
+    }));
+  };
+}; // Testing `removeAll`

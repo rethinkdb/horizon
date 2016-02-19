@@ -1,0 +1,60 @@
+'use strict';
+
+// Test object creation, the `dispose` method, and `connected/disconnected`
+// events.
+
+var horizonObjectSuite = function horizonObjectSuite() {
+  describe('Horizon', function () {
+    it('connects and can track its status', function (done) {
+      var horizon = Horizon('localhost:8181', { secure: false });
+      assert.isDefined(horizon);
+      horizon.status(function (stat) {
+        switch (stat.type) {
+          case 'unconnected':
+            break;
+          case 'connected':
+            horizon.dispose();
+            break;
+          case 'error':
+            done(new Error('Got an error in socket status'));
+            break;
+          case 'disconnected':
+            done();
+            break;
+          default:
+            done(new Error('Received unknown status type ' + stat.type));
+        }
+      }, function () {
+        return done(new Error('Got an error in status'));
+      });
+      horizon.connect(function (err) {
+        return done(err);
+      });
+    });
+
+    it('errors when it gets the wrong host', function (done) {
+      // Note -- the connection string specifies a bad host.
+      var horizon = Horizon('wrong_host', { secure: false });
+      assert.isDefined(horizon);
+      var val = 0;
+      horizon.status().subscribe(function (status) {
+        if (status.type === 'unconnected') {
+          assert.equal(val, 0);
+          assert.deepEqual(status, { type: 'unconnected' });
+          val += 1;
+        } else if (status.type === 'error') {
+          assert.equal(val, 1);
+          assert.deepEqual(status, { type: 'error' });
+          val += 1;
+        } else if (status.type === 'disconnected') {
+          assert.equal(val, 2);
+          assert.deepEqual(status, { type: 'disconnected' });
+          done();
+        } else {
+          done(new Error('Got unexpected status: ' + status.type));
+        }
+      });
+      horizon.connect(function () {}); // no-op error handler, already covered
+    });
+  });
+};

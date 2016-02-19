@@ -1,0 +1,112 @@
+'use strict';
+
+var belowSuite = function belowSuite(getData) {
+  return function () {
+    var data = undefined;
+
+    before(function () {
+      data = getData();
+    });
+
+    // By default `below` is open
+    it('defaults to open', assertCompletes(function () {
+      return data.order('id').below({ id: 3 }).fetch({ asCursor: false }).do(function (res) {
+        return assert.deepEqual(res, [{ id: 1, a: 10 }, { id: 2, a: 20, b: 1 }]);
+      });
+    }));
+
+    // We can also pass that explicitly
+    it('can be explicitly set to be an open bound', assertCompletes(function () {
+      return data.order('id').below({ id: 3 }, 'open').fetch({ asCursor: false }).do(function (res) {
+        return assert.deepEqual(res, [{ id: 1, a: 10 }, { id: 2, a: 20, b: 1 }]);
+      });
+    }));
+
+    // But we can make it closed
+    it('can be explicitly set to be a closed bound', assertCompletes(function () {
+      return data.order('id').below({ id: 3 }, 'closed').fetch({ asCursor: false }).do(function (res) {
+        return assert.deepEqual(res, [{ id: 1, a: 10 }, { id: 2, a: 20, b: 1 }, { id: 3, a: 20, b: 2 }]);
+      });
+    }));
+
+    // Let's try something that returns no values
+    it('can return no values', assertCompletes(function () {
+      return data.order('id').below({ id: 0 }).fetch().do(function () {
+        return assert.fail();
+      });
+    }));
+
+    // We can chain `below` off a collection
+    it('can be chained off of a collection', assertCompletes(function () {
+      return data.below({ id: 3 }).fetch({ asCursor: false }).do(function (res) {
+        assert.isArray(res);
+        assert.lengthOf(res, 2);
+      });
+    }));
+
+    // Or off other things
+    it('can be chained off of a findAll term', assertCompletes(function () {
+      return data.findAll({ a: 20 }).below({ id: 4 }).fetch({ asCursor: false }).do(function (res) {
+        assert.isArray(res);
+        assert.lengthOf(res, 2);
+      });
+    }));
+
+    // `below` can't include any keys that are in `findAll`
+    it('cannot include any keys that are passed to findAll', assertErrors(function () {
+      return data.findAll({ a: 20 }).below({ a: 3 }).fetch();
+    }));
+
+    // Let's try it on a non-primary index
+    it('can bound a non-primary index', assertCompletes(function () {
+      return data.order(['a', 'id']).below({ a: 20 }).fetch().do(function (res) {
+        return assert.deepEqual(res, { id: 1, a: 10 });
+      });
+    }));
+
+    // Let's try it on a non-primary key, but closed
+    it('can closed bound a non-primary key', assertCompletes(function () {
+      return data.order(['a', 'id']).below({ a: 20 }, 'closed').fetch({ asCursor: false }).do(function (res) {
+        return assert.deepEqual(res, [{ id: 1, a: 10 }, { id: 2, a: 20, b: 1 }, { id: 3, a: 20, b: 2 }, { id: 4, a: 20, b: 3 }]);
+      });
+    }));
+
+    // The key in `below` must be the first key in `order`
+    it('must receive as an argument the first key in the order term', assertErrors(function () {
+      return data.order(['a', 'id']).below({ id: 20 }).fetch();
+    }));
+
+    // Passing multiple keys to `below` isn't legal
+    it('errors if it receives multiple keys', assertErrors(function () {
+      return data.order(['a', 'id']).below({ a: 20, id: 20 }).fetch();
+    }));
+
+    // Nor is passing a field that isn't specified in `order`
+    it('errors if it receives a field that wasn\'t passed to the order term', assertErrors(function () {
+      return data.order(['a', 'id']).below({ b: 20 }).fetch();
+    }));
+
+    // If chaining `below/above`, they must be passed the same key
+    it('must be passed the same key as the above term', assertErrors(function () {
+      return data.below({ a: 100 }).above({ b: 0 }).fetch();
+    }));
+
+    // Starting with `null` is not ok
+    it('throws if passed null', assertThrows('The 1st argument to below must be non-null', function () {
+      return data.below(null).fetch();
+    }));
+
+    // Empty value is not ok
+    it('throws if not given an argument', assertThrows('below must receive at least 1 argument.', function () {
+      return data.below().fetch();
+    }));
+
+    // Bad arguments are not ok
+    it('errors if passed a non-string', assertErrors(function () {
+      return data.below(1).fetch();
+    }));
+    it('errors if it receives a bound other than open or closed', assertErrors(function () {
+      return data.below({ id: 1 }, 1).fetch();
+    }));
+  };
+}; // Testing `below`

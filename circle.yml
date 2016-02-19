@@ -12,13 +12,11 @@ machine:
 ## Customize dependencies
 dependencies:
   pre:
-    - cd client; npm install
+    - cd client; npm install; gulp compile-tests
     - cd server; npm install
 
 ## Customize test commands
 test:
   post:
     - cd server; npm test
-## Custom notifications
-notify:
-  branches:
+    - cd client; mocha-phantomjs test/test-es5.html

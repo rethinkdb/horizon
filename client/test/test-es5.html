@@ -1,0 +1,67 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <link href="http://cdnjs.cloudflare.com/ajax/libs/mocha/2.3.3/mocha.min.css" rel="stylesheet" media="all"/>
+  <script src="../node_modules/mocha/mocha.js"></script>
+  <script src="../node_modules/chai/chai.js"></script>
+  <script src="../node_modules/lodash/index.js"></script>
+  <script src="../node_modules/rx/dist/rx.all.js"></script>
+</head>
+<body>
+
+  <div id="mocha"></div>
+  <script src="http://localhost:8181/horizon/horizon.js"></script>
+  <script src="//localhost:8181/horizon/horizon.js"></script>
+  <script src="/horizon/horizon.js"></script>
+
+  <script>
+    if (typeof initMochaPhantomJS === 'function') {
+      initMochaPhantomJS()
+    }
+      mocha.setup('bdd');
+      mocha.reporter('html');
+      var expect = chai.expect;
+  </script>
+
+  <!-- Load the test utilities -->
+  <script src="utils.es5"></script>
+
+  <!-- Testing the Horizon object -->
+  <script src="horizonObject.es5"></script>
+
+  <!-- Testing insertion/storage commands -->
+  <script src="store.es5"></script>
+  <script src="insert.es5"></script>
+  <script src="upsert.es5"></script>
+  <script src="update.es5"></script>
+  <script src="replace.es5"></script>
+  <script src="times.es5"></script>
+
+  <!-- Test the removal commands -->
+  <script src="remove.es5"></script>
+  <script src="removeAll.es5"></script>
+
+  <!-- Read API -->
+  <script src="collection.es5"></script>
+  <script src="find.es5"></script>
+  <script src="findAll.es5"></script>
+  <script src="order.es5"></script>
+  <script src="limit.es5"></script>
+  <script src="above.es5"></script>
+  <script src="below.es5"></script>
+  <script src="chaining.es5"></script>
+
+  <!-- Subscription APIs -->
+  <script src="findSub.es5"></script>
+  <script src="findAllSub.es5"></script>
+  <script src="aboveSub.es5"></script>
+  <script src="belowSub.es5"></script>
+
+  <!-- Load the suite runner -->
+  <script src="api.es5"></script>
+
+  <script>
+      mocha.run();
+  </script>
+</body>
+</html>
