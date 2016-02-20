@@ -10,12 +10,9 @@ const { subscribeOrObservable } = require('./utility.js')
 
 module.exports = Horizon
 
-
-const loc = window.location
-
 function Horizon({
-  host = `${loc.hostname}:${loc.port}`,
-  secure = loc.protocol === 'https:',
+  host = `${window.location.host}`,
+  secure = window.location.protocol === 'https:',
   path = 'horizon',
   lazyWrites = false,
 } = {}) {

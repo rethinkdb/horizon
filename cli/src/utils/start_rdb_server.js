@@ -36,10 +36,11 @@ module.exports = (options) => {
 
     rdbProc.once('error', (err) => {
       reject(err);
+      process.exit(1);
     });
 
     process.on('exit', () => {
-      rdbProc.kill('SIGKILL');
+      rdbProc.kill('SIGTERM');
     });
 
     each_line_in_pipe(rdbProc.stdout, (line) => {
