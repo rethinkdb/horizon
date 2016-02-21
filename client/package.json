@@ -24,6 +24,7 @@
     "gulp-babel": "^6.1.2",
     "gulp-cli": "^1.2.1",
     "gulp-rename": "^1.2.2",
+    "lodash": "^4.5.0",
     "mocha": "^2.3.3",
     "mocha-phantomjs": "^4.0.2",
     "rx": "^4.0.7",
