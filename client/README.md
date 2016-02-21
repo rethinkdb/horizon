@@ -116,7 +116,7 @@ And lastly, the `.watch` method exposes all the changefeeds awesomeness you coul
 
 ```javascript
 
-chats.watch().forEach(chats => {
+chat.watch().forEach(chats => {
   // Each time through it will returns all results of your query
     renderChats(allChats)
   },
