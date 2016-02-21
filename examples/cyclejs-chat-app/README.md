@@ -1,4 +1,4 @@
-# Horizon Chat example using React
+# Horizon Chat example using Cycle.js
 
 <center>![](https://i.imgur.com/XFostB8.gif)</center>
 
