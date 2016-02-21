@@ -4,7 +4,7 @@ machine:
   timezone:
     America/Los_Angeles # Set the timezone
 
-  # Version of ruby to use
+  # Set version of node to use
   node:
     version:
       4.2.2
