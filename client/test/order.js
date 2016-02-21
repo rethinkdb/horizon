@@ -54,14 +54,14 @@ const orderSuite = (getData, getTestData) => () => {
   // We can pass multiple fields to `order` to disambiguate.
   it('can order by multiple fields', assertCompletes(() =>
     data.order(['a', 'id']).fetch({ asCursor: false })
-      .do(res => assert.deepEqual(res, _.sortByAll(testData, [ 'a', 'id' ])))
+      .do(res => assert.deepEqual(res, _.sortBy(testData, [ 'a', 'id' ])))
   ))
 
   // We can pass multiple fields to `order` to disambiguate. Let's do it in
   // descending order.
   it('can order by multiple fields descending', assertCompletes(() =>
     data.order(['a', 'id'], 'descending').fetch({ asCursor: false })
-      .do(res => assert.deepEqual(res, _.sortByAll(testData, ['a', 'id']).reverse()))
+      .do(res => assert.deepEqual(res, _.sortBy(testData, ['a', 'id']).reverse()))
   ))
 
   // `order` cannot accept any keys that are present in `findAll`
