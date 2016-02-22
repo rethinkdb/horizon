@@ -4,7 +4,7 @@ if (BROWSER) {
   // Use source maps in mocha errors (ordinarily source maps
   // only work inside Developer Tools)
   require('source-map-support/browser-source-map-support.js')
-  window.sourceMapSupport.install({})
+  window.sourceMapSupport.install()
 } else {
   // In node, require source-map-support directly. It is listed
   // as an external dependency in webpack config, so that it is
@@ -36,6 +36,7 @@ if (BROWSER) {
 
 window.chai = require('chai/chai.js')
 window.chai.config.showDiff = true
+window.chai.config.truncateThreshold = 0
 window.expect = window.chai.expect
 window.assert = window.chai.assert
 
@@ -83,4 +84,6 @@ require('./api.js')
 
 if (BROWSER) {
   mocha.run()
+} else {
+  // Run by mocha command
 }

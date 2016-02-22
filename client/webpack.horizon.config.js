@@ -9,6 +9,9 @@ const UglifyJsPlugin = require('webpack/lib/optimize/UglifyJsPlugin')
 const DEV_BUILD = (process.env.NODE_ENV !== 'production')
 const SOURCEMAPS = !process.env.NO_SOURCEMAPS
 
+const argv = require('minimist')(process.argv.slice(2))
+const filename = argv.filename || 'horizon.js'
+
 module.exports = {
   entry: {
     horizon: './src/index.js',
@@ -16,7 +19,7 @@ module.exports = {
   target: 'web',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: '[name].js',
+    filename: filename,
     library: 'Horizon', // window.Horizon if loaded by a script tag
     libraryTarget: 'umd',
     pathinfo: DEV_BUILD, // Add module filenames as comments in the bundle
