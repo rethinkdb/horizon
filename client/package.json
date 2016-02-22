@@ -4,12 +4,12 @@
   "description": "RethinkDB Horizon is an open-source developer platform for building realtime, scalable web apps.",
   "scripts": {
     "dev": "webpack --watch --progress --colors",
-    "devtest": "nodemon --watch dist --exec 'npm test && npm run lint -s'",
+    "devtest": "nodemon --watch dist --exec 'npm test -- --reporter dot && npm run lint -s'",
     "builddebug": "webpack --progress --colors --display-modules --display-reasons --config webpack.horizon.config.js",
     "build": "NODE_ENV=production webpack --progress --colors",
     "compile": "babel src --presets es2015-loose --plugins transform-runtime,transform-function-bind --source-maps true --out-dir lib",
     "lint": "eslint src",
-    "test": "mocha dist/test.js --reporter dot",
+    "test": "mocha dist/test.js --inline-diffs",
     "prepublish": "npm run build && npm run compile && webpack --progress --colors --config webpack.horizon.config.js --filename horizon-dev.js"
   },
   "dependencies": {
@@ -21,23 +21,22 @@
     "babel-cli": "^6.5.1",
     "babel-core": "^6.5.2",
     "babel-eslint": "^5.0.0",
+    "babel-loader": "^6.2.3",
     "babel-plugin-transform-async-to-generator": "^6.5.0",
     "babel-plugin-transform-function-bind": "^6.5.2",
     "babel-plugin-transform-runtime": "^6.5.2",
     "babel-preset-es2015": "^6.3.13",
     "babel-preset-es2015-loose": "^7.0.0",
     "chai": "^3.4.0",
+    "copy-webpack-plugin": "^1.1.1",
     "eslint": "^2.2.0",
-    "html-webpack-plugin": "^2.9.0",
     "lodash": "^4.5.0",
     "minimist": "^1.2.0",
     "mocha": "^2.3.3",
     "nodemon": "^1.9.0",
-    "raw-loader": "^0.5.1",
-    "rx": "^4.0.7",
     "source-map-support": "^0.4.0",
-    "style-loader": "^0.13.0",
-    "webpack": "^1.12.13"
+    "webpack": "^1.12.13",
+    "ws": "^1.0.1"
   },
   "main": "lib/index.js",
   "repository": {

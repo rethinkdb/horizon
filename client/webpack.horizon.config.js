@@ -56,7 +56,7 @@ module.exports = {
   plugins: [
     new BannerPlugin('__LICENSE__'),
     // Possibility to replace constants such as `if (__DEV__)`
-    // and thus strip helpful warnings from production build
+    // and thus strip helpful warnings from production build:
     //new DefinePlugin({
     //  'process.env.NODE_ENV': (DEV_BUILD ? 'development' : 'production')
     //}),

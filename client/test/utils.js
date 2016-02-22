@@ -13,7 +13,7 @@ window.removeAllData = function removeAllData(collection, done) {
 function doneObserver(done) {
   return Rx.Observer.create(
     () => {},
-    err => done(new Error(err)),
+    err => done(err),
     () => done()
   )
 }
