@@ -15,8 +15,6 @@ if (BROWSER) {
 if (BROWSER) {
   // Expose window.mocha and window.Mocha
   require('mocha/mocha.js')
-  // Add mocha css via webpack without needing a web server
-  require('style!raw!mocha/mocha.css')
   // Expose globals such as describe()
   window.mocha.setup('bdd')
 } else {

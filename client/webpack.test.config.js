@@ -1,6 +1,6 @@
 const path = require('path')
 
-const HtmlWebpackPlugin = require('html-webpack-plugin')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 const DEV_BUILD = (process.env.NODE_ENV !== 'production')
 const SOURCEMAPS = !process.env.NO_SOURCEMAPS
@@ -39,7 +39,7 @@ module.exports = {
       /chai\/chai\.js/,
       /lodash\/lodash\.js/,
       /source-map-support/,
-      /rx\/dist\/rx\.all\.js/
+      /rx\/dist\/rx\.all\.js/,
     ],
     loaders: [
       {
@@ -66,10 +66,9 @@ module.exports = {
     __filename: false,
   },
   plugins: [
-    new HtmlWebpackPlugin({
-      template: './test/test.html',
-      filename: 'test.html',
-      inject: false,
-    }),
+    new CopyWebpackPlugin([
+      { from: './test/test.html' },
+      { from: './node_modules/mocha/mocha.css' },
+    ]),
   ],
 }
