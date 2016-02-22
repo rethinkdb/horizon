@@ -3,13 +3,14 @@
   "version": "0.0.2-1",
   "description": "RethinkDB Horizon is an open-source developer platform for building realtime, scalable web apps.",
   "scripts": {
-    "dev": "webpack --watch --watch-poll --progress --colors",
+    "dev": "webpack --watch --progress --colors",
+    "devtest": "nodemon --watch dist --exec 'npm test && npm run lint -s'",
     "builddebug": "webpack --progress --colors --display-modules --display-reasons --config webpack.horizon.config.js",
     "build": "NODE_ENV=production webpack --progress --colors",
     "compile": "babel src --presets es2015-loose --plugins transform-runtime,transform-function-bind --source-maps true --out-dir lib",
     "lint": "eslint src",
     "test": "mocha dist/test.js --reporter dot",
-    "prepublish": "npm run build && npm run compile"
+    "prepublish": "npm run build && npm run compile && webpack --progress --colors --config webpack.horizon.config.js --filename horizon-dev.js"
   },
   "dependencies": {
     "babel-runtime": "^6.5.0",
@@ -27,8 +28,11 @@
     "babel-preset-es2015-loose": "^7.0.0",
     "chai": "^3.4.0",
     "eslint": "^2.2.0",
-    "lodash": "^4.3.0",
+    "html-webpack-plugin": "^2.9.0",
+    "lodash": "^4.5.0",
+    "minimist": "^1.2.0",
     "mocha": "^2.3.3",
+    "nodemon": "^1.9.0",
     "raw-loader": "^0.5.1",
     "rx": "^4.0.7",
     "source-map-support": "^0.4.0",
@@ -49,6 +53,8 @@
   "files": [
     "dist/horizon.js",
     "dist/horizon.js.map",
+    "dist/horizon-dev.js",
+    "dist/horizon-dev.js.map",
     "lib/*"
   ]
 }

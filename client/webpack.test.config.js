@@ -1,5 +1,7 @@
 const path = require('path')
 
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+
 const DEV_BUILD = (process.env.NODE_ENV !== 'production')
 const SOURCEMAPS = !process.env.NO_SOURCEMAPS
 
@@ -64,5 +66,10 @@ module.exports = {
     __filename: false,
   },
   plugins: [
-  ]
+    new HtmlWebpackPlugin({
+      template: './test/test.html',
+      filename: 'test.html',
+      inject: false,
+    }),
+  ],
 }
