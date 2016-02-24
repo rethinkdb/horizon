@@ -350,6 +350,80 @@ const all_tests = (table) => {
         done();
       });
   });
+
+  // These tests are impossible to represent in the schema (as far as I can tell),
+  // so the test for this functionality must be at the integration level.
+  it('find_all "above" field not in "order".', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          find_all: [ { value: 0 } ],
+          order: [ [ 'value', 'a' ], 'descending' ],
+          above: [ { b: 4 }, 'closed' ],
+        },
+      },
+      (err) => {
+        utils.check_error(err, '"above" must be on the same field as the first in "order"');
+        done();
+      });
+  });
+
+  it('find_all "above" field not first in "order".', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          find_all: [ { value: 0 } ],
+          order: [ [ 'value', 'a' ], 'descending' ],
+          above: [ { a: 4 }, 'closed' ],
+        },
+      },
+      (err) => {
+        utils.check_error(err, '"above" must be on the same field as the first in "order"');
+        done();
+      });
+  });
+
+  it('find_all "below" field not in "order".', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          find_all: [ { value: 0 } ],
+          order: [ [ 'value', 'a' ], 'descending' ],
+          below: [ { b: 4 }, 'closed' ],
+        },
+      },
+      (err) => {
+        utils.check_error(err, '"below" must be on the same field as the first in "order"');
+        done();
+      });
+  });
+
+  it('find_all "below" field not first in "order".', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        type: 'query',
+        options: {
+          collection: table,
+          find_all: [ { value: 0 } ],
+          order: [ [ 'value', 'a' ], 'descending' ],
+          below: [ { a: 4 }, 'closed' ],
+        },
+      },
+      (err) => {
+        utils.check_error(err, '"below" must be on the same field as the first in "order"');
+        done();
+      });
+  });
 };
 
 const suite = (table) => describe('Query', () => all_tests(table));

@@ -585,27 +585,6 @@ describe('Schema', () => {
           assert.deepStrictEqual(parsed.value, request);
         });
 
-        // TODO: these two tests are not passing because we don't enforce this
-        // in the schema - figure out a way to enforce this, or move these
-        // test cases to the server tests.
-        it('"above" field not in "order"', () => {
-          const request = extend({ }, valid);
-          request.order = [ [ 'id' ], 'descending' ];
-          request.above = [ { x: 'foo' }, 'open' ];
-          const error = horizon_protocol.query.validate(request).error;
-          assert.ifError(error);
-          utils.check_error(error, 'TODO');
-        });
-
-        it('"below" field not in "order"', () => {
-          const request = extend({ }, valid);
-          request.order = [ [ 'id' ], 'descending' ];
-          request.below = [ { x: 'foo' }, 'open' ];
-          const error = horizon_protocol.query.validate(request).error;
-          assert.ifError(error);
-          utils.check_error(error, 'TODO');
-        });
-
         it('wrong "find_all" type', () => {
           const request = extend({ }, valid);
           request.find_all = null;
