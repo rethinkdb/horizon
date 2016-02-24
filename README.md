@@ -87,7 +87,7 @@ const todoCollection = horizon("todo-items");
 const todoApp = document.querySelector('#app')
 
 // Function called when a user adds a todo item in the UI
-const todoCollection.watch().subscribe( todos => {
+todoCollection.watch().forEach( todos => {
   const todoHTML = todos.map(todo =>
     `<div class="todo" id="${todo.id}">
        <input type="checkbox" ${todo.done ? 'checked' : ''}>

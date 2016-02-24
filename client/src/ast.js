@@ -1,6 +1,13 @@
-const snakeCase = require('snake-case')
+const { Observable } = require('rxjs')
+// TODO: size reduction
+// const { Observable } = require('rxjs/Observable')
+// require('rxjs/add/observable/empty')
+// require('rxjs/add/operator/publishReplay')
+// require('rxjs/add/operator/scan')
+// require('rxjs/add/operator/toArray')
 
-const Rx = require('rx')
+const snakeCase = require('lodash.snakecase')
+
 const { checkArgs,
         validIndexValue,
         assign } = require('./utility.js')
@@ -183,14 +190,14 @@ function writeOp(name, args, documents) {
     wrappedDocs = [ documents ]
   } else if (documents.length === 0) {
     // Don't bother sending no-ops to the server
-    return Rx.Observable.empty()
+    return Observable.empty()
   }
   const options = assign(this._query, { data: serialize(wrappedDocs) })
   let observable = this._sendRequest(name, options)
   if (!this._lazyWrites) {
     // Need to buffer response since this becomes a hot observable and
     // when we subscribe matters
-    observable = observable.shareReplay()
+    observable = observable.publishReplay().refCount()
     observable.subscribe()
   }
   return observable
