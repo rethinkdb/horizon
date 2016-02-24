@@ -1,5 +1,5 @@
 {
-  "name": "horizon-server",
+  "name": "@horizon/server",
   "version": "0.0.3",
   "description": "Server for RethinkDB Horizon, an open-source developer platform for building realtime, scalable web apps.",
   "main": "src/horizon.js",
@@ -19,7 +19,7 @@
   "dependencies": {
     "joi": "^7.0.0",
     "cookie": "^0.2.3",
-    "horizon-client": "^0.0.2-1",
+    "@horizon/client": "^0.0.2-1",
     "joi": "^7.0.0",
     "jsonwebtoken": "^5.5.4",
     "oauth": "^0.9.14",

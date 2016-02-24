@@ -1,5 +1,5 @@
 {
-  "name": "horizon-client",
+  "name": "@horizon/client",
   "version": "0.0.2-1",
   "description": "RethinkDB Horizon is an open-source developer platform for building realtime, scalable web apps.",
   "main": "dist/horizon.js",

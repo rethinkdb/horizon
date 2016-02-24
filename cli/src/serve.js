@@ -1,6 +1,6 @@
 'use strict';
 
-const horizonServer = require('horizon-server');
+const horizonServer = require('@horizon/server');
 const logger = horizonServer.logger;
 const http = require('http');
 const https = require('https');
@@ -112,7 +112,7 @@ const fileServer = (distDir) => (req, res) => {
   if (req_path === '/' || req_path === '') {
     serve_file(path.join(distDir, 'index.html'), res);
   } else if (horizonMatch) {
-    const horizonDir = path.dirname(require.resolve('horizon-client'));
+    const horizonDir = path.dirname(require.resolve('@horizon/client'));
     serve_file(path.join(horizonDir, horizonMatch[1]), res);
   } else if (!req_path.match(/\/horizon\/.*/)) {
     // All other static files come from the dist directory

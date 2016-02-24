@@ -8,7 +8,7 @@ const logger = require('./logger');
 const horizon_protocol = require('./schema/horizon_protocol');
 const options_schema = require('./schema/server_options').server;
 
-const horizon_client_path = require.resolve('horizon-client');
+const horizon_client_path = require.resolve('@horizon/client');
 
 const endpoints = {
   insert: require('./endpoint/insert'),
