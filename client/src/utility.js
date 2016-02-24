@@ -1,5 +1,3 @@
-'use strict'
-
 // Checks whether the return value is a valid primary or secondary
 // index value
 function validIndexValue(val) {
@@ -19,8 +17,17 @@ function validIndexValue(val) {
   return false
 }
 
-function assign(...args) {
-  return Object.assign({}, ...args)
+// function assign(...args) {
+//   return Object.assign({}, ...args) // babel-runtime-transform fails
+// }
+function assign() {
+  const len = arguments.length
+  const args = Array(len)
+  args[0] = {}
+  for (var i = 0; i < len; ++i) {
+    args[i + 1] = arguments[i]
+  }
+  return Object.assign.apply(Object, args)
 }
 
 function ordinal(x) {

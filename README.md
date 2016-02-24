@@ -69,7 +69,7 @@ their app.
 $ npm install -g horizon
 $ hz init my-app
 $ hz serve myapp --dev
-# localhost:8181/index.html has a demo page on it
+# localhost:8181 has a demo page on it
 # Horizon client connections can be made to ws://localhost:8181/horizon
 # The horizon client library is served from localhost:8181/horizon/horizon.js
 ```

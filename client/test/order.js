@@ -1,5 +1,6 @@
 'use strict'
-const orderSuite = (getData, getTestData) => () => {
+
+const orderSuite = window.orderSuite = (getData, getTestData) => () => {
   let data, testData
 
   before(() => {

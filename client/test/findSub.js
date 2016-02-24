@@ -1,5 +1,5 @@
 'use strict'
-const findSubscriptionSuite = (getData) => () => {
+const findSubscriptionSuite = window.findSubscriptionSuite = (getData) => () => {
   let data
 
   before(() => {
