@@ -29,7 +29,7 @@ module.exports = {
     // These modules are not packaged into test.js. Webpack allows them to be
     // required natively at runtime when the tests are run in node
     './horizon.js': 'commonjs ./horizon.js',
-    'ws': 'commonjs ws',
+    ws: 'commonjs ws',
     'source-map-support': 'commonjs source-map-support',
   },
   module: {
@@ -48,7 +48,7 @@ module.exports = {
         loader: 'babel-loader',
         query: {
           cacheDirectory: true,
-          presets: ['babel-preset-es2015-loose'],
+          presets: [ 'babel-preset-es2015-loose' ],
           plugins: [
             'babel-plugin-transform-runtime',
             'babel-plugin-transform-function-bind',

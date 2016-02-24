@@ -44,7 +44,7 @@ module.exports = {
         loader: 'babel-loader',
         query: {
           cacheDirectory: true,
-          presets: ['babel-preset-es2015-loose'],
+          presets: [ 'babel-preset-es2015-loose' ],
           plugins: [
             'babel-plugin-transform-runtime',
             'babel-plugin-transform-function-bind',
@@ -57,9 +57,9 @@ module.exports = {
     new BannerPlugin('__LICENSE__'),
     // Possibility to replace constants such as `if (__DEV__)`
     // and thus strip helpful warnings from production build:
-    //new DefinePlugin({
+    // new DefinePlugin({
     //  'process.env.NODE_ENV': (DEV_BUILD ? 'development' : 'production')
-    //}),
+    // }),
   ].concat(DEV_BUILD ?
     [] :
     [

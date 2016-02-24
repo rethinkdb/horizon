@@ -6,6 +6,7 @@ const { subscribeOrObservable } = require('./utility.js')
 
 module.exports = Horizon
 
+
 function Horizon({
   host = `${window.location.host}`,
   secure = window.location.protocol === 'https:',

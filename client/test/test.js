@@ -25,6 +25,14 @@ if (BROWSER) {
   // in webpack config, so that it is not bundled here.
   window.WebSocket = require('ws')
 
+  // Polyfill window.location
+  window.location = {
+    host: 'localhost:8181',
+    protocol: 'http:',
+    hostname: 'localhost',
+    port: 8181,
+  }
+
   // In node, require 'dist/horizon.js' at runtime, so that
   // we test the actual packaged module. It is listed as an external
   // in webpack config, so that it is not bundled here to avoid

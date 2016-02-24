@@ -47,8 +47,8 @@ Then wherever you want to use Project Horizon you will need to `require` the Hor
 **Note:** if you started Horizon Server with `--insecure`, you'll need to [disable the secure flag](#Horizon).
 
 ```javascript
-const Horizon = require("horizon-client"); // or use global `window.Horizon`
-const horizon = new Horizon("localhost:8181");
+const Horizon = require("@horizon/client"); // or use global `window.Horizon`
+const horizon = new Horizon();
 ```
 
 From here you can start to interact with RethinkDB collections through the Horizon collection. Having `--dev` mode enabled on the Horizon Server creates collections and indexes automatically so you can get your application setup with as little hassle as possible.
@@ -149,10 +149,10 @@ If Horizon server has been started with `--insecure` then you will need to conne
 ###### Example
 
 ```javascript
-const Horizon = require("horizon-client")
-const horizon = Horizon("localhost:8181")
+const Horizon = require("@horizon/client")
+const horizon = Horizon()
 
-const unsecure_horizon = Horizon('localhost:8181', { secure: false })
+const unsecure_horizon = Horizon({ secure: false })
 ```
 
 #### Collection
@@ -162,8 +162,8 @@ Object which represents a collection of documents on which queries can be perfor
 ###### Example
 ```javascript
 // Setup connection the Horizon server
-const Horizon = require("horizon-client")
-const horizon = Horizon("localhost:8181")
+const Horizon = require("@horizon/client")
+const horizon = Horizon()
 
 // Create horizon collection
 const messages = horizon('messages')

@@ -38,10 +38,10 @@ module.exports = (options) => {
       reject(err);
       process.exit(1);
     });
-
     process.on('exit', () => {
       rdbProc.kill('SIGTERM');
     });
+
 
     each_line_in_pipe(rdbProc.stdout, (line) => {
       console.info(`rethinkdb stdout: ${line}`);
