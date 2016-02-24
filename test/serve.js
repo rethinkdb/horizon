@@ -22,7 +22,7 @@ const url = require('url');
 const process = require('process');
 
 const data_dir = path.resolve(__dirname, 'rethinkdb_data_test');
-const client_dir = path.resolve(__dirname, '../client');
+const test_dist_dir = path.resolve(__dirname, '../client/dist');
 const examples_dir = path.resolve(__dirname, '../examples');
 
 const parser = new argparse.ArgumentParser();
@@ -72,7 +72,7 @@ const serve_file = (file_path, res) => {
 
 // Run the client build
 const build_proc = child_process.spawn('npm', [ 'run', 'dev'],
-                                      { cwd: client_dir, stdio: 'pipe' });
+                                      { cwd: test_dist_dir, stdio: 'pipe' });
 
 each_line_in_pipe(build_proc.stdout, (line) => {
   console.log(line);
@@ -91,7 +91,7 @@ const http_servers = options.bind.map((host) =>
     if (req_path.indexOf('/examples/') === 0) {
       serve_file(path.resolve(examples_dir, req_path.replace(/^[/]examples[/]/, '')), res);
     } else {
-      serve_file(path.resolve(client_dir, req_path.replace(/^[/]/, '')), res);
+      serve_file(path.resolve(test_dist_dir, req_path.replace(/^[/]/, '')), res);
     }
   }));
 
@@ -141,7 +141,7 @@ new Promise((resolve) => {
       serv.on('request', (req, res) => {
         const req_path = url.parse(req.url).pathname;
         if (req_path === '/horizon/horizon.js' || req_path === '/horizon/horizon.js.map') {
-          serve_file(path.resolve(client_dir, 'dist', req_path.replace('/horizon/', '')), res);
+          serve_file(path.resolve(test_dist_dir, req_path.replace('/horizon/', '')), res);
         } else {
           extant_listeners.forEach((l) => l.call(serv, req, res));
         }

@@ -86,5 +86,5 @@ window.observableInterleave = function observableInterleave(options) {
         return Rx.Observable.empty()
       }
     })
-    .do(null, null, () => equality(values, expected))
+    .do(null, null, () => equality(expected, values))
 }

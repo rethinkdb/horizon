@@ -29,7 +29,7 @@ module.exports = {
     // These modules are not packaged into test.js. Webpack allows them to be
     // required natively at runtime when the tests are run in node
     './horizon.js': 'commonjs ./horizon.js',
-    'ws': 'commonjs ws',
+    ws: 'commonjs ws',
     'source-map-support': 'commonjs source-map-support',
   },
   module: {
