@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 'use strict'
 
-const utils = require('../server/test/utils');
 const horizon = require('../server');
+
+// Utilities provided by the CLI library
+const each_line_in_pipe = require('../cli/src/utils/each_line_in_pipe');
+const start_rdb_server = require('../cli/src/utils/start_rdb_server');
+const rm_sync_recursive = require('../cli/src/utils/rm_sync_recursive');
 
 // We could make this a module, but we already require the server to be configured,
 // so reuse its argparse module
@@ -17,6 +21,7 @@ const path = require('path');
 const url = require('url');
 const process = require('process');
 
+const data_dir = path.resolve(__dirname, 'rethinkdb_data_test');
 const client_dir = path.resolve(__dirname, '../client');
 const examples_dir = path.resolve(__dirname, '../examples');
 
@@ -74,7 +79,7 @@ build_proc.on('exit', () => process.exit(1));
 process.on('exit', () => build_proc.kill('SIGTERM'));
 
 let client_ready = false;
-utils.each_line_in_pipe(build_proc.stdout, (line) => {
+each_line_in_pipe(build_proc.stdout, (line) => {
   if (line.indexOf('bytes written') !== -1) {
       client_ready = true;
       const date = new Date();
@@ -112,17 +117,21 @@ new Promise((resolve) => {
   });
 }).then((local_addresses) => {
   // Launch rethinkdb - once we know the port we can attach horizon to the http server
-  utils.start_rdb_server({ bind: local_addresses, keep: options.keep }, () => {
-    assert.notStrictEqual(utils.rdb_port(), undefined);
-    console.log(`RethinkDB server listening for clients on port ${utils.rdb_port()}.`);
-    console.log(`RethinkDB server listening for HTTP on port ${utils.rdb_http_port()}.`);
+  if (!options.keep) {
+    rm_sync_recursive(data_dir);
+  }
+
+  start_rdb_server({ bind: local_addresses, dataDir: data_dir }).then((info) => {
+    assert.notStrictEqual(info.driverPort, undefined);
+    console.log(`RethinkDB server listening for clients on port ${info.driverPort}.`);
+    console.log(`RethinkDB server listening for HTTP on port ${info.httpPort}.`);
 
     horizon.logger.level = 'debug';
     const horizon_server = new horizon.Server(http_servers,
                                             {
                                               auto_create_table: true,
                                               auto_create_index: true,
-                                              rdb_port: utils.rdb_port(),
+                                              rdb_port: info.driverPort,
                                               auth: {
                                                 allow_unauthenticated: true,
                                               },

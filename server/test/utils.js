@@ -2,6 +2,10 @@
 
 const horizon = require('../src/server');
 
+const rm_sync_recursive = require('../../cli/src/utils/rm_sync_recursive');
+const start_rdb_server = require('../../cli/src/utils/start_rdb_server');
+const each_line_in_pipe = require('../../cli/src/utils/each_line_in_pipe');
+
 const assert = require('assert');
 const child_process = require('child_process');
 const fs = require('fs');
@@ -23,91 +27,20 @@ logger.remove(logger.transports.Console);
 let rdb_http_port, rdb_port, rdb_conn, horizon_server, horizon_port, horizon_conn, horizon_listeners;
 let horizon_authenticated = false;
 
-const each_line_in_pipe = (pipe, callback) => {
-  let buffer = '';
-  pipe.on('data', (data) => {
-    buffer += data.toString();
+const test_db_server = (done) => {
+  rm_sync_recursive(data_dir);
 
-    let endline_pos = buffer.indexOf('\n');
-    while (endline_pos !== -1) {
-      const line = buffer.slice(0, endline_pos);
-      buffer = buffer.slice(endline_pos + 1);
-      callback(line);
-      endline_pos = buffer.indexOf('\n');
-    }
+  start_rdb_server({ dataDir: data_dir }).then((info) => {
+    rdb_port = info.driverPort;
+    rdb_http_port = info.httpPort;
+
+    const conn_promise = r.connect({ db, port: rdb_port });
+    conn_promise.then((c) => { rdb_conn = c });
+    conn_promise.then((c) => r.dbCreate(db).run(c)).then((res) => {
+      assert.strictEqual(res.dbs_created, 1);
+      done();
+    });
   });
-};
-
-const start_rdb_server = (options, done) => {
-  const keep = (options.keep === undefined) ? false : options.keep;
-  const bind = (options.bind === undefined) ? [ ] : options.bind;
-
-  if (!keep) {
-    const rmdirSync_recursive = (dir) => {
-      try {
-        fs.readdirSync(dir).forEach((item) => {
-          const full_path = path.join(dir, item);
-          if (fs.statSync(full_path).isDirectory()) {
-            rmdirSync_recursive(full_path);
-          } else {
-            fs.unlinkSync(full_path);
-          }
-        });
-        fs.rmdirSync(dir);
-      } catch (err) { /* Do nothing */ }
-    };
-    rmdirSync_recursive(data_dir);
-  }
-
-  const args = [ '--http-port', '0',
-                 '--cluster-port', '0',
-                 '--driver-port', '0',
-                 '--cache-size', '10',
-                 '--directory', data_dir ];
-  bind.forEach((host) => args.push('--bind', host));
-
-  const proc = child_process.spawn('rethinkdb', args);
-
-  proc.once('error', (err) => assert.ifError(err));
-
-  process.on('exit', () => {
-    proc.kill('SIGKILL');
-  });
-
-  // Error if we didn't get the port before the server exited
-  // proc.stdout.once('end', () => assert(rdb_port !== undefined));
-
-  const maybe_start_rdb_connection = () => {
-    if (rdb_port !== undefined && rdb_http_port !== undefined) {
-      r.connect({ db, port: rdb_port }).then((c) => {
-        rdb_conn = c;
-        return r.dbCreate(db).run(c);
-      }).then((res) => {
-        assert.strictEqual(res.dbs_created, 1);
-        done();
-      });
-    }
-  };
-
-  each_line_in_pipe(proc.stdout, (line) => {
-    logger.info(`rethinkdb stdout: ${line}`);
-    if (rdb_port === undefined) {
-      const matches = line.match(/^Listening for client driver connections on port (\d+)$/);
-      if (matches !== null && matches.length === 2) {
-        rdb_port = parseInt(matches[1]);
-        maybe_start_rdb_connection();
-      }
-    }
-    if (rdb_http_port === undefined) {
-      const matches = line.match(/^Listening for administrative HTTP connections on port (\d+)$/);
-      if (matches !== null && matches.length === 2) {
-        rdb_http_port = parseInt(matches[1]);
-        maybe_start_rdb_connection();
-      }
-    }
-  });
-
-  each_line_in_pipe(proc.stderr, (line) => logger.info(`rethinkdb stderr: ${line}`));
 };
 
 // Creates a table, no-op if it already exists, uses horizon server prereqs
@@ -280,7 +213,7 @@ module.exports = {
   horizon_port: () => horizon_port,
   horizon_listeners: () => horizon_listeners,
 
-  start_rdb_server,
+  test_db_server,
   create_table, populate_table, clear_table,
 
   start_horizon_server, close_horizon_server,

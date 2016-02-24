@@ -3,6 +3,7 @@
 const child_process = require('child_process');
 const assert = require('assert');
 const each_line_in_pipe = require('./each_line_in_pipe');
+const logger = require('@horizon/server').logger;
 
 const defaultDb = 'horizon';
 const defaultDatadir = 'rethinkdb_data';
@@ -12,7 +13,7 @@ const defaultDatadir = 'rethinkdb_data';
 // bind: array of ip addresses to bind to, or 'all'
 // dataDir: name of rethinkdb data directory. Defaults to `rethinkdb_data`
 // db: name of database to use. Defaults to 'horizon'
-// driverPort: port number for rethinkdb driver connections. Autoassigned by default.
+// driverPort: port number for rethinkdb driver connections. Auto-assigned by default.
 // httpPort: port number for webui. Auto-assigned by default.
 // cacheSize: cacheSize to give to rethinkdb in MB. Default 200.
 module.exports = (options) => {
@@ -43,22 +44,7 @@ module.exports = (options) => {
       rdbProc.kill('SIGTERM');
     });
 
-    each_line_in_pipe(rdbProc.stdout, (line) => {
-      console.info(`rethinkdb stdout: ${line}`);
-      if (driverPort === undefined) {
-        const matches = line.match(
-            /^Listening for client driver connections on port (\d+)$/);
-        if (matches !== null && matches.length === 2) {
-          driverPort = parseInt(matches[1]);
-        }
-      }
-      if (httpPort === undefined) {
-        const matches = line.match(
-            /^Listening for administrative HTTP connections on port (\d+)$/);
-        if (matches !== null && matches.length === 2) {
-          httpPort = parseInt(matches[1]);
-        }
-      }
+    const maybe_resolve = () => {
       if (httpPort !== undefined && driverPort !== undefined) {
         // Once we have both ports determined, callback with all
         // settings.
@@ -70,9 +56,29 @@ module.exports = (options) => {
           bind,
         });
       }
+    };
+
+    each_line_in_pipe(rdbProc.stdout, (line) => {
+      logger.info(`rethinkdb stdout: ${line}`);
+      if (driverPort === undefined) {
+        const matches = line.match(
+            /^Listening for client driver connections on port (\d+)$/);
+        if (matches !== null && matches.length === 2) {
+          driverPort = parseInt(matches[1]);
+          maybe_resolve();
+        }
+      }
+      if (httpPort === undefined) {
+        const matches = line.match(
+            /^Listening for administrative HTTP connections on port (\d+)$/);
+        if (matches !== null && matches.length === 2) {
+          httpPort = parseInt(matches[1]);
+          maybe_resolve();
+        }
+      }
     });
 
     each_line_in_pipe(rdbProc.stderr, (line) =>
-                      console.info(`rethinkdb stderr: ${line}`));
+                      logger.error(`rethinkdb stderr: ${line}`));
   });
 };
