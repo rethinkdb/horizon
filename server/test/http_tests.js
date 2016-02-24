@@ -64,7 +64,7 @@ const all_tests = () => {
                                  port: http_server.address().port,
                                  path: '/horizon/horizon.js',
                                  rejectUnauthorized: false }, (res) => {
-          const code = fs.readFileSync('./node_modules/horizon-client/dist/horizon.js');
+          const code = fs.readFileSync('./node_modules/@horizon/client/dist/horizon.js');
           let buffer = '';
           assert.strictEqual(res.statusCode, 200);
           res.on('data', (delta) => buffer += delta);

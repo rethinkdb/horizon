@@ -3,6 +3,6 @@ rethinkdb_data_test
 rethinkdb_data/
 **/*.log
 .#*
-
 **/*-key.pem
 **/*-cert.pem
+node_modules/

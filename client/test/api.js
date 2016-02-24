@@ -7,7 +7,6 @@
 
 chai.config.showDiff = true
 const assert = chai.assert
-const Horizon = require('Horizon')
 Rx.config.longStackSupport = true
 
 // Test the methods and event callbacks on the Horizon object.
@@ -23,7 +22,7 @@ describe('Core API tests', () => {
 
   // Set up the horizon connection before running these tests.
   before(done => {
-    horizon = Horizon('localhost:8181', { secure: false, lazyWrites: true });
+    horizon = Horizon({ secure: false, lazyWrites: true });
     horizon.connect(err => done(err))
     horizon.onConnected(() => {
       data = horizon('test_data')

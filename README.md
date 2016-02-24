@@ -7,7 +7,7 @@ realtime, scalable web apps. It is built on top of RethinkDB, and
 allows app developers to get started with building modern, engaging
 apps without writing any backend code.
 
-Horizon consists of two components:
+Horizon consists of three components:
 
 - [__Horizon server__](/server) -- a middleware server that connects to/is built on
   top of RethinkDB, and exposes a simple API/protocol to front-end
@@ -15,6 +15,7 @@ Horizon consists of two components:
 - [__Horizon client library__](/client) -- a JavaScript client library that wraps
   Horizon server's protocol in a convenient API for front-end
   developers.
+- [__the horizon tool_](/cli) -- a command line tool aiding in scaffolding, development, and deployment
 
 The first version of Horizon will expose the following services to
 developers:
@@ -26,16 +27,16 @@ developers:
 - __Identity__ -- an API for listing and manipulating user accounts.
 - __Permissions__ -- a security model that allows the developer to protect
   the data from unauthorized access.
-- __Geolocation__ -- an API that makes it very easy to build
-  location-aware apps.
-- __Session management__ -- manage browser session and session
-  information.
-- __Presence__ -- an API for detecting presence information for a given
-  user and sharing it with others.
 
 Upcoming versions of Horizon will likely expose the following
 additional services:
 
+- __Session management__ -- manage browser session and session
+  information.
+- __Geolocation__ -- an API that makes it very easy to build
+  location-aware apps.
+- __Presence__ -- an API for detecting presence information for a given
+  user and sharing it with others.
 - __Plugins__ -- a system for extending Horizon with user-defined services
   in a consistent, discoverable way.
 - __Backend__ -- an API/protocol to integrate custom backend code with
@@ -65,48 +66,34 @@ their app.
 ### How do you start Horizon?
 
 ```sh
-# Start RethinkDB
-$ rethinkdb
-
-# In another terminal, start Horizon
-$ horizon --dev
-
-# Clients can connect directly from the browser on port 8181
-# The horizon client library is served from host:8181/horizon.js
+$ npm install -g horizon
+$ hz init my-app
+$ hz serve myapp --dev
+# localhost:8181/index.html has a demo page on it
+# Horizon client connections can be made to ws://localhost:8181/horizon
+# The horizon client library is served from localhost:8181/horizon/horizon.js
 ```
 
 ### What does the code look like?
 
-The API is still in development, but here is currently what you'd write
-on the front-end for a hypothetical todo list application:
+Here is currently what you'd write on the front-end for a simple todo list application:
 
 ```js
 // Connect to horizon
-const horizon = new Horizon('localhost:8181');
-const todos = horizon("todo-items");
+const horizon = new Horizon();
+const todoCollection = horizon("todo-items");
+
+const todoApp = document.querySelector('#app')
 
 // Function called when a user adds a todo item in the UI
-const createTodo = (newTodo) => {
-  todos.insert({
-    item: newTodo.text,
-    created: new Date()
-  });
-};
-
-// Listen to updates from other users
-const initApp = () => {
-  todos.subscribe({
-    onAdded: (addedTodo) => {
-      // add the new todo to the data model
-    }),
-    onChanged: (changed) => {
-      // update data model with changed.new_val
-    },
-    onRemoved: (removedTodo) => {
-      // remove the item from the data model
-    }
-  });
-};
+const todoCollection.watch().subscribe( todos => {
+  const todoHTML = todos.map(todo =>
+    `<div class="todo" id="${todo.id}">
+       <input type="checkbox" ${todo.done ? 'checked' : ''}>
+       ${todo.text} -- ${todo.date}
+     </div>`);
+  todoApp.innerHTML = todoHTML.join('');
+});
 ```
 ***Want to see more?*** Check out [our README for the Horizon client library](https://github.com/rethinkdb/horizon/tree/next/client#horizon-client-library), we have an initial set of docs as well as a expanded getting started guide to get you started with using Horizon.
 

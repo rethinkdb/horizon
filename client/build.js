@@ -14,7 +14,6 @@ program
   .option('-w, --watch', 'Watch directory for changes')
   .option('-U, --no-uglify', `Don't uglify output`)
   .option('-S, --no-sourcemaps', `Don't output sourcemaps`)
-  .option('-g, --expose-global', `Expose Horizon module as a global`)
   .parse(process.argv)
 
 compile(program.watch)
@@ -34,7 +33,7 @@ function compile(watching) {
     packageCache: {},
     plugin: [ watchify ],
     debug: program.sourcemaps,
-    standalone: program.exposeGlobal ? 'Horizon' : '',
+    standalone: 'Horizon',
   }).require('./src/index.js', { expose: 'Horizon' })
     .transform('babelify', {
     // All source files need to be babelified first

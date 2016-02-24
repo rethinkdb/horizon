@@ -6,7 +6,7 @@
 var horizonObjectSuite = () => {
   describe('Horizon', () => {
     it('connects and can track its status', done => {
-      const horizon = Horizon('localhost:8181', { secure: false })
+      const horizon = Horizon({ secure: false })
       assert.isDefined(horizon)
       horizon.status(
         stat => {
@@ -33,7 +33,10 @@ var horizonObjectSuite = () => {
 
     it('errors when it gets the wrong host', done => {
       // Note -- the connection string specifies a bad host.
-      const horizon = Horizon('wrong_host', { secure: false })
+      const horizon = Horizon({
+        host: 'wrong_host',
+        secure: false
+      })
       assert.isDefined(horizon)
       let val = 0
       horizon.status().subscribe(status => {

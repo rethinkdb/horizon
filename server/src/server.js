@@ -8,7 +8,7 @@ const logger = require('./logger');
 const horizon_protocol = require('./schema/horizon_protocol');
 const options_schema = require('./schema/server_options').server;
 
-const horizon_client_path = require.resolve('horizon-client');
+const horizon_client_path = require.resolve('@horizon/client');
 
 const endpoints = {
   insert: require('./endpoint/insert'),
@@ -73,7 +73,6 @@ class Server {
                                          opts.auto_create_index,
                                          this._clients);
     this._auth = new Auth(this, opts.auth);
-
     for (let key of Object.keys(endpoints)) {
       this.add_request_handler(key, endpoints[key].make_reql, endpoints[key].handle_response);
     }
