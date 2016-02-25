@@ -404,8 +404,6 @@ chat.find(1).value().then((message) => {
 
 Turns the query into a changefeed query, returning an observable that receives a live-updating view of the results every time they change.
 
-If you pass `rawChanges: true`, instead of
-
 ###### Example
 
 This query will get all chats in an array every time a chat is added,
