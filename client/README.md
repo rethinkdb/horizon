@@ -30,12 +30,12 @@ Flag                | Description
 While you could build and import this library, you wouldn't have any place to connect to! Once you have the [Horizon Server](/server) running, the Horizon client library is hosted by the server as seen in the getting started example below.
 
 First you need to ensure that you have included the `horizon.js` client library in your HTML.
-**Note**: that you'll want to have `http` instead of `https` if you started Horizon Server with `--insecure`. By default Horizon Server hosts the `horizon.js` client library on it's host on port 8181.
+**Note**: that you'll want to have `http` instead of `https` if you started Horizon Server with `--insecure`. By default Horizon Server hosts the `horizon.js` client library on port 8181.
 
 ```html
 ...
 <head>
-<script src="//localhost:8181/horizon.js"></script>
+<script src="//localhost:8181/horizon/horizon.js"></script>
 </head>
 ...
 ```
