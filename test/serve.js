@@ -72,22 +72,7 @@ const serve_file = (file_path, res) => {
 
 // Run the client build
 const build_proc = child_process.spawn('npm', [ 'run', 'dev'],
-                                      { cwd: client_dir, stdio: 'pipe' });
-
-//let client_ready = false;
-//each_line_in_pipe(build_proc.stdout, (line) => {
-//  if (line.indexOf('bytes written') !== -1) {
-//      client_ready = true;
-//      const date = new Date();
-//      console.log(`${date.toLocaleTimeString()} - horizon.js rebuilt.`);
-//  }
-each_line_in_pipe(build_proc.stdout, (line) => {
-  console.log(line);
-});
-
-each_line_in_pipe(build_proc.stderr, (line) => {
-  console.error(line);
-});
+                                      { cwd: client_dir, stdio: 'inherit' });
 
 build_proc.on('exit', () => process.exit(1));
 process.on('exit', () => build_proc.kill('SIGTERM'));

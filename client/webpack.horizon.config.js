@@ -6,20 +6,22 @@ const DefinePlugin = require('webpack/lib/DefinePlugin')
 const OccurrenceOrderPlugin = require('webpack/lib/optimize/OccurrenceOrderPlugin')
 const UglifyJsPlugin = require('webpack/lib/optimize/UglifyJsPlugin')
 
-const DEV_BUILD = (process.env.NODE_ENV !== 'production')
-const SOURCEMAPS = !process.env.NO_SOURCEMAPS
+module.exports = function(buildTarget) {
+ const FILENAME = buildTarget.FILENAME
+ const DEV_BUILD = buildTarget.DEV_BUILD
+ const POLYFILL = buildTarget.POLYFILL
+ const SOURCEMAPS = !process.env.NO_SOURCEMAPS
 
-const argv = require('minimist')(process.argv.slice(2))
-const filename = argv.filename || 'horizon.js'
-
-module.exports = {
+ return {
   entry: {
-    horizon: './src/index.js',
+    'horizon': POLYFILL ?
+       './src/index-polyfill.js' :
+       './src/index.js',
   },
   target: 'web',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: filename,
+    filename: FILENAME,
     library: 'Horizon', // window.Horizon if loaded by a script tag
     libraryTarget: 'umd',
     pathinfo: DEV_BUILD, // Add module filenames as comments in the bundle
@@ -34,9 +36,31 @@ module.exports = {
       } :
       null,
   },
+  externals: function(context, request, callback) {
+    // Selected modules are not packaged into horizon.js. Webpack allows them to be
+    // required natively at runtime, either from filesystem (node) or window global.
+    if (!POLYFILL && request === 'rx') {
+      callback(null, {
+        // If loaded via script tag, has to be at window.Rx when library loads
+        root: 'Rx',
+        // Otherwise imported via `require('rx')`
+        commonjs: 'rx',
+        commonjs2: 'rx',
+        amd: 'rx',
+      })
+    } else {
+      callback()
+    }
+  },
   debug: DEV_BUILD,
   devtool: SOURCEMAPS ? (DEV_BUILD ? 'source-map' : 'source-map') : false,
   module: {
+    noParse: [
+      /rx\/dist\/rx\.all\.js/,
+    ],
+    preLoaders: [
+      //{ test: /\.js$/, loader: 'source-map-loader', exclude: null }
+    ],
     loaders: [
       {
         test: /\.js$/,
@@ -44,11 +68,7 @@ module.exports = {
         loader: 'babel-loader',
         query: {
           cacheDirectory: true,
-          presets: ['babel-preset-es2015-loose'],
-          plugins: [
-            'babel-plugin-transform-runtime',
-            'babel-plugin-transform-function-bind',
-          ],
+          extends: './src/.babelrc',
         },
       },
     ],
@@ -57,9 +77,9 @@ module.exports = {
     new BannerPlugin('__LICENSE__'),
     // Possibility to replace constants such as `if (__DEV__)`
     // and thus strip helpful warnings from production build:
-    //new DefinePlugin({
-    //  'process.env.NODE_ENV': (DEV_BUILD ? 'development' : 'production')
-    //}),
+    new DefinePlugin({
+      'process.env.NODE_ENV': (DEV_BUILD ? 'development' : 'production'),
+    }),
   ].concat(DEV_BUILD ?
     [] :
     [
@@ -83,4 +103,5 @@ module.exports = {
     __dirname: false,
     __filename: false,
   },
+ }
 }

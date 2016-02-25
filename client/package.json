@@ -5,12 +5,12 @@
   "scripts": {
     "dev": "webpack --watch --progress --colors",
     "devtest": "nodemon --watch dist --exec 'npm test -- --reporter dot && npm run lint -s'",
-    "builddebug": "webpack --progress --colors --display-modules --display-reasons --config webpack.horizon.config.js",
+    "builddebug": "webpack --progress --colors --display-modules --display-reasons",
     "build": "NODE_ENV=production webpack --progress --colors",
-    "compile": "babel src --presets es2015-loose --plugins transform-runtime,transform-function-bind --source-maps true --out-dir lib",
+    "compile": "rm -f lib/* && babel src --out-dir lib --extends src/.babelrc --source-maps true",
     "lint": "eslint src",
     "test": "mocha dist/test.js --inline-diffs",
-    "prepublish": "npm run build && npm run compile && webpack --progress --colors --config webpack.horizon.config.js --filename horizon-dev.js"
+    "prepublish": "npm run build && npm run compile"
   },
   "dependencies": {
     "babel-runtime": "^6.5.0",
@@ -29,10 +29,11 @@
     "babel-preset-es2015-loose": "^7.0.0",
     "chai": "^3.4.0",
     "copy-webpack-plugin": "^1.1.1",
+    "core-js": "^1.2.0",
     "eslint": "^2.2.0",
     "lodash": "^4.5.0",
     "minimist": "^1.2.0",
-    "mocha": "^2.3.3",
+    "mocha": "2.3.4",
     "nodemon": "^1.9.0",
     "source-map-support": "^0.4.0",
     "webpack": "^1.12.13",
@@ -54,6 +55,10 @@
     "dist/horizon.js.map",
     "dist/horizon-dev.js",
     "dist/horizon-dev.js.map",
+    "dist/horizon-core.js",
+    "dist/horizon-core.js.map",
+    "dist/horizon-core-dev.js",
+    "dist/horizon-core-dev.js.map",
     "lib/*"
   ]
 }
