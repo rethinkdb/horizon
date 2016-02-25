@@ -1,5 +1,5 @@
 'use strict'
-const collectionSuite = (getHorizon, getData, getTestData) => () => {
+const collectionSuite = window.collectionSuite = (getHorizon, getData, getTestData) => () => {
   let horizon, data, testData, empty_collection
 
   before(() => {

@@ -1,5 +1,5 @@
 'use strict'
-const upsertSuite = getData => () => {
+const upsertSuite = window.upsertSuite = getData => () => {
   let data
 
   before(() => {
