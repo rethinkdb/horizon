@@ -18,7 +18,7 @@
   "homepage": "https://github.com/rethinkdb/horizon#readme",
   "dependencies": {
     "argparse": "^1.0.3",
-    "@horizon/server": "^0.0.3"
+    "@horizon/server": "^0.0.4"
   },
   "devDependencies": {
   },
