@@ -1,6 +1,6 @@
 {
   "name": "@horizon/server",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Server for RethinkDB Horizon, an open-source developer platform for building realtime, scalable web apps.",
   "main": "src/horizon.js",
   "scripts": {
