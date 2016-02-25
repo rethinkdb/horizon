@@ -1,37 +1,72 @@
-# Horizon CLI - `horizon` || `hz`
+# Getting started with Horizon
 
-This directory contains everything corresponding to the Horizon CLI interface usable as `horizon` or `hz`.
+First, install horizon from npm:
 
-## Getting Started
-
-You can install `hz` by using `npm`.
-
-```sh
-npm install -g horizon
+```
+$ npm install -g horizon
 ```
 
-However, if you are actively working on Horizon, you will want your recent changes
-to update your command line client `hz` without having to go back into each `/client`,
-`/server`, and `/cli` directory to reinstall. So you will want to use `npm link` to
-update this on the fly. Following these commands will make this possible:
+Now you can initialize a new horizon project:
 
-```bash
-# From /server
-npm link ../client
-# From /cli
-npm link ../server
-npm install
-npm link
-
-# Now test you can init a Horizon app in a new directory
-hz init hello-world
-
-# From there you can then serve the `hello-world/dist` directory  
-# and start RethinkDB all in one step
-hz serve hello-world --start-rethinkdb --dev
+```
+$ hz init example-app
 ```
 
-## CLI Commands
+This will create a directory with the following files:
+
+```
+$ tree -aF example-app/
+example-app/
+├── dist/
+│   └── index.html
+├── .hzconfig
+└── src/
+```
+
+The `dist` directory is where you should output your static
+files. Horizon doesn't have any opinions about what front-end build
+system you use, just that the files to serve end up in `dist`. Your
+source files would go into `src` but that's just a convention. Horizon
+doesn't touch anything in `src`.
+
+If you want, you can `npm init` or `bower init` in the `example-app`
+directory to set up dependencies etc.
+
+By default, horizon creates a basic `index.html` to serve so you can
+verify everything is working:
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <script src="/horizon/horizon.js"></script>
+    <script>
+      var horizon = Horizon();
+      horizon.onConnected(function() {
+        document.querySelector('h1').innerHTML = 'It works!'
+      });
+    </script>
+  </head>
+  <body>
+   <marquee><h1></h1></marquee>
+  </body>
+</html>
+```
+
+Finally, let's start up a Horizon server in dev mode. This will start
+a RethinkDB instance, connect to it, and serve our static files from
+`example-app/dist`. 
+
+```
+$ hz serve example-app --dev --start-rethinkdb
+Starting RethinkDB ...
+Admin UI available on port 8080
+Driver connections should connect on 28015
+Horizon is running and available at http://localhost:8181
+```
+
+## Horizon CLI `hz` || `horizon`
 
 ### `hz init`
 Create a horizon app directory, automatically creating a `src` and `dist` directory

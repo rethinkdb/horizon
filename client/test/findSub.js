@@ -1,5 +1,5 @@
 'use strict'
-const findSubscriptionSuite = (getData) => () => {
+const findSubscriptionSuite = window.findSubscriptionSuite = (getData) => () => {
   let data
 
   before(() => {
@@ -70,6 +70,7 @@ const findSubscriptionSuite = (getData) => () => {
           data.remove(1),
         ],
         expected: [
+          { id: 1, a: 1 },
           { id: 1, a: 1 },
           { id: 1, a: 2 },
           null,

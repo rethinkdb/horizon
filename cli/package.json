@@ -1,6 +1,6 @@
 {
   "name": "horizon",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "An open-source developer platform for building realtime, scalable web apps.",
   "main": "src/main.js",
   "repository": {
@@ -18,7 +18,7 @@
   "homepage": "https://github.com/rethinkdb/horizon#readme",
   "dependencies": {
     "argparse": "^1.0.3",
-    "@horizon/server": "^0.0.3"
+    "@horizon/server": "^0.0.4"
   },
   "devDependencies": {
   },

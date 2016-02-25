@@ -1,5 +1,3 @@
-'use strict'
-
 Object.assign(module.exports, {
   deserialize: modifyType,
   serialize: jsonifyType,
