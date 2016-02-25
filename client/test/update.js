@@ -1,5 +1,5 @@
 'use strict'
-const updateSuite = getData => () => {
+const updateSuite = window.updateSuite = getData => () => {
   let data
 
   before(() => {

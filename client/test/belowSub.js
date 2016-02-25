@@ -1,5 +1,5 @@
 'use strict'
-const belowSubscriptionSuite = getData => () => {
+const belowSubscriptionSuite = window.belowSubscriptionSuite = getData => () => {
   let data
 
   before(() => {
@@ -95,11 +95,11 @@ const belowSubscriptionSuite = getData => () => {
       ],
       expected: [
         [],
-        [ { id: 2, a: 1 } ],
-        [ { id: 2, a: 1 }, { id: 3, a: 1 } ],
-        [ { id: 2, a: 2 }, { id: 3, a: 1 } ],
-        [ { id: 2, a: 2 }, { id: 3, a: 2 } ],
-        [ { id: 3, a: 2 } ],
+        [ { id: 1, a: 1 } ],
+        [ { id: 1, a: 1 }, { id: 2, a: 1 } ],
+        [ { id: 1, a: 2 }, { id: 2, a: 1 } ],
+        [ { id: 1, a: 2 }, { id: 2, a: 2 } ],
+        [ { id: 2, a: 2 } ],
         [],
       ],
     })
@@ -115,6 +115,7 @@ const belowSubscriptionSuite = getData => () => {
           data.remove(1),
         ],
         expected: [
+          [ { id: 1, a: 1 } ],
           [ { id: 1, a: 1 } ],
           [ { id: 1, a: 2 } ],
           [],

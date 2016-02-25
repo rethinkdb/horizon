@@ -1,5 +1,5 @@
 'use strict'
-const aboveSubscriptionSuite = getData => () => {
+const aboveSubscriptionSuite = window.aboveSubscriptionSuite = getData => () => {
   let data
 
   before(() => {
@@ -116,6 +116,7 @@ const aboveSubscriptionSuite = getData => () => {
           data.remove(1),
         ],
         expected: [
+          [ { id: 1, a: 1 } ],
           [ { id: 1, a: 1 } ],
           [ { id: 1, a: 2 } ],
           [],

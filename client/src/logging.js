@@ -1,5 +1,3 @@
-'use strict'
-
 // Logging moved to its own module to avoid circular imports
 
 let debug = false

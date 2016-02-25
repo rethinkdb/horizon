@@ -1,5 +1,3 @@
-'use strict'
-
 const Rx = require('rx')
 const { WebSocket } = require('./shim.js')
 const { serialize, deserialize } = require('./serialization.js')
@@ -28,7 +26,7 @@ class HorizonSocket extends Rx.AnonymousSubject {
   constructor(host, secure, path) {
     const hostString = `ws${secure ? 's' : ''}://${host}/${path}`
     const msgBuffer = []
-    let ws, socketObserver, handshakeDisp
+    let ws, handshakeDisp
     // Handshake is an asyncsubject because we want it to always cache
     // the last value it received, like a promise
     const handshake = new Rx.AsyncSubject()
@@ -100,7 +98,7 @@ class HorizonSocket extends Rx.AnonymousSubject {
 
     // This is the Observer part of the Subject. How we can send stuff
     // over the websocket
-    socketObserver = Rx.Observer.create(
+    const socketObserver = Rx.Observer.create(
       messageToSend => {
         // When onNext is called on this observer
         // Note: If we aren't ready, the message is silently dropped

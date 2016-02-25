@@ -1,5 +1,3 @@
-'use strict'
-
 // Checks whether the return value is a valid primary or secondary
 // index value
 function validIndexValue(val) {
