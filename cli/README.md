@@ -56,7 +56,7 @@ verify everything is working:
 
 Finally, let's start up a Horizon server in dev mode. This will start
 a RethinkDB instance, connect to it, and serve our static files from
-`example-app/dist`. 
+`example-app/dist`.
 
 ```
 $ hz serve example-app --dev --start-rethinkdb
@@ -66,11 +66,38 @@ Driver connections should connect on 28015
 Horizon is running and available at http://localhost:8181
 ```
 
+## Setting up your Horizon Dev Environment
+
+If you are looking to work on Horizon itself, you will want your recent
+changes to update your command line client `hz` without having to go back
+into each `/client`, `/server`, and `/cli` directory to reinstall. So you
+will want to use `npm link` to update this on the fly.
+
+We've included a script at `/test/setupDev.sh` that you can run while
+currently in the `/test` directory that will set your `hz` up in your
+global npm folder.
+
+Or you can follow these commands which achieve the same result:
+
+```bash
+# From the /client directory
+npm link
+
+# From the /server directory
+npm link ../client
+npm link
+
+# From the /cli directory
+npm link ../server
+npm link ../client
+npm link
+```
+
 ## Horizon CLI `hz` || `horizon`
 
 ### `hz init`
-Create a horizon app directory, automatically creating a `src` and `dist` directory
-within the folder.
+Create a horizon app directory, automatically creating a `src` and `dist`
+directory within the folder.
 
 Positional Args | Description
 ----------------|------------
