@@ -1,9 +1,6 @@
 'use strict'
 
-const Horizon = require('Horizon')
-const horizon = new Horizon(location.host, {
-  secure: location.protocol == 'https:'
-})
+const horizon = new Horizon();
 const chat = horizon('chat')
 const app = new Vue({
 

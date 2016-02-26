@@ -1,7 +1,6 @@
 'use strict'
 
 ;(function() {
-  const Horizon = require('Horizon')
   const makeDOMDriver = CycleDOM.makeDOMDriver
   const div = CycleDOM.div
   const input = CycleDOM.input
@@ -106,9 +105,7 @@
     // Link the DOM driver to our app container
     DOM: makeDOMDriver('#app'),
     // Create a connection to the horizon server
-    horizon: makeHorizonDriver(location.host, {
-      secure: location.protocol === 'https:',
-    }),
+    horizon: makeHorizonDriver(),
     // App-level configuration options
     config: () => ({
       // How many chats to show
@@ -125,12 +122,12 @@
 
   // Little CycleJS driver for horizon. This will probably be a small
   // standalone library at some point
-  function makeHorizonDriver(host, options) {
+  function makeHorizonDriver() {
     return function horizonDriver(writeOps$$) {
       // Send outgoing messages
       writeOps$$.switch().subscribe()
       // Return chat observable
-      return Horizon(host, Object.assign({ lazyWrites: true }, options))
+      return Horizon({ lazyWrites: true })
     }
   }
 })()

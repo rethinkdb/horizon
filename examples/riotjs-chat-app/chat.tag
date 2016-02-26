@@ -23,8 +23,7 @@
   </div>
 
   <script>
-    Horizon = require("Horizon");
-    horizon = new window.Horizon("localhost:8181", {secure: location.protocol == "https"});
+    horizon = new window.Horizon();
     this.messages = [];
     this.db = horizon("riotjs_chat");
 

@@ -107,18 +107,14 @@ const serve_file = (file_path, res) => {
 
 const fileServer = (distDir) => (req, res) => {
   const req_path = url.parse(req.url).pathname;
-  const horizonMatch = req_path.match(/\/horizon\/(horizon\.js(?:\.map)?)$/);
   // Serve client files directly
   if (req_path === '/' || req_path === '') {
     serve_file(path.join(distDir, 'index.html'), res);
-  } else if (horizonMatch) {
-    const horizonDir = path.dirname(require.resolve('@horizon/client'));
-    serve_file(path.join(horizonDir, horizonMatch[1]), res);
-  } else if (!req_path.match(/\/horizon\/.*/)) {
+  } else if (!req_path.match(/\/horizon\/.*$/)) {
     // All other static files come from the dist directory
     serve_file(path.join(distDir, req_path), res);
   }
-  // Fall through otherwise. Should be handled by horizon websocket
+  // Fall through otherwise. Should be handled by horizon server
 };
 
 const createInsecureServers = (opts) => {
