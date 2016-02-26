@@ -71,22 +71,33 @@ Horizon is running and available at http://localhost:8181
 If you are looking to work on Horizon itself, you will want your recent
 changes to update your command line client `hz` without having to go back
 into each `/client`, `/server`, and `/cli` directory to reinstall. So you
-will want to use `npm link` to update this on the fly. Following these
-commands will make this possible:
+will want to use `npm link` to update this on the fly.
+
+We've included a script at `/test/setupDev.sh` that you can run while
+currently in the `/test` directory that will set your `hz` up in your
+global npm folder.
+
+Or you can follow these commands which achieve the same result:
 
 ```bash
-#From the cli directory
-npm link ../client
-# From /cli
-npm link ../server
-npm install
+# From the /client directory
 npm link
+
+# From the /server directory
+npm link ../client
+npm link
+
+# From the /cli directory
+npm link ../server
+npm link ../client
+npm link
+```
 
 ## Horizon CLI `hz` || `horizon`
 
 ### `hz init`
-Create a horizon app directory, automatically creating a `src` and `dist` directory
-within the folder.
+Create a horizon app directory, automatically creating a `src` and `dist`
+directory within the folder.
 
 Positional Args | Description
 ----------------|------------
