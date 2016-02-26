@@ -56,7 +56,7 @@ verify everything is working:
 
 Finally, let's start up a Horizon server in dev mode. This will start
 a RethinkDB instance, connect to it, and serve our static files from
-`example-app/dist`. 
+`example-app/dist`.
 
 ```
 $ hz serve example-app --dev --start-rethinkdb
@@ -65,6 +65,22 @@ Admin UI available on port 8080
 Driver connections should connect on 28015
 Horizon is running and available at http://localhost:8181
 ```
+
+## Setting up your Horizon Dev Environment
+
+If you are looking to work on Horizon itself, you will want your recent
+changes to update your command line client `hz` without having to go back
+into each `/client`, `/server`, and `/cli` directory to reinstall. So you
+will want to use `npm link` to update this on the fly. Following these
+commands will make this possible:
+
+```bash
+#From the cli directory
+npm link ../client
+# From /cli
+npm link ../server
+npm install
+npm link
 
 ## Horizon CLI `hz` || `horizon`
 
