@@ -13,7 +13,6 @@ const indexHTML = `\
       horizon.onConnected(function() {
         document.querySelector('h1').innerHTML = 'It works!'
       });
-      horizon.onSocketError(e => console.log('booty', e));
       horizon.connect();
     </script>
   </head>
