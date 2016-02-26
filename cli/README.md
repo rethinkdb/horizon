@@ -59,11 +59,12 @@ a RethinkDB instance, connect to it, and serve our static files from
 `example-app/dist`.
 
 ```
-$ hz serve example-app --dev --start-rethinkdb
-Starting RethinkDB ...
-Admin UI available on port 8080
-Driver connections should connect on 28015
-Horizon is running and available at http://localhost:8181
+$ hz serve example-app --dev
+warn: Creating insecure HTTP server.
+info: Serving static files from dist
+info: Listening on 127.0.0.1:8181.
+...
+info: Metadata synced with server, ready for queries.
 ```
 
 ## Setting up your Horizon Dev Environment
