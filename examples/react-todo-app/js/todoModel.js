@@ -10,10 +10,7 @@ var app = app || {};
         const Utils = app.Utils;
 
         //Setup RethinkDB
-        const Horizon = require("Horizon");
-        const horizon = Horizon(location.host, {
-                secure: location.protocol == 'https:'
-        });
+        const horizon = Horizon();
 
         // Generic "model" object. You can use whatever
         // framework you want. For this application it

@@ -8,11 +8,8 @@ var app = app || {};
 (function(){
   'use strict';
 
-  //Setup RethinkDB
-        const Horizon = require("Horizon");
-        const horizon = new Horizon(location.host, {
-                secure: location.protocol == 'https:'
-        });
+  //Setup Horizon connection
+  const horizon = new Horizon();
 
   app.ChatApp = React.createClass({
 
