@@ -23,7 +23,7 @@
   </div>
 
   <script>
-    horizon = new window.Horizon();
+    horizon = window.Horizon();
     this.messages = [];
     this.db = horizon("riotjs_chat");
 

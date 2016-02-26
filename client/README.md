@@ -48,7 +48,7 @@ Then wherever you want to use Project Horizon you will need to `require` the Hor
 
 ```javascript
 const Horizon = require("@horizon/client"); // or use global `window.Horizon`
-const horizon = new Horizon();
+const horizon = Horizon();
 ```
 
 From here you can start to interact with RethinkDB collections through the Horizon collection. Having `--dev` mode enabled on the Horizon Server creates collections and indexes automatically so you can get your application setup with as little hassle as possible.

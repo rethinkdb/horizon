@@ -9,7 +9,7 @@ var app = app || {};
   'use strict';
 
   //Setup Horizon connection
-  const horizon = new Horizon();
+  const horizon = Horizon();
 
   app.ChatApp = React.createClass({
 

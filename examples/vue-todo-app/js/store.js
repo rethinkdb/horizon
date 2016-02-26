@@ -3,7 +3,7 @@
 
   'use strict';
 
-  const horizon = new Horizon();
+  const horizon = Horizon();
   const todos = horizon("vuejs_todos");
 
   exports.todoStorage = {
