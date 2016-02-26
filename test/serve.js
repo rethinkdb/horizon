@@ -72,17 +72,37 @@ const serve_file = (file_path, res) => {
 
 // Run the client build
 const build_proc = child_process.spawn('npm', [ 'run', 'dev'],
-                                      { cwd: test_dist_dir, stdio: 'pipe' });
-
-each_line_in_pipe(build_proc.stdout, (line) => {
-  console.log(line);
-})
-each_line_in_pipe(build_proc.stderr, (line) => {
-  console.error(line);
-})
+                                      { cwd: test_dist_dir });
 
 build_proc.on('exit', () => process.exit(1));
 process.on('exit', () => build_proc.kill('SIGTERM'));
+
+let client_ready = false;
+each_line_in_pipe(build_proc.stdout, (line) => {
+  console.log(line);
+  if (/horizon.js[^.]/.test(line)) {
+    setImmediate(() => {
+      client_ready = true;
+      const date = new Date();
+      console.log(`${date.toLocaleTimeString()} - horizon.js rebuilt.`);
+    });
+  }
+});
+each_line_in_pipe(build_proc.stderr, (line) => {
+  console.error(line);
+});
+
+build_proc.stderr.on('data', (data) => {
+  const str = data.toString();
+  if (str.indexOf('% compile') >= 0) {
+    const date = new Date();
+    console.log(`${date.toLocaleTimeString()} - client assets compile.`);
+  }
+  if (str.indexOf('% emit') >= 0) {
+    const date = new Date();
+    console.log(`${date.toLocaleTimeString()} - client assets emit.`);
+  }
+});
 
 // Launch HTTP server with horizon that will serve the test files
 const http_servers = options.bind.map((host) =>
@@ -91,7 +111,12 @@ const http_servers = options.bind.map((host) =>
     if (req_path.indexOf('/examples/') === 0) {
       serve_file(path.resolve(examples_dir, req_path.replace(/^[/]examples[/]/, '')), res);
     } else {
-      serve_file(path.resolve(test_dist_dir, req_path.replace(/^[/]/, '')), res);
+      if (!client_ready) {
+        res.writeHead(503, { 'Content-Type': 'text/plain' });
+        res.end('Initial client build is ongoing, try again in a few seconds.');
+      } else {
+        serve_file(path.resolve(test_dist_dir, req_path.replace(/^[/]/, '')), res);
+      }
     }
   }));
 
