@@ -80,7 +80,7 @@ Here is currently what you'd write on the front-end for a simple todo list appli
 
 ```js
 // Connect to horizon
-const horizon = new Horizon();
+const horizon = Horizon();
 const todoCollection = horizon("todo-items");
 
 const todoApp = document.querySelector('#app')

@@ -1,6 +1,6 @@
 'use strict'
 
-const horizon = new Horizon();
+const horizon = Horizon();
 const chat = horizon('chat')
 const app = new Vue({
 
