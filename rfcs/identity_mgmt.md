@@ -18,7 +18,7 @@ Create a virtual collection called `users` which is really a view into the inter
 #### Client changes
 
 No client changes necessary. There will simply appear to be an
-ordinary table in new apps called `users`.
+ordinary collection in new apps called `users`.
 
 Examples:
 
