@@ -15,7 +15,7 @@ Horizon consists of three components:
 - [__Horizon client library__](/client) -- a JavaScript client library that wraps
   Horizon server's protocol in a convenient API for front-end
   developers.
-- [__the horizon tool_](/cli) -- a command line tool aiding in scaffolding, development, and deployment
+- [__Horizon CLI - `hz`__](/cli) -- a command line tool aiding in scaffolding, development, and deployment
 
 The first version of Horizon will expose the following services to
 developers:
