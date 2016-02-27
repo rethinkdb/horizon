@@ -13,6 +13,8 @@ users depending on their needs.
 
 ### Proposed solution
 
+Create a virtual collection called `users` which is really a view into the internal Horizon users table. All operations should transparently operate on a subdocument in the real table.
+
 #### Client changes
 
 No client changes necessary. There will simply appear to be an
