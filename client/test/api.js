@@ -18,7 +18,7 @@ describe('Core API tests', () => {
 
   // Set up the horizon connection before running these tests.
   before(done => {
-    horizon = Horizon({ secure: false, lazyWrites: true });
+    horizon = Horizon({ secure: false, lazyWrites: true })
     horizon.connect(err => done(err))
     horizon.onConnected(() => {
       data = horizon('test_data')
@@ -87,22 +87,19 @@ describe('Core API tests', () => {
     describe('Testing `below`', belowSuite(getData))
     describe('Test `above/below/limit` chaining variations',
              chainingSuite(getData))
-
   }) // Test the lookup API
 
   // Test the subscriptions API
-  describe("Subscriptions API", () => {
+  describe('Subscriptions API', () => {
 
     // Drop all the existing data
-    beforeEach((done) => {
-      removeAllData(data, done);
-    });
+    beforeEach(done => {
+      removeAllData(data, done)
+    })
 
-    describe("Testing `find` subscriptions", findSubscriptionSuite(getData));
-    describe("Testing `findAll` subscriptions", findAllSubscriptionSuite(getData));
-    describe("Testing `above` subscriptions", aboveSubscriptionSuite(getData));
-    describe("Testing `below` subscriptions", belowSubscriptionSuite(getData));
-
-  }); // Test the subscriptions API
-
-}); // Core API tests
+    describe('Testing `find` subscriptions', findSubscriptionSuite(getData))
+    describe('Testing `findAll` subscriptions', findAllSubscriptionSuite(getData))
+    describe('Testing `above` subscriptions', aboveSubscriptionSuite(getData))
+    describe('Testing `below` subscriptions', belowSubscriptionSuite(getData))
+  }) // Test the subscriptions API
+}) // Core API tests

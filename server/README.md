@@ -16,23 +16,6 @@ can run:
  * `openssl` - generating ssl certificates
  * [`rethinkdb`](https://github.com/rethinkdb/rethinkdb) - for running a RethinkDB server
 
-## Installation
-
-At the moment, there are a couple steps to getting Horizon running on your system. In the future, we plan to have most if not all of this compressed into a single `npm install -g horizon`.
-
-### Node.js
-
-The Horizon server runs on NodeJS which you will need to install. Go to [nodejs.org](https://nodejs.org) for the latest stable version.
-
-### npm packages
-
-Like most javascript frameworks, this relies on a few other npm dependencies to function.
-
-```sh
-# From within this directory
-npm install
-```
-
 ### OpenSSL
 
 OpenSSL is required to generate the cert and key pair necessary to serve Horizon securely via HTTPS and WSS. Usually this is done on the production server where you are running Horizon, however to do this locally you'll need to have the OpenSSL installed.
@@ -45,41 +28,6 @@ OpenSSL is required to generate the cert and key pair necessary to serve Horizon
 
 Check out [rethinkdb.com/install](https://rethinkdb.com/install) for the best method of installing RethinkDB on your platform.
 
-## Launch the server
-
-Lastly, from within this directory you can run:
-
-```sh
-npm install -g
-```
-
-Which will install Horizon on your path and allow you to just type:
-
-```bash
-horizon --dev
-```
-However, if you do a `git pull` you will need to rerun this command to update it. For a more bare metal approach just run:
-
-```sh
-./src/main.js --dev
-```
-
-This serves Horizon queries on `ws://localhost:8181`, serves the Horizon client library on `http://localhost:8181/horizon/horizon.js`, and connects to the RethinkDB server at `localhost:28015`.
-
-##### Available options
-
-Command Flag| Description
-------------|----------------------------------
-  --bind HOST         | Local hostname to serve Horizon on (repeatable).
-  --port PORT         | Local port to serve horizon on. Defaults to `8181`.
-  --connect HOST:PORT | Host and port of the RethinkDB server to connect to. Defaults to localhost:28015
-  --key-file PATH     | Path to the key file to use, defaults to `./key.pem`.
-  --cert-file PATH    | Path to the cert file to use, defaults to `./cert.pem`.
-  --debug             | Enable debug logging.
-  --insecure          | Serve insecure websockets, ignore `--key-file` and `--cert-file`.
-  --auto-create-table | Create tables used by requests if they do not exist
-  --auto-create-index | Create indexes used by requests if they do not exist
-  --dev               | Runs the server in development mode, this sets `--debug`, `--insecure`, `--auto-create-tables`, and `--auto-create-indexes`.
 
 ## Generate key files for SSL
 There are proper ways to get a certificate registered through a Certificate
@@ -97,10 +45,12 @@ flag, and provide the files in the `--key-file` and `--cert-file` options.
 
 ## Running tests
 
-In addition to the requirements for the horizon server:
- * `mocha` - for running the test suites
+Make sure you run `npm install` to get mocha first then:
 
-`mocha test`
+```js
+npm test
+```
+
 This runs the suite of tests using ad-hoc instances of RethinkDB, Horizon, and generated SSL certificates.
 No preparation should be necessary aside from installing the required programs and modules.
 

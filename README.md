@@ -26,7 +26,7 @@ developers:
   (e.g. Facebook, Google, GitHub).
 - __Identity__ -- an API for listing and manipulating user accounts.
 - __Permissions__ -- a security model that allows the developer to protect
-  the data from unauthorized access.
+   data from unauthorized access.
 
 Upcoming versions of Horizon will likely expose the following
 additional services:
@@ -48,8 +48,9 @@ While RethinkDB is poised to be an excellent database for building
 realtime apps, empirically there is still too much friction for most
 developers. To get started they have to learn ReQL, understand
 changefeeds, and figure out how to thread changefeeds through their
-backend code. The learning curve is quite steep, and most of the
-initial work involves boilerplate code that's pretty far removed from
+backend code. Then, find a reliable way to get that data to
+the browser. The learning curve is quite steep, and most of the
+initial work involves boilerplate code that is far removed from
 the primary task of building a realtime app.
 
 Horizon sets out to solve this problem. Developers can start building
@@ -100,7 +101,6 @@ const todoCollection.watch().subscribe( todos => {
 ### How do I get it?
 
 Right now you have to install it locally from this repo. Follow the guides for [installing the Horizon server](/server#installation) and then read through on how to [import the client library](/client#getting-started) into your project.
-
 
 ### How is Horizon different from Firebase?
 

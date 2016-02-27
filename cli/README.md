@@ -1,6 +1,5 @@
 # Getting started with Horizon
 
-
 First, install horizon from npm:
 
 ```
@@ -55,14 +54,93 @@ verify everything is working:
 </html>
 ```
 
-Finally, let's start up a horizon server in dev mode. This will start
+Finally, let's start up a Horizon server in dev mode. This will start
 a RethinkDB instance, connect to it, and serve our static files from
 `example-app/dist`.
 
 ```
 $ hz serve example-app --dev
-Starting RethinkDB ...
-Admin UI available on port 8080
-Driver connections should connect on 28015
-Horizon is running and available at http://localhost:8181
+warn: Creating insecure HTTP server.
+info: Serving static files from dist
+info: Listening on 127.0.0.1:8181.
+...
+info: Metadata synced with server, ready for queries.
 ```
+
+## Setting up your Horizon Dev Environment
+
+If you are looking to work on Horizon itself, you will want your recent
+changes to update your command line client `hz` without having to go back
+into each `/client`, `/server`, and `/cli` directory to reinstall. So you
+will want to use `npm link` to update this on the fly.
+
+We've included a script at `/test/setupDev.sh` that you can run while
+currently in the `/test` directory that will set your `hz` up in your
+global npm folder.
+
+Or you can follow these commands which achieve the same result:
+
+```bash
+# From the /client directory
+npm link
+
+# From the /server directory
+npm link ../client
+npm link
+
+# From the /cli directory
+npm link ../server
+npm link ../client
+npm link
+```
+
+## Horizon CLI `hz` || `horizon`
+
+### `hz init`
+Create a horizon app directory, automatically creating a `src` and `dist`
+directory within the folder.
+
+Positional Args | Description
+----------------|------------
+projectName |  Name of directory to create. Defaults to current directory
+
+### `hz serve`
+
+This serves the directory and supplies all the tooling needed for serving a
+Horizon web application.
+
+##### Available options
+
+Positional Args | Description
+----------------|------------
+project | Change to this directory before serving
+
+Optional Args| Description
+------------|----------------------------------
+  --bind HOST         | Local hostname to serve Horizon on (repeatable).
+  --port PORT         | Local port to serve horizon on. Defaults to `8181`.
+  --connect HOST:PORT | Host and port of the RethinkDB server to connect to. Defaults to localhost:28015
+  --key-file PATH     | Path to the key file to use, defaults to `./key.pem`.
+  --cert-file PATH    | Path to the cert file to use, defaults to `./cert.pem`.
+  --allow-unauthenticated | Whether to allow unauthenticated Horizon connections.
+  --debug             | Enable debug logging.
+  --insecure          | Serve insecure websockets, ignore `--key-file` and `--cert-file`.
+  --start-rethinkdb   | Start up a RethinkDB server in the current directory
+  --auto-create-table | Create tables used by requests if they do not exist
+  --auto-create-index | Create indexes used by requests if they do not exist
+  --serve-static [PATH] | Serve static files from a directory. Defaults to `dist`.
+  --dev               | Runs the server in development mode, this sets `--debug`, `--insecure`, `--auto-create-tables`, and `--auto-create-indexes`.
+
+  #### Serving securely, generating certs for SSL
+  There are proper ways to get a certificate registered through a Certificate
+  Authority, but for the purpose of getting up-and-running as soon as possible,
+  generate a self-signed certificate.  This command will generate the certificate
+  using the default options from `openssl`, and should not be used for anything
+  serious:
+
+  ```sh
+  openssl req -x509 -newkey rsa:2048 -keyout horizon-key.pem -out horizon-cert.pem -days 365 -nodes -batch
+  ```
+
+  Once a key file and cert file have been obtained, launch the server without the `--insecure`
+  flag, and provide the files in the `--key-file` and `--cert-file` options.
