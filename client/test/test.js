@@ -51,6 +51,26 @@ window._ = require('lodash/lodash.js')
 window.Rx = require('rx/dist/rx.all.js')
 window.Rx.config.longStackSupport = true
 
+// Wait until server is ready before proceeding to tests
+describe('Waiting until server ready...', function() {
+  this.timeout(60000)
+  it('connected', done => {
+    const tryConnecting = () => {
+      const horizon = Horizon()
+      horizon.onConnected(() => {
+        clearInterval(connectInterval)
+        horizon.dispose()
+        done()
+      })
+      horizon.connect(() => {
+        // Clients dispose by themselves on failure
+      })
+    }
+    const connectInterval = setInterval(tryConnecting, 1000)
+    tryConnecting()
+  })
+})
+
 // Load the test utilities
 require('./utils')
 
