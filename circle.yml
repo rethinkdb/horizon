@@ -20,6 +20,7 @@ general:
   artifacts:
     - "client/npm-debug.log"
     - "server/npm-debug.log"
+    - "cli/npm-debug.log"
 
 ## Customize dependencies
 dependencies:
@@ -27,6 +28,7 @@ dependencies:
   cache_directories:
     - client/node_modules
     - server/node_modules
+    - cli/node_modules
   override:
     # Stop default services
     - sudo service redis-server stop
@@ -34,11 +36,15 @@ dependencies:
     - sudo service mysql stop
 
     # Prepare for client tests
-    - npm prune && npm install:
+    - npm prune --production:
         pwd: client
     # Prepare for server tests
-    - npm prune && npm install:
+    - npm prune --production:
         pwd: server
+    - npm prune --production:
+        pwd: cli
+    - ./setupDev.sh:
+        pwd: test
 
 ## Customize test commands
 test:
@@ -47,11 +53,11 @@ test:
         background: true
   override:
     # Run client tests
-    - touch $CIRCLE_TEST_REPORTS/xunit/client-tests.xml; ./node_modules/.bin/mocha -R xunit dist/test.js > $CIRCLE_TEST_REPORTS/xunit/client-tests.xml:
+    - mkdir -p $CIRCLE_TEST_REPORTS/xunit; touch $CIRCLE_TEST_REPORTS/xunit/client-tests.xml; ./node_modules/.bin/mocha --timeout 15000 -R xunit dist/test.js > $CIRCLE_TEST_REPORTS/xunit/client-tests.xml:
         pwd: client
         parallel: true
 
     # Run server tests
-    - touch $CIRCLE_TEST_REPORTS/xunit/server-tests.xml; ./node_modules/.bin/mocha --compilers js:babel-core/register -R xunit test/test.js test/schema.js > $CIRCLE_TEST_REPORTS/xunit/server-tests.xml:
+    - mkdir -p $CIRCLE_TEST_REPORTS/xunit; touch $CIRCLE_TEST_REPORTS/xunit/server-tests.xml; ./node_modules/.bin/mocha --compilers js:babel-core/register -R xunit test/test.js test/schema.js > $CIRCLE_TEST_REPORTS/xunit/server-tests.xml:
         pwd: server
         parallel: true
