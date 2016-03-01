@@ -14,7 +14,6 @@ const table = 'test';
 before('Start RethinkDB Server',
        /** @this mocha */
        function(done) {
-         this.timeout(5000);
          utils.test_db_server(done);
        });
 
@@ -31,7 +30,6 @@ describe('Horizon Server', () => {
   before('Start Horizon Server',
          /** @this mocha */
          function(done) {
-           this.timeout(5000);
            utils.start_horizon_server(done);
          });
 
@@ -40,7 +38,6 @@ describe('Horizon Server', () => {
   before(`Creating general-purpose table: '${table}'`,
          /** @this mocha */
          function(done) {
-           this.timeout(5000);
            utils.create_table(table, done);
          });
 

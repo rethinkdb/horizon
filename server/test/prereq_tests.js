@@ -15,7 +15,6 @@ const all_tests = (table) => {
   it('table create race on read',
      /** @this mocha */
      function(done) {
-       this.timeout(5000);
        const query_count = 5;
        const table_name = crypto.randomBytes(8).toString('hex');
 
@@ -40,7 +39,6 @@ const all_tests = (table) => {
   it('table create race on write',
      /** @this mocha */
      function(done) {
-       this.timeout(5000);
        const query_count = 5;
        const table_name = crypto.randomBytes(8).toString('hex');
 
