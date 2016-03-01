@@ -16,7 +16,7 @@ Horizon consists of four components:
   Horizon server's protocol in a convenient API for front-end
   developers.
 - [__Horizon CLI - `hz`__](/cli) -- a command line tool aiding in scaffolding, development, and deployment
-- [GraphQL support](https://github.com/rethinkdb/horizon/issues/125) -- the server will have a GraphQL adapter so anyone can get started building React/Relay apps without writing any backend code at the beginning. This will not ship in v1, but we'll follow up with a GraphQL adapter quickly after launch.
+- [__GraphQL support__](https://github.com/rethinkdb/horizon/issues/125) -- the server will have a GraphQL adapter so anyone can get started building React/Relay apps without writing any backend code at the beginning. This will not ship in v1, but we'll follow up with a GraphQL adapter quickly after launch.
 
 The first version of Horizon will expose the following services to
 developers:
