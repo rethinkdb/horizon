@@ -18,7 +18,6 @@
     "linebreak-style": [ 2, "unix" ],
     "new-parens": [ 2 ],
     "no-array-constructor": [ 2 ],
-    "no-array-constructor": [ 2 ],
     "no-arrow-condition": [ 2 ],
     "no-case-declarations": [ 2 ],
     "no-class-assign": [ 2 ],
