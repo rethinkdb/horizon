@@ -1,12 +1,13 @@
 'use strict';
 
+const fs = require('fs');
+const hasbin = require('hasbin');
 const horizonServer = require('@horizon/server');
-const logger = horizonServer.logger;
 const http = require('http');
 const https = require('https');
-const fs = require('fs');
-const url = require('url');
+const logger = horizonServer.logger;
 const path = require('path');
+const url = require('url');
 
 const start_rdb_server = require('./utils/start_rdb_server');
 
@@ -319,6 +320,13 @@ const runCommand = (opts) => {
     servers = servs;
   }).then(() => {
     if (opts.start_rethinkdb) {
+
+      const result = hasbin.sync('rethinkdb');
+      if (!result) {
+        console.error("rethinkdb binary not found in $PATH, please install RethinkDB");
+        process.exit(1);
+      }
+
       return start_rdb_server().then((rdbOpts) => {
         opts.rdb.port = rdbOpts.driverPort;
         // Don't need to check for host, always localhost.
