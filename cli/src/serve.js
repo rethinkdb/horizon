@@ -22,7 +22,7 @@ const addArguments = (parser) => {
       help: 'Local hostname to serve horizon on (repeatable).' });
 
   parser.addArgument([ '--port', '-p' ],
-    { type: 'int', defaultValue: 8181, metavar: 'PORT',
+    { type: 'int', metavar: 'PORT',
       help: 'Local port to serve horizon on.' });
 
   parser.addArgument([ '--connect', '-c' ],
@@ -30,47 +30,50 @@ const addArguments = (parser) => {
       help: 'Host and port of the RethinkDB server to connect to.' });
 
   parser.addArgument([ '--key-file' ],
-    { type: 'string', defaultValue: './key.pem', metavar: 'PATH',
+    { type: 'string', metavar: 'PATH',
       help: 'Path to the key file to use, defaults to "./key.pem".' });
 
   parser.addArgument([ '--cert-file' ],
-    { type: 'string', defaultValue: './cert.pem', metavar: 'PATH',
+    { type: 'string', metavar: 'PATH',
       help: 'Path to the cert file to use, defaults to "./cert.pem".' });
 
   parser.addArgument([ '--allow-unauthenticated' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Whether to allow unauthenticated Horizon connections.' });
 
+  parser.addArgument([ '--allow-anonymous' ],
+    { action: 'storeTrue',
+      help: 'Whether to allow anonymous Horizon connections.' });
+
   parser.addArgument([ '--debug' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Enable debug logging.' });
 
   parser.addArgument([ '--insecure' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Serve insecure websockets, ignore --key-file and ' +
       '--cert-file.' });
 
   parser.addArgument([ '--start-rethinkdb' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Start up a RethinkDB server in the current directory' });
 
   parser.addArgument([ '--auto-create-table' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Create tables used by requests if they do not exist.' });
 
   parser.addArgument([ '--auto-create-index' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Create indexes used by requests if they do not exist.' });
 
   parser.addArgument([ '--serve-static' ],
     { type: 'string',
-      defaultValue: 'dist',
       nargs: '?',
       metavar: 'PATH',
-      help: 'Serve static files from a directory. Defaults to dist' });
+      help: 'Serve static files from a directory, defaults to "./dist".' });
 
   parser.addArgument([ '--dev' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Runs the server in development mode, this sets ' +
       '--debug, ' +
       '--insecure, ' +
@@ -80,8 +83,16 @@ const addArguments = (parser) => {
       'and --auto-create-indexes.' });
 
   parser.addArgument([ '--config' ],
-    { type: 'string', defaultValue: '.hzconfig', metavar: 'PATH',
+    { type: 'string', metavar: 'PATH',
       help: 'Path to the config file to use, defaults to ".hzconfig".' });
+
+  parser.addArgument([ '--auth' ],
+    { type: 'string', action: 'append', metavar: 'PROVIDER,ID,SECRET', defaultValue: [ ],
+      help: 'Auth provider and options comma-separated, e.g. "facebook,<id>,<secret>".' });
+
+  parser.addArgument([ '--auth-redirect' ],
+    { type: 'string', metavar: 'URL',
+      help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
 };
 
 // Simple file server. 404s if file not found, 500 if file error,
@@ -133,7 +144,7 @@ const createInsecureServers = (opts) => {
   let http_servers = new Set();
   let numReady = 0;
   return new Promise((resolve) => {
-    opts.hosts.forEach((host) => {
+    opts.bind.forEach((host) => {
       const srv = new http.Server().listen(opts.port, host);
       http_servers.add(srv);
       if (opts.serve_static) {
@@ -173,7 +184,7 @@ const createSecureServers = (opts) => {
   const cert = readCertFile(opts.cert_file);
   let numReady = 0;
   return new Promise((resolve) => {
-    opts.hosts.forEach((host) => {
+    opts.bind.forEach((host) => {
       const srv = new https.Server({ key, cert }).listen(opts.port, host);
       http_servers.add(srv);
       if (opts.serve_static) {
@@ -198,11 +209,11 @@ const createSecureServers = (opts) => {
 
 const default_config = () => ({
 
-  config_file: './.hzconfig',
+  config: './.hzconfig',
   debug: false,
   project: null,
 
-  hosts: [ 'localhost' ],
+  bind: [ 'localhost' ],
   port: 8181,
 
   start_rethinkdb: false,
@@ -218,28 +229,37 @@ const default_config = () => ({
   rdb_host: 'localhost',
   rdb_port: 28015,
 
+  allow_anonymous: false,
+  allow_unauthenticated: false,
+  auth_redirect: '/',
+
+  auth: { }
 });
 
 const read_config_from_file = (config, parsed) => {
   let file_data;
-  if (parsed.config_file) {
+  if (parsed.config) {
     // Use specified config file - error if it doesn't exist
-    file_data = fs.readFileSync(parsed.config_file);
+    file_data = fs.readFileSync(parsed.config);
   } else {
-    // Try default config file - ignore if it doesn't exist
+    // Try default config file - ignore if anything goes wrong
     try {
-      file_data = fs.readFileSync(config.config_file);
+      file_data = fs.readFileSync(config.config);
     } catch (err) {
       return config;
     }
   }
 
   const file_config = toml.parse(file_data);
-
   for (const field in file_config) {
-    config[field] = file_config[field];
+    if (field === 'auth') {
+      for (const provider in file_config.auth) {
+        config.auth[provider] = file_config.auth[provider];
+      }
+    } else {
+      config[field] = file_config[field];
+    }
   }
-
   return config;
 };
 
@@ -248,26 +268,44 @@ const read_config_from_env = (config) => {
   for (const env_var in process.env) {
     const matches = env_regex.exec(env_var);
     if (matches && matches[1]) {
-      const env_var_name = matches[1];
-      const dest_var_name = env_var_name.toLowerCase();
-      const value = process.env[env_var_name];
+      const dest_var_name = matches[1].toLowerCase();
+      const path = dest_var_name.split('_');
+      let value = process.env[env_var];
 
       if ([ 'false', 'true' ].indexOf(value.toLowerCase()) !== -1) {
-        config[dest_var_name] = (value.toLowerCase() === 'true');
-      } else if (dest_var_name === 'port') {
+        value = (value.toLowerCase() === 'true');
+      }
+
+      if (dest_var_name === 'port') {
         config[dest_var_name] = parseInt(value);
       } else if (dest_var_name === 'bind') {
         config[dest_var_name] = value.split(',');
+      } else if (path[0] === 'auth' && path.length === 3) {
+        if (!config.auth[path[1]]) {
+          config.auth[path[1]] = { };
+        }
+
+        if (path[2] === 'id') {
+          config.auth[path[1]].id = value;
+        } else if (path[2] === 'secret') {
+          config.auth[path[1]].secret = value;
+        }
       } else {
         config[dest_var_name] = value;
       }
     }
   }
 
-  return config
+  return config;
 };
 
 const read_config_from_flags = (config, parsed) => {
+  // Sanity check
+  if (parsed.start_rethinkdb && parsed.connect) {
+    logger.error('Cannot provide both --start-rethinkdb and --connect');
+    process.exit(1);
+  }
+
   // Dev mode
   if (parsed.dev) {
     config.debug = true;
@@ -279,25 +317,28 @@ const read_config_from_flags = (config, parsed) => {
     config.serve_static = 'dist';
   }
 
-  // Sanity check
-  if (parsed.start_rethinkdb && parsed.connect) {
-    logger.error('Cannot provide both --start-rethinkdb and --connect');
-    process.exit(1);
-  }
-
-  if (parsed.project != null) {
+  if (parsed.project !== null) {
     config.project = parsed.project;
   }
 
-  if (parsed.auto_create_table != null) {
-    config.auto_create_table = true;
-  }
-  if (parsed.auto_create_index != null) {
-    config.auto_create_index = true;
-  }
+  // Simple boolean flags
+  const bool_flags = [ 'debug',
+                       'insecure',
+                       'start_rethinkdb',
+                       'auto_create_index',
+                       'auto_create_table',
+                       'allow_unauthenticated',
+                       'allow_anonymous',
+                       'auth_redirect' ];
+
+  bool_flags.forEach((key) => {
+    if (parsed[key]) {
+      config[key] = true;
+    }
+  });
 
   // Normalize RethinkDB connection options
-  if (parsed.connect != null) {
+  if (parsed.connect !== null) {
     const host_port = parsed.connect.split(':');
     if (host_port.length === 1) {
       config.rdb_host = host_port[0];
@@ -311,28 +352,32 @@ const read_config_from_flags = (config, parsed) => {
     }
   }
 
-  if (parsed.serve_static != null) {
+  if (parsed.serve_static !== null) {
     config.serve_static = parsed.serve_static;
-  }
-  if (parsed.start_rethinkdb != null) {
-    config.start_rethinkdb = true;
   }
 
   // Normalize horizon socket options
-  if (parsed.port != null) {
+  if (parsed.port !== null) {
     config.port = parsed.port;
   }
-  if (parsed.bind != null) {
+  if (parsed.bind !== null) {
     config.bind = parsed.bind;
   }
   if (config.bind.indexOf('all') !== -1) {
     config.bind = [ '0.0.0.0' ];
   }
 
-  // Http options
-  if (parsed.insecure != null) {
-    config.insecure = true;
-  }
+  // Auth options
+  parsed.auth.forEach((auth_options) => {
+    const params = auth_options.split(',');
+    if (params.length === 3) {
+      config.auth[params[0]] = { id: params[1], secret: params[2] };
+    } else {
+      logger.error(`Expected --auth PROVIDER,ID,SECRET, but found "${auth_options}"`);
+      parsed.printUsage();
+      process.exit(1);
+    }
+  });
 
   return config;
 };
@@ -342,11 +387,16 @@ const read_config_from_flags = (config, parsed) => {
 // then the config file, and finally the default values.
 const processConfig = (parsed) => {
   let config;
+  console.log(`Parsed flags: ${JSON.stringify(parsed, null, '\t')}`);
 
   config = default_config();
+  console.log(`Default opts: ${JSON.stringify(config, null, '\t')}`);
   config = read_config_from_file(config, parsed);
+  console.log(`Post-file opts: ${JSON.stringify(config, null, '\t')}`);
   config = read_config_from_env(config, parsed);
+  console.log(`Post-env opts: ${JSON.stringify(config, null, '\t')}`);
   config = read_config_from_flags(config, parsed);
+  console.log(`Post-flags opts: ${JSON.stringify(config, null, '\t')}`);
 
   return config;
 };
@@ -361,6 +411,9 @@ const startHorizonServer = (servers, opts) => {
       rdb_port: opts.rdb_port,
       auth: {
         allow_unauthenticated: opts.allow_unauthenticated,
+        allow_anonymous: opts.allow_anonymous,
+        success_redirect: opts.auth_redirect,
+        failure_redirect: opts.auth_redirect,
       },
     });
   } catch (e) {
@@ -374,13 +427,12 @@ const runCommand = (opts) => {
   if (opts.debug) {
     logger.level = 'debug';
   }
-  let servers;
 
-  if (opts.project != null) {
+  if (opts.project !== null) {
     try {
       process.chdir(opts.project);
     } catch (e) {
-      console.error(`No project named ${opts.project}`);
+      logger.error(`No project named ${opts.project}`);
       process.exit(1);
     }
   }
@@ -388,29 +440,38 @@ const runCommand = (opts) => {
   return (
     opts.insecure ?
       createInsecureServers(opts) : createSecureServers(opts)
-  ).then((servs) => {
-    servers = servs;
-  }).then(() => {
+  ).then((http_servers) => {
     if (opts.start_rethinkdb) {
-      return start_rdb_server().then((rdbOpts) => {
-        opts.rdb.port = rdbOpts.driverPort;
-        // Don't need to check for host, always localhost.
+      return new Promise((resolve, reject) => {
+        start_rdb_server().then((rdbOpts) => {
+          // Don't need to check for host, always localhost.
+          opts.rdb_port = rdbOpts.driverPort;
+          resolve(http_servers);
+        }).catch(reject);
       });
     }
-  }).then(() => {
-    return startHorizonServer(servers, opts);
-  }).then((hz_serv) => {
+    return http_servers;
+  }).then((http_servers) => {
+    return startHorizonServer(http_servers, opts);
+  }).then((hz_instance) => {
     if (opts.auth) {
-      opts.auth.keys().forEach((name) => {
+      for (const name in opts.auth) {
         const provider = horizon_server.auth[name];
         if (provider) {
-          horizon_server.add_auth_provider(provider, opts.auth[name]);
+          hz_instance.add_auth_provider(provider, {
+            path: name,
+            client_id: opts.auth[name].id,
+            client_secret: opts.auth[name].secret
+          });
         } else {
           logger.error(`Unrecognized auth provider "${name}"`);
           process.exit(1);
         }
-      });
+      }
     }
+  }).catch((err) => {
+    logger.error(`Error starting Horizon Server: ${err}`);
+    process.exit(1);
   });
 };
 

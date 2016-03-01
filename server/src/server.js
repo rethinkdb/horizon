@@ -183,12 +183,4 @@ class Server {
 module.exports = {
   Server,
   protocol: protocol_name,
-  logger,
-  auth: {
-    facebook: require('./auth/facebook'),
-    twitch: require('./auth/twitch'),
-    google: require('./auth/google'),
-    github: require('./auth/github'),
-    twitter: require('./auth/twitter'),
-  },
 };
