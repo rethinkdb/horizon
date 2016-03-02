@@ -11,9 +11,9 @@ module.exports = create_server;
 module.exports.logger = logger;
 module.exports.Server = server.Server;
 module.exports.auth = {
-    facebook: require('./auth/facebook'),
-    github: require('./auth/github'),
-    google: require('./auth/google'),
-    twitch: require('./auth/twitch'),
-    twitter: require('./auth/twitter'),
+  facebook: require('./auth/facebook'),
+  github: require('./auth/github'),
+  google: require('./auth/google'),
+  twitch: require('./auth/twitch'),
+  twitter: require('./auth/twitter'),
 };

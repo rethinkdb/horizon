@@ -35,5 +35,5 @@ describe('Horizon Server', () => {
 
   beforeEach('Connect Horizon Client', utils.open_horizon_conn);
   afterEach('Close Horizon Client', utils.close_horizon_conn);
-  all_suites.forEach((s) => require('./' + s).suite(table));
+  all_suites.forEach((s) => require(`./${s}`).suite(table));
 });

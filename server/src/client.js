@@ -25,12 +25,12 @@ class Request {
 
   add_cursor(cursor) {
     check(this.client.cursors.get(this.id) === undefined,
-          `Endpoint added more than one cursor.`);
+          'Endpoint added more than one cursor.');
     check(cursor.constructor.name === 'Cursor' ||
           cursor.constructor.name === 'Feed' ||
           cursor.constructor.name === 'AtomFeed' ||
           cursor.constructor.name === 'OrderByLimitFeed',
-          `Endpoint provided a non-cursor as a cursor.`);
+          'Endpoint provided a non-cursor as a cursor.');
     this.client.cursors.set(this.id, cursor);
   }
 
@@ -45,7 +45,7 @@ class Request {
       const conn = this.client.parent._reql_conn.get_connection();
       const metadata = this.client.parent._reql_conn.get_metadata();
       check(conn !== undefined && metadata !== undefined,
-            `Connection to the database is down.`);
+            'Connection to the database is down.');
 
       const reql = this.endpoint.make_reql(this.raw, metadata);
       logger.debug(`Running ${r.Error.printQuery(reql)}`);
@@ -67,7 +67,7 @@ class Request {
 
     const metadata = this.client.parent._reql_conn.get_metadata();
     if (metadata === undefined) {
-      this.client.send_response(this.id, { error: `Connection to the database is down.` });
+      this.client.send_response(this.id, { error: 'Connection to the database is down.' });
     } else {
       metadata.handle_error(err, (inner_err) => {
         if (inner_err) {
@@ -114,12 +114,12 @@ class Client {
   }
 
   handle_open() {
-    logger.debug(`Client connection established.`);
+    logger.debug('Client connection established.');
     this.parent._clients.add(this); // TODO: this is a race condition - the client could miss a reql_connection_lost call
   }
 
   handle_close() {
-    logger.debug(`Client connection terminated.`);
+    logger.debug('Client connection terminated.');
     this.parent._clients.delete(this);
     this.cursors.forEach((cursor) => cursor.close());
   }
@@ -134,7 +134,7 @@ class Client {
       request = JSON.parse(data);
     } catch (err) {
       logger.debug(`Unparseable request JSON: ${err}`);
-      this.socket.close(1002, `Invalid JSON.`);
+      this.socket.close(1002, 'Invalid JSON.');
     }
 
     try {
@@ -144,8 +144,8 @@ class Client {
         this.send_response(request.request_id, { error: `${err}`, error_code: 0 });
       } else {
         // If we can't error this specific request, we have to close the connection
-        logger.debug(`Client request has no request id, closing connection.`);
-        this.socket.close(1002, `Invalid request.`);
+        logger.debug('Client request has no request id, closing connection.');
+        this.socket.close(1002, 'Invalid request.');
       }
     }
   }

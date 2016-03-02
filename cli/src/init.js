@@ -147,7 +147,7 @@ const runCommand = (parsed) => {
     console.log(`Created new project directory ${parsed.projectName}`);
     process.chdir(parsed.projectName);
   } else {
-    console.log(`Creating new project in current directory`);
+    console.log('Creating new project in current directory');
   }
 
   if (fileDoesntExist('src')) {

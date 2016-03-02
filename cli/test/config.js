@@ -6,7 +6,6 @@ const processConfig = serve.processConfig;
 const argparse = require('argparse');
 const assert = require('assert');
 const fs = require('fs');
-const toml = require('toml');
 const extend = require('util')._extend;
 
 const arg_parser = new argparse.ArgumentParser();
@@ -23,7 +22,7 @@ const write_config = (config) => {
     for (const key in obj) {
       const val = obj[key];
       if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
-        object_keys.push(key);   
+        object_keys.push(key);
       } else {
         value_keys.push(key);
       }
@@ -39,7 +38,7 @@ const write_config = (config) => {
     }
 
     object_keys.forEach((key) => {
-      recursive_add(obj[key], path + `${path ? '.' : ''}${key}`);
+      recursive_add(obj[key], `${path}${path ? '.' : ''}${key}`);
     });
   };
 
@@ -173,7 +172,6 @@ describe('Config', () => {
       write_config({ connect: 'localhost:123', start_rethinkdb: true });
       assert.throws(() => processConfig(make_flags({ config: config_file })),
                     /Cannot provide both --start-rethinkdb and --connect./);
-
     });
 
     it('with start_rethinkdb in env', () => {
@@ -181,7 +179,6 @@ describe('Config', () => {
       process.env.HZ_START_RETHINKDB = 'true';
       assert.throws(() => processConfig(make_flags({ })),
                     /Cannot provide both --start-rethinkdb and --connect./);
-
     });
 
     it('with start_rethinkdb in flags', () => {

@@ -114,8 +114,8 @@ class HorizonSocket extends Rx.AnonymousSubject {
         // The observer is receiving an error. Better close the
         // websocket with an error
         if (!error.code) {
-          throw new Error(`no code specified. Be sure to pass ` +
-                          `{ code: ###, reason: "" } to onError()`)
+          throw new Error('no code specified. Be sure to pass ' +
+                          '{ code: ###, reason: "" } to onError()')
         }
         closeSocket(error.code, error.reason)
       },

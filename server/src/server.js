@@ -84,7 +84,7 @@ class Server {
     const verify_client = (info, cb) => {
       // Reject connections if we aren't synced with the database
       if (!this._reql_conn.is_ready()) {
-        cb(false, 503, `Connection to the database is down.`);
+        cb(false, 503, 'Connection to the database is down.');
       } else {
         cb(true);
       }
@@ -106,7 +106,7 @@ class Server {
       server.removeAllListeners('request');
       server.on('request', (req, res) => {
         const req_path = url.parse(req.url).pathname;
-        if (req_path.indexOf(this._path + '/') === 0) {
+        if (req_path.indexOf(`${this._path}/`) === 0) {
           const sub_path = req_path.replace(path_replace, '');
           const handler = this._http_handlers.get(sub_path);
           if (handler !== undefined) {
@@ -129,7 +129,7 @@ class Server {
     });
 
     this.add_http_handler('horizon.js.map', (req, res) => {
-      serve_file(horizon_client_path + '.map', res);
+      serve_file(`${horizon_client_path}.map`, res);
     });
 
     this.add_http_handler('auth_methods', (req, res) => {
@@ -180,7 +180,7 @@ class Server {
     assert(provider.name);
     assert(options.path);
     assert.strictEqual(this._auth_methods[provider.name], undefined);
-    this._auth_methods[provider.name] = this._path + '/' + options.path;
+    this._auth_methods[provider.name] = `${this._path}/${options.path}`;
     provider(this, options);
   }
 

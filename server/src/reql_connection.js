@@ -32,7 +32,7 @@ class ReqlConnection {
     logger.info(`Connecting to RethinkDB: ${this.host}:${this.port}`);
     r.connect({ host: this.host, port: this.port, db: this.db })
      .then((conn) => {
-       logger.info(`Connection to RethinkDB established.`);
+       logger.info('Connection to RethinkDB established.');
        conn.on('close', () => this.reconnect(resolve));
        this.connection = conn;
        this.connection.on('error', (err) => this.handle_conn_error(err));
@@ -67,12 +67,12 @@ class ReqlConnection {
   }
 
   get_connection() {
-    check(this._ready, `Connection to the database is down.`);
+    check(this._ready, 'Connection to the database is down.');
     return this.connection;
   }
 
   get_metadata() {
-    check(this._ready, `Connection to the database is down.`);
+    check(this._ready, 'Connection to the database is down.');
     return this.metadata;
   }
 
