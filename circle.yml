@@ -58,6 +58,6 @@ test:
         parallel: true
 
     # Run server tests
-    - mkdir -p $CIRCLE_TEST_REPORTS/xunit; touch $CIRCLE_TEST_REPORTS/xunit/server-tests.xml; ./node_modules/.bin/mocha --compilers js:babel-core/register -R xunit test/test.js test/schema.js > $CIRCLE_TEST_REPORTS/xunit/server-tests.xml:
+    - mkdir -p $CIRCLE_TEST_REPORTS/xunit; touch $CIRCLE_TEST_REPORTS/xunit/server-tests.xml; ./node_modules/.bin/mocha --timeout 15000 -R xunit test/test.js test/schema.js > $CIRCLE_TEST_REPORTS/xunit/server-tests.xml:
         pwd: server
         parallel: true
