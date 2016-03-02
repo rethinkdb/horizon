@@ -3,7 +3,7 @@
 const horizon_server = require('@horizon/server');
 
 const fs = require('fs');
-const hasbin = require('hasbin');
+const hasbinSync = require('hasbin').sync;
 const http = require('http');
 const https = require('https');
 const logger = horizon_server.logger;
@@ -13,6 +13,8 @@ const url = require('url');
 const execSync = require('child_process').execSync;
 
 const start_rdb_server = require('./utils/start_rdb_server');
+
+const RETHINKDB_REQ_VERSION = [2,2,3];
 
 const addArguments = (parser) => {
   parser.addArgument([ 'project' ],
@@ -450,7 +452,7 @@ const runCommand = (opts) => {
   ).then((servers) => {
     http_servers = servers;
     if (opts.start_rethinkdb) {
-      const result = hasbin.sync('rethinkdb');
+      const result = hasbinSync('rethinkdb');
       if (!result) {
         logger.error('RethinkDB binary not found in $PATH, please install RethinkDB');
         process.exit(1);
@@ -460,11 +462,28 @@ const runCommand = (opts) => {
       const output_split = output.split(' ');
       if (output_split.length >= 2) {
         // Assuming that it is currently x.x.x format
-        const versions = output_split[1].split('.').map((val) => parseInt(val));
+
+        let versions;
+        // Check if prerelease version
+        const hyphenIndex = output_split[1].indexOf('-');
+        if (hyphenIndex === -1) {
+          versions = output_split[1].split('.').map((val) => parseInt(val));
+        // Just remove the prerelease version portion
+        } else {
+          // Split version chunk on period
+          versions = output_split[1].split('.');
+          // Grab portion of string up to hyphen
+          versions[2] = versions[2].substr(0, hyphenIndex - 1);
+          // Convert all values to integers
+          versions = versions.map((val) => parseInt(val));
+        }
+
         // Check that split resulted in three [x, x, x] and all values are integers
         if (versions.length === 3 && versions.every((val) => Number.isInteger(val))) {
           // Check in driection of semvar to major versions
-          if (versions[2] < 5 || versions[1] < 2 || versions[0] < 2) {
+          if (versions[2] < RETHINKDB_REQ_VERSION[2] ||
+              versions[1] < RETHINKDB_REQ_VERSION[1] ||
+              versions[0] < RETHINKDB_REQ_VERSION[0]) {
             logger.error(`RethinkDB (${output_split[1]}) is below required version (2.2.5) for use with Horizon`);
             process.exit(1);
           } else {
