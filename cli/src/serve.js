@@ -433,8 +433,7 @@ const runCommand = (opts) => {
     }
   }
 
-  let http_servers;
-  let hz_instance;
+  let http_servers, hz_instance;
 
   const shutdown = () => {
     if (hz_instance) {
