@@ -309,7 +309,7 @@ const runCommand = (opts) => {
     try {
       process.chdir(opts.project);
     } catch (e) {
-      console.error(`No project named ${opts.project}`);
+      logger.error(`No project named ${opts.project}`);
       process.exit(1);
     }
   }
