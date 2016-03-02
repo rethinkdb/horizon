@@ -16,6 +16,9 @@
     "url": "https://github.com/rethinkdb/horizon/issues"
   },
   "homepage": "https://github.com/rethinkdb/horizon#readme",
+  "engines": {
+    "node": ">=4.0.0"
+  },
   "dependencies": {
     "joi": "^7.0.0",
     "cookie": "^0.2.3",
