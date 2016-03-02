@@ -315,7 +315,9 @@ Then all of these queries are legal:
 
 ### Server changes for query template rules
 
-### Arbitrary js rules
+**TODO**
+
+## Arbitrary js rules
 
 Arbitrary js rules are specified in the `[permission.js]` section of
 `hzapp.config`. Each rule has a name as a key, which can be returned in
