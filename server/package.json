@@ -17,10 +17,9 @@
   },
   "homepage": "https://github.com/rethinkdb/horizon#readme",
   "dependencies": {
-    "joi": "^7.0.0",
+    "joi": "^8.0.4",
     "cookie": "^0.2.3",
     "@horizon/client": "^0.0.2-1",
-    "joi": "^7.0.0",
     "jsonwebtoken": "^5.5.4",
     "oauth": "^0.9.14",
     "pem": "^1.8.1",
