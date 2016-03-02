@@ -2,8 +2,8 @@
 window.removeAllData = function removeAllData(collection, done) {
   // Read all elements from the collection
   collection.fetch({ asCursor: false }) // all documents in the collection
-    .flatMap(docs => collection.removeAll(docs))
-    .flatMap(() => collection.fetch())
+    .mergeMap(docs => collection.removeAll(docs))
+    .mergeMap(() => collection.fetch())
     .toArray()
     .do(remaining => assert.deepEqual([], remaining))
     .subscribe(doneObserver(done))
@@ -11,20 +11,20 @@ window.removeAllData = function removeAllData(collection, done) {
 
 // Used to subscribe to observables and call done appropriately
 function doneObserver(done) {
-  return Rx.Observer.create(
-    () => {},
-    err => done(err),
-    () => done()
-  )
+  return {
+    next() {},
+    error(err = new Error()) { done(err) },
+    complete() { done() },
+  }
 }
 
 // Used to subscribe to observables when an error is expected
 function doneErrorObserver(done) {
-  return Rx.Observer.create(
-    () => {},
-    () => done(),
-    () => done(new Error('Unexpectedly completed'))
-  )
+  return {
+    next() {},
+    error() { done() },
+    complete() { done(new Error('Unexpectedly completed')) },
+  }
 }
 
 // Used to check for stuff that should throw an exception, rather than
@@ -86,5 +86,5 @@ window.observableInterleave = function observableInterleave(options) {
         return Rx.Observable.empty()
       }
     })
-    .do(null, null, () => equality(expected, values))
+    .do({complete() { equality(expected, values) }})
 }

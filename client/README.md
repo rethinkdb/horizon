@@ -69,13 +69,14 @@ const retrieveMessages = () => {
   // fetch all results as an array, rather than one at a time
   .fetch({ asCursor: false })
   // Retrieval successful, update our model
-  .subscribe(newChats => {
-    chats = chats.concat(newChats)
-  },
-  // Error handler
-  error => console.log(error),
-  // onCompleted handler
-  () => console.log('All results received!')
+  .subscribe(
+    newChats => {
+      chats = chats.concat(newChats)
+    },
+    // Error handler
+    error => console.log(error),
+    // onCompleted handler
+    () => console.log('All results received!')
   )
 }
 
@@ -83,22 +84,24 @@ const retrieveMessages = () => {
 const retrieveMessage = id => {
   chat.find(id).fetch()
     // Retrieval successful
-    .subscribe(result => {
-      chats.push(result);
-    },
-    // Error occurred
-    error => console.log(error))
+    .subscribe(
+      result => {
+        chats.push(result);
+      },
+      // Error occurred
+      error => console.log(error)
+    )
 }
 
 // Store new item
 const storeMessage = (message) => {
-   chat.store(message)
-    .forEach( // forEach is an alias of .subscribe
+  chat.store(message)
+    .forEach( // forEach is an alias of .subscribe, returning Promise
       // Returns id of saved objects
-      result => console.log(result),
-      // Returns server error message
-      error => console.log(error)
+      result => console.log(result)
     )
+    // Returns server error message
+    .catch(error => console.log(error))
 }
 
 // Replace item that has equal `id` field
@@ -118,11 +121,12 @@ And lastly, the `.watch` method exposes all the changefeeds awesomeness you coul
 
 ```javascript
 
-chat.watch().forEach(chats => {
-  // Each time through it will returns all results of your query
+chat.watch().forEach(
+  chats => {
+    // Each time through it will returns all results of your query
     renderChats(allChats)
-  },
-
+  }
+).catch(
   // When error occurs on server
   error => console.log(error),
 )
@@ -394,7 +398,7 @@ chat.upsert([{
   text: "How have you been?"
 }]);
 
-chat.find(1).value().then((message) => {
+chat.find(1).fetch().toPromise().then((message) => {
 
   // Returns "Howdy 😅"
   console.log(message.text);

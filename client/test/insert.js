@@ -14,11 +14,11 @@ const insertSuite = window.insertSuite = getData => () => {
       // document.
       .do(res => assert.deepEqual([1], res))
       // Let's make sure we get back the document that we put in.
-      .flatMap(data.find(1).fetch())
+      .mergeMap(() => data.find(1).fetch())
       // Check that we get back what we put in.
       .do(res => assert.deepEqual({ id: 1, a: 1, b: 1 }, res))
       // Let's attempt to overwrite the document now. This should error.
-      .flatMap(data.insert({ id: 1, c: 1 }))
+      .mergeMap(() => data.insert({ id: 1, c: 1 }))
   ))
 
   // If we insert a document without an ID, the ID is generated for us.
@@ -36,11 +36,11 @@ const insertSuite = window.insertSuite = getData => () => {
         new_id = res[0]
       })
       // Let's make sure we get back the document that we put in.
-      .flatMap(() => data.find(new_id).fetch())
+      .mergeMap(() => data.find(new_id).fetch())
       // Check that we get back what we put in.
       .do(res => assert.deepEqual({ id: new_id, a: 1, b: 1 }, res))
       // Let's attempt to overwrite the document now
-      .flatMap(() => data.insert({ id: new_id, c: 1 }))
+      .mergeMap(() => data.insert({ id: new_id, c: 1 }))
   }))
 
   it('fails if null is passed', assertThrows(
@@ -81,7 +81,7 @@ const insertSuite = window.insertSuite = getData => () => {
         new_id_1 = res[1]
       })
       // Make sure we get what we put in.
-      .flatMap(() =>
+      .mergeMap(() =>
                data.findAll(new_id_0, new_id_1, 1).fetch({ asCursor: false }))
       // We're supposed to get an array of documents we put in
       .do(res => assert.sameDeepMembers(res, [
@@ -100,11 +100,11 @@ const insertSuite = window.insertSuite = getData => () => {
       // should return an array with an ID of the inserted document.
       .do(res => assert.deepEqual(res, [ 2 ]))
       // Let's make sure we get back the document that we put in.
-      .flatMap(data.find(2).fetch())
+      .mergeMap(() => data.find(2).fetch())
       // Check that we get back what we put in.
       .do(res => assert.deepEqual(res, { id: 2, a: 2 }))
       // One of the documents in the batch already exists
-      .flatMap(data.insert([
+      .mergeMap(() => data.insert([
         { id: 1, a: 1 },
         { id: 2, a: 2 },
         { id: 3, a: 3 },

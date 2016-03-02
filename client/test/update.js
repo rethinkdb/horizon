@@ -12,15 +12,15 @@ const updateSuite = window.updateSuite = getData => () => {
       // should return an array with an ID of the inserted document.
       .do(res => assert.deepEqual([ 1 ], res))
       // Let's make sure we get back the document that we put in.
-      .flatMap(data.find(1).fetch())
+      .mergeMap(() => data.find(1).fetch())
       // Check that we get back what we put in.
       .do(res => assert.deepEqual(res, { id: 1, a: { b: 1, c: 1 }, d: 1 }))
       // Let's update the document now
-      .flatMap(data.update({ id: 1, a: { c: 2 } })).toArray()
+      .mergeMap(() => data.update({ id: 1, a: { c: 2 } })).toArray()
       // We should have gotten the ID back again
       .do((res) => assert.deepEqual([ 1 ], res))
       // Make sure `upsert` updated the original document
-      .flatMap(data.find(1).fetch())
+      .mergeMap(() => data.find(1).fetch())
       // Check that the document was updated correctly
       .do(res => assert.deepEqual(res, { id: 1, a: { b: 1, c: 2 }, d: 1 }))
   ))
@@ -63,19 +63,19 @@ const updateSuite = window.updateSuite = getData => () => {
       // should return an array with an ID of the inserted document.
       .do(res => assert.deepEqual([ 1, 2 ], res))
       // Let's make sure we get back the documents that we put in.
-      .flatMap(data.findAll(1, 2).fetch({ asCursor: false }))
+      .mergeMap(() => data.findAll(1, 2).fetch({ asCursor: false }))
       // Check that we get back what we put in.
       .do(res => assert.sameDeepMembers(res, [
         { id: 1, a: { b: 1, c: 1 }, d: 1 },
         { id: 2, a: { b: 2, c: 2 }, d: 2 }
       ]))
       // All right. Let's update the documents now
-      .flatMap(data.update([ { id: 1, a: { c: 2 } }, { id: 2, d: 3 } ]))
+      .mergeMap(() => data.update([ { id: 1, a: { c: 2 } }, { id: 2, d: 3 } ]))
       .toArray()
       // We should have gotten the ID back again
       .do(res => assert.deepEqual(res, [ 1, 2 ]))
       // Make sure `update` updated the documents properly
-      .flatMap(data.findAll(1, 2).fetch({ asCursor: false }))
+      .mergeMap(() => data.findAll(1, 2).fetch({ asCursor: false }))
       // Check that we get back what we put in.
       .do(res => assert.sameDeepMembers(res, [
         { id: 1, a: { b: 1, c: 2 }, d: 1 },
