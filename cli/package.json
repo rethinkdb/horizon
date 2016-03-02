@@ -17,10 +17,11 @@
   },
   "homepage": "https://github.com/rethinkdb/horizon#readme",
   "dependencies": {
+    "@horizon/server": "^0.0.4",
     "argparse": "^1.0.3",
-    "@horizon/server": "^0.0.4"
   },
   "devDependencies": {
+    "toml": "^2.3.0"
   },
   "preferGlobal": true
 }
