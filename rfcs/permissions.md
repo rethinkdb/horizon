@@ -44,6 +44,14 @@ of the group.
   the owned group unless explicitly placed into the group.
 * The `owning_group` can be the group itself. This is useful for
   creating administrator groups.
+* Group ownership is not transitive. That is, if group `A` is the
+  `owning_group` of group `B`, and group `B` is the `owning_group` for
+  group `C`, members of group `A` are **not** considered owners of
+  group `C`, even though members of group `B` are. This is to simplify
+  logic for checking ownership and circularity.
+* The `owner` of a group cannot be removed from the group without
+  replacing the owner, or changing ownership to another group. This is
+  intended to prevent groups from being impossible to administrate.
 
 ### Config file changes for groups
 
@@ -251,6 +259,8 @@ Additional things the server needs to do:
 * ensure that when a request operates on a group, that the user is
   either the owner of that group, or the user is a member of the
   `owning_group`.
+* ensure that the current owner of a group cannot be removed as a
+  member of the group.
 
 ## Query template rules
 
