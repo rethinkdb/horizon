@@ -12,7 +12,7 @@ machine:
   post:
     - source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
     - wget -qO- https://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -
-    - sudo apt-get update
+    - sudo apt-get update -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/rethinkdb.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
     - sudo apt-get install rethinkdb
 
 ## Set artifacts
