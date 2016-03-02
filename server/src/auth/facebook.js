@@ -70,6 +70,6 @@ function facebook(horizon, raw_options) {
     user_info && user_info.data && user_info.data.user_id;
 
   auth_utils.oauth2(oauth_options);
-};
+}
 
 module.exports = facebook;

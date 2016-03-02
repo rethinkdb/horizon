@@ -53,7 +53,7 @@ class Index {
   // `fuzzy_fields` may overlap with `ordered_fields`.
   is_match(fuzzy_fields, ordered_fields) {
     for (let i = 0; i < fuzzy_fields.length; ++i) {
-      let pos = this.fields.indexOf(fuzzy_fields[i]);
+      const pos = this.fields.indexOf(fuzzy_fields[i]);
       if (pos < 0 || pos >= fuzzy_fields.length) { return false; }
     }
 
@@ -173,7 +173,7 @@ class Metadata {
           new Table(table.name,
             new Set(Object.keys(table.indexes).map((idx) =>
               new Index(idx, table.indexes[idx]))))));
-      logger.info(`Metadata synced with server, ready for queries.`);
+      logger.info('Metadata synced with server, ready for queries.');
       done();
     }, (err) => done(err));
   }

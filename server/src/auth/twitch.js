@@ -48,6 +48,6 @@ function twitch(horizon, raw_options) {
   oauth_options.extract_id = (user_info) => user_info && user_info._id;
 
   auth_utils.oauth2(oauth_options);
-};
+}
 
 module.exports = twitch;

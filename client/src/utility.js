@@ -45,7 +45,9 @@ function checkArgs(name, args, {
   }
   if (args.length < minArgs) {
     const plural = minArgs === 1 ? '' : 's'
-    throw new Error(`${name} must receive at least ${minArgs} argument${plural}.`)
+    throw new Error(
+      `${name} must receive at least ${minArgs} argument${plural}.`
+    )
   }
   if (args.length > maxArgs) {
     const plural = maxArgs === 1 ? '' : 's'
@@ -57,7 +59,9 @@ function checkArgs(name, args, {
       throw new Error(`The${ordinality} argument to ${name} must be non-null`)
     }
     if (args[i] === undefined) {
-      throw new Error(`The ${ordinal(i + 1)} argument to ${name} must be defined`)
+      throw new Error(
+        `The ${ordinal(i + 1)} argument to ${name} must be defined`
+      )
     }
   }
 }

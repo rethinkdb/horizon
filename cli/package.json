@@ -7,6 +7,10 @@
     "type": "git",
     "url": "git+https://github.com/rethinkdb/horizon.git"
   },
+  "scripts": {
+    "lint": "eslint src test",
+    "test": "mocha test --timeout 10000"
+  },
   "author": "RethinkDB",
   "license": "MIT",
   "bin": {
@@ -22,10 +26,12 @@
     "@horizon/server": "^0.0.5-0",
     "toml": "^2.3.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "eslint": "^2.3.0",
+    "mocha": "2.3.4"
+  },
   "engines": {
     "node": ">=4.0.0"
   },
-  "devDependencies": {},
   "preferGlobal": true
 }

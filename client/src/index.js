@@ -8,8 +8,10 @@ module.exports = Horizon
 
 
 function Horizon({
-  host = window && window.location && `${window.location.host}` || 'localhost:8181',
-  secure = window && window.location && window.location.protocol === 'https:' || false,
+  host = window && window.location && `${window.location.host}` ||
+    'localhost:8181',
+  secure = window && window.location && window.location.protocol === 'https:' ||
+    false,
   path = 'horizon',
   lazyWrites = false,
 } = {}) {
@@ -31,10 +33,9 @@ function Horizon({
   // server. Optionally provide an error handling function if the
   // socket experiences an error.
   // Note: Users of the Observable interface shouldn't need this
-  horizon.connect = onError => {
-    if (!onError) {
-      onError = err => { console.error(`Received an error: ${err}`) }
-    }
+  horizon.connect = (
+    onError = err => { console.error(`Received an error: ${err}`) }
+  ) => {
     socket.subscribe(
       () => {},
       onError
