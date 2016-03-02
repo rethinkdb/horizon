@@ -19,9 +19,7 @@
   "dependencies": {
     "@horizon/server": "^0.0.4",
     "argparse": "^1.0.3",
-  },
-  "devDependencies": {
-    "toml": "^2.3.0"
+    "toml": "^2.3.0",
   },
   "preferGlobal": true
 }
