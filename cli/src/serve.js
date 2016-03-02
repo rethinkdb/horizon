@@ -8,6 +8,7 @@ const https = require('https');
 const logger = horizonServer.logger;
 const path = require('path');
 const url = require('url');
+const execSync = require('child_process').execSync;
 
 const start_rdb_server = require('./utils/start_rdb_server');
 
@@ -320,11 +321,31 @@ const runCommand = (opts) => {
     servers = servs;
   }).then(() => {
     if (opts.start_rethinkdb) {
-
       const result = hasbin.sync('rethinkdb');
       if (!result) {
-        console.error("rethinkdb binary not found in $PATH, please install RethinkDB");
+        logger.error('RethinkDB binary not found in $PATH, please install RethinkDB');
         process.exit(1);
+      }
+
+      const output = execSync('rethinkdb --version', { timeout: 250 }).toString();
+      const output_split = output.split(' ');
+      if (output_split.length >= 2) {
+        // Assuming that it is currently x.x.x format
+        const versions = output_split[1].split('.').map((val) => parseInt(val));
+        // Check that split resulted in three [x, x, x] and all values are integers
+        if (versions.length === 3 && versions.every((val) => Number.isInteger(val))) {
+          // Check in driection of semvar to major versions
+          if (versions[2] < 5 || versions[1] < 2 || versions[0] < 2) {
+            logger.error(`RethinkDB (${output_split[1]}) is below required version (2.2.5) for use with Horizon`);
+            process.exit(1);
+          } else {
+            logger.info(output);
+          }
+        } else {
+          logger.error('Unable to determine RethinkDB version and continuing, please check RethinkDB is >= 2.2.5');
+        }
+      } else {
+        logger.error('Unable to determine RethinkDB version and continuing, please check RethinkDB is >= 2.2.5');
       }
 
       return start_rdb_server().then((rdbOpts) => {
