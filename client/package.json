@@ -17,6 +17,9 @@
     "rx": "^4.0.7",
     "snake-case": "^1.1.1"
   },
+  "engines": {
+    "node": ">=4.0.0"
+  },
   "devDependencies": {
     "babel-cli": "^6.5.1",
     "babel-core": "^6.5.2",
