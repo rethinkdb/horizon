@@ -8,7 +8,7 @@ const aboveSuite = window.aboveSuite = (getData) => () => {
 
   // By default `above` is closed
   it('is a closed bound by default', assertCompletes(() =>
-    data.order('id').above({ id: 5 }).fetch({ asCursor: false })
+    data.order('id').above({ id: 5 }).fetch().toArray()
       .do(res => assert.deepEqual(res, [
         { id: 5, a: 60 },
         { id: 6, a: 50 },
@@ -17,7 +17,7 @@ const aboveSuite = window.aboveSuite = (getData) => () => {
 
   // We can also pass that explicitly
   it('allows "closed" to be passed explicitly', assertCompletes(() =>
-    data.order('id').above({ id: 5 }, 'closed').fetch({ asCursor: false })
+    data.order('id').above({ id: 5 }, 'closed').fetch().toArray()
       .do(res => assert.deepEqual(res, [
         { id: 5, a: 60 },
         { id: 6, a: 50 },
@@ -39,7 +39,7 @@ const aboveSuite = window.aboveSuite = (getData) => () => {
 
   // We can chain `above` off a collection
   it('can be chained from a collection directly', assertCompletes(() =>
-    data.above({ id: 5 }).fetch({ asCursor: false })
+    data.above({ id: 5 }).fetch().toArray()
       .do(res => {
         assert.isArray(res)
         assert.lengthOf(res, 2)
@@ -48,7 +48,7 @@ const aboveSuite = window.aboveSuite = (getData) => () => {
 
   // Or off other things
   it('can be chained from a findAll', assertCompletes(() =>
-    data.findAll({ a: 20 }).above({ id: 3 }).fetch({ asCursor: false })
+    data.findAll({ a: 20 }).above({ id: 3 }).fetch().toArray()
       .do(res => {
         assert.isArray(res)
         assert.lengthOf(res, 2)
@@ -62,7 +62,7 @@ const aboveSuite = window.aboveSuite = (getData) => () => {
 
   // Let's try it on a non-primary key
   it('can be used on a non-primary key', assertCompletes(() =>
-    data.order([ 'a', 'id' ]).above({ a: 20 }).fetch({ asCursor: false })
+    data.order([ 'a', 'id' ]).above({ a: 20 }).fetch().toArray()
       .do(res => assert.deepEqual(res, [
         { id: 2, a: 20, b: 1 },
         { id: 3, a: 20, b: 2 },
@@ -74,7 +74,7 @@ const aboveSuite = window.aboveSuite = (getData) => () => {
 
   // Let's try it on a non-primary key, but open
   it('can be used on non-primary key with open bound', assertCompletes(() =>
-    data.order([ 'a', 'id' ]).above({ a: 20 }, 'open').fetch({ asCursor: false })
+    data.order([ 'a', 'id' ]).above({ a: 20 }, 'open').fetch().toArray()
       .do(res => assert.deepEqual(res, [
         { id: 6, a: 50 },
         { id: 5, a: 60 },

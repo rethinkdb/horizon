@@ -50,10 +50,8 @@ class TermBase {
   // array with all results. If you'd rather receive emit on every
   // document, pass the option 'asCursor: true'. An observable is
   // returned which will lazily emit the query when subscribed to
-  fetch({ asCursor = true } = {}) {
-    const raw = this._sendRequest('query', this._query)
-    const observable = asCursor ? raw : raw.toArray()
-    return observable
+  fetch() {
+    return this._sendRequest('query', this._query)
   }
   findAll(...fieldValues) {
     checkIfLegalToChain.call(this, 'findAll')

@@ -21,7 +21,7 @@ const removeSuite = window.removeSuite = getData => () => {
   // Insert the test data and make sure it's in
   before(assertCompletes(() =>
     data.store(testData).ignoreElements()
-      .concat(data.fetch({ asCursor: false }))
+      .concat(data.fetch().toArray())
       // Make sure it's there
       .do(res => assert.sameDeepMembers(res, testData))
   ))

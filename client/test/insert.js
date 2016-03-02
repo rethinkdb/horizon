@@ -82,7 +82,7 @@ const insertSuite = window.insertSuite = getData => () => {
       })
       // Make sure we get what we put in.
       .flatMap(() =>
-               data.findAll(new_id_0, new_id_1, 1).fetch({ asCursor: false }))
+               data.findAll(new_id_0, new_id_1, 1).fetch().toArray())
       // We're supposed to get an array of documents we put in
       .do(res => assert.sameDeepMembers(res, [
         { id: new_id_0 },
