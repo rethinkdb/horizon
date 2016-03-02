@@ -41,7 +41,7 @@ module.exports = (options) => {
     });
 
     process.on('exit', () => {
-      rdbProc.kill('SIGKILL');
+      rdbProc.kill('SIGTERM');
     });
 
     const maybe_resolve = () => {

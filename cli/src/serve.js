@@ -387,16 +387,11 @@ const read_config_from_flags = (config, parsed) => {
 // then the config file, and finally the default values.
 const processConfig = (parsed) => {
   let config;
-  console.log(`Parsed flags: ${JSON.stringify(parsed, null, '\t')}`);
 
   config = default_config();
-  console.log(`Default opts: ${JSON.stringify(config, null, '\t')}`);
   config = read_config_from_file(config, parsed);
-  console.log(`Post-file opts: ${JSON.stringify(config, null, '\t')}`);
   config = read_config_from_env(config, parsed);
-  console.log(`Post-env opts: ${JSON.stringify(config, null, '\t')}`);
   config = read_config_from_flags(config, parsed);
-  console.log(`Post-flags opts: ${JSON.stringify(config, null, '\t')}`);
 
   return config;
 };
@@ -416,8 +411,8 @@ const startHorizonServer = (servers, opts) => {
         failure_redirect: opts.auth_redirect,
       },
     });
-  } catch (e) {
-    logger.error('Failed creating Horizon server:', e);
+  } catch (err) {
+    logger.error(`Failed creating Horizon server: ${err}`);
     process.exit(1);
   }
 };
@@ -431,29 +426,39 @@ const runCommand = (opts) => {
   if (opts.project !== null) {
     try {
       process.chdir(opts.project);
-    } catch (e) {
-      logger.error(`No project named ${opts.project}`);
+    } catch (err) {
+      logger.error(`Failed to find "${opts.project}" project: ${err}`);
       process.exit(1);
     }
   }
 
+  let http_servers;
+  let hz_instance;
+
+  const shutdown = () => {
+    if (hz_instance) {
+      hz_instance.close();
+    }
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+
   return (
     opts.insecure ?
       createInsecureServers(opts) : createSecureServers(opts)
-  ).then((http_servers) => {
+  ).then((servers) => {
+    http_servers = servers;
     if (opts.start_rethinkdb) {
-      return new Promise((resolve, reject) => {
-        start_rdb_server().then((rdbOpts) => {
-          // Don't need to check for host, always localhost.
-          opts.rdb_port = rdbOpts.driverPort;
-          resolve(http_servers);
-        }).catch(reject);
+      return start_rdb_server().then((rdbOpts) => {
+        // Don't need to check for host, always localhost.
+        opts.rdb_port = rdbOpts.driverPort;
       });
     }
-    return http_servers;
-  }).then((http_servers) => {
-    return startHorizonServer(http_servers, opts);
-  }).then((hz_instance) => {
+  }).then(() => {
+    hz_instance = startHorizonServer(http_servers, opts);
+  }).then(() => {
     if (opts.auth) {
       for (const name in opts.auth) {
         const provider = horizon_server.auth[name];
@@ -474,7 +479,6 @@ const runCommand = (opts) => {
     process.exit(1);
   });
 };
-
 
 module.exports = {
   addArguments,
