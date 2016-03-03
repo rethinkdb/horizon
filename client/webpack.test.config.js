@@ -15,7 +15,7 @@ module.exports = {
     pathinfo: DEV_BUILD, // Add module filenames as comments in the bundle
     devtoolModuleFilenameTemplate: function(file) {
       if (file.resourcePath.indexOf('webpack') >= 0) {
-        return 'webpack:///' + file.resourcePath
+        return `webpack:///${file.resourcePath}`
       } else {
         // Show correct paths in stack traces
         return path.join('..', file.resourcePath).replace(/~/g, 'node_modules')
@@ -26,8 +26,9 @@ module.exports = {
   debug: DEV_BUILD,
   devtool: SOURCEMAPS ? 'source-map' : false,
   externals: {
-    // These modules are not packaged into test.js. Webpack allows them to be
-    // required natively at runtime when the tests are run in node
+    // These modules are not packaged into test.js. Webpack allows
+    // them to be required natively at runtime when the tests are run
+    // in node
     './horizon.js': 'commonjs ./horizon.js',
     ws: 'commonjs ws',
     'source-map-support': 'commonjs source-map-support',
@@ -51,10 +52,10 @@ module.exports = {
           presets: [
             'babel-preset-es2015-loose',
             { plugins: [
-              ['babel-plugin-transform-runtime', {polyfill: false}],
+              [ 'babel-plugin-transform-runtime', { polyfill: false } ],
               'babel-plugin-transform-function-bind',
               'babel-plugin-transform-async-to-generator', // for async await
-            ]},
+            ] },
           ],
         },
       },

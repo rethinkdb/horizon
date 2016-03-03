@@ -7,7 +7,7 @@
     "devtest": "nodemon --watch dist --exec 'npm test -- --reporter dot && npm run lint -s'",
     "builddebug": "webpack --progress --colors --display-modules --display-reasons",
     "build": "NODE_ENV=production webpack --progress --colors",
-    "compile": "rm -f lib/* && babel src --out-dir lib --extends src/.babelrc --source-maps true",
+    "compile": "rm -f lib/**/* && babel src --out-dir lib --extends src/.babelrc --source-maps true",
     "lint": "eslint src",
     "test": "mocha dist/test.js --inline-diffs --timeout 10000",
     "prepublish": "npm run build && npm run compile"
@@ -36,7 +36,6 @@
     "copy-webpack-plugin": "^1.1.1",
     "eslint": "2.2.x",
     "lodash": "^4.6.1",
-    "minimist": "^1.2.0",
     "mocha": "2.3.4",
     "nodemon": "^1.9.1",
     "source-map-support": "^0.4.0",

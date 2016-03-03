@@ -1,12 +1,9 @@
-const argv = require('minimist')(process.argv.slice(2))
-
 const BUILD_ALL = (process.env.NODE_ENV === 'production')
 
 const build = require('./webpack.horizon.config.js')
 const test = require('./webpack.test.config.js')
 
 if (BUILD_ALL) {
-
   module.exports = [
     build({
       FILENAME: 'horizon-dev.js',
@@ -28,11 +25,9 @@ if (BUILD_ALL) {
       DEV_BUILD: false,
       POLYFILL: false,
     }),
-    test
+    test,
   ]
-
 } else {
-
   module.exports = [
     build({
       // same filename as prod build to simplify switching
@@ -40,6 +35,6 @@ if (BUILD_ALL) {
       DEV_BUILD: true,
       POLYFILL: true,
     }),
-    test
+    test,
   ]
 }

@@ -4,12 +4,14 @@ const HorizonSocket = require('./socket')
 const { log, logError, enableLogging } = require('./logging')
 const { authEndpoint, TokenStorage } = require('./auth')
 
+const defaultHost = window && window.location &&
+        `${window.location.host}` || 'localhost:8181'
+const defaultSecure = window && window.location &&
+        window.location.protocol === 'https:' || false
 
 function Horizon({
-  host = window && window.location && `${window.location.host}` ||
-    'localhost:8181',
-  secure = window && window.location && window.location.protocol === 'https:' ||
-    false,
+  host = defaultHost,
+  secure = defaultSecure,
   path = 'horizon',
   lazyWrites = false,
   authType = 'unauthenticated',
@@ -96,7 +98,20 @@ function Horizon({
   }
 }
 
+function subscribeOrObservable(observable) {
+  return (...args) => {
+    if (args.length > 0) {
+      return observable.subscribe(...args)
+    } else {
+      return observable
+    }
+  }
+}
+
+
 Horizon.log = log
 Horizon.logError = logError
 Horizon.enableLogging = enableLogging
 Horizon.Socket = HorizonSocket
+
+module.exports = Horizon
