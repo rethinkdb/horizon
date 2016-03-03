@@ -52,6 +52,7 @@ of the group.
 * The `owner` of a group cannot be removed from the group without
   replacing the owner, or changing ownership to another group. This is
   intended to prevent groups from being impossible to administrate.
+* A group cannot be named `"ANYONE"`.
 
 ### Config file changes for groups
 
@@ -261,6 +262,7 @@ Additional things the server needs to do:
   `owning_group`.
 * ensure that the current owner of a group cannot be removed as a
   member of the group.
+* ensure no group can be created with the name `ANYONE`
 
 ## Query template rules
 
@@ -271,44 +273,70 @@ groups.
 ### Config changes for query template rules
 
 Templates are specified in the `hzapp.config` file in the section
-`[permission.templates]`
+`[query_whitelist]`
 
 There are 2 special variables: `USER` and `ANYTHING`.
-- `USER` stands in for the current user document. It has any
-attributes a user object will have.
-- `ANYTHING` is a don't care value.
+- `USER` stands in for the current user. It has several properties:
+  - `id` the username/primary key of the user
+  - `groups` a set of groups the user belongs to
+  - `groups_owned` a set of groups the user owns (either directly, or
+    by being a member of an `owning_group`)
+  - `appData` an object with data created and maintained by the
+    app. If users have access to write to their own document, rules
+    based on this data may be insecure.
+- `ANYTHING` is a don't care value. This is to explicitly declare any
+  value is acceptable in a query.
 
-Security rules are specified by whitelisting queries.
+In the section `[query_whitelist]` each key specifies the group that
+the specified queries are whitelisted for. They can't refer to groups
+created dynamically by the application. There is a special group
+`ANYONE` that indicates the specified queries are executable by any
+user, even ones that are anonymous or unauthenticated.
+
+As for syntax:
+* The queries can start with `horizon` or `hz` before the parenthesis
+* The queries should be valid javascript syntax.
 
 Example:
-Let's say you had a messaging app that issued 3 queries:
-
-- "get me all the messages I've received"
-- "get me all the messages I've sent"
-- "send a new message"
-
-The security rules would look like:
 
 ```toml
-[permissions.query.whitelist]
+[query_whitelist]
 ANYONE = [
   "horizon('messages').findAll({to: USER.id})",
   "horizon('messages').findAll({from: USER.id})",
-  "horizon('messages').insert({from: USER.id, to: ANYTHING, text: ANYTHING})"
+  "horizon('broadcasts').findAll({to_group: USER.groups, from: ANYTHING})
+]
+admin = [
+  "horizon('messages').findAll({})",
 ]
 ```
 
-**TODO** validate rest of this section, correct it.
+This would allow a user to retrieve all messages they have either sent
+or received, as well as any broadcasts to any group the user is a
+member of. (Note that `to_group: USER.groups` is not interpreted as
+equality, it's translated implicitly to 'the `to_group` field matches
+any elements of `USER.groups`).
 
-Subsets of whitelisted queries are allowed without explicit whitelisting:
+This would also allow any members of the `admin` group to run queries
+for all messages.
+
+#### Subsets of whitelisted queries are ok
+
+Extensions of whitelisted queries are allowed without explicitly
+stating them.
+
+N.B. This takes advantage of the fact that chaining more operations
+onto a Horizon query currently always returns fewer results. If this
+assumption is violated in the future, implicit whitelisting described
+in this section will not be safe.
 
 Example:
 
 If there is a template:
 
 ```toml
-[permission.templates]
-whitelist = [
+[query_whitelist]
+ANYONE = [
   "horizon('A').findAll({owner: USER.id})",
   "horizon('B')"
 ]
@@ -316,57 +344,134 @@ whitelist = [
 
 Then all of these queries are legal:
 
-- `horizon('A').findAll({owner: USER.id})`
-- `horizon('A').findAll({owner: USER.id}).above({date: Date.now()})`
-- `horizon('A').findAll({owner: USER.id, type: 'car'})`
+- `horizon('A').findAll({owner: userId})`
+- `horizon('A').findAll({owner: userId}).above({date: Date.now()})`
+- `horizon('A').findAll({owner: userId, type: 'car'})`
 - `horizon('B')`
 - `horizon('B').findAll({category: 'cars'})`
 - `horizon('B').findAll({category: 'cars'}).above({date: tomorrow})`
 
-### Server changes for query template rules
+#### Specifying write operations
 
-**TODO**
-
-## Arbitrary js rules
-
-Arbitrary js rules are specified in the `[permission.js]` section of
-`hzapp.config`. Each rule has a name as a key, which can be returned in
-errors to the client indicating which rule was violated.
-
-**TODO**
-
-### Config changes for arbitrary js rules
-
-**TODO** validate and correct this section
-
-Users provide an arbitrary JS function that takes as an input the
-current user (including all user attributes like groups), and the
-document they're trying to read from the database. It returns whether
-or not they're allowed to read it as a boolean.
+Templates for write operations can restrict certain fields of
+documents being stored. Implicitly, any fields not mentioned in the
+template are free to be whatever the user wants.
 
 Example:
 
 ```toml
-[permissions.js]
-no_cats_allowed = """
-function(user, docToWrite) {
-  if (user.groups.indexOf("cat") !== -1) {
+[query_whitelist]
+ANYONE = [
+  "horizon('messages').insert({from: USER.id, to: USER.groups})"
+]
+```
+
+The above rule would allow this query for a user in the `players`
+group:
+
+- `horizon('messages').insert({from: userId, to: 'players', msg: 'Hey there!'})`
+
+### Server changes for query template rules
+
+The server will need to be able to eval the whitelist rules and store
+a representation of them that makes it easy to quickly validate an
+incoming query.
+
+The server will need to create a few changefeeds per user:
+
+- A changefeed on the user's document itself. This is to keep an up-to-date view of
+the user's `appData` object for evaluating rules. This may be skipped
+if none of the rules make use of a user's `appData` field.
+- A changefeed on the `group` internal table. This is to keep track of
+which groups a user is the owner of.
+- A changefeed on the `group_membership` table to keep track of which
+  groups a user is a member of.
+
+The server should be able to infer from this data which groups the
+user is a member of `owning_group` for.
+
+Crucially, it should reject queries that do not match one of the
+whitelisted rules for the user's groups.
+
+## Arbitrary js rules
+
+Arbitrary js rules are specified in the `[js_blacklist]`
+section of `hzapp.config`. Each rule has a name as a key, which can be
+returned in errors to the client indicating which rule was violated.
+
+### Config changes for arbitrary js rules
+
+#### Read rules
+
+Users provide an arbitrary JS function that takes as an input the
+current user (including attributes on the `USER` object above), the
+collection the operation is on, and the document they're trying to
+read from the database. It returns whether or not they're allowed to
+read it as a boolean.
+
+These rules go in the `[js_blacklist.reads]` section. As
+with query templates, the group or `ANYONE` should be specified to
+narrow the scope of where the rule applies.
+
+Example:
+
+```toml
+[js_blacklist.reads.ANYONE]
+no_old_docs = """
+function(user, collection, document) {
+  if (collection !== 'agedDocuments') {
     return false;
   }
-  return true;
+  if (document.age > user.appData.maxDocAge) {
+    return false;
+  } else {
+    return true;
+  }
 }
 """
 ```
+
+When an error is raised, it should mention that the rule `no_old_docs`
+was violated for the query.
+
+N.B. Arbitrary document ages are a very inefficient way to enforce
+document schemas. They aren't intended to be used for that purpose.
+
+#### Write rules
+
+Write rules are similar to read rules, except that they get both the
+previous version of the document and the new version of the
+document. These rules go in the `[js_blacklist.writes]`
+section.
+
+Example:
+
+Suppose for a group called `users` we have the following rule:
+
+```toml
+[js_blacklist.writes.users]
+no_changing_ownership = """
+function(user, collection, oldDocument, newDocument) {
+  if (oldDocument.owner !== newDocument.owner) {
+    return false;
+  } else {
+    return true;
+  }
+}
+"""
+```
+
+This rule would disallow changing the ownership of any document in any
+collection.
+
+#### Errors in batch writes
 
 When an individual write in a batch write fails an arbitrary js check,
 the entire batch won't fail. Instead that document will be skipped,
 and the server will attempt to continue on for the rest of the
 documents in the batch.
 
-
-#### Server changes for arbitrary js rules
+### Server changes for arbitrary js rules
 
 The server will need to read in the permissions from the
 `hzapp.config` file, and enforce them as described above.
-
-**TODO** complete section
