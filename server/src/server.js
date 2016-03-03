@@ -7,6 +7,7 @@ const ReqlConnection = require('./reql_connection').ReqlConnection;
 const logger = require('./logger');
 const horizon_protocol = require('./schema/horizon_protocol');
 const options_schema = require('./schema/server_options').server;
+const websocket = require('./websocket');
 
 // TODO: dynamically serve different versions of the horizon
 // library. Minified, Rx included etc.
@@ -27,7 +28,6 @@ const assert = require('assert');
 const fs = require('fs');
 const Joi = require('joi');
 const url = require('url');
-const websocket = require('ws');
 const extend = require('util')._extend;
 
 const protocol_name = 'rethinkdb-horizon-v0';

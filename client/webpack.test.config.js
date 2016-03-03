@@ -1,6 +1,7 @@
 const path = require('path')
 
 const CopyWebpackPlugin = require('copy-webpack-plugin')
+const NoErrorsPlugin = require('webpack/lib/NoErrorsPlugin')
 
 const DEV_BUILD = (process.env.NODE_ENV !== 'production')
 const SOURCEMAPS = !process.env.NO_SOURCEMAPS
@@ -12,7 +13,9 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].js',
-    pathinfo: DEV_BUILD, // Add module filenames as comments in the bundle
+    // Add module filenames as comments in the bundle
+    pathinfo: DEV_BUILD,
+    // Configure source map urls visible in stack traces and "sources" panel
     devtoolModuleFilenameTemplate: function(file) {
       if (file.resourcePath.indexOf('webpack') >= 0) {
         return 'webpack:///' + file.resourcePath
@@ -35,11 +38,11 @@ module.exports = {
   module: {
     noParse: [
       // Pre-built files don't need parsing
-      /mocha\/mocha\.js/,
-      /chai\/chai\.js/,
-      /lodash\/lodash\.js/,
-      /source-map-support/,
-      /rx\/dist\/rx\.all\.js/,
+      RegExp('mocha/mocha.js'),
+      RegExp('chai/chai.js'),
+      RegExp('lodash/lodash.js'),
+      RegExp('source-map-support'),
+      RegExp('rx/dist/rx.all.js'),
     ],
     loaders: [
       {
@@ -68,6 +71,7 @@ module.exports = {
     __filename: false,
   },
   plugins: [
+    new NoErrorsPlugin(),
     new CopyWebpackPlugin([
       { from: './test/test.html' },
       { from: './node_modules/mocha/mocha.css' },

@@ -3,10 +3,10 @@
 const check = require('./error').check;
 const logger = require('./logger');
 const schemas = require('./schema/horizon_protocol');
+const websocket = require('./websocket');
 
 const Joi = require('joi');
 const r = require('rethinkdb');
-const websocket = require('ws');
 
 class Request {
   constructor(client, raw_request) {

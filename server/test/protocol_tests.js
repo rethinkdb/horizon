@@ -10,24 +10,27 @@ const all_tests = (table) => {
 
   it('unparseable', (done) => {
     const conn = utils.horizon_conn();
-    conn.removeAllListeners('error');
+    // We'll use the websocket api as opposed to `ws` event emitter api
+    // to keep the client implementation simple. Server sockets have the
+    // event emitter api still.
+    conn.onerror = null;
     conn.send('foobar');
-    conn.once('close', (code, msg) => {
-      assert.strictEqual(code, 1002);
-      assert.strictEqual(msg, 'Invalid JSON.');
+    conn.onclose = (event) => {
+      assert.strictEqual(event.code, 1002);
+      assert.strictEqual(event.reason, 'Invalid JSON.');
       done();
-    });
+    };
   });
 
   it('no request_id', (done) => {
     const conn = utils.horizon_conn();
-    conn.removeAllListeners('error');
+    conn.onerror = null;
     conn.send('{ }');
-    conn.once('close', (code, msg) => {
-      assert.strictEqual(code, 1002);
-      assert.strictEqual(msg, 'Invalid request.');
+    conn.onclose = (event) => {
+      assert.strictEqual(event.code, 1002);
+      assert.strictEqual(event.reason, 'Invalid request.');
       done();
-    });
+    };
   });
 
   it('no type', (done) => {
@@ -90,7 +93,13 @@ const all_tests = (table) => {
           collection: table,
           field_name: 'id',
         },
-      }), () => (utils.close_horizon_conn(), done()));
+      }));
+    // We could use the send callback here as it is supported
+    // but both ws and eio, but let's defer for now.
+    setImmediate(() => {
+      utils.close_horizon_conn();
+      done();
+    });
   });
 };
 
