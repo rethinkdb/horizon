@@ -8,9 +8,9 @@ const querystring = require('querystring');
 const url = require('url');
 
 const options_schema = Joi.object().keys({
+  path: Joi.string().required(),
   client_id: Joi.string().required(),
   client_secret: Joi.string().required(),
-  path: Joi.string().required(),
 }).unknown(false);
 
 const add = (horizon, raw_options) => {

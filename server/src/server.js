@@ -168,6 +168,10 @@ class Server {
     return this._http_handlers.delete(sub_path);
   }
 
+  add_auth_provider(provider, options) {
+    provider(this, options)
+  }
+
   ready() {
     return this._reql_conn.ready();
   }
@@ -178,4 +182,7 @@ class Server {
   }
 }
 
-module.exports = { Server, protocol: protocol_name, logger };
+module.exports = {
+  Server,
+  protocol: protocol_name,
+};

@@ -9,8 +9,8 @@ const url = require('url');
 
 const options_schema = Joi.object({
   path: Joi.string().required(),
-  consumer_key: Joi.string().required(),
-  consumer_secret: Joi.string().required(),
+  client_id: Joi.string().required(),
+  client_secret: Joi.string().required(),
 });
 
 // Cache for request token secrets
