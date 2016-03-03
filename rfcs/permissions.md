@@ -404,24 +404,23 @@ returned in errors to the client indicating which rule was violated.
 #### Read rules
 
 Users provide an arbitrary JS function that takes as an input the
-current user (including attributes on the `USER` object above), the
-collection the operation is on, and the document they're trying to
-read from the database. It returns whether or not they're allowed to
-read it as a boolean.
+current user (including attributes on the `USER` object above), and
+the document they're trying to read from the database. It returns
+whether or not they're allowed to read it as a boolean.
 
-These rules go in the `[js_blacklist.reads]` section. As
+These rules go in the `[js_blacklist]` section. As
 with query templates, the group or `ANYONE` should be specified to
 narrow the scope of where the rule applies.
 
 Example:
 
 ```toml
-[js_blacklist.reads.ANYONE]
-no_old_docs = """
-function(user, collection, document) {
-  if (collection !== 'agedDocuments') {
-    return false;
-  }
+[js_blacklist.no_old_docs]
+applies_to = 'ANYONE'
+for = 'reads'
+collection = 'aged_documents'
+js = """
+function(user, document) {
   if (document.age > user.appData.maxDocAge) {
     return false;
   } else {
@@ -430,6 +429,14 @@ function(user, collection, document) {
 }
 """
 ```
+
+- `applies_to` specifies this rule applies to anyone, this can be any
+group name or 'ANYONE'
+- `for` can be either `reads` or `writes`
+- `collection` is an optional field specifying a collection the rule
+  should apply to. This can also be an array of collection names. If
+  not present, the rule applies globally.
+- `js` contains the actual function definition
 
 When an error is raised, it should mention that the rule `no_old_docs`
 was violated for the query.
@@ -449,9 +456,11 @@ Example:
 Suppose for a group called `users` we have the following rule:
 
 ```toml
-[js_blacklist.writes.users]
-no_changing_ownership = """
-function(user, collection, oldDocument, newDocument) {
+[js_blacklist.no_changing_ownership]
+for = 'writes'
+group = 'ANYONE'
+js = """
+function(user, oldDocument, newDocument) {
   if (oldDocument.owner !== newDocument.owner) {
     return false;
   } else {
