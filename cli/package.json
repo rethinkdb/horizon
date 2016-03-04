@@ -1,6 +1,6 @@
 {
   "name": "horizon",
-  "version": "0.2.4",
+  "version": "0.2.5-0",
   "description": "An open-source developer platform for building realtime, scalable web apps.",
   "main": "src/main.js",
   "repository": {
@@ -20,8 +20,7 @@
     "argparse": "^1.0.3",
     "@horizon/server": "^0.0.4"
   },
-  "devDependencies": {
-  },
+  "devDependencies": {},
   "engines": {
     "node": ">=4.0.0"
   },
