@@ -1,6 +1,6 @@
 'use strict';
 
-const logger = require('../src/server').logger;
+const logger = require('../src/logger');
 const utils = require('./utils');
 
 const all_suites = [ 'http_tests',
@@ -27,19 +27,11 @@ afterEach(
   function() { logger.info(`End test '${this.currentTest.title}'`); });
 
 describe('Horizon Server', () => {
-  before('Start Horizon Server',
-         /** @this mocha */
-         function(done) {
-           utils.start_horizon_server(done);
-         });
-
+  before('Start Horizon Server', utils.start_horizon_server);
   after('Close Horizon Server', utils.close_horizon_server);
 
   before(`Creating general-purpose table: '${table}'`,
-         /** @this mocha */
-         function(done) {
-           utils.create_table(table, done);
-         });
+         (done) => utils.create_table(table, done));
 
   beforeEach('Connect Horizon Client', utils.open_horizon_conn);
   afterEach('Close Horizon Client', utils.close_horizon_conn);

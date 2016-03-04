@@ -1,6 +1,7 @@
 'use strict';
 
 const horizon = require('../src/server');
+const logger = require('../src/logger');
 
 const rm_sync_recursive = require('../../cli/src/utils/rm_sync_recursive');
 const start_rdb_server = require('../../cli/src/utils/start_rdb_server');
@@ -18,7 +19,6 @@ const db = `horizon`;
 const data_dir = `./rethinkdb_data_test`;
 
 const log_file = `./horizon_test_${process.pid}.log`;
-const logger = horizon.logger;
 logger.level = 'debug';
 logger.add(logger.transports.File, { filename: log_file });
 logger.remove(logger.transports.Console);
