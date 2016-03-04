@@ -1,6 +1,7 @@
 'use strict';
 
 const child_process = require('child_process');
+const psTree = require('ps-tree');
 const assert = require('assert');
 const each_line_in_pipe = require('./each_line_in_pipe');
 const logger = require('@horizon/server').logger;
@@ -40,7 +41,15 @@ module.exports = (options) => {
       process.exit(1);
     });
     process.on('exit', () => {
-      rdbProc.kill('SIGTERM');
+      psTree(rdbProc.pid, (err, children) => {
+        [rdbProc.pid].concat(
+          children.map((p) => {
+            return p.PID;
+          })
+        ).forEach((pid) => {
+          process.kill(pid, 'SIGTERM');
+        })
+      });
     });
 
     const maybe_resolve = () => {
