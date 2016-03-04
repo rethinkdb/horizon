@@ -1,10 +1,10 @@
 {
   "name": "@horizon/server",
-  "version": "0.0.4",
+  "version": "0.0.5-0",
   "description": "Server for RethinkDB Horizon, an open-source developer platform for building realtime, scalable web apps.",
   "main": "src/horizon.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha --compilers js:babel-core/register test/test.js test/schema.js"
+    "test": "./node_modules/.bin/mocha test/test.js test/schema.js --timeout 10000"
   },
   "repository": {
     "type": "git",
@@ -16,6 +16,9 @@
     "url": "https://github.com/rethinkdb/horizon/issues"
   },
   "homepage": "https://github.com/rethinkdb/horizon#readme",
+  "engines": {
+    "node": ">=4.0.0"
+  },
   "dependencies": {
     "joi": "^8.0.4",
     "cookie": "^0.2.3",
