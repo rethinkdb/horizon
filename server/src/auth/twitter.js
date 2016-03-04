@@ -9,8 +9,8 @@ const url = require('url');
 
 const options_schema = Joi.object({
   path: Joi.string().required(),
-  consumer_key: Joi.string().required(),
-  consumer_secret: Joi.string().required(),
+  id: Joi.string().required(),
+  secret: Joi.string().required(),
 });
 
 // Cache for request token secrets
@@ -40,8 +40,8 @@ const get_app_token = (nonce) => {
 const add = (horizon, raw_options) => {
   const options = Joi.attempt(raw_options, options_schema);
   const provider = options.path;
-  const consumer_key = options.consumer_key;
-  const consumer_secret = options.consumer_secret;
+  const consumer_key = options.id;
+  const consumer_secret = options.secret;
 
   const oa = new oauth.OAuth('https://twitter.com/oauth/request_token',
                              'https://twitter.com/oauth/access_token',

@@ -1,25 +1,28 @@
 'use strict';
 
-const horizonServer = require('@horizon/server');
-const logger = horizonServer.logger;
+const horizon_server = require('@horizon/server');
+
+const fs = require('fs');
 const http = require('http');
 const https = require('https');
-const fs = require('fs');
-const url = require('url');
+const logger = horizon_server.logger;
 const path = require('path');
+const toml = require('toml');
+const url = require('url');
 
 const start_rdb_server = require('./utils/start_rdb_server');
 
 const addArguments = (parser) => {
-  parser.addArgument([ 'project' ],
+  parser.addArgument([ '--project' ],
     { type: 'string', nargs: '?',
       help: 'Change to this directory before serving' });
+
   parser.addArgument([ '--bind', '-b' ],
     { type: 'string', action: 'append', metavar: 'HOST',
       help: 'Local hostname to serve horizon on (repeatable).' });
 
   parser.addArgument([ '--port', '-p' ],
-    { type: 'int', defaultValue: 8181, metavar: 'PORT',
+    { type: 'int', metavar: 'PORT',
       help: 'Local port to serve horizon on.' });
 
   parser.addArgument([ '--connect', '-c' ],
@@ -27,47 +30,50 @@ const addArguments = (parser) => {
       help: 'Host and port of the RethinkDB server to connect to.' });
 
   parser.addArgument([ '--key-file' ],
-    { type: 'string', defaultValue: './key.pem', metavar: 'PATH',
+    { type: 'string', metavar: 'PATH',
       help: 'Path to the key file to use, defaults to "./key.pem".' });
 
   parser.addArgument([ '--cert-file' ],
-    { type: 'string', defaultValue: './cert.pem', metavar: 'PATH',
+    { type: 'string', metavar: 'PATH',
       help: 'Path to the cert file to use, defaults to "./cert.pem".' });
 
   parser.addArgument([ '--allow-unauthenticated' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Whether to allow unauthenticated Horizon connections.' });
 
+  parser.addArgument([ '--allow-anonymous' ],
+    { action: 'storeTrue',
+      help: 'Whether to allow anonymous Horizon connections.' });
+
   parser.addArgument([ '--debug' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Enable debug logging.' });
 
   parser.addArgument([ '--insecure' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Serve insecure websockets, ignore --key-file and ' +
       '--cert-file.' });
 
   parser.addArgument([ '--start-rethinkdb' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Start up a RethinkDB server in the current directory' });
 
   parser.addArgument([ '--auto-create-table' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Create tables used by requests if they do not exist.' });
 
   parser.addArgument([ '--auto-create-index' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Create indexes used by requests if they do not exist.' });
 
   parser.addArgument([ '--serve-static' ],
     { type: 'string',
-      defaultValue: 'dist',
       nargs: '?',
       metavar: 'PATH',
-      help: 'Serve static files from a directory. Defaults to dist' });
+      help: 'Serve static files from a directory, defaults to "./dist".' });
 
   parser.addArgument([ '--dev' ],
-    { defaultValue: false, action: 'storeTrue',
+    { action: 'storeTrue',
       help: 'Runs the server in development mode, this sets ' +
       '--debug, ' +
       '--insecure, ' +
@@ -75,6 +81,18 @@ const addArguments = (parser) => {
       '--start-rethinkdb, ' +
       '--serve-static, ' +
       'and --auto-create-indexes.' });
+
+  parser.addArgument([ '--config' ],
+    { type: 'string', metavar: 'PATH',
+      help: 'Path to the config file to use, defaults to ".hzconfig".' });
+
+  parser.addArgument([ '--auth' ],
+    { type: 'string', action: 'append', metavar: 'PROVIDER,ID,SECRET', defaultValue: [ ],
+      help: 'Auth provider and options comma-separated, e.g. "facebook,<id>,<secret>".' });
+
+  parser.addArgument([ '--auth-redirect' ],
+    { type: 'string', metavar: 'URL',
+      help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
 };
 
 // Simple file server. 404s if file not found, 500 if file error,
@@ -122,7 +140,7 @@ const createInsecureServers = (opts) => {
   let http_servers = new Set();
   let numReady = 0;
   return new Promise((resolve) => {
-    opts.hosts.forEach((host) => {
+    opts.bind.forEach((host) => {
       const srv = new http.Server().listen(opts.port, host);
       http_servers.add(srv);
       if (opts.serve_static) {
@@ -162,7 +180,7 @@ const createSecureServers = (opts) => {
   const cert = readCertFile(opts.cert_file);
   let numReady = 0;
   return new Promise((resolve) => {
-    opts.hosts.forEach((host) => {
+    opts.bind.forEach((host) => {
       const srv = new https.Server({ key, cert }).listen(opts.port, host);
       http_servers.add(srv);
       if (opts.serve_static) {
@@ -185,113 +203,245 @@ const createSecureServers = (opts) => {
   });
 };
 
-// Turns raw argparsed values into the format needed to
-// run. Normalizes everything, and bails out if any errors.
-const processConfig = (parsed) => {
-  // Defaults
-  const opts = {
-    debug: false,
-    project: null,
-    auto_create: {
-      table: false,
-      index: false,
-    },
-    hosts: [ 'localhost' ],
-    port: 8181,
-    start_rethinkdb: false,
-    serve_static: undefined,
-    insecure: false,
-    key_file: './key.pem',
-    cert_file: './cert.pem',
-    rdb: {
-      host: 'localhost',
-      port: 28015,
-    },
-  };
+const default_config_file = './.hzconfig';
 
-  // Dev mode
-  if (parsed.dev) {
-    opts.debug = true;
-    opts.allow_unauthenticated = true;
-    opts.insecure = true;
-    opts.start_rethinkdb = true;
-    opts.auto_create.table = true;
-    opts.auto_create.index = true;
-    opts.serve_static = 'dist';
-  }
+const make_default_config = () => ({
 
-  // Sanity check
-  if (parsed.start_rethinkdb && parsed.connect) {
-    logger.error('Cannot provide both --start-rethinkdb and --connect');
-    process.exit(1);
-  }
+  config: default_config_file,
+  debug: false,
+  project: null,
 
-  if (parsed.project != null) {
-    opts.project = parsed.project;
-  }
+  bind: [ 'localhost' ],
+  port: 8181,
 
-  if (parsed.auto_create_table != null) {
-    opts.auto_create.table = true;
-  }
-  if (parsed.auto_create_index != null) {
-    opts.auto_create.index = true;
-  }
+  start_rethinkdb: false,
+  serve_static: null,
 
-  // Normalize RethinkDB connection options
-  if (parsed.connect != null) {
-    const host_port = parsed.connect.split(':');
-    if (host_port.length === 1) {
-      opts.rdb.host = host_port[0];
-    } else if (host_port.length === 2) {
-      opts.rdb.host = host_port[0];
-      opts.rdb.port = host_port[1];
-    } else {
-      logger.error(`Expected --connect HOST:PORT, but found ` +
-                  `"${parsed.connect}"`);
-      parsed.printUsage();
-      process.exit(1);
+  insecure: false,
+  key_file: './key.pem',
+  cert_file: './cert.pem',
+
+  auto_create_table: false,
+  auto_create_index: false,
+
+  rdb_host: 'localhost',
+  rdb_port: 28015,
+
+  allow_anonymous: false,
+  allow_unauthenticated: false,
+  auth_redirect: '/',
+
+  auth: { }
+});
+
+const default_config = make_default_config();
+
+
+const parse_connect = (connect, config) => {
+  const host_port = connect.split(':');
+  if (host_port.length === 1) {
+    config.rdb_host = host_port[0];
+  } else if (host_port.length === 2) {
+    config.rdb_host = host_port[0];
+    config.rdb_port = parseInt(host_port[1]);
+    if (isNaN(config.rdb_port) || config.rdb_port < 0 || config.rdb_port > 65535) {
+      throw new Error(`Invalid port: "${host_port[1]}".`);
+    }
+  } else {
+    throw new Error(`Expected --connect HOST:PORT, but found "${connect}".`);
+  }
+};
+
+const read_config_from_file = (config_file) => {
+  const config = { auth: { } };
+
+  let file_data;
+  if (config_file) {
+    // Use specified config file - error if it doesn't exist
+    file_data = fs.readFileSync(config_file);
+  } else {
+    // Try default config file - ignore if anything goes wrong
+    try {
+      file_data = fs.readFileSync(default_config_file);
+    } catch (err) {
+      return config;
     }
   }
 
-  if (parsed.serve_static != null) {
-    opts.serve_static = parsed.serve_static;
+  const file_config = toml.parse(file_data);
+  for (const field in file_config) {
+    if (field === 'connect') {
+      parse_connect(file_config.connect, config);
+    } else if (default_config[field] !== undefined) {
+      config[field] = file_config[field];
+    } else {
+      throw new Error(`Unknown config parameter: "${field}".`);
+    }
   }
-  if (parsed.start_rethinkdb != null) {
-    opts.start_rethinkdb = true;
+
+  return config;
+};
+
+const env_regex = /^HZ_([A-Z]+([_]?[A-Z]+)*)$/;
+const read_config_from_env = () => {
+  const config = { auth: { } };
+
+  for (const env_var in process.env) {
+    const matches = env_regex.exec(env_var);
+    if (matches && matches[1]) {
+      const dest_var_name = matches[1].toLowerCase();
+      const path = dest_var_name.split('_');
+      let value = process.env[env_var];
+
+      if ([ 'false', 'true' ].indexOf(value.toLowerCase()) !== -1) {
+        value = (value.toLowerCase() === 'true');
+      }
+
+      if (dest_var_name === 'connect') {
+        parse_connect(value, config);
+      } else if (dest_var_name === 'bind') {
+        config[dest_var_name] = value.split(',');
+      } else if (path[0] === 'auth' && path.length === 3) {
+        config.auth[path[1]] = config.auth[path[1]] || { };
+
+        if (path[2] === 'id') {
+          config.auth[path[1]].id = value;
+        } else if (path[2] === 'secret') {
+          config.auth[path[1]].secret = value;
+        }
+      } else if (default_config[dest_var_name] !== undefined) {
+        config[dest_var_name] = value;
+      }
+    }
+  }
+
+  return config;
+};
+
+const read_config_from_flags = (parsed) => {
+  const config = { auth: { } };
+
+  // Dev mode
+  if (parsed.dev) {
+    config.debug = true;
+    config.allow_unauthenticated = true;
+    config.insecure = true;
+    config.start_rethinkdb = true;
+    config.auto_create_table = true;
+    config.auto_create_index = true;
+    config.serve_static = 'dist';
+  }
+
+  if (parsed.project !== null) {
+    config.project = parsed.project;
+  }
+
+  // Simple boolean flags
+  const bool_flags = [ 'debug',
+                       'insecure',
+                       'start_rethinkdb',
+                       'auto_create_index',
+                       'auto_create_table',
+                       'allow_unauthenticated',
+                       'allow_anonymous',
+                       'auth_redirect' ];
+
+  bool_flags.forEach((key) => {
+    if (parsed[key]) {
+      config[key] = true;
+    }
+  });
+
+  // Normalize RethinkDB connection options
+  if (parsed.connect) {
+    parse_connect(parsed.connect, config);
+  }
+
+  if (parsed.serve_static !== null) {
+    config.serve_static = parsed.serve_static;
   }
 
   // Normalize horizon socket options
-  if (parsed.port != null) {
-    opts.port = parsed.port;
+  if (parsed.port !== null) {
+    config.port = parsed.port;
   }
-  if (parsed.bind != null) {
-    opts.hosts = parsed.bind;
+  if (parsed.bind !== null) {
+    config.bind = parsed.bind;
   }
-  if (opts.hosts.indexOf('all') !== -1) {
-    opts.hosts = [ '0.0.0.0' ];
-  }
-
-  // Http options
-  if (parsed.insecure != null) {
-    opts.insecure = true;
+  if (config.bind && config.bind.indexOf('all') !== -1) {
+    config.bind = [ '0.0.0.0' ];
   }
 
-  return opts;
+  // Auth options
+  parsed.auth.forEach((auth_options) => {
+    const params = auth_options.split(',');
+    if (params.length === 3) {
+      config.auth[params[0]] = { id: params[1], secret: params[2] };
+    } else {
+      logger.error(`Expected --auth PROVIDER,ID,SECRET, but found "${auth_options}"`);
+      parsed.printUsage();
+      process.exit(1);
+    }
+  });
+
+  return config;
+};
+
+const merge_configs = (old_config, new_config) => {
+  if (new_config.start_rethinkdb && new_config.rdb_host) {
+    throw new Error('Cannot provide both --start-rethinkdb and --connect.');
+  }
+
+  for (const key in new_config) {
+    if (key === 'rdb_host') {
+      old_config.start_rethinkdb = false;
+    }
+
+    if (key === 'auth') {
+      for (const provider in new_config.auth) {
+        old_config.auth[provider] = old_config.auth[provider] || { };
+        for (const field in new_config.auth[provider]) {
+          old_config.auth[provider][field] = new_config.auth[provider][field];
+        }
+      }
+    } else {
+      old_config[key] = new_config[key];
+    }
+  }
+
+  return old_config;
+}
+
+// Command-line flags have the highest precedence, followed by environment variables,
+// then the config file, and finally the default values.
+const processConfig = (parsed) => {
+  let config;
+
+  config = make_default_config();
+  config = merge_configs(config, read_config_from_file(parsed.config));
+  config = merge_configs(config, read_config_from_env());
+  config = merge_configs(config, read_config_from_flags(parsed));
+
+  return config;
 };
 
 const startHorizonServer = (servers, opts) => {
   logger.info('Starting Horizon...');
   try {
-    return new horizonServer.Server(servers, {
-      auto_create_table: opts.auto_create.table,
-      auto_create_index: opts.auto_create.index,
-      rdb_port: opts.rdb.port,
+    return new horizon_server.Server(servers, {
+      auto_create_table: opts.auto_create_table,
+      auto_create_index: opts.auto_create_index,
+      rdb_host: opts.rdb_host,
+      rdb_port: opts.rdb_port,
       auth: {
         allow_unauthenticated: opts.allow_unauthenticated,
+        allow_anonymous: opts.allow_anonymous,
+        success_redirect: opts.auth_redirect,
+        failure_redirect: opts.auth_redirect,
       },
     });
-  } catch (e) {
-    logger.error('Failed creating Horizon server:', e);
+  } catch (err) {
+    logger.error(`Failed creating Horizon server: ${err}`);
     process.exit(1);
   }
 };
@@ -301,34 +451,59 @@ const runCommand = (opts) => {
   if (opts.debug) {
     logger.level = 'debug';
   }
-  let servers;
 
-  if (opts.project != null) {
+  if (opts.project !== null) {
     try {
       process.chdir(opts.project);
-    } catch (e) {
-      console.error(`No project named ${opts.project}`);
+    } catch (err) {
+      logger.error(`Failed to find "${opts.project}" project: ${err}`);
       process.exit(1);
     }
   }
 
+  let http_servers;
+  let hz_instance;
+
+  const shutdown = () => {
+    if (hz_instance) {
+      hz_instance.close();
+    }
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+
   return (
     opts.insecure ?
       createInsecureServers(opts) : createSecureServers(opts)
-  ).then((servs) => {
-    servers = servs;
-  }).then(() => {
+  ).then((servers) => {
+    http_servers = servers;
     if (opts.start_rethinkdb) {
       return start_rdb_server().then((rdbOpts) => {
-        opts.rdb.port = rdbOpts.driverPort;
         // Don't need to check for host, always localhost.
+        opts.rdb_port = rdbOpts.driverPort;
       });
     }
   }).then(() => {
-    return startHorizonServer(servers, opts);
+    hz_instance = startHorizonServer(http_servers, opts);
+  }).then(() => {
+    if (opts.auth) {
+      for (const name in opts.auth) {
+        const provider = horizon_server.auth[name];
+        if (provider) {
+          hz_instance.add_auth_provider(provider, extend({ path: name }, opts.auth[name]));
+        } else {
+          logger.error(`Unrecognized auth provider "${name}"`);
+          process.exit(1);
+        }
+      }
+    }
+  }).catch((err) => {
+    logger.error(`Error starting Horizon Server: ${err}`);
+    process.exit(1);
   });
 };
-
 
 module.exports = {
   addArguments,

@@ -9,15 +9,15 @@ const querystring = require('querystring');
 const url = require('url');
 
 const options_schema = Joi.object().keys({
-  client_id: Joi.string().required(),
-  client_secret: Joi.string().required(),
   path: Joi.string().required(),
+  id: Joi.string().required(),
+  secret: Joi.string().required(),
 }).unknown(false);
 
 const add = (horizon, raw_options) => {
   const options = Joi.attempt(raw_options, options_schema);
-  const client_id = options.client_id;
-  const client_secret = options.client_secret;
+  const client_id = options.id;
+  const client_secret = options.secret;
   const provider = options.path;
 
   // Facebook requires inspect requests to use a separate app access token
