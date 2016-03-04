@@ -17,6 +17,7 @@ if (BROWSER) {
   require('mocha/mocha.js')
   // Expose globals such as describe()
   window.mocha.setup('bdd')
+  window.mocha.timeout(10000)
 } else {
   // Emulate window globals in node for now
   global.window = global
@@ -48,7 +49,7 @@ window.assert = window.chai.assert
 
 window._ = require('lodash/lodash.js')
 
-window.Rx = require('rx/dist/rx.all.js')
+assert.isDefined(window.Rx, 'Rx is exposed to window from horizon.js bundle')
 window.Rx.config.longStackSupport = true
 
 // Wait until server is ready before proceeding to tests

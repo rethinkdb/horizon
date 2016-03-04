@@ -2,17 +2,22 @@
 
 const horizon = require('../src/server');
 
+let websocket;
+if (process.env.NO_EIO === 'true' || process.env.NO_EIO === '1') {
+  websocket = require('ws');
+} else {
+  // Use engine.io-client as a websocket shim if it is not disabled
+  // TODO import this from `@horizon/client/lib/shim.js` or mirror here.
+  websocket = require('../../client/src/shim').WebSocket;
+}
+
 const rm_sync_recursive = require('../../cli/src/utils/rm_sync_recursive');
 const start_rdb_server = require('../../cli/src/utils/start_rdb_server');
 const each_line_in_pipe = require('../../cli/src/utils/each_line_in_pipe');
 
 const assert = require('assert');
-const child_process = require('child_process');
-const fs = require('fs');
 const http = require('http');
-const path = require('path');
 const r = require('rethinkdb');
-const websocket = require('ws');
 
 const db = `horizon`;
 const data_dir = `./rethinkdb_data_test`;
@@ -47,28 +52,28 @@ const test_db_server = (done) => {
 const create_table = (table, done) => {
   assert.notStrictEqual(horizon_server, undefined);
   assert.notStrictEqual(horizon_port, undefined);
-  let conn = new websocket(`ws://localhost:${horizon_port}/horizon`,
-                           horizon.protocol, { rejectUnauthorized: false })
-    .once('error', (err) => assert.ifError(err))
-    .on('open', () => {
-      conn.send(JSON.stringify({ request_id: 123, method: 'unauthenticated' }));
-      conn.once('message', (data) => {
-        const response = JSON.parse(data);
-        assert.deepStrictEqual(response, { request_id: 123, token: response.token });
+  const conn = new websocket(`ws://localhost:${horizon_port}/horizon`,
+                           horizon.protocol, { rejectUnauthorized: false });
+  conn.onerror = (err) => { done(err || 'error'); };
+  conn.onopen = () => {
+    conn.send(JSON.stringify({ request_id: 123, method: 'unauthenticated' }));
+    conn.onmessage = (event) => {
+      const response = JSON.parse(event.data);
+      assert.deepStrictEqual(response, { request_id: 123, token: response.token });
 
-        // This query should auto-create the table if it's missing
-        conn.send(JSON.stringify({
-          request_id: 0,
-          type: 'query',
-          options: { collection: table, limit: 0 },
-        }));
+      // This query should auto-create the table if it's missing
+      conn.send(JSON.stringify({
+        request_id: 0,
+        type: 'query',
+        options: { collection: table, limit: 0 },
+      }));
 
-        conn.once('message', () => {
-          conn.close();
-          done();
-        });
-      });
-    });
+      conn.onmessage = () => {
+        conn.close();
+        done();
+      };
+    };
+  };
 };
 
 // Removes all data from a table - does not remove indexes
@@ -94,7 +99,6 @@ const populate_table = (table, rows, done) => {
 
 const start_horizon_server = (done) => {
   assert.strictEqual(horizon_server, undefined);
-
   const http_server = new http.Server();
   http_server.listen(0, () => {
     horizon_port = http_server.address().port;
@@ -147,9 +151,9 @@ const open_horizon_conn = (done) => {
   horizon_listeners = new Map();
   horizon_conn =
     new websocket(`ws://localhost:${horizon_port}/horizon`,
-                  horizon.protocol, { rejectUnauthorized: false })
-      .once('error', (err) => assert.ifError(err))
-      .on('open', () => done());
+                  horizon.protocol, { rejectUnauthorized: false });
+  horizon_conn.onerror = (err) => assert(false, err);
+  horizon_conn.onopen = () => done();
 };
 
 const close_horizon_conn = () => {
@@ -162,12 +166,12 @@ const close_horizon_conn = () => {
 const horizon_auth = (req, cb) => {
   assert(horizon_conn && horizon_conn.readyState === websocket.OPEN);
   horizon_conn.send(JSON.stringify(req));
-  horizon_conn.once('message', (auth_msg) => {
+  horizon_conn.onmessage = (handshakeEvent) => {
     horizon_authenticated = true;
-    const res = JSON.parse(auth_msg);
-    horizon_conn.on('message', (msg) => dispatch_message(msg));
+    const res = JSON.parse(handshakeEvent.data);
+    horizon_conn.onmessage = (event) => { dispatch_message(event.data); };
     cb(res);
-  });
+  };
 };
 
 const horizon_default_auth = (done) => {

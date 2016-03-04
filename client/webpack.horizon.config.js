@@ -3,6 +3,7 @@ const path = require('path')
 const BannerPlugin = require('webpack/lib/BannerPlugin')
 const DedupePlugin = require('webpack/lib/optimize/DedupePlugin')
 const DefinePlugin = require('webpack/lib/DefinePlugin')
+const NoErrorsPlugin = require('webpack/lib/NoErrorsPlugin')
 const OccurrenceOrderPlugin = require('webpack/lib/optimize/OccurrenceOrderPlugin')
 const UglifyJsPlugin = require('webpack/lib/optimize/UglifyJsPlugin')
 
@@ -22,9 +23,12 @@ module.exports = function(buildTarget) {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: FILENAME,
-    library: 'Horizon', // window.Horizon if loaded by a script tag
+    // Expose to window.Horizon if loaded by a script tag
+    library: 'Horizon',
     libraryTarget: 'umd',
-    pathinfo: DEV_BUILD, // Add module filenames as comments in the bundle
+    // Add module filenames as comments in the bundle
+    pathinfo: DEV_BUILD,
+    // Configure source map urls visible in stack traces and "sources" panel
     devtoolModuleFilenameTemplate: DEV_BUILD ?
       function(file) {
         if (file.resourcePath.indexOf('webpack') >= 0) {
@@ -39,8 +43,36 @@ module.exports = function(buildTarget) {
   externals: function(context, request, callback) {
     // Selected modules are not packaged into horizon.js. Webpack allows them to be
     // required natively at runtime, either from filesystem (node) or window global.
+
+    // We import pre-bundled engine.io.js directly for now, and allow it to be
+    // stripped from build if the user wants to use only websockets.
+    if (!POLYFILL && request === 'engine.io-client/engine.io.js') {
+      return callback(null, {
+        // If loaded via script tag, has to be at window.eio when library loads
+        root: 'eio',
+        // Otherwise imported via `require('engine.io-client')`
+        commonjs: 'engine.io-client',
+        commonjs2: 'engine.io-client',
+        amd: 'engine.io-client',
+      })
+    }
+
+    // We require `engine.io-client` for node versions, and always omit it from
+    // the build, as it is required directly from the filesystem.
+    if (request === 'engine.io-client') {
+      return callback(null, {
+        // If loaded via script tag, has to be at window.eio when library loads
+        root: 'eio',
+        // Otherwise imported via `require('engine.io-client')`
+        commonjs: 'engine.io-client',
+        commonjs2: 'engine.io-client',
+        amd: 'engine.io-client',
+      })
+    }
+
+    // Rx can be provided by user via window.Rx
     if (!POLYFILL && request === 'rx') {
-      callback(null, {
+      return callback(null, {
         // If loaded via script tag, has to be at window.Rx when library loads
         root: 'Rx',
         // Otherwise imported via `require('rx')`
@@ -48,15 +80,17 @@ module.exports = function(buildTarget) {
         commonjs2: 'rx',
         amd: 'rx',
       })
-    } else {
-      callback()
     }
+
+    // Otherwise package as usual
+    return callback()
   },
   debug: DEV_BUILD,
   devtool: SOURCEMAPS ? (DEV_BUILD ? 'source-map' : 'source-map') : false,
   module: {
     noParse: [
-      /rx\/dist\/rx\.all\.js/,
+      RegExp('rx/dist/rx.all.js'),
+      RegExp('engine.io-client/engine.io.js'),
     ],
     preLoaders: [
       //{ test: /\.js$/, loader: 'source-map-loader', exclude: null }
@@ -74,11 +108,13 @@ module.exports = function(buildTarget) {
     ],
   },
   plugins: [
+    new NoErrorsPlugin(),
     new BannerPlugin('__LICENSE__'),
     // Possibility to replace constants such as `if (__DEV__)`
     // and thus strip helpful warnings from production build:
     new DefinePlugin({
       'process.env.NODE_ENV': (DEV_BUILD ? 'development' : 'production'),
+      'process.env.NO_EIO': JSON.stringify(Boolean(process.env.NO_EIO)),
     }),
   ].concat(DEV_BUILD ?
     [] :
