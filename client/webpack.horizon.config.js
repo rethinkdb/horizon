@@ -68,7 +68,7 @@ module.exports = function(buildTarget) {
         loader: 'babel-loader',
         query: {
           cacheDirectory: true,
-          extends: './src/.babelrc',
+          extends: path.resolve(__dirname, 'src/.babelrc'),
         },
       },
     ],
