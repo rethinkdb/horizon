@@ -67,9 +67,9 @@ let chats = []
 const retrieveMessages = () => {
   chat.order('datetime')
   // fetch all results as an array, rather than one at a time
-  .fetch({ asCursor: false })
+  .fetch().toArray()
   // Retrieval successful, update our model
-  .subscribe(newChats => {
+  .forEach(newChats => {
     chats = chats.concat(newChats)
   },
   // Error handler
@@ -83,7 +83,7 @@ const retrieveMessages = () => {
 const retrieveMessage = id => {
   chat.find(id).fetch()
     // Retrieval successful
-    .subscribe(result => {
+    .forEach(result => {
       chats.push(result);
     },
     // Error occurred
@@ -132,10 +132,10 @@ You can also get notifications when the client connects and disconnects from the
 
 ``` js
   // Triggers when client successfully connects to server
-  horizon.onConnected().subscribe(() => console.log("Connected to Horizon Server"))
+  horizon.onConnected().forEach(() => console.log("Connected to Horizon Server"))
 
   // Triggers when disconnected from server
-  horizon.onDisconnected().subscribe(() => console.log("Disconnected from Horizon Server"))
+  horizon.onDisconnected().forEach(() => console.log("Disconnected from Horizon Server"))
 ```
 
 ### API
@@ -437,7 +437,7 @@ Chat changed: { type: 'added', new_val: { id: 2, chat: 'Ho there' }, old_val: nu
 Chat changed: { type: 'removed', new_val: null, old_val: { id: 1, chat: 'Hey there' } }
 ```
 
-##### fetch({ asCursor: true })
+##### fetch()
 
 Queries for the results of a query currently, without updating results when they change
 
@@ -446,7 +446,7 @@ Queries for the results of a query currently, without updating results when they
 ```javascript
 
 // Returns the entire contents of the collection
-horizon('chats').fetch().subscribe(
+horizon('chats').fetch().forEach(
   result => console.log('Result:', result),
   err => console.error(err),
   () => console.log('Results fetched, query done!')
@@ -458,18 +458,17 @@ Result: { id: 2, chat: 'Ho there' }
 Results fetched, query done!
 ```
 
-If you pass `asCursor: false`, you will get the entire result set at once as an array.
+If you would rather get the results all at once as an array, you can
+chain `.toArray()` to the call:
 
 ``` js
-horizon('chats').fetch({ asCursor: false }).subscribe(
-  results => console.log('Results: ', result),
+horizon('chats').fetch().toArray().forEach(
+  results => console.log('All results: ', results),
   err => console.error(err),
   () => console.log('Results fetched, query done!')
 )
 
 // Sample output
-Results: [ { id: 1, chat: 'Hey there' }, { id: 2, chat: 'Ho there' } ]
+All results: [ { id: 1, chat: 'Hey there' }, { id: 2, chat: 'Ho there' } ]
 Results fetched, query done!
 ```
-
-Doing `.fetch({ asCursor: false })` is basically equivalent to `.fetch().toArray()`, but it can be less verbose in cases where you want a `fetch()` query to work similarly to a `.watch()` query.

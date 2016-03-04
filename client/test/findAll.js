@@ -8,43 +8,43 @@ const findAllSuite = window.findAllSuite = getData => () => {
 
   // Let's grab a specific document using `findAll`
   it('looks up documents by id when given a non-object', assertCompletes(() =>
-    data.findAll(1).fetch({ asCursor: false })
+    data.findAll(1).fetch().toArray()
       .do(res => assert.deepEqual(res, [ { id: 1, a: 10 } ]))
   ))
 
   // This is equivalent to searching by field `id`
   it('looks up documents when the id field is given explicitly', assertCompletes(() =>
-    data.findAll({ id: 1 }).fetch({ asCursor: false })
+    data.findAll({ id: 1 }).fetch().toArray()
       .do(res => assert.deepEqual(res, [ { id: 1, a: 10 } ]))
   ))
 
   // `findAll` returns `[]` if a document doesn't exist.
   it('returns nothing if no documents match', assertCompletes(() =>
-    data.findAll('abracadabra').fetch({ asCursor: false })
+    data.findAll('abracadabra').fetch().toArray()
       .do(res => assert.deepEqual(res, []))
   ))
 
   // We can also `findAll` by a different (indexed!) field.
   it('returns objects matching non-primary fields', assertCompletes(() =>
-    data.findAll({ a: 10 }).fetch({ asCursor: false })
+    data.findAll({ a: 10 }).fetch().toArray()
       .do(res => assert.deepEqual(res, [{ id: 1, a: 10 } ]))
   ))
 
   // Let's try this again for a value that doesn't exist.
   it('returns nothing if no documents match the criteria', assertCompletes(() =>
-    data.findAll({ a: 100 }).fetch({ asCursor: false })
+    data.findAll({ a: 100 }).fetch().toArray()
       .do(res => assert.deepEqual(res, []))
   ))
 
   // Let's try this again for a field that doesn't exist.
   it(`returns nothing if the field provided doesn't exist`, assertCompletes(() =>
-    data.findAll({ field: 'a' }).fetch({ asCursor: false })
+    data.findAll({ field: 'a' }).fetch().toArray()
       .do(res => assert.deepEqual(res, []))
   ))
 
   // Let's try this again, now with multiple results.
   it('returns multiple values when several documents match', assertCompletes(() =>
-    data.findAll({ a: 20 }).fetch({ asCursor: false })
+    data.findAll({ a: 20 }).fetch().toArray()
       // There are three docs where `a == 20`
       .do(res => assert.sameDeepMembers(res, [
         { id: 2, a: 20, b: 1 },
@@ -74,7 +74,7 @@ const findAllSuite = window.findAllSuite = getData => () => {
   // `findAll` lets us look for multiple documents. Let's try it on a primary
   // key.
   it('can be passed multiple documents to look for', assertCompletes(() =>
-    data.findAll(1, { id: 2 }, 20).fetch({ asCursor: false })
+    data.findAll(1, { id: 2 }, 20).fetch().toArray()
       // There are two docs where `a == 20`
       .do(res => assert.sameDeepMembers(res, [
         { id: 1, a: 10 },
@@ -84,7 +84,7 @@ const findAllSuite = window.findAllSuite = getData => () => {
 
   // Let's try a mix of primary and secondary keys, with some missing
   it('can locate a mix of primary and secondary keys', assertCompletes(() =>
-    data.findAll({ a: 20 }, { id: 200 }, 1, { a: 200 }).fetch({ asCursor: false })
+    data.findAll({ a: 20 }, { id: 200 }, 1, { a: 200 }).fetch().toArray()
       // There are three docs where `a == 20`
       .do(res => assert.sameDeepMembers(res, [
         { id: 1, a: 10 },

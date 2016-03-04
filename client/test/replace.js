@@ -63,7 +63,7 @@ const replaceSuite = window.replaceSuite = getData => () => {
       // should return an array with an ID of the inserted document.
       .do(res => assert.deepEqual(res, [ 1, 2 ]))
       // Let's make sure we get back the documents that we put in.
-      .flatMap(data.findAll(1, 2).fetch({ asCursor: false }))
+      .flatMap(data.findAll(1, 2).fetch().toArray())
       // Check that we get back what we put in.
       .do(res => assert.sameDeepMembers(res, [
         { id: 1, a: { b: 1, c: 1 }, d: 1 },
@@ -78,7 +78,7 @@ const replaceSuite = window.replaceSuite = getData => () => {
       // We should have gotten the ID back again
       .do(res => assert.deepEqual(res, [ 1, 2 ]))
       // Make sure `update` updated the documents properly
-      .flatMap(data.findAll(1, 2).fetch({ asCursor: false }))
+      .flatMap(data.findAll(1, 2).fetch().toArray())
       // Check that we get back what we put in.
       .do(res => assert.sameDeepMembers(res, [
         { id: 1, a: { c: 2 } },
