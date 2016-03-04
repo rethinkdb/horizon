@@ -22,7 +22,7 @@ const removeAllSuite = window.removeAllSuite = getData => () => {
   // Insert the test data and make sure it's in
   before(assertCompletes(() =>
     data.store(testData).ignoreElements()
-     .concat(data.fetch({ asCursor: false }))
+     .concat(data.fetch().toArray())
      // Make sure it's there
      .do(res => assert.sameDeepMembers(res, testData))
   ))
@@ -53,7 +53,7 @@ const removeAllSuite = window.removeAllSuite = getData => () => {
     data.removeAll([ 3, 50, { id: 4 } ]).toArray()
       .do(res => assert.deepEqual(res, [ 3, 50, 4 ]))
       // Let's make sure the removed document isn't there
-      .flatMap(data.findAll(3, 50, 4).fetch({ asCursor: false }))
+      .flatMap(data.findAll(3, 50, 4).fetch().toArray())
       // Let's make sure the removed document isn't there
       .do(res => assert.deepEqual(res, []))
   ))

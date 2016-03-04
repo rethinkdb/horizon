@@ -17,6 +17,7 @@ if (BROWSER) {
   require('mocha/mocha.js')
   // Expose globals such as describe()
   window.mocha.setup('bdd')
+  window.mocha.timeout(10000)
 } else {
   // Emulate window globals in node for now
   global.window = global

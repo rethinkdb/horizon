@@ -1,7 +1,7 @@
 'use strict'
 window.removeAllData = function removeAllData(collection, done) {
   // Read all elements from the collection
-  collection.fetch({ asCursor: false }) // all documents in the collection
+  collection.fetch().toArray() // all documents in the collection
     .flatMap(docs => collection.removeAll(docs))
     .flatMap(() => collection.fetch())
     .toArray()

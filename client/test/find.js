@@ -73,7 +73,7 @@ const findSuite = window.findSuite = getData => () => {
 
   // Let's try this again, now with multiple results.
   it('returns one result even if several documents match', assertCompletes(() =>
-    data.find({ a: 20 }).fetch({ asCursor: false })
+    data.find({ a: 20 }).fetch().toArray()
       // The id should be one of 2, 3, or 4
       .do(res => {
         assert.include([ 2, 3, 4 ], res[0].id)
