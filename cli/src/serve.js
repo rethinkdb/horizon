@@ -451,45 +451,39 @@ const runCommand = (opts) => {
   ).then((servers) => {
     http_servers = servers;
     if (opts.start_rethinkdb) {
+      // Check if `rethinkdb` in PATH
       const result = hasbinSync('rethinkdb');
       if (!result) {
         logger.error('RethinkDB binary not found in $PATH, please install RethinkDB');
         process.exit(1);
       }
 
+      // Check that RethinkDB matches version requirements
       const output = execSync('rethinkdb --version', { timeout: 250 }).toString();
-      const output_split = output.split(' ');
-      if (output_split.length >= 2) {
-        // Assuming that it is currently x.x.x format
+      const rethinkdb_version_regex = /^rethinkdb (\d+)\.(\d+)\.(\d+)/i;
+      let matches = rethinkdb_version_regex.exec(output);
+      // Check if not null
+      if (matches) {
+        // Convert strings to ints and remove first match
+        const versions = matches.slice(1).map((val) => parseInt(val));
 
-        let versions;
-        // Check if prerelease version
-        const hyphenIndex = output_split[1].indexOf('-');
-        if (hyphenIndex === -1) {
-          versions = output_split[1].split('.').map((val) => parseInt(val));
-        // Just remove the prerelease version portion
-        } else {
-          // Split version chunk on period
-          versions = output_split[1].split('.');
-          // Grab portion of string up to hyphen
-          versions[2] = versions[2].substr(0, hyphenIndex - 1);
-          // Convert all values to integers
-          versions = versions.map((val) => parseInt(val));
-        }
-
-        // Check that split resulted in three [x, x, x] and all values are integers
-        if (versions.length === 3 && versions.every((val) => Number.isInteger(val))) {
-          // Check in driection of semvar to major versions
-          if (versions[2] < RETHINKDB_REQ_VERSION[2] ||
-              versions[1] < RETHINKDB_REQ_VERSION[1] ||
-              versions[0] < RETHINKDB_REQ_VERSION[0]) {
-            logger.error(`RethinkDB (${output_split[1]}) is below required version (2.2.5) for use with Horizon`);
-            process.exit(1);
+        // Recursive version compare
+        const versionCompare = (arr1, arr2) => {
+          if (arr1[0] > arr2[0]) {
+            return true;
+          } else if (arr1[0] === arr2[0]) {
+            return versionCompare(arr1.slice(1), arr2.slice(1));
           } else {
-            logger.info(output);
+            return false;
           }
+        };
+
+        // If version good, output version else exit due to version
+        if (versionCompare(versions, RETHINKDB_REQ_VERSION)) {
+          logger.info(output);
         } else {
-          logger.error('Unable to determine RethinkDB version and continuing, please check RethinkDB is >= 2.2.5');
+          logger.error(`RethinkDB (${versions.join('.')}) is below required version (2.2.5) for use with Horizon`);
+          process.exit(1);
         }
       } else {
         logger.error('Unable to determine RethinkDB version and continuing, please check RethinkDB is >= 2.2.5');
