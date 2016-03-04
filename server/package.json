@@ -22,7 +22,7 @@
   "dependencies": {
     "joi": "^8.0.4",
     "cookie": "^0.2.3",
-    "@horizon/client": "^0.0.2-1",
+    "@horizon/client": "^0.0.4-0",
     "jsonwebtoken": "^5.5.4",
     "oauth": "^0.9.14",
     "pem": "^1.8.1",
