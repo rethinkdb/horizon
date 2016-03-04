@@ -1,10 +1,8 @@
 const Rx = require('rx')
-const { Collection } = require('./ast.js')
-const HorizonSocket = require('./socket.js')
-const { log, logError, enableLogging } = require('./logging.js')
-const { subscribeOrObservable } = require('./utility.js')
-
-module.exports = Horizon
+const { Collection } = require('./ast')
+const HorizonSocket = require('./socket')
+const { log, logError, enableLogging } = require('./logging')
+const { authEndpoint, TokenStorage } = require('./auth')
 
 
 function Horizon({
@@ -14,9 +12,21 @@ function Horizon({
     false,
   path = 'horizon',
   lazyWrites = false,
+  authType = 'unauthenticated',
 } = {}) {
+  // If we're in a redirection from OAuth, store the auth token for
+  // this user in localStorage.
+  const tokenStorage = new TokenStorage(authType)
+  tokenStorage.setAuthFromQueryParams()
+
   // Websocket Subject
-  const socket = new HorizonSocket(host, secure, path)
+  const socket = new HorizonSocket(host, secure, path, tokenStorage.handshake())
+
+  // Store whatever token we get back from the server when we get a
+  // handshake response
+  socket.handshake.subscribe(
+    handshake => tokenStorage.maybeSaveToken(authType, handshake.token)
+  )
 
   // This is the object returned by the Horizon function. It's a
   // function so we can construct a collection simply by calling it
@@ -57,6 +67,10 @@ function Horizon({
   // Convenience method for finding out when an error occurs
   horizon.onSocketError = subscribeOrObservable(
     socket.status.filter(x => x.type === 'error'))
+
+  horizon._authMethods = null
+  horizon._horizonPath = path
+  horizon.authEndpoint = authEndpoint
 
   return horizon
 

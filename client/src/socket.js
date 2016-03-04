@@ -4,7 +4,6 @@ const { serialize, deserialize } = require('./serialization.js')
 const { log } = require('./logging.js')
 
 const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
-const HANDSHAKE = { method: 'unauthenticated' }
 
 // Before connecting the first time
 const STATUS_UNCONNECTED = { type: 'unconnected' }
@@ -15,6 +14,16 @@ const STATUS_ERROR = { type: 'error' }
 // Occurs when the socket closes
 const STATUS_DISCONNECTED = { type: 'disconnected' }
 
+class ProtocolError extends Error {
+  constructor(msg, errorCode) {
+    super(msg)
+    this.errorCode = errorCode
+  }
+  toString() {
+    return `${this.message} (Code: ${this.errorCode})`
+  }
+}
+
 // Wraps native websockets with a Subject, which is both an Observer
 // and an Observable (it is bi-directional after all!). This
 // implementation is adapted from Rx.DOM.fromWebSocket and
@@ -23,7 +32,7 @@ const STATUS_DISCONNECTED = { type: 'disconnected' }
 // request_ids, looking at the `state` field to decide when an
 // observable is closed.
 class HorizonSocket extends Rx.AnonymousSubject {
-  constructor(host, secure, path) {
+  constructor(host, secure, path, handshakeObject) {
     const hostString = `ws${secure ? 's' : ''}://${host}/${path}`
     const msgBuffer = []
     let ws, handshakeDisp
@@ -56,7 +65,7 @@ class HorizonSocket extends Rx.AnonymousSubject {
       ws.onopen = () => {
         // Send the handshake
         statusSubject.onNext(STATUS_CONNECTED)
-        handshakeDisp = this.makeRequest(HANDSHAKE).subscribe(
+        handshakeDisp = this.makeRequest(handshakeObject).subscribe(
           x => {
             handshake.onNext(x)
             handshake.onCompleted()
@@ -204,8 +213,10 @@ class HorizonSocket extends Rx.AnonymousSubject {
               resp => {
                 // Need to faithfully end the stream if there is an error
                 if (resp.error !== undefined) {
-                  reqObserver.onError(resp)
-                } else if (resp.data !== undefined) {
+                  reqObserver.onError(
+                    new ProtocolError(resp.error, resp.error_code))
+                } else if (resp.data !== undefined ||
+                          resp.token !== undefined) {
                   reqObserver.onNext(resp)
                 }
                 if (resp.state === 'synced') {
