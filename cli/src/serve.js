@@ -2,6 +2,7 @@
 
 const horizon_server = require('@horizon/server');
 
+const execSync = require('child_process').execSync;
 const fs = require('fs');
 const hasbinSync = require('hasbin').sync;
 const http = require('http');
@@ -10,11 +11,9 @@ const logger = horizon_server.logger;
 const path = require('path');
 const toml = require('toml');
 const url = require('url');
-const execSync = require('child_process').execSync;
+
 
 const start_rdb_server = require('./utils/start_rdb_server');
-
-const RETHINKDB_REQ_VERSION = [2,2,3];
 
 const addArguments = (parser) => {
   parser.addArgument([ 'project' ],
@@ -458,36 +457,9 @@ const runCommand = (opts) => {
         process.exit(1);
       }
 
-      // Check that RethinkDB matches version requirements
+      // Check if RethinkDB is sufficient version for Horizon
       const output = execSync('rethinkdb --version', { timeout: 250 }).toString();
-      const rethinkdb_version_regex = /^rethinkdb (\d+)\.(\d+)\.(\d+)/i;
-      let matches = rethinkdb_version_regex.exec(output);
-      // Check if not null
-      if (matches) {
-        // Convert strings to ints and remove first match
-        const versions = matches.slice(1).map((val) => parseInt(val));
-
-        // Recursive version compare
-        const versionCompare = (arr1, arr2) => {
-          if (arr1[0] > arr2[0]) {
-            return true;
-          } else if (arr1[0] === arr2[0]) {
-            return versionCompare(arr1.slice(1), arr2.slice(1));
-          } else {
-            return false;
-          }
-        };
-
-        // If version good, output version else exit due to version
-        if (versionCompare(versions, RETHINKDB_REQ_VERSION)) {
-          logger.info(output);
-        } else {
-          logger.error(`RethinkDB (${versions.join('.')}) is below required version (2.2.5) for use with Horizon`);
-          process.exit(1);
-        }
-      } else {
-        logger.error('Unable to determine RethinkDB version and continuing, please check RethinkDB is >= 2.2.5');
-      }
+      horizon_server.utils.rethinkdb_version_check(output);
 
       return start_rdb_server().then((rdbOpts) => {
         // Don't need to check for host, always localhost.

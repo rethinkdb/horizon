@@ -4,6 +4,7 @@ const check = require('./error').check;
 const logger = require('./logger');
 const Metadata = require('./metadata').Metadata;
 const r = require('rethinkdb');
+const utils = require("./utils");
 
 class ReqlConnection {
   constructor(host, port, db, auto_create_table, auto_create_index, clients) {
@@ -32,7 +33,19 @@ class ReqlConnection {
     logger.info(`Connecting to RethinkDB: ${this.host}:${this.port}`);
     r.connect({ host: this.host, port: this.port, db: this.db })
      .then((conn) => {
-       logger.info(`Connection to RethinkDB established.`);
+       r.db('rethinkdb').table('server_status')('process')('version').run(conn, (err, res) => {
+         if (err) {
+           const message = err.msg ? err.msg : err;
+           logger.error(`Failed to query RethinkDB version: ${message}`);
+         }
+         res.each((err, item) => {
+           utils.rethinkdb_version_check(item);
+         });
+       });
+       return conn;
+     })
+     .then((conn) => {
+       logger.info('Connection to RethinkDB established.');
        conn.on('close', () => this.reconnect(resolve));
        this.connection = conn;
        this.connection.on('error', (err) => this.handle_conn_error(err));
