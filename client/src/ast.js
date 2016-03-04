@@ -47,9 +47,8 @@ class TermBase {
     }
   }
   // Grab a snapshot of the current query (non-changefeed). Emits an
-  // array with all results. If you'd rather receive emit on every
-  // document, pass the option 'asCursor: true'. An observable is
-  // returned which will lazily emit the query when subscribed to
+  // array with all results. An observable is returned which will
+  // lazily emit the query when subscribed to
   fetch() {
     return this._sendRequest('query', this._query)
   }
