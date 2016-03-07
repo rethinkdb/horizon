@@ -27,20 +27,25 @@ serveCommand.addArguments(serveParser);
 
 const parsed = parser.parseArgs();
 
-try {
-  switch (parsed.command_name) {
-  case 'init': {
-    const options = initCommand.processConfig(parsed);
-    initCommand.runCommand(options);
-    break;
+const done_cb = (options) => (err) => {
+  if (err) {
+    console.log(`${parsed.command_name} failed with ${err}`);
+    if (options.debug) {
+      console.log(err.stack);
+    }
+    process.exit(1);
   }
-  case 'serve': {
-    const options = serveCommand.processConfig(parsed);
-    serveCommand.runCommand(options);
-    break;
-  }
-  }
-} catch (err) {
-  console.log(`${parsed.command_name} failed with ${err}`);
-  process.exit(1);
+};
+
+switch (parsed.command_name) {
+case 'init': {
+  const options = initCommand.processConfig(parsed);
+  initCommand.runCommand(options, done_cb(options));
+  break;
+}
+case 'serve': {
+  const options = serveCommand.processConfig(parsed);
+  serveCommand.runCommand(options, done_cb(options));
+  break;
+}
 }

@@ -14,7 +14,7 @@ const options_schema = Joi.object().keys({
   secret: Joi.string().required(),
 }).unknown(false);
 
-const add = (horizon, raw_options) => {
+function facebook(horizon, raw_options) {
   const options = Joi.attempt(raw_options, options_schema);
   const client_id = options.id;
   const client_secret = options.secret;
@@ -72,4 +72,4 @@ const add = (horizon, raw_options) => {
   auth_utils.oauth2(oauth_options);
 };
 
-module.exports = add;
+module.exports = facebook;

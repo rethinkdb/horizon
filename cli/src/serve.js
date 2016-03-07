@@ -9,6 +9,7 @@ const logger = horizon_server.logger;
 const path = require('path');
 const toml = require('toml');
 const url = require('url');
+const extend = require('util')._extend;
 
 const start_rdb_server = require('./utils/start_rdb_server');
 
@@ -95,6 +96,39 @@ const addArguments = (parser) => {
       help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
 };
 
+const default_config_file = './.hzconfig';
+
+const make_default_config = () => ({
+  config: default_config_file,
+  debug: false,
+  project: null,
+
+  bind: [ 'localhost' ],
+  port: 8181,
+
+  start_rethinkdb: false,
+  serve_static: null,
+
+  insecure: false,
+  key_file: './key.pem',
+  cert_file: './cert.pem',
+
+  auto_create_table: false,
+  auto_create_index: false,
+
+  rdb_host: 'localhost',
+  rdb_port: 28015,
+
+  allow_anonymous: false,
+  allow_unauthenticated: false,
+  auth_redirect: '/',
+
+  auth: { },
+});
+
+const default_config = make_default_config();
+
+
 // Simple file server. 404s if file not found, 500 if file error,
 // otherwise serve it with a mime-type suggested by its file extension.
 const serve_file = (file_path, res) => {
@@ -135,14 +169,13 @@ const fileServer = (distDir) => (req, res) => {
   // Fall through otherwise. Should be handled by horizon server
 };
 
-const createInsecureServers = (opts) => {
-  logger.warn(`Creating insecure HTTP server.`);
-  let http_servers = new Set();
+const initialize_servers = (ctor, opts) => {
+  let servers = new Set();
   let numReady = 0;
   return new Promise((resolve) => {
     opts.bind.forEach((host) => {
-      const srv = new http.Server().listen(opts.port, host);
-      http_servers.add(srv);
+      const srv = ctor().listen(opts.port, host);
+      servers.add(srv);
       if (opts.serve_static) {
         logger.info(`Serving static files from ${opts.serve_static}`);
         srv.on('request', fileServer(opts.serve_static));
@@ -150,8 +183,8 @@ const createInsecureServers = (opts) => {
       srv.on('listening', () => {
         logger.info(`Listening on ${srv.address().address}:` +
                     `${srv.address().port}.`);
-        if (++numReady === http_servers.size) {
-          resolve(http_servers);
+        if (++numReady === servers.size) {
+          resolve(servers);
         }
       });
       srv.on('error', (err) => {
@@ -161,81 +194,27 @@ const createInsecureServers = (opts) => {
       });
     });
   });
+};
+
+const createInsecureServers = (opts) => {
+  logger.warn(`Creating insecure HTTP server.`);
+  return initialize_servers(() => new http.Server(), opts);
 };
 
 const readCertFile = (file) => {
   try {
     return fs.readFileSync(path.resolve(file));
   } catch (err) {
-    logger.error(`Could not access file ${file} for running ` +
-                `a secure HTTP server.`);
-    process.exit(1);
+    throw new Error(
+      `Could not access file "${file}" for running HTTPS server: ${err}`);
   }
 };
 
 const createSecureServers = (opts) => {
-  let http_servers = new Set();
-
   const key = readCertFile(opts.key_file);
   const cert = readCertFile(opts.cert_file);
-  let numReady = 0;
-  return new Promise((resolve) => {
-    opts.bind.forEach((host) => {
-      const srv = new https.Server({ key, cert }).listen(opts.port, host);
-      http_servers.add(srv);
-      if (opts.serve_static) {
-        logger.info(`Serving static files from ${opts.serve_static}`);
-        srv.on('request', fileServer(opts.serve_static));
-      }
-      srv.on('listening', () => {
-        logger.info(`Listening on ${srv.address().address}:` +
-                    `${srv.address().port}.`);
-        if (++numReady === http_servers.size) {
-          resolve(http_servers);
-        }
-      });
-      srv.on('error', (err) => {
-        logger.error(
-          `HTTP${opts.insecure ? '' : 'S'} server: ${err}`);
-        process.exit(1);
-      });
-    });
-  });
+  return initialize_servers(() => new https.Server({ key, cert }), opts);
 };
-
-const default_config_file = './.hzconfig';
-
-const make_default_config = () => ({
-
-  config: default_config_file,
-  debug: false,
-  project: null,
-
-  bind: [ 'localhost' ],
-  port: 8181,
-
-  start_rethinkdb: false,
-  serve_static: null,
-
-  insecure: false,
-  key_file: './key.pem',
-  cert_file: './cert.pem',
-
-  auto_create_table: false,
-  auto_create_index: false,
-
-  rdb_host: 'localhost',
-  rdb_port: 28015,
-
-  allow_anonymous: false,
-  allow_unauthenticated: false,
-  auth_redirect: '/',
-
-  auth: { }
-});
-
-const default_config = make_default_config();
-
 
 const parse_connect = (connect, config) => {
   const host_port = connect.split(':');
@@ -290,7 +269,7 @@ const read_config_from_env = () => {
     const matches = env_regex.exec(env_var);
     if (matches && matches[1]) {
       const dest_var_name = matches[1].toLowerCase();
-      const path = dest_var_name.split('_');
+      const var_path = dest_var_name.split('_');
       let value = process.env[env_var];
 
       if ([ 'false', 'true' ].indexOf(value.toLowerCase()) !== -1) {
@@ -301,13 +280,13 @@ const read_config_from_env = () => {
         parse_connect(value, config);
       } else if (dest_var_name === 'bind') {
         config[dest_var_name] = value.split(',');
-      } else if (path[0] === 'auth' && path.length === 3) {
-        config.auth[path[1]] = config.auth[path[1]] || { };
+      } else if (var_path[0] === 'auth' && var_path.length === 3) {
+        config.auth[var_path[1]] = config.auth[var_path[1]] || { };
 
-        if (path[2] === 'id') {
-          config.auth[path[1]].id = value;
-        } else if (path[2] === 'secret') {
-          config.auth[path[1]].secret = value;
+        if (var_path[2] === 'id') {
+          config.auth[var_path[1]].id = value;
+        } else if (var_path[2] === 'secret') {
+          config.auth[var_path[1]].secret = value;
         }
       } else if (default_config[dest_var_name] !== undefined) {
         config[dest_var_name] = value;
@@ -375,13 +354,10 @@ const read_config_from_flags = (parsed) => {
   // Auth options
   parsed.auth.forEach((auth_options) => {
     const params = auth_options.split(',');
-    if (params.length === 3) {
-      config.auth[params[0]] = { id: params[1], secret: params[2] };
-    } else {
-      logger.error(`Expected --auth PROVIDER,ID,SECRET, but found "${auth_options}"`);
-      parsed.printUsage();
-      process.exit(1);
+    if (params.length !== 3) {
+      throw new Error(`Expected --auth PROVIDER,ID,SECRET, but found "${auth_options}"`);
     }
+    config.auth[params[0]] = { id: params[1], secret: params[2] };
   });
 
   return config;
@@ -410,7 +386,7 @@ const merge_configs = (old_config, new_config) => {
   }
 
   return old_config;
-}
+};
 
 // Command-line flags have the highest precedence, followed by environment variables,
 // then the config file, and finally the default values.
@@ -427,27 +403,22 @@ const processConfig = (parsed) => {
 
 const startHorizonServer = (servers, opts) => {
   logger.info('Starting Horizon...');
-  try {
-    return new horizon_server.Server(servers, {
-      auto_create_table: opts.auto_create_table,
-      auto_create_index: opts.auto_create_index,
-      rdb_host: opts.rdb_host,
-      rdb_port: opts.rdb_port,
-      auth: {
-        allow_unauthenticated: opts.allow_unauthenticated,
-        allow_anonymous: opts.allow_anonymous,
-        success_redirect: opts.auth_redirect,
-        failure_redirect: opts.auth_redirect,
-      },
-    });
-  } catch (err) {
-    logger.error(`Failed creating Horizon server: ${err}`);
-    process.exit(1);
-  }
+  return new horizon_server.Server(servers, {
+    auto_create_table: opts.auto_create_table,
+    auto_create_index: opts.auto_create_index,
+    rdb_host: opts.rdb_host,
+    rdb_port: opts.rdb_port,
+    auth: {
+      allow_unauthenticated: opts.allow_unauthenticated,
+      allow_anonymous: opts.allow_anonymous,
+      success_redirect: opts.auth_redirect,
+      failure_redirect: opts.auth_redirect,
+    },
+  });
 };
 
 // Actually serve based on the already validated options
-const runCommand = (opts) => {
+const runCommand = (opts, done) => {
   if (opts.debug) {
     logger.level = 'debug';
   }
@@ -456,13 +427,11 @@ const runCommand = (opts) => {
     try {
       process.chdir(opts.project);
     } catch (err) {
-      logger.error(`Failed to find "${opts.project}" project: ${err}`);
-      process.exit(1);
+      done(new Error(`Failed to find "${opts.project}" project: ${err}`));
     }
   }
 
-  let http_servers;
-  let hz_instance;
+  let http_servers, hz_instance;
 
   const shutdown = () => {
     if (hz_instance) {
@@ -491,18 +460,14 @@ const runCommand = (opts) => {
     if (opts.auth) {
       for (const name in opts.auth) {
         const provider = horizon_server.auth[name];
-        if (provider) {
-          hz_instance.add_auth_provider(provider, extend({ path: name }, opts.auth[name]));
-        } else {
-          logger.error(`Unrecognized auth provider "${name}"`);
-          process.exit(1);
+        if (!provider) {
+          throw new Error(`Unrecognized auth provider "${name}"`);
         }
+        hz_instance.add_auth_provider(provider,
+                                      extend({ path: name }, opts.auth[name]));
       }
     }
-  }).catch((err) => {
-    logger.error(`Error starting Horizon Server: ${err}`);
-    process.exit(1);
-  });
+  }).catch(done);
 };
 
 module.exports = {

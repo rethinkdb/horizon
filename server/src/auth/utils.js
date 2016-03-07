@@ -118,9 +118,13 @@ const oauth2 = (raw_options) => {
     const request_url = url.parse(req.url, true);
     const return_url = self_url(req.headers.host, request_url.pathname);
     const code = request_url.query && request_url.query.code;
+    const error = request_url.query && request_url.query.error;
 
     logger.debug(`oauth request: ${JSON.stringify(request_url)}`);
-    if (!code) {
+    if (error) {
+      const description = request_url.query.error_description || error;
+      do_redirect(res, make_failure_url(description));
+    } else if (!code) {
       // We need to redirect to the API to acquire a token, then come back and try again
       // Generate a nonce to track this client session to prevent CSRF attacks
       make_nonce((nonce_err, nonce) => {

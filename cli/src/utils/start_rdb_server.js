@@ -1,9 +1,9 @@
 'use strict';
 
-const child_process = require('child_process');
-const assert = require('assert');
 const each_line_in_pipe = require('./each_line_in_pipe');
 const logger = require('@horizon/server').logger;
+
+const child_process = require('child_process');
 
 const defaultDb = 'horizon';
 const defaultDatadir = 'rethinkdb_data';
@@ -16,8 +16,8 @@ const defaultDatadir = 'rethinkdb_data';
 // driverPort: port number for rethinkdb driver connections. Auto-assigned by default.
 // httpPort: port number for webui. Auto-assigned by default.
 // cacheSize: cacheSize to give to rethinkdb in MB. Default 200.
-module.exports = (options) => {
-  options = options || {};
+module.exports = (raw_options) => {
+  const options = raw_options || {};
   const bind = options.bind || [ '127.0.0.1' ];
   const dataDir = options.dataDir || defaultDatadir;
   const db = options.db || defaultDb;

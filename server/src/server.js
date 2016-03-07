@@ -63,7 +63,9 @@ const serve_file = (file_path, res) => {
 class Server {
   constructor(http_servers, user_opts) {
     const opts = Joi.attempt(user_opts || { }, options_schema);
+    this._path = opts.path;
     this._name = opts.db;
+    this._auth_methods = { };
     this._request_handlers = new Map();
     this._http_handlers = new Map();
     this._ws_servers = new Set();
@@ -88,7 +90,7 @@ class Server {
       }
     };
 
-    const ws_options = { handleProtocols: accept_protocol, path: opts.path,
+    const ws_options = { handleProtocols: accept_protocol, path: this._path,
                          verifyClient: verify_client };
 
     const add_websocket = (server) => {
@@ -97,14 +99,14 @@ class Server {
         .on('connection', (socket) => new Client(socket, this)));
     };
 
-    const path_replace = new RegExp('^' + opts.path + '/');
+    const path_replace = new RegExp('^' + this._path + '/');
     const add_http_listener = (server) => {
       // TODO: this doesn't play well with a user removing listeners (or maybe even `once`)
       const extant_listeners = server.listeners('request').slice(0);
       server.removeAllListeners('request');
       server.on('request', (req, res) => {
         const req_path = url.parse(req.url).pathname;
-        if (req_path.indexOf(opts.path + '/') === 0) {
+        if (req_path.indexOf(this._path + '/') === 0) {
           const sub_path = req_path.replace(path_replace, '');
           const handler = this._http_handlers.get(sub_path);
           if (handler !== undefined) {
@@ -128,6 +130,11 @@ class Server {
 
     this.add_http_handler('horizon.js.map', (req, res) => {
       serve_file(horizon_client_path + '.map', res);
+    });
+
+    this.add_http_handler('auth_methods', (req, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(this._auth_methods));
     });
 
     if (http_servers.forEach === undefined) {
@@ -159,6 +166,7 @@ class Server {
   }
 
   add_http_handler(sub_path, handler) {
+    logger.debug(`Added HTTP handler at ${this._path}/${sub_path}`);
     assert.notStrictEqual(handler, undefined);
     assert.strictEqual(this._http_handlers.get(sub_path), undefined);
     this._http_handlers.set(sub_path, handler);
@@ -169,7 +177,11 @@ class Server {
   }
 
   add_auth_provider(provider, options) {
-    provider(this, options)
+    assert(provider.name);
+    assert(options.path);
+    assert.strictEqual(this._auth_methods[provider.name], undefined);
+    this._auth_methods[provider.name] = this._path + '/' + options.path;
+    provider(this, options);
   }
 
   ready() {

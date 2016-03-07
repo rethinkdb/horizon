@@ -37,7 +37,7 @@ const get_app_token = (nonce) => {
   return res && res.token;
 };
 
-const add = (horizon, raw_options) => {
+function twitter(horizon, raw_options) {
   const options = Joi.attempt(raw_options, options_schema);
   const provider = options.path;
   const consumer_key = options.id;
@@ -71,8 +71,7 @@ const add = (horizon, raw_options) => {
       auth_utils.make_nonce((nonce_err, nonce) => {
         if (nonce_err) {
           logger.error(`Error creating nonce for oauth state: ${nonce_err}`);
-          res.statusCode = 503;
-          res.end('error generating nonce');
+          auth_utils.do_redirect(res, make_failure_url('error generating nonce'));
         } else {
           oa._authorize_callback =
             url.format({ protocol: 'https',
@@ -85,8 +84,7 @@ const add = (horizon, raw_options) => {
           oa.getOAuthRequestToken((err, app_token, app_token_secret, body) => {
             if (err || body.oauth_callback_confirmed !== 'true') {
               logger.error(`Error acquiring app oauth token: ${JSON.stringify(err)}`);
-              res.statusCode = 503;
-              res.end('error acquiring oauth token');
+              auth_utils.do_redirect(res, make_failure_url('error acquiring app oauth token'));
             } else {
               store_app_token(nonce, app_token_secret);
               auth_utils.set_nonce(res, horizon._name, nonce);
@@ -110,8 +108,7 @@ const add = (horizon, raw_options) => {
         oa.getOAuthAccessToken(user_token, app_token, verifier, (err, access_token, secret) => {
           if (err) {
             logger.error(`Error contacting oauth API: ${err}`);
-            res.statusCode = 503;
-            res.end('oauth provider error');
+            auth_utils.do_redirect(res, make_failure_url('oauth provider error'));
           } else {
             oa.get(user_info_url, access_token, secret, (err2, body) => {
               const user_info = auth_utils.try_json_parse(body);
@@ -119,12 +116,10 @@ const add = (horizon, raw_options) => {
 
               if (err2) {
                 logger.error(`Error contacting oauth API: ${err2}`);
-                res.statusCode = 503;
-                res.end('oauth provider error');
+                auth_utils.do_redirect(res, make_failure_url('oauth provider error'));
               } else if (!user_id) {
                 logger.error(`Bad JSON data from oauth API: ${body}`);
-                res.statusCode = 500;
-                res.end('unparseable inspect response');
+                auth_utils.do_redirect(res, make_failure_url('unparseable inspect response'));
               } else {
                 horizon._auth.generate_jwt(provider, user_id, (err3, jwt) => {
                   auth_utils.clear_nonce(res, horizon._name);
@@ -141,4 +136,4 @@ const add = (horizon, raw_options) => {
   });
 };
 
-module.exports = add;
+module.exports = twitter;
