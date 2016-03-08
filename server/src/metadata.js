@@ -245,6 +245,10 @@ class Metadata {
       done(err);
     });
   }
+
+  get_user_info(id, done) {
+    r.db('horizon_internal').table('users').get(id).run(this._conn, done);
+  }
 }
 
 module.exports = { Metadata };
