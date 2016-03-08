@@ -23,7 +23,7 @@ module.exports = (raw_options) => {
   const db = options.db || defaultDb;
   let driverPort = options.rdbPort;
   let httpPort = options.rdbHttpPort;
-  let cacheSize = options.cacheSize || 200;
+  const cacheSize = options.cacheSize || 200;
 
   const args = [ '--http-port', String(httpPort || 0),
                  '--cluster-port', '0',

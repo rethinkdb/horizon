@@ -24,7 +24,7 @@
   "devDependencies": {
     "babel-cli": "^6.6.4",
     "babel-core": "^6.6.4",
-    "babel-eslint": "^5.0.0",
+    "babel-eslint": "^6.0.0-beta",
     "babel-loader": "^6.2.4",
     "babel-plugin-transform-async-to-generator": "^6.5.0",
     "babel-plugin-transform-function-bind": "^6.5.2",
@@ -33,7 +33,7 @@
     "babel-preset-es2015-loose": "^7.0.0",
     "chai": "^3.5.0",
     "copy-webpack-plugin": "^1.1.1",
-    "eslint": "^2.2.0",
+    "eslint": "2.2.x",
     "lodash": "^4.6.1",
     "minimist": "^1.2.0",
     "mocha": "2.3.4",

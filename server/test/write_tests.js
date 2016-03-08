@@ -95,7 +95,7 @@ const all_tests = (table) => {
           assert.deepStrictEqual(res, ids);
         } else {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, `The document with id 4 was missing.`);
+          assert.strictEqual(err.message, 'The document with id 4 was missing.');
           assert.deepStrictEqual(res, [ ]);
         }
         const new_data = ids.map(new_row_from_id);
@@ -133,7 +133,7 @@ const all_tests = (table) => {
           assert.deepStrictEqual(res, ids);
         } else {
           assert.notStrictEqual(err, null);
-          assert.strictEqual(err.message, `The document with id 4 was missing.`);
+          assert.strictEqual(err.message, 'The document with id 4 was missing.');
           assert.deepStrictEqual(res, [ ]);
         }
         const new_data = ids.map(merged_row_from_id);

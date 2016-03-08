@@ -8,15 +8,12 @@ const start_rdb_server = require('../../cli/src/utils/start_rdb_server');
 const each_line_in_pipe = require('../../cli/src/utils/each_line_in_pipe');
 
 const assert = require('assert');
-const child_process = require('child_process');
-const fs = require('fs');
 const http = require('http');
-const path = require('path');
 const r = require('rethinkdb');
 const websocket = require('ws');
 
-const db = `horizon`;
-const data_dir = `./rethinkdb_data_test`;
+const db = 'horizon';
+const data_dir = './rethinkdb_data_test';
 
 const log_file = `./horizon_test_${process.pid}.log`;
 logger.level = 'debug';
@@ -35,7 +32,7 @@ const test_db_server = (done) => {
     rdb_http_port = info.httpPort;
 
     const conn_promise = r.connect({ db, port: rdb_port });
-    conn_promise.then((c) => { rdb_conn = c });
+    conn_promise.then((c) => { rdb_conn = c; });
     conn_promise.then((c) => r.dbCreate(db).run(c)).then((res) => {
       assert.strictEqual(res.dbs_created, 1);
       done();
@@ -47,7 +44,7 @@ const test_db_server = (done) => {
 const create_table = (table, done) => {
   assert.notStrictEqual(horizon_server, undefined);
   assert.notStrictEqual(horizon_port, undefined);
-  let conn = new websocket(`ws://localhost:${horizon_port}/horizon`,
+  const conn = new websocket(`ws://localhost:${horizon_port}/horizon`,
                            horizon.protocol, { rejectUnauthorized: false })
     .once('error', (err) => assert.ifError(err))
     .on('open', () => {
@@ -201,7 +198,7 @@ const stream_test = (req, cb) => {
 };
 
 const check_error = (err, msg) => {
-  assert.notStrictEqual(err, null, `Should have gotten an error.`);
+  assert.notStrictEqual(err, null, 'Should have gotten an error.');
   assert(err.message.indexOf(msg) !== -1, err.message);
 };
 
