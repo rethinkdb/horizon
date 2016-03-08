@@ -9,6 +9,7 @@ module.exports = {
     "no-confusing-arrow": [ OFF ],
     "no-use-before-define": [ OFF ],
     "semi": [ ERROR, "never" ],
+    "max-len": [ ERROR, 80, 2 ],
   },
   env: {
     "browser": true,
