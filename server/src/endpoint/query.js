@@ -23,9 +23,9 @@ const make_reql = (raw_request, metadata) => {
     if (order_keys.length >= 1) {
       const k = order_keys[0];
       check(!options.above || options.above[0][k] !== undefined,
-            `"above" must be on the same field as the first in "order".`);
+            '"above" must be on the same field as the first in "order".');
       check(!options.below || options.below[0][k] !== undefined,
-            `"below" must be on the same field as the first in "order"`);
+            '"below" must be on the same field as the first in "order"');
     }
 
     order_keys.forEach((k) => {

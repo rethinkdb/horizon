@@ -27,7 +27,7 @@ const all_tests = () => {
             const cert_end = stdout.indexOf('-----END CERTIFICATE-----');
             assert(cert_start !== -1 && cert_end !== -1);
 
-            const cert = stdout.slice(cert_start, cert_end) + '-----END CERTIFICATE-----\n';
+            const cert = `${stdout.slice(cert_start, cert_end)}-----END CERTIFICATE-----\n`;
             fs.writeFile(cert_file, cert, done);
           });
       });
@@ -67,7 +67,7 @@ const all_tests = () => {
           const code = fs.readFileSync('./node_modules/@horizon/client/dist/horizon.js');
           let buffer = '';
           assert.strictEqual(res.statusCode, 200);
-          res.on('data', (delta) => buffer += delta);
+          res.on('data', (delta) => { buffer += delta; });
           res.on('end', () => (assert.equal(buffer, code), done()));
         });
       });

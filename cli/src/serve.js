@@ -170,7 +170,7 @@ const fileServer = (distDir) => (req, res) => {
 };
 
 const initialize_servers = (ctor, opts) => {
-  let servers = new Set();
+  const servers = new Set();
   let numReady = 0;
   return new Promise((resolve) => {
     opts.bind.forEach((host) => {
@@ -197,7 +197,7 @@ const initialize_servers = (ctor, opts) => {
 };
 
 const createInsecureServers = (opts) => {
-  logger.warn(`Creating insecure HTTP server.`);
+  logger.warn('Creating insecure HTTP server.');
   return initialize_servers(() => new http.Server(), opts);
 };
 

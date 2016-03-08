@@ -14,9 +14,9 @@ const make_reql = (raw_request, metadata) => {
   return r.expr(parsed.value.data).forEach((row) =>
         r.table(table.name).get(row('id')).replace((old) =>
          r.branch(old.ne(null), old.merge(row),
-           r.error(r.expr(`The document with id `)
+           r.error(r.expr('The document with id ')
                     .add(row('id').toJSON())
-                    .add(` was missing.`)))));
+                    .add(' was missing.')))));
 };
 
 module.exports = { make_reql, handle_response };

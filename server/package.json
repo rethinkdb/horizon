@@ -4,7 +4,8 @@
   "description": "Server for RethinkDB Horizon, an open-source developer platform for building realtime, scalable web apps.",
   "main": "src/horizon.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha test/test.js test/schema.js --timeout 10000"
+    "lint": "eslint src test",
+    "test": "mocha test/test.js test/schema.js --timeout 10000"
   },
   "repository": {
     "type": "git",
@@ -21,7 +22,7 @@
   },
   "dependencies": {
     "joi": "^8.0.4",
-    "@horizon/client": "", 
+    "@horizon/client": "",
     "cookie": "^0.2.3",
     "jsonwebtoken": "^5.5.4",
     "oauth": "^0.9.14",
@@ -31,6 +32,8 @@
     "ws": "^1.0.1"
   },
   "devDependencies": {
-    "mocha": "^2.3.3"
+    "eslint": "^2.3.0",
+    "mocha": "^2.3.3",
+    "nodemon": "^1.8.1"
   }
 }
