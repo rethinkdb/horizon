@@ -81,6 +81,7 @@ const addArguments = (parser) => {
       '--auto-create-tables, ' +
       '--start-rethinkdb, ' +
       '--serve-static, ' +
+      '--allow-unauthenticated, ' +
       'and --auto-create-indexes.' });
 
   parser.addArgument([ '--config' ],
@@ -119,11 +120,11 @@ const make_default_config = () => ({
   rdb_host: 'localhost',
   rdb_port: 28015,
 
-  allow_anonymous: false,
-  allow_unauthenticated: false,
-  auth_redirect: '/',
-
-  auth: { },
+  auth: {
+    allow_anonymous: false,
+    allow_unauthenticated: false,
+    auth_redirect: '/',
+  },
 });
 
 const default_config = make_default_config();
@@ -197,7 +198,7 @@ const initialize_servers = (ctor, opts) => {
 };
 
 const createInsecureServers = (opts) => {
-  logger.warn(`Creating insecure HTTP server.`);
+  logger.warn('Creating insecure HTTP server.');
   return initialize_servers(() => new http.Server(), opts);
 };
 
@@ -303,7 +304,7 @@ const read_config_from_flags = (parsed) => {
   // Dev mode
   if (parsed.dev) {
     config.debug = true;
-    config.allow_unauthenticated = true;
+    config.auth.allow_unauthenticated = true;
     config.insecure = true;
     config.start_rethinkdb = true;
     config.auto_create_table = true;
@@ -321,13 +322,21 @@ const read_config_from_flags = (parsed) => {
                        'start_rethinkdb',
                        'auto_create_index',
                        'auto_create_table',
-                       'allow_unauthenticated',
-                       'allow_anonymous',
-                       'auth_redirect' ];
+                     ];
+  const bool_auth_flags = [ 'allow_unauthenticated',
+                            'allow_anonymous',
+                            'auth_redirect',
+                          ];
 
   bool_flags.forEach((key) => {
     if (parsed[key]) {
       config[key] = true;
+    }
+  });
+
+  bool_auth_flags.forEach((key) => {
+    if (parsed[key]) {
+      config.auth[key] = true;
     }
   });
 
@@ -409,10 +418,10 @@ const startHorizonServer = (servers, opts) => {
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
     auth: {
-      allow_unauthenticated: opts.allow_unauthenticated,
-      allow_anonymous: opts.allow_anonymous,
-      success_redirect: opts.auth_redirect,
-      failure_redirect: opts.auth_redirect,
+      allow_unauthenticated: opts.auth.allow_unauthenticated,
+      allow_anonymous: opts.auth.allow_anonymous,
+      success_redirect: opts.auth.auth_redirect,
+      failure_redirect: opts.auth.auth_redirect,
     },
   });
 };
