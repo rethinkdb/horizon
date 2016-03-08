@@ -23,7 +23,7 @@ pushd ../client
 green 'Unlinking existing client'
 npm unlink
 green 'Linking client'
-npm link
+npm link --unsafe-perm
 popd
 pushd ../server
 green 'Unlinking existing server'
