@@ -156,6 +156,7 @@ new Promise((resolve) => {
                                               rdb_port: info.driverPort,
                                               auth: {
                                                 allow_unauthenticated: true,
+                                                allow_anonymous: true,
                                               },
                                             });
 

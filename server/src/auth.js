@@ -4,9 +4,9 @@ const logger = require('./logger');
 const options_schema = require('./schema/server_options').auth;
 
 const assert = require('assert');
+const crypto = require('crypto');
 const Joi = require('joi');
 const jwt = require('jsonwebtoken');
-const pem = require('pem');
 const r = require('rethinkdb');
 const url = require('url');
 
@@ -23,15 +23,6 @@ class Auth {
   constructor(server, user_options) {
     const options = Joi.attempt(user_options, options_schema);
 
-    server.add_http_handler('public_key', (req, res) => {
-      if (this._public_key !== undefined) {
-        res.end(this._public_key);
-      } else {
-        res.statusCode = 503;
-        res.end('Horizon server is starting up, authentication is not ready.');
-      }
-    });
-
     this._success_redirect = url.parse(options.success_redirect);
     this._failure_redirect = url.parse(options.failure_redirect);
     this._duration = options.duration;
@@ -42,35 +33,19 @@ class Auth {
 
     this._parent = server;
 
-    // TODO: we need to persist the private key such that all horizon servers in
-    // the deployment use the same keypair. Thus, disconnected clients can
+    // TODO: we need to persist the secret such that all horizon servers in
+    // the deployment use have the same one. Thus, disconnected clients can
     // reconnect through any horizon server - useful behind a load balancer.
-    this._ready_promise = new Promise((resolve) =>
-      pem.createPrivateKey((err, res) => {
-        assert.ifError(err);
-        this._private_key = res.key;
-        pem.getPublicKey(res.key, (err2, res2) => {
-          assert.ifError(err2);
-          this._public_key = res2.publicKey;
-          resolve();
-        });
-      }));
-  }
-
-  is_ready() {
-    return this._public_key !== undefined;
-  }
-
-  ready() {
-    return this._ready_promise;
+    this._hmac_secret = crypto.randomBytes(64);
   }
 
   // A generated token contains the data:
   // { user: <uuid>, provider: <string> }
   _jwt_from_user(user, provider) {
     return jwt.sign({ user, provider },
-                    this._private_key,
-                    { expiresIn: this._duration });
+                    this._hmac_secret,
+                    { expiresIn: this._duration,
+                      algorithm: 'HS512' });
   }
 
   // TODO: maybe we should write something into the user data to track open sessions/tokens
@@ -100,7 +75,6 @@ class Auth {
     }
 
     this.reql_call(query, (err, res) => {
-      logger.debug(`User lookup/creation err: ${err}, res: ${res}`);
       if (err) {
         // TODO: if we got a `Duplicate primary key` error, it was likely a race condition
         // and we should succeed if we try again.
@@ -125,7 +99,7 @@ class Auth {
         logger.error('Failed anonymous user creation: ${err}');
         cb(new Error('Anonymous user creation in database failed.'));
       } else {
-        cb(null, this._jwt_from_user(res.id, null));
+        this.verify_jwt(this._jwt_from_user(res.id, null), cb);
       }
     });
   }
@@ -134,12 +108,29 @@ class Auth {
     if (!this._allow_unauthenticated) {
       cb(new Error('Unauthenticated connections are not allowed.'));
     } else {
-      cb(null, this._jwt_from_user(null, null));
+      this.verify_jwt(this._jwt_from_user(null, null), cb);
     }
   }
 
   verify_jwt(token, cb) {
-    jwt.verify(token, this._public_key, cb);
+    jwt.verify(token, this._hmac_secret,
+               { algorithms: [ 'HS512' ] },
+               (err, decoded) => {
+      if (err) {
+        return cb(err);
+      } else if (decoded.user === undefined || decoded.provider === undefined) {
+        return cb(new Error('Invalid token data, "user" and "provider" must be specified.'));
+      } else if (decoded.provider === null) {
+        if (decoded.user === null) {
+          if (!this._allow_unauthenticated) {
+            return cb(new Error('Unauthenticated connections are not allowed.'));
+          }
+        } else if (!this._allow_anonymous) {
+          return cb(new Error('Anonymous connections are not allowed.'));
+        }
+      }
+      cb(err, token, decoded);
+    });
   }
 
   reql_call(query, cb) {

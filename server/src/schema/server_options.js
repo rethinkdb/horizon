@@ -20,15 +20,12 @@ const auth = Joi.object({
   success_redirect: Joi.string().default('/'),
   failure_redirect: Joi.string().default('/'),
 
-  duration: Joi.alternatives(Joi.string(), Joi.number().positive()).default(60),
+  duration: Joi.alternatives(Joi.string(), Joi.number().positive()).default('1d'),
 
   create_new_users: Joi.boolean().default(true),
   new_user_group: Joi.string().default('default'),
 
-  // Cannot allow anonymous users unless account creation is enabled
-  allow_anonymous: Joi.boolean().default(false)
-    .when('create_new_users', { is: Joi.only(false), then: Joi.only(false) }),
-
+  allow_anonymous: Joi.boolean().default(false),
   allow_unauthenticated: Joi.boolean().default(false),
 }).unknown(false);
 

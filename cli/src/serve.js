@@ -304,6 +304,7 @@ const read_config_from_flags = (parsed) => {
   if (parsed.dev) {
     config.debug = true;
     config.allow_unauthenticated = true;
+    config.allow_anonymous = true;
     config.insecure = true;
     config.start_rethinkdb = true;
     config.auto_create_table = true;
