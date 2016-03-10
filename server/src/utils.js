@@ -7,22 +7,14 @@ const RETHINKDB_REQ_VERSION = [ 2, 2, 5 ];
 // Recursive version compare, could be flatter but opted for instant return if
 //  comparison is greater rather than continuing to compare to end.
 const versionCompare = (given_version, req_version) => {
-  // Exhausted array since all were equal, return true
-  if (!given_version.length && !req_version.length) {
-    return true;
-
-  // If given is greater than required return true
-  } else if (given_version[0] > req_version[0]) {
-    return true;
-
-  // Both values are equal, slice off index 0 and compare next
-  } else if (given_version[0] === req_version[0]) {
-    return versionCompare(given_version.slice(1), req_version.slice(1));
-
-  // Value is less than required, return false
-  } else {
-    return false;
+  for (let i = 0; i < req_version.length; ++i) {
+    if (given_version[i] > req_version[i]) {
+      return true;
+    } else if (given_version[i] < req_version[i]) {
+      return false;
+    }
   }
+  return true;
 };
 
 const rethinkdb_version_check = (version_string) => {
@@ -37,12 +29,14 @@ const rethinkdb_version_check = (version_string) => {
     // If version good, output version else exit due to insufficient version
     if (versionCompare(versions, RETHINKDB_REQ_VERSION)) {
       logger.info(version_string);
+      return true;
     } else {
       logger.error(`RethinkDB (${versions.join('.')}) is below required version (${RETHINKDB_REQ_VERSION.join('.')}) for use with Horizon`);
-      process.exit(1);
+      return false;
     }
   } else {
-    logger.error(`Unable to determine RethinkDB version and continuing, check RethinkDB is >= ${RETHINKDB_REQ_VERSION.join('.')}`);
+    logger.error(`Unable to determine RethinkDB version, check RethinkDB is >= ${RETHINKDB_REQ_VERSION.join('.')}`);
+    return false;
   }
 };
 

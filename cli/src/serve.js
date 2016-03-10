@@ -459,7 +459,11 @@ const runCommand = (opts) => {
 
       // Check if RethinkDB is sufficient version for Horizon
       const output = execSync('rethinkdb --version', { timeout: 250 }).toString();
-      horizon_server.utils.rethinkdb_version_check(output);
+
+      // Check version compare result
+      if (!horizon_server.utils.rethinkdb_version_check(output)) {
+        process.exit(1);
+      }
 
       return start_rdb_server().then((rdbOpts) => {
         // Don't need to check for host, always localhost.

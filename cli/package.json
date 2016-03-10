@@ -19,7 +19,7 @@
   "dependencies": {
     "@horizon/server": "^0.0.4",
     "argparse": "^1.0.3",
-    "toml": "^2.3.0",
+    "toml": "^2.3.0"
   },
   "devDependencies": {},
   "engines": {
