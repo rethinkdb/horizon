@@ -1,6 +1,7 @@
 'use strict';
 
 const each_line_in_pipe = require('./each_line_in_pipe');
+const interrupt = require('./interrupt');
 const logger = require('@horizon/server').logger;
 
 const child_process = require('child_process');
@@ -39,8 +40,33 @@ module.exports = (raw_options) => {
       reject(err);
       process.exit(1);
     });
+
+    interrupt.on_interrupt((done) => {
+      if (rdbProc.exitCode === null) {
+        let finished = false;
+        rdbProc.kill('SIGTERM');
+
+        rdbProc.once('exit', () => {
+          if (!finished) {
+            finished = true;
+            done();
+          }
+        });
+
+        setTimeout(() => {
+          if (!finished) {
+            finished = true;
+            done();
+          }
+        }, 20000).unref();
+      }
+    });
+
     process.on('exit', () => {
-      rdbProc.kill('SIGTERM');
+      if (rdbProc.exitCode === null) {
+        logger.error('Unclean shutdown - killing RethinkDB child process');
+        rdbProc.kill('SIGKILL');
+      }
     });
 
     const maybe_resolve = () => {

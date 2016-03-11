@@ -17,6 +17,7 @@ class ReqlConnection {
     this.reconnect_delay = 0;
     this._ready = false;
     this._ready_promise = new Promise((resolve) => this.init_connection(resolve));
+    this._closed = false;
   }
 
   reconnect(resolve) {
@@ -24,8 +25,11 @@ class ReqlConnection {
     this.metadata = undefined;
     this.clients.forEach((client) => client.reql_connection_lost());
     this.clients.clear();
-    setTimeout(() => this.init_connection(resolve), this.reconnect_delay);
-    this.reconnect_delay = Math.min(this.reconnect_delay + 100, 1000);
+
+    if (!this._closed) {
+        setTimeout(() => this.init_connection(resolve), this.reconnect_delay);
+        this.reconnect_delay = Math.min(this.reconnect_delay + 100, 1000);
+    }
   }
 
   init_connection(resolve) {
@@ -35,7 +39,10 @@ class ReqlConnection {
        logger.info('Connection to RethinkDB established.');
        conn.on('close', () => this.reconnect(resolve));
        this.connection = conn;
-       this.connection.on('error', (err) => this.handle_conn_error(err));
+       this.connection.on('error', (err) => {
+         logger.error(`Connection to RethinkDB lost: ${err}.`);
+         this.reconnect();
+       });
        this.metadata = new Metadata(this.connection, this.auto_create_table, this.auto_create_index, (err) => {
          if (err !== undefined) {
            const message = err.msg ? err.msg : err;
@@ -78,6 +85,7 @@ class ReqlConnection {
 
   close() {
     if (this.connection) {
+      this._closed = true;
       this.connection.close();
     }
   }
