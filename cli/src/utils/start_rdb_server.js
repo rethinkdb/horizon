@@ -1,9 +1,13 @@
 'use strict';
 
 const each_line_in_pipe = require('./each_line_in_pipe');
-const logger = require('@horizon/server').logger;
+const horizon_server = require('@horizon/server');
+const logger = horizon_server.logger;
+const version_check = horizon_server.utils.rethinkdb_version_check;
 
-const child_process = require('child_process');
+const execSync = require('child_process').execSync;
+const spawn = require('child_process').spawn;
+const hasbinSync = require('hasbin').sync;
 
 const defaultDb = 'horizon';
 const defaultDatadir = 'rethinkdb_data';
@@ -25,6 +29,14 @@ module.exports = (raw_options) => {
   let httpPort = options.rdbHttpPort;
   const cacheSize = options.cacheSize || 200;
 
+  // Check if `rethinkdb` in PATH
+  if (!hasbinSync('rethinkdb')) {
+    throw new Error('`rethinkdb` not found in $PATH, please install RethinkDB.');
+  }
+
+  // Check if RethinkDB is sufficient version for Horizon
+  version_check(execSync('rethinkdb --version', { timeout: 5000 }).toString());
+
   const args = [ '--http-port', String(httpPort || 0),
                  '--cluster-port', '0',
                  '--driver-port', String(driverPort || 0),
@@ -33,7 +45,7 @@ module.exports = (raw_options) => {
   bind.forEach((host) => args.push('--bind', host));
 
   return new Promise((resolve, reject) => {
-    const rdbProc = child_process.spawn('rethinkdb', args);
+    const rdbProc = spawn('rethinkdb', args);
 
     rdbProc.once('error', (err) => {
       reject(err);

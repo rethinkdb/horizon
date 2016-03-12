@@ -142,7 +142,7 @@ class Table {
 }
 
 class Metadata {
-  constructor(conn, auto_create_table, auto_create_index, done) {
+  constructor(conn, auto_create_table, auto_create_index) {
     this._conn = conn;
     this._auto_create_table = auto_create_table;
     this._auto_create_index = auto_create_index;
@@ -165,21 +165,23 @@ class Metadata {
           .do(() => query));
     }
 
-    query.run(this._conn).then((res) => {
-      this._ready = true;
-      this._tables = new Map();
-      res.forEach((table) =>
-        this._tables.set(table.name,
-          new Table(table.name,
-            new Set(Object.keys(table.indexes).map((idx) =>
-              new Index(idx, table.indexes[idx]))))));
-      logger.info('Metadata synced with server, ready for queries.');
-      done();
-    }, (err) => done(err));
+    this._ready_promise = query.run(this._conn).then((res) => {
+        this._tables = new Map();
+        res.forEach((table) =>
+          this._tables.set(table.name,
+            new Table(table.name,
+              new Set(Object.keys(table.indexes).map((idx) =>
+                new Index(idx, table.indexes[idx]))))));
+        this._ready = true;
+    }).then(() => this);
   }
 
   is_ready() {
     return this._ready;
+  }
+
+  ready() {
+    return this._ready_promise;
   }
 
   get_table(name) {

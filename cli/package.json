@@ -21,9 +21,9 @@
   },
   "homepage": "https://github.com/rethinkdb/horizon#readme",
   "dependencies": {
-    "@horizon/server": "^0.0.4-0",
-    "argparse": "^1.0.3",
     "@horizon/server": "^0.0.5-0",
+    "argparse": "^1.0.3",
+    "hasbin": "^1.2.1",
     "toml": "^2.3.0"
   },
   "devDependencies": {

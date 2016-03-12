@@ -4,57 +4,64 @@ const check = require('./error').check;
 const logger = require('./logger');
 const Metadata = require('./metadata').Metadata;
 const r = require('rethinkdb');
+const utils = require("./utils");
 
 class ReqlConnection {
   constructor(host, port, db, auto_create_table, auto_create_index, clients) {
-    this.host = host;
-    this.port = port;
-    this.db = db;
-    this.auto_create_table = auto_create_table;
-    this.auto_create_index = auto_create_index;
-    this.clients = clients;
-    this.connection = undefined;
-    this.reconnect_delay = 0;
+    this._host = host;
+    this._port = port;
+    this._db = db;
+    this._auto_create_table = auto_create_table;
+    this._auto_create_index = auto_create_index;
+    this._clients = clients;
+    this._connection = undefined;
+    this._metadata = undefined;
     this._ready = false;
-    this._ready_promise = new Promise((resolve) => this.init_connection(resolve));
+    this._reconnect_delay = 0;
+    this._ready_promise = new Promise((resolve) => this._reconnect(resolve));
   }
 
-  reconnect(resolve) {
-    this.connection = undefined;
-    this.metadata = undefined;
-    this.clients.forEach((client) => client.reql_connection_lost());
-    this.clients.clear();
-    setTimeout(() => this.init_connection(resolve), this.reconnect_delay);
-    this.reconnect_delay = Math.min(this.reconnect_delay + 100, 1000);
+  _reconnect(resolve) {
+    this._connection = undefined;
+    this._metadata = undefined;
+    this._ready = false;
+    this._clients.forEach((client) => client.reql_connection_lost());
+    this._clients.clear();
+    setTimeout(() => this._init_connection(resolve), this._reconnect_delay);
+    this._reconnect_delay = Math.min(this._reconnect_delay + 100, 1000);
   }
 
-  init_connection(resolve) {
-    logger.info(`Connecting to RethinkDB: ${this.host}:${this.port}`);
-    r.connect({ host: this.host, port: this.port, db: this.db })
+  _init_connection(resolve) {
+    logger.info(`Connecting to RethinkDB: ${this._host}:${this._port}`);
+    r.connect({ host: this._host, port: this._port, db: this._db })
      .then((conn) => {
        logger.info('Connection to RethinkDB established.');
-       conn.on('close', () => this.reconnect(resolve));
-       this.connection = conn;
-       this.connection.on('error', (err) => this.handle_conn_error(err));
-       this.metadata = new Metadata(this.connection, this.auto_create_table, this.auto_create_index, (err) => {
-         if (err !== undefined) {
-           const message = err.msg ? err.msg : err;
-           logger.error(`Failed to synchronize with database server: ${message}`);
-           conn.close();
-         } else {
-           conn.removeAllListeners('close');
-           conn.on('close', () => {
-             this._ready_promise = new Promise((res) => this.reconnect(res));
-           });
-           this.reconnect_delay = 0;
-           this._ready = true;
-           resolve();
-         }
+       return conn.server().then((serv) =>
+         r.db('rethinkdb').table('server_status')
+          .get(serv.id)('process')('version')
+          .run(conn)
+          .then((res) => {
+            utils.rethinkdb_version_check(res);
+            return conn;
+          }));
+     }).then((conn) => {
+       this._connection = conn;
+       this._metadata = new Metadata(this._connection,
+                                     this._auto_create_table,
+                                     this._auto_create_index);
+       return this._metadata.ready();
+     }).then(() => {
+       this._reconnect_delay = 0;
+       this._ready = true;
+       this._connection.once('close', () => {
+         this._ready_promise = new Promise((res) => this._reconnect(res));
        });
-     },
-     (err) => {
+       logger.info('Metadata synced with database, ready for traffic.');
+       resolve(this);
+     }).catch((err) => {
        logger.error(`Connection to RethinkDB terminated: ${err}`);
-       this.reconnect(resolve);
+       logger.debug(`stack: ${err.stack}`);
+       this._reconnect(resolve);
      });
   }
 
@@ -66,19 +73,19 @@ class ReqlConnection {
     return this._ready_promise;
   }
 
-  get_connection() {
+  connection() {
     check(this._ready, 'Connection to the database is down.');
-    return this.connection;
+    return this._connection;
   }
 
-  get_metadata() {
+  metadata() {
     check(this._ready, 'Connection to the database is down.');
-    return this.metadata;
+    return this._metadata;
   }
 
   close() {
-    if (this.connection) {
-      this.connection.close();
+    if (this._connection) {
+      this._connection.close();
     }
   }
 }
