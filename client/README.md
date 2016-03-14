@@ -184,7 +184,7 @@ const horizon = Horizon()
 const messages = horizon('messages')
 ```
 
-##### above(*limit integer* || *{key: value}*, *closed string*)
+##### above( *limit* *&lt;integer&gt;* || *{key: value}*, *closed* *&lt;string&gt;* )
 
 The `.above` method can be chained onto all methods with the exception of `.find` and `.limit` and restricts the range of results returned.
 
@@ -196,27 +196,27 @@ The second parameter allows only either "closed" or "open" as arguments for incl
 
 ```javascript
 
-chat.store([{
-  id: 1,
-  text: "Top o' the morning to ya! 🇮🇪",
-  author: "kittybot"
-}, {
-  id: 2,
-  text: "Howdy! 🇺🇸",
-  author: "grey"
-}, {
-  id: 3,
-  text: "Bonjour 🇫🇷",
-  author: "coffeemug"
-}, {
-  id: 4,
-  text: "Gutentag 🇩🇪",
-  author: "deontologician"
-}, {
-  id: 5,
-  text: "G'day 🇦🇺",
-  author: "dalanmiller"
-}]);
+// {
+//  id: 1,
+//  text: "Top o' the morning to ya! 🇮🇪",
+//  author: "kittybot"
+// }, {
+//  id: 2,
+//  text: "Howdy! 🇺🇸",
+//  author: "grey"
+// }, {
+//  id: 3,
+//  text: "Bonjour 🇫🇷",
+//  author: "coffeemug"
+// }, {
+//  id: 4,
+//  text: "Gutentag 🇩🇪",
+//  author: "deontologician"
+// }, {
+//  id: 5,
+//  text: "G'day 🇦🇺",
+//  author: "dalanmiller"
+// }
 
 // Returns docs with id 4 and 5
 chat.messages.order("id").above(3);
@@ -228,7 +228,7 @@ chat.messages.order("id").above(3, "closed");
 chat.messages.order("id").above({author: "d"});
 ```
 
-##### below([limit integer || {key: value}], closed string)
+##### below( *limit* *&lt;integer&gt;* || *{key: value}*, *closed* *&lt;string&gt;* )
 
 The `.below` method can only be chained onto an `.order(...)` method and limits the range of results returned.
 
@@ -240,27 +240,27 @@ The second parameter allows only either "closed" or "open" as arguments for incl
 
 ```javascript
 
-chat.store([{
-  id: 1,
-  text: "Top o' the morning to ya! 🇮🇪",
-  author: "kittybot"
-}, {
-  id: 2,
-  text: "Howdy! 🇺🇸",
-  author: "grey"
-}, {
-  id: 3,
-  text: "Bonjour 🇫🇷",
-  author: "coffeemug"
-}, {
-  id: 4,
-  text: "Gutentag 🇩🇪",
-  author: "deontologician"
-}, {
-  id: 5,
-  text: "G'day 🇦🇺",
-  author: "dalanmiller"
-}]);
+// {
+//  id: 1,
+//  text: "Top o' the morning to ya! 🇮🇪",
+//  author: "kittybot"
+// }, {
+//  id: 2,
+//  text: "Howdy! 🇺🇸",
+//  author: "grey"
+// }, {
+//  id: 3,
+//  text: "Bonjour 🇫🇷",
+//  author: "coffeemug"
+// }, {
+//  id: 4,
+//  text: "Gutentag 🇩🇪",
+//  author: "deontologician"
+// }, {
+//  id: 5,
+//  text: "G'day 🇦🇺",
+//  author: "dalanmiller"
+// }
 
 // Returns docs with id 1 and 2
 chat.messages.order("id").below(3);
@@ -308,7 +308,7 @@ All results: [ { id: 1, chat: 'Hey there' }, { id: 2, chat: 'Ho there' } ]
 Results fetched, query done!
 ```
 
-##### find(*object*)
+##### find( *{}* || *id* *&lt;any&gt;* )
 
 Retrieve a single object from the Horizon collection.
 
@@ -317,25 +317,25 @@ Retrieve a single object from the Horizon collection.
 ```javascript
 // Using id, both are equivalent
 chats.find(1)
-chats.find({id:1})
+chats.find({ id: 1 })
 
 // Using another field
-chats.find({name: "dalan"})
+chats.find({ name: "dalan" })
 ```
 
-##### findAll(*object* [, *object*])
+##### findAll( *{ id:* *&lt;any&gt; }* [, *{ id:* *&lt;any&gt; }*] )
 
 Retrieve multiple objects from the Horizon collection. Returns `[]` if queried documents do not exist.
 
 ###### Example
 
 ```javascript
-chats.findAll({id: 1}, {id: 2});
+chats.findAll({ id: 1 }, { id: 2 });
 
-chats.findAll({name: "dalan"}, {id: 3});
+chats.findAll({ name: "dalan" }, { id: 3 });
 ```
 
-##### limit(*num integer*)
+##### limit( *num* *&lt;integer&gt;* )
 
 Limit the output of a query to the provided number of documents. If the result of the query prior to `.limit(...)` is fewer than the value passed to `.limit` then the results returned will be limited to that amount.
 
@@ -347,12 +347,12 @@ If using `.limit(...)` it must be the final method in your query.
 
 chats.limit(5);
 
-chats.findAll({author: "dalan"}).limit(5);
+chats.findAll({ author: "dalan" }).limit(5);
 
 chats.order("datetime", "descending").limit(5);
 ```
 
-##### order(*string* [, *direction*="ascending"])
+##### order( *<string>* [, *direction*="ascending"] )
 
 Order the results of the query by the given field string. The second parameter is also a string that determines order direction. Default is ascending ⏫.
 
@@ -368,7 +368,7 @@ chats.order("name", "ascending");
 chats.order("age", "descending");
 ```
 
-##### remove(*id string* || *{id: integer}*)
+##### remove( *id* *&lt;any>* || *{id:* *\<any>}* )
 
 Remove a single document from the collection. Takes an `id` representing the `id` of the document to remove or an object that has an `id` key.
 
@@ -378,10 +378,10 @@ Remove a single document from the collection. Takes an `id` representing the `id
 
 // Equal results
 chat.remove(1);
-chat.remove({id:1})
+chat.remove({ id: 1 })
 
 ```
-##### removeAll(*[id integer [, id integer]]* || *{id: integer [,{id: integer}]}*)
+##### removeAll( *[ id <any> [, id <any>]]* || *{ id: <any> [, { id: <any>}]}* )
 
 Remove multiple documents from the collection via an array of `id` integers or an array of objects that have an `id` key.
 
@@ -391,10 +391,10 @@ Remove multiple documents from the collection via an array of `id` integers or a
 
 // Equal results
 chat.removeAll([1, 2, 3]);
-chat.removeAll([{id: 1}, {id: 2}, {id: 3}]);
+chat.removeAll([{ id: 1 }, { id: 2 }, { id: 3 }]);
 ```
 
-##### replace(*{}*)
+##### replace( *{}* )
 
 The `replace` command replaces documents already in the database. An error will occur if the document does not exist.
 
@@ -421,7 +421,7 @@ chat.replace({
 });
 ```
 
-##### store(*{}* || *[{} [, {}]*)
+##### store( *{}* || [ *{}* [, *{}*] )
 
 The `store` method stores objects or arrays of objects. One can also chain `.forEach` off of `.store` which takes two
 functions to handle store succeses and errors.
@@ -445,7 +445,7 @@ chat.store({ id: 2, text: "G'day!" }).forEach(
 
 ```
 
-##### upsert(*{}* || *{} [,{}]*)
+##### upsert( *{}* || *{}* [, *{}*] )
 
 The `upsert` method allows storing multiple documents in one call. If any of them exist, the existing version of the document will be updated with the new version supplied to the method.
 
@@ -477,7 +477,7 @@ chat.find(1).value().then((message) => {
 
 ```
 
-##### watch({ rawChanges: false })
+##### watch( *{ rawChanges: false }* )
 
 Turns the query into a changefeed query, returning an observable that receives a live-updating view of the results every time they change.
 
