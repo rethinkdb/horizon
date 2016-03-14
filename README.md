@@ -83,12 +83,12 @@ Here is currently what you'd write on the front-end for a simple todo list appli
 ```js
 // Connect to horizon
 const horizon = Horizon();
-const todoCollection = horizon("todo-items");
+const todoCollection = horizon("todo_items");
 
 const todoApp = document.querySelector('#app')
 
 // Function called when a user adds a todo item in the UI
-const todoCollection.watch().subscribe( todos => {
+todoCollection.watch().subscribe( todos => {
   const todoHTML = todos.map(todo =>
     `<div class="todo" id="${todo.id}">
        <input type="checkbox" ${todo.done ? 'checked' : ''}>
