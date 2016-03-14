@@ -341,7 +341,7 @@ Limit the output of a query to the provided number of documents. If the result o
 
 If using `.limit(...)` it must be the final method in your query.
 
-##### Example
+###### Example
 
 ```javascript
 
@@ -419,6 +419,30 @@ chat.replace({
   id: 1,
   text: "Oh, hello!"
 });
+```
+
+##### store(*{}* || *[{} [, {}]*)
+
+The `store` method stores objects or arrays of objects. One can also chain `.forEach` off of `.store` which takes two
+functions to handle store succeses and errors.
+
+###### Example 
+
+```js
+chat.store({
+  id:1,
+  text: "Hi 😁"
+});
+
+chat.find({ id: 1 }).fetch().forEach((doc) => {
+  console.log(doc); // matches stored document above
+});
+
+chat.store({ id: 2, text: "G'day!" }).forEach(
+  (success) => { console.log("Insert success" + success) }, 
+  (error) => { console.log(err) }
+);
+
 ```
 
 ##### upsert(*{}* || *{} [,{}]*)
