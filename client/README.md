@@ -150,7 +150,7 @@ You can also get notifications when the client connects and disconnects from the
 * [limit](#limit-num-integer-)
 * [order](#order---directionascending-)
 * [remove](#remove-id-any--id-any-)
-* [removeAll](#removeall--id---id----id----id--)
+* [removeAll](#removeall--id-any--id-any-----id-any---id-any---)
 * [replace](#replace--)
 * [store](#store-------)
 * [upsert](#upsert------)
