@@ -220,13 +220,13 @@ The second parameter allows only either "closed" or "open" as arguments for incl
 // }
 
 // Returns docs with id 4 and 5
-chat.messages.order("id").above(3);
+chat.messages.order("id").above(3).fetch().forEach(doc => console.log(doc));
 
 // Returns docs with id 3, 4, and 5
-chat.messages.order("id").above(3, "closed");
+chat.messages.order("id").above(3, "closed").fetch().forEach(doc => console.log(doc));
 
 // Returns the documents with ids 1, 2, 4, and 5 (alphabetical)
-chat.messages.order("id").above({author: "d"});
+chat.messages.order("id").above({author: "d"}).fetch().forEach(doc => console.log(doc));
 ```
 
 ##### below( *limit* *&lt;integer&gt;* || *{key: value}*, *closed* *&lt;string&gt;* )
@@ -264,19 +264,19 @@ The second parameter allows only either "closed" or "open" as arguments for incl
 // }
 
 // Returns docs with id 1 and 2
-chat.messages.order("id").below(3);
+chat.messages.order("id").below(3).fetch().forEach(doc => console.log(doc));
 
 // Returns docs with id 1, 2, and 3
-chat.messages.order("id").below(3, "closed");
+chat.messages.order("id").below(3, "closed").fetch().forEach(doc => console.log(doc));
 
 // Returns the document with id 3 (alphabetical)
-chat.messages.order("id").below({author: "d"});
+chat.messages.order("id").below({author: "d"}).fetch().forEach(doc => console.log(doc));
 ```
 
 ##### fetch()
 
 Queries for the results of a query currently, without updating results when they change. This is used to complete and send
-the query request. 
+the query request.
 
 ##### Example
 
@@ -318,11 +318,11 @@ Retrieve a single object from the Horizon collection.
 
 ```js
 // Using id, both are equivalent
-chats.find(1)
-chats.find({ id: 1 })
+chats.find(1).fetch().forEach(doc => console.log(doc));
+chats.find({ id: 1 }).fetch().forEach(doc => console.log(doc));
 
 // Using another field
-chats.find({ name: "dalan" })
+chats.find({ name: "dalan" }).fetch().forEach(doc => console.log(doc));
 ```
 
 ##### findAll( *{ id:* *&lt;any&gt; }* [, *{ id:* *&lt;any&gt; }*] )
@@ -332,53 +332,57 @@ Retrieve multiple objects from the Horizon collection. Returns `[]` if queried d
 ###### Example
 
 ```js
-chats.findAll({ id: 1 }, { id: 2 });
+chats.findAll({ id: 1 }, { id: 2 }).fetch().forEach(doc => console.log(doc));
 
-chats.findAll({ name: "dalan" }, { id: 3 });
+chats.findAll({ name: "dalan" }, { id: 3 }).fetch().forEach(doc => console.log(doc));
 ```
 
 ##### forEach( *readResult[s]* *&lt;function&gt;*, *error* *&lt;function&gt;*, *completed* *&lt;function&gt;* || *writeResult[s] *&lt;function&gt;*, *error* *&lt;function&gt;* || *changefeedHandler* *&lt;function&gt;*, *error* *&lt;function&gt;*)
 
-Means of providing handlers to a query on a Horizon collection. 
+Means of providing handlers to a query on a Horizon collection.
 
 ###### Example
 
 When `.forEach` is chained off of a read operation it accepts three functions as parameters. A results handler, a error handler, and a result completion handler.
 
 ```js
+// Documents are returned one at a time.
 chats.fetch().forEach(
   (result) => { console.log("A single document =>" + result ) },
-  (error) => { console.log ("Danger Will Robinson 🤖! || " + error ) }, 
-  () => { console.log("read is now complete" ) }
+  (error) => { console.log ("Danger Will Robinson 🤖! || " + error ) },
+  () => { console.log("Read is now complete" ) }
 );
 
 // To wait and retrieve all documents as a single array instead of immediately one at a time.
 chats.toArray().fetch().forEach(
   (result) => { console.log("A single document =>" + result ) },
-  (error) => { console.log ("Danger Will Robinson 🤖! || " + error ) }, 
-  () => { console.log("read is now complete" ) }
+  (error) => { console.log ("Danger Will Robinson 🤖! || " + error ) },
+  () => { console.log("Read is now complete" ) }
 );
 ```
 
 When `.forEach` is chained off of a write operation it accepts two functions, one which handles successful writes and handles the returned `id` of the document from the server as well as an error handler.
 
 ```js
-chats.store([ { text: "So long, and thanks for all the 🐟!" }, { id: 2, text: "Don't forget your towel!" }]).forEach(
-  (id) => { console.log("A saved document id =>" + id ) },
-  (error) => { console.log ("An error has occurred || " + error ) }, 
-);
+chats.store([
+    { text: "So long, and thanks for all the 🐟!" },
+    { id: 2, text: "Don't forget your towel!" }
+  ]).forEach(
+    (id) => { console.log("A saved document id =>" + id ) },
+    (error) => { console.log ("An error has occurred || " + error ) },
+  );
 
 // Output:
 // f8dd67dc-2301-487a-85ab-c4b573acad2d
 // 2 (because `id` was provided)
 ```
 
-When `.forEach` is chained off of a changefeed it accepts two functions, one which handles the changefeed results as well as an error handler. See options for [`.watch()`](#watch) to handle either the entire result or incremental changes.
+When `.forEach` is chained off of a changefeed it accepts two functions, one which handles the changefeed results as well as an error handler. 
 
 ```js
 chats.watch().forEach(
   (chats) => { console.log("The entire chats collection triggered by changes =>" + chats ) },
-  (error) => { console.log ("An error has occurred || " + error ) }, 
+  (error) => { console.log ("An error has occurred || " + error ) },
 );
 ```
 
@@ -392,11 +396,11 @@ If using `.limit(...)` it must be the final method in your query.
 
 ```js
 
-chats.limit(5);
+chats.limit(5).fetch().forEach(doc => console.log(doc));
 
-chats.findAll({ author: "dalan" }).limit(5);
+chats.findAll({ author: "dalan" }).limit(5).fetch().forEach(doc => console.log(doc));
 
-chats.order("datetime", "descending").limit(5);
+chats.order("datetime", "descending").limit(5).fetch().forEach(doc => console.log(doc));
 ```
 
 ##### order( *<string>* [, *direction*="ascending"] )
@@ -406,13 +410,13 @@ Order the results of the query by the given field string. The second parameter i
 ###### Example
 
 ```js
-chats.order("id");
+chats.order("id").fetch().forEach(doc => console.log(doc));
 
 // Equal result
-chats.order("name");
-chats.order("name", "ascending");
+chats.order("name").fetch().forEach(doc => console.log(doc));
+chats.order("name", "ascending").fetch().forEach(doc => console.log(doc));
 
-chats.order("age", "descending");
+chats.order("age", "descending").fetch().forEach(doc => console.log(doc));
 ```
 
 ##### remove( *id* *&lt;any>* || *{id:* *\<any>}* )
@@ -473,7 +477,7 @@ chat.replace({
 The `store` method stores objects or arrays of objects. One can also chain `.forEach` off of `.store` which takes two
 functions to handle store succeses and errors.
 
-###### Example 
+###### Example
 
 ```js
 chat.store({
@@ -486,7 +490,7 @@ chat.find({ id: 1 }).fetch().forEach((doc) => {
 });
 
 chat.store({ id: 2, text: "G'day!" }).forEach(
-  (success) => { console.log("Insert success" + success) }, 
+  (id) => { console.log("saved doc id: " + id) },
   (error) => { console.log(err) }
 );
 
@@ -494,14 +498,14 @@ chat.store({ id: 2, text: "G'day!" }).forEach(
 
 ##### upsert( *{}* || [ *{}* [, *{}* ]] )
 
-The `upsert` method allows storing a single or multiple documents in a single call. If any of them exist, the existing version of the document will be updated with the new version supplied to the method. Replacements are determined by already existing documents with an equal `id`. 
+The `upsert` method allows storing a single or multiple documents in a single call. If any of them exist, the existing version of the document will be updated with the new version supplied to the method. Replacements are determined by already existing documents with an equal `id`.
 
 ###### Example
 
 ```javascript
 
 chat.store({
-  id:1,
+  id: 1,
   text: "Hi 😁"
 });
 
@@ -516,8 +520,7 @@ chat.upsert([{
   text: "How have you been?"
 }]);
 
-chat.find(1).value().then((message) => {
-
+chat.find(1).fetch().forEach((doc) => {
   // Returns "Howdy 😅"
   console.log(message.text);
 });
@@ -525,7 +528,6 @@ chat.find(1).value().then((message) => {
 ```
 
 ##### watch( *{ rawChanges: false }* )
-<a href="#watch"></a> 
 Turns the query into a changefeed query, returning an observable that receives a live-updating view of the results every time they change.
 
 ###### Example
@@ -558,5 +560,3 @@ horizon('chats').watch({ rawChanges: true }).forEach(change => {
 // Chat changed: { type: 'added', new_val: { id: 2, chat: 'Ho there' }, old_val: null }
 // Chat changed: { type: 'removed', new_val: null, old_val: { id: 1, chat: 'Hey there' } }
 ```
-
-
