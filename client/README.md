@@ -141,7 +141,19 @@ You can also get notifications when the client connects and disconnects from the
 ### API
 
 * [Horizon](#horizon)
-* * [Horizon](#horizon)* [Horizon](#horizon)
+* [Collection](#collection)
+* [above](#abovelimit-integer--key-value-closed-string)
+* [below](#belowlimit-integer--key-value-closed-string)
+* [fetch](#fetch)
+* [find](#findobject)
+* [findAll](#findallobject--object)
+* [limit](#limitnum-integer)
+* [order](#orderstring--directionascending)
+* [remove](#removeid-string--id-integer)
+* [removeAll](#removeallid-integer--id-integer--id-integer-id-integer)
+* [replace](#replace)
+* [upsert](#upsert---)
+* [watch](#watch-rawchanges-false-)
 
 #### Horizon
 
@@ -295,7 +307,6 @@ horizon('chats').fetch().toArray().forEach(
 All results: [ { id: 1, chat: 'Hey there' }, { id: 2, chat: 'Ho there' } ]
 Results fetched, query done!
 ```
-
 
 ##### find(*object*)
 
