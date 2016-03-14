@@ -142,18 +142,19 @@ You can also get notifications when the client connects and disconnects from the
 
 * [Horizon](#horizon)
 * [Collection](#collection)
-* [above](#abovelimit-integer--key-value-closed-string)
-* [below](#belowlimit-integer--key-value-closed-string)
+* [above](#above-limit-integer--key-value-closed-string-)
+* [below](#below-limit-integer--key-value-closed-string-)
 * [fetch](#fetch)
-* [find](#findobject)
-* [findAll](#findallobject--object)
-* [limit](#limitnum-integer)
-* [order](#orderstring--directionascending)
-* [remove](#removeid-string--id-integer)
-* [removeAll](#removeallid-integer--id-integer--id-integer-id-integer)
-* [replace](#replace)
-* [upsert](#upsert---)
-* [watch](#watch-rawchanges-false-)
+* [find](#find---id-any-)
+* [findAll](#findall--id-any----id-any--)
+* [limit](#limit-num-integer-)
+* [order](#order---directionascending-)
+* [remove](#remove-id-any--id-any-)
+* [removeAll](#removeall--id---id----id----id--)
+* [replace](#replace--)
+* [store](#store-------)
+* [upsert](#upsert------)
+* [watch](#watch--rawchanges-false--)
 
 #### Horizon
 
@@ -381,7 +382,7 @@ chat.remove(1);
 chat.remove({ id: 1 })
 
 ```
-##### removeAll( *[ id <any> [, id <any>]]* || *{ id: <any> [, { id: <any>}]}* )
+##### removeAll( [ *id* *&lt;any&gt;* [, *id* *&lt;any&gt;* ]] || [ *{* *id:* *&lt;any&gt;* [, *{* *id:* *&lt;any&gt;* *}* ]] )
 
 Remove multiple documents from the collection via an array of `id` integers or an array of objects that have an `id` key.
 
