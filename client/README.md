@@ -140,6 +140,9 @@ You can also get notifications when the client connects and disconnects from the
 
 ### API
 
+* [Horizon](#horizon)
+* * [Horizon](#horizon)* [Horizon](#horizon)
+
 #### Horizon
 
 Object which initializes the connection to a Horizon Server.
@@ -256,6 +259,43 @@ chat.messages.order("id").below(3, "closed");
 // Returns the document with id 3 (alphabetical)
 chat.messages.order("id").below({author: "d"});
 ```
+
+##### fetch()
+
+Queries for the results of a query currently, without updating results when they change
+
+##### Example
+
+```javascript
+
+// Returns the entire contents of the collection
+horizon('chats').fetch().forEach(
+  result => console.log('Result:', result),
+  err => console.error(err),
+  () => console.log('Results fetched, query done!')
+)
+
+// Sample output
+Result: { id: 1, chat: 'Hey there' }
+Result: { id: 2, chat: 'Ho there' }
+Results fetched, query done!
+```
+
+If you would rather get the results all at once as an array, you can
+chain `.toArray()` to the call:
+
+``` js
+horizon('chats').fetch().toArray().forEach(
+  results => console.log('All results: ', results),
+  err => console.error(err),
+  () => console.log('Results fetched, query done!')
+)
+
+// Sample output
+All results: [ { id: 1, chat: 'Hey there' }, { id: 2, chat: 'Ho there' } ]
+Results fetched, query done!
+```
+
 
 ##### find(*object*)
 
@@ -437,38 +477,4 @@ Chat changed: { type: 'added', new_val: { id: 2, chat: 'Ho there' }, old_val: nu
 Chat changed: { type: 'removed', new_val: null, old_val: { id: 1, chat: 'Hey there' } }
 ```
 
-##### fetch()
 
-Queries for the results of a query currently, without updating results when they change
-
-##### Example
-
-```javascript
-
-// Returns the entire contents of the collection
-horizon('chats').fetch().forEach(
-  result => console.log('Result:', result),
-  err => console.error(err),
-  () => console.log('Results fetched, query done!')
-)
-
-// Sample output
-Result: { id: 1, chat: 'Hey there' }
-Result: { id: 2, chat: 'Ho there' }
-Results fetched, query done!
-```
-
-If you would rather get the results all at once as an array, you can
-chain `.toArray()` to the call:
-
-``` js
-horizon('chats').fetch().toArray().forEach(
-  results => console.log('All results: ', results),
-  err => console.error(err),
-  () => console.log('Results fetched, query done!')
-)
-
-// Sample output
-All results: [ { id: 1, chat: 'Hey there' }, { id: 2, chat: 'Ho there' } ]
-Results fetched, query done!
-```
