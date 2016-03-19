@@ -42,8 +42,8 @@ class Request {
     try {
       this.client.check_permissions(this.raw);
 
-      const conn = this.client.parent._reql_conn.get_connection();
-      const metadata = this.client.parent._reql_conn.get_metadata();
+      const conn = this.client.parent._reql_conn.connection();
+      const metadata = this.client.parent._reql_conn.metadata();
       check(conn !== undefined && metadata !== undefined,
             'Connection to the database is down.');
 
@@ -65,7 +65,7 @@ class Request {
       return logger.debug(`Disconnected client got an error: ${JSON.stringify(err)}.`);
     }
 
-    const metadata = this.client.parent._reql_conn.get_metadata();
+    const metadata = this.client.parent._reql_conn.metadata();
     if (metadata === undefined) {
       this.client.send_response(this.id, { error: 'Connection to the database is down.' });
     } else {
@@ -189,7 +189,7 @@ class Client {
         this.send_response(request.request_id, { error: `${err}`, error_code: 0 });
         this.close_socket('Invalid token.', err);
       } else if (decoded.user !== null) {
-        const metadata = this.parent._reql_conn.get_metadata();
+        const metadata = this.parent._reql_conn.metadata();
         metadata.get_user_info(decoded.user, (rdb_err, res) => {
           if (rdb_err) {
             this.send_response(request.request_id, { error: 'User does not exist.', error_code: 0 });

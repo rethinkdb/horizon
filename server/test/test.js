@@ -11,12 +11,7 @@ const all_suites = [ 'http_tests',
                      'write_tests' ];
 const table = 'test';
 
-before('Start RethinkDB Server',
-       /** @this mocha */
-       function(done) {
-         utils.test_db_server(done);
-       });
-
+before('Start RethinkDB Server', (done) => utils.test_db_server(done));
 
 beforeEach(
   /** @this mocha */
