@@ -23,9 +23,35 @@ function authEndpoint(name) {
   }
 }
 
+// Simple shim to make a Map look like local/session storage
+class FakeStorage extends Map {
+  setItem(a, b) {
+    return this.set(a, b)
+  }
+  getItem(a) {
+    return this.get(a)
+  }
+}
+
+function getStorage() {
+  if (window.localStorage === undefined) {
+    return new FakeStorage()
+  }
+  if (window.sessionStorage !== undefined) {
+    return window.sessionStorage
+  }
+  try {
+    window.localStorage.setItem('$$fake', 1)
+    window.localStorage.removeItem('$$fake')
+    return window.localStorage
+  } catch (error) {
+    return new FakeStorage()
+  }
+}
+
 class TokenStorage {
   constructor(authType = 'token') {
-    this._storage = window.localStorage
+    this._storage = getStorage()
     this._authType = authType
     this._withRegistry = modify => {
       const rawRegistry = this._storage.getItem('horizon-jwt')
