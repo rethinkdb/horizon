@@ -1,13 +1,15 @@
 <img style="width:100%;" src="/github-banner.png">
 
-# RethinkDB Horizon
+# What is Horizon?
 
-RethinkDB Horizon is an open-source developer platform for building
-realtime, scalable web apps. It is built on top of RethinkDB, and
-allows app developers to get started with building modern, engaging
-apps without writing any backend code.
+Horizon is an open-source developer platform for building sophisticated realtime
+apps. It provides a complete backend that makes it dramatically simpler to
+build, deploy, manage, and scale engaging JavaScript web and mobile apps.
+Horizon is extensible, integrates with the Node.js stack, and allows building
+modern, arbitrarily complex applications.
 
-Horizon consists of four components:
+Horizon is built on top of [RethinkDB](http://www.rethinkdb.com) and consists of
+four components:
 
 - [__Horizon server__](/server) -- a middleware server that connects to/is built on
   top of RethinkDB, and exposes a simple API/protocol to front-end
