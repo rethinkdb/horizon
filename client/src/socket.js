@@ -91,7 +91,8 @@ class HorizonSocket extends Rx.AnonymousSubject {
         // listener will be removed
         statusSubject.onNext(STATUS_DISCONNECTED)
         if (e.code !== 1000 || !e.wasClean) {
-          observer.onError(e)
+          observer.onError(
+            new Error(`Socket closed unexpectedly with code: ${e.code}`))
         } else {
           observer.onCompleted()
         }
