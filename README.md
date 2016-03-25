@@ -47,14 +47,14 @@ additional services:
 
 ## Why Horizon?
 
-While RethinkDB is poised to be an excellent database for building
-realtime apps, empirically there is still too much friction for most
-developers. To get started they have to learn ReQL, understand
-changefeeds, and figure out how to thread changefeeds through their
-backend code. Then, find a reliable way to get that data to
-the browser. The learning curve is quite steep, and most of the
-initial work involves boilerplate code that is far removed from
-the primary task of building a realtime app.
+While technologies like [RethinkDB](http://www.rethinkdb.com) and
+[WebSocket](https://en.wikipedia.org/wiki/WebSocket) make it possible to build
+engaging realtime apps, empirically there is still too much friction for most
+developers. Building realtime apps now requires understanding and manually
+orchestrating multiple systems across the software stack, understanding
+distributed stream processing, and learning how to deploy and scale realtime systems. The
+learning curve is quite steep, and most of the initial work involves boilerplate
+code that is far removed from the primary task of building a realtime app.
 
 Horizon sets out to solve this problem. Developers can start building
 apps using their favorite front-end framework using Horizon's APIs
