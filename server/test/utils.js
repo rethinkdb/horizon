@@ -25,14 +25,18 @@ let rdb_http_port, rdb_port, rdb_conn, horizon_server, horizon_port, horizon_con
 let horizon_authenticated = false;
 
 const test_db_server = (done) => {
+  logger.info('removing dir');
   rm_sync_recursive(data_dir);
+
+  logger.info('creating server');
 
   start_rdb_server({ dataDir: data_dir }).then((info) => {
     rdb_port = info.driverPort;
     rdb_http_port = info.httpPort;
+    logger.info('server created, connecting');
 
     const conn_promise = r.connect({ db, port: rdb_port });
-    conn_promise.then((c) => { rdb_conn = c; });
+    conn_promise.then((c) => { rdb_conn = c; logger.info('connected'); });
     conn_promise.then((c) => r.dbCreate(db).run(c)).then((res) => {
       assert.strictEqual(res.dbs_created, 1);
       done();
@@ -90,10 +94,12 @@ const populate_table = (table, rows, done) => {
 };
 
 const start_horizon_server = (done) => {
+  logger.info('creating http server');
   assert.strictEqual(horizon_server, undefined);
 
   const http_server = new http.Server();
   http_server.listen(0, () => {
+    logger.info('creating horizon server');
     horizon_port = http_server.address().port;
     horizon_server = new horizon.Server(http_server,
       { rdb_port,
@@ -104,7 +110,9 @@ const start_horizon_server = (done) => {
           allow_unauthenticated: true,
         },
       });
-    horizon_server.ready().then(done);
+    horizon_server.ready().catch((err) => logger.info(`horizon server error: ${err}`));
+    horizon_server.ready().then(() => logger.info('horizon server ready'));
+    horizon_server.ready().then(() => done());
   });
   http_server.on('error', (err) => done(err));
 };
@@ -138,6 +146,7 @@ const dispatch_message = (raw) => {
 };
 
 const open_horizon_conn = (done) => {
+  logger.info('opening horizon conn');
   assert.notStrictEqual(horizon_server, undefined);
   assert.strictEqual(horizon_conn, undefined);
   horizon_authenticated = false;
@@ -150,6 +159,7 @@ const open_horizon_conn = (done) => {
 };
 
 const close_horizon_conn = () => {
+  logger.info('closing horizon conn');
   if (horizon_conn) { horizon_conn.close(); }
   horizon_conn = undefined;
   horizon_listeners = undefined;
@@ -181,8 +191,7 @@ const horizon_default_auth = (done) => {
 // TODO: this doesn't allow for dealing with multiple states (like 'synced').
 const stream_test = (req, cb) => {
   assert(horizon_conn && horizon_conn.readyState === websocket.OPEN);
-  horizon_conn.send(JSON.stringify(req));
-  const results = [];
+
   add_horizon_listener(req.request_id, (msg) => {
     if (msg.data !== undefined) {
       results.push.apply(results, msg.data);
@@ -195,6 +204,9 @@ const stream_test = (req, cb) => {
       cb(null, results);
     }
   });
+
+  horizon_conn.send(JSON.stringify(req));
+  const results = [];
 };
 
 const check_error = (err, msg) => {

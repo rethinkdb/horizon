@@ -137,7 +137,7 @@ class Auth {
     if (!this._parent._reql_conn.ready()) {
       cb(new Error('Connection to database is down, cannot perform authentication.'));
     } else {
-      query.run(this._parent._reql_conn.get_connection(), cb);
+      query.run(this._parent._reql_conn.connection(), cb);
     }
   }
 }

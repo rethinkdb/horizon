@@ -165,14 +165,16 @@ class Metadata {
           .do(() => query));
     }
 
+    logger.info('running metadata sync');
     this._ready_promise = query.run(this._conn).then((res) => {
-        this._tables = new Map();
-        res.forEach((table) =>
-          this._tables.set(table.name,
-            new Table(table.name,
-              new Set(Object.keys(table.indexes).map((idx) =>
-                new Index(idx, table.indexes[idx]))))));
-        this._ready = true;
+      logger.info('metadata sync complete');
+      this._tables = new Map();
+      res.forEach((table) =>
+        this._tables.set(table.name,
+          new Table(table.name,
+            new Set(Object.keys(table.indexes).map((idx) =>
+              new Index(idx, table.indexes[idx]))))));
+      this._ready = true;
     }).then(() => this);
   }
 
