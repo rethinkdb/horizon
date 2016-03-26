@@ -99,7 +99,7 @@ class Auth {
         logger.error('Failed anonymous user creation: ${err}');
         cb(new Error('Anonymous user creation in database failed.'));
       } else {
-        this.verify_jwt(this._jwt_from_user(res.id, null), cb);
+        this.verify_jwt(this._jwt_from_user(res.generated_keys[0], null), cb);
       }
     });
   }

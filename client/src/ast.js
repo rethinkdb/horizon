@@ -1,9 +1,8 @@
 const snakeCase = require('snake-case')
 
 const Rx = require('rx')
-const { checkArgs,
-        validIndexValue,
-        assign } = require('./utility.js')
+const checkArgs = require('./util/check-args')
+const validIndexValue = require('./util/valid-index-value.js')
 const { serialize } = require('./serialization.js')
 
 
@@ -182,7 +181,7 @@ function writeOp(name, args, documents) {
     // Don't bother sending no-ops to the server
     return Rx.Observable.empty()
   }
-  const options = assign(this._query, { data: serialize(wrappedDocs) })
+  const options = Object.assign({}, this._query, { data: serialize(wrappedDocs) })
   let observable = this._sendRequest(name, options)
   if (!this._lazyWrites) {
     // Need to buffer response since this becomes a hot observable and
@@ -240,7 +239,7 @@ class Find extends TermBase {
   constructor(sendRequest, previousQuery, idOrObject) {
     const findObject = validIndexValue(idOrObject) ?
           { id: idOrObject } : idOrObject
-    const query = assign(previousQuery, { find: findObject })
+    const query = Object.assign({}, previousQuery, { find: findObject })
     super(sendRequest, query, [])
   }
 }
@@ -250,7 +249,7 @@ class FindAll extends TermBase {
     const wrappedFields = fieldValues
           .map(item => validIndexValue(item) ? { id: item } : item)
     const options = { find_all: wrappedFields }
-    const findAllQuery = assign(previousQuery, options)
+    const findAllQuery = Object.assign({}, previousQuery, options)
     let legalMethods
     if (wrappedFields.length === 1) {
       legalMethods = [ 'order', 'above', 'below', 'limit' ]
@@ -265,7 +264,7 @@ class FindAll extends TermBase {
 class Above extends TermBase {
   constructor(sendRequest, previousQuery, aboveSpec, bound) {
     const option = { above: [ aboveSpec, bound ] }
-    const query = assign(previousQuery, option)
+    const query = Object.assign({}, previousQuery, option)
     const legalMethods = [ 'findAll', 'order', 'below', 'limit' ]
     super(sendRequest, query, legalMethods)
   }
@@ -274,7 +273,7 @@ class Above extends TermBase {
 class Below extends TermBase {
   constructor(sendRequest, previousQuery, belowSpec, bound) {
     const options = { below: [ belowSpec, bound ] }
-    const query = assign(previousQuery, options)
+    const query = Object.assign({}, previousQuery, options)
     const legalMethods = [ 'findAll', 'order', 'above', 'limit' ]
     super(sendRequest, query, legalMethods)
   }
@@ -284,7 +283,7 @@ class Order extends TermBase {
   constructor(sendRequest, previousQuery, fields, direction) {
     const wrappedFields = Array.isArray(fields) ? fields : [ fields ]
     const options = { order: [ wrappedFields, direction ] }
-    const query = assign(previousQuery, options)
+    const query = Object.assign({}, previousQuery, options)
     const legalMethods = [ 'findAll', 'above', 'below', 'limit' ]
     super(sendRequest, query, legalMethods)
   }
@@ -292,7 +291,7 @@ class Order extends TermBase {
 
 class Limit extends TermBase {
   constructor(sendRequest, previousQuery, size) {
-    const query = assign(previousQuery, { limit: size })
+    const query = Object.assign({}, previousQuery, { limit: size })
     // Nothing is legal to chain after .limit
     super(sendRequest, query, [])
   }

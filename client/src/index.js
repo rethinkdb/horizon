@@ -1,22 +1,34 @@
 const Rx = require('rx')
-const { Collection } = require('./ast.js')
-const HorizonSocket = require('./socket.js')
-const { log, logError, enableLogging } = require('./logging.js')
-const { subscribeOrObservable } = require('./utility.js')
+const { Collection } = require('./ast')
+const HorizonSocket = require('./socket')
+const { log, logError, enableLogging } = require('./logging')
+const { authEndpoint, TokenStorage, clearAuthTokens } = require('./auth')
 
-module.exports = Horizon
-
+const defaultHost = window && window.location &&
+        `${window.location.host}` || 'localhost:8181'
+const defaultSecure = window && window.location &&
+        window.location.protocol === 'https:' || false
 
 function Horizon({
-  host = window && window.location && `${window.location.host}` ||
-    'localhost:8181',
-  secure = window && window.location && window.location.protocol === 'https:' ||
-    false,
+  host = defaultHost,
+  secure = defaultSecure,
   path = 'horizon',
   lazyWrites = false,
+  authType = 'unauthenticated',
 } = {}) {
+  // If we're in a redirection from OAuth, store the auth token for
+  // this user in localStorage.
+  const tokenStorage = new TokenStorage(authType)
+  tokenStorage.setAuthFromQueryParams()
+
   // Websocket Subject
-  const socket = new HorizonSocket(host, secure, path)
+  const socket = new HorizonSocket(host, secure, path, tokenStorage.handshake())
+
+  // Store whatever token we get back from the server when we get a
+  // handshake response
+  socket.handshake.subscribe(
+    handshake => tokenStorage.maybeSaveToken(authType, handshake.token)
+  )
 
   // This is the object returned by the Horizon function. It's a
   // function so we can construct a collection simply by calling it
@@ -58,6 +70,10 @@ function Horizon({
   horizon.onSocketError = subscribeOrObservable(
     socket.status.filter(x => x.type === 'error'))
 
+  horizon._authMethods = null
+  horizon._horizonPath = path
+  horizon.authEndpoint = authEndpoint
+
   return horizon
 
   // Sends a horizon protocol request to the server, and pulls the data
@@ -82,7 +98,21 @@ function Horizon({
   }
 }
 
+function subscribeOrObservable(observable) {
+  return (...args) => {
+    if (args.length > 0) {
+      return observable.subscribe(...args)
+    } else {
+      return observable
+    }
+  }
+}
+
+
 Horizon.log = log
 Horizon.logError = logError
 Horizon.enableLogging = enableLogging
 Horizon.Socket = HorizonSocket
+Horizon.clearAuthTokens = clearAuthTokens
+
+module.exports = Horizon
