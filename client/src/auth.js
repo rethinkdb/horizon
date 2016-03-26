@@ -37,15 +37,16 @@ function getStorage() {
   if (window.localStorage === undefined) {
     return new FakeStorage()
   }
-  if (window.sessionStorage !== undefined) {
-    return window.sessionStorage
-  }
   try {
     window.localStorage.setItem('$$fake', 1)
     window.localStorage.removeItem('$$fake')
     return window.localStorage
   } catch (error) {
-    return new FakeStorage()
+    if (window.sessionStorage === undefined) {
+      return new FakeStorage()
+    } else {
+      return window.sessionStorage
+    }
   }
 }
 
@@ -130,7 +131,12 @@ class TokenStorage {
   }
 }
 
+function clearAuthTokens() {
+  const storage = getStorage().removeItem('horizon-jwt')
+}
+
 module.exports = {
   authEndpoint,
   TokenStorage,
+  clearAuthTokens,
 }

@@ -2,7 +2,7 @@ const Rx = require('rx')
 const { Collection } = require('./ast')
 const HorizonSocket = require('./socket')
 const { log, logError, enableLogging } = require('./logging')
-const { authEndpoint, TokenStorage } = require('./auth')
+const { authEndpoint, TokenStorage, clearAuthTokens } = require('./auth')
 
 const defaultHost = window && window.location &&
         `${window.location.host}` || 'localhost:8181'
@@ -113,5 +113,6 @@ Horizon.log = log
 Horizon.logError = logError
 Horizon.enableLogging = enableLogging
 Horizon.Socket = HorizonSocket
+Horizon.clearAuthTokens = clearAuthTokens
 
 module.exports = Horizon
