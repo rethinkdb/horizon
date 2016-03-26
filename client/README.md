@@ -377,7 +377,7 @@ chats.store([
 // 2 (because `id` was provided)
 ```
 
-When `.forEach` is chained off of a changefeed it accepts two functions, one which handles the changefeed results as well as an error handler. 
+When `.forEach` is chained off of a changefeed it accepts two functions, one which handles the changefeed results as well as an error handler.
 
 ```js
 chats.watch().forEach(
@@ -559,4 +559,42 @@ horizon('chats').watch({ rawChanges: true }).forEach(change => {
 // Chat changed: { type: 'added', new_val: { id: 1, chat: 'Hey there' }, old_val: null }
 // Chat changed: { type: 'added', new_val: { id: 2, chat: 'Ho there' }, old_val: null }
 // Chat changed: { type: 'removed', new_val: null, old_val: { id: 1, chat: 'Hey there' } }
+```
+
+## Authenticating
+
+There are three types of authentication types that Horizon recognizes.
+
+### Unauthenticated
+
+The first auth type is unauthenticated. One jwt is shared by all unauthenticated users. To set the authentication method to 'unauthenticated' by default, do:
+
+``` js
+const horizon = Horizon({ authType: 'unauthenticated' });
+```
+
+### Anonymous
+
+The second auth type is anonymous. If anonymous authentication is enabled in the config, any user requesting anonymous authentication will be given a new jwt, with no other confirmation necessary. The server will create a user entry in the users table for this jwt, with no other way to authenticate as this user than by passing the jwt back. (This is done under the hood with the jwt being stored in localStorage and passed back on subsequent requests automatically).
+
+``` js
+const horizon = Horizon({ authType: 'anonymous' });
+```
+
+### Token
+
+This is the only method of authentication that verifies a user's identity. To authenticate, first pick an OAuth identity provider. For example, to use Twitter for authentication, you might do something like:
+
+``` js
+const horizon = Horizon({ authType: 'token' });
+window.location.replace(horizon.authEndpoint('twitter'));
+```
+After logging in with twitter, the user will be redirected back to the app, where the horizon client will grab the jwt from the redirected url, to be used on subsequent requests where `authType = 'token'`. If the token is lost (because of a browser wipe, or changing computers etc), the user can be recovered by re-authenticating with Twitter.
+
+### Clearing tokens
+
+Sometimes you may wish to delete all authentication tokens from localStorage. You can do that with:
+
+``` js
+Horizon.clearAuthTokens()
 ```
