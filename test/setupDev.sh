@@ -8,15 +8,15 @@ green () {
 green 'Removing old node_modules dirs if present'
 if [ -d ../client/node_modules ]; then
   echo Removing client/node_modules
-  rm --recursive ../client/node_modules
+  rm -r ../client/node_modules
 fi
 if [ -d ../server/node_modules ]; then
   echo Removing server/node_modules
-  rm --recursive ../server/node_modules
+  rm -r ../server/node_modules
 fi
 if [ -d ../cli/node_modules ]; then
   echo Removing cli/node_modules
-  rm --recursive ../cli/node_modules
+  rm -r ../cli/node_modules
 fi
 
 pushd ../client
