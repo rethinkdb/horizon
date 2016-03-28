@@ -105,11 +105,16 @@ function makePresentable(observable, query) {
       }
     }, seedVal)
   } else {
+    // Need to track whether anything has been emitted yet, so we can
+    // emit an empty array upon receiving a 'synced' state
+    // change. Otherwise, we don't want state changes to re-emit the
+    // current array.
+    let hasEmitted = false
     const seedVal = []
     // Need to incrementally add to and remove from an array
     return observable
       // Filter out state changes since they shouldn't cause us to re-emit
-      .filter(change => change.type !== 'state')
+      .filter(change => !hasEmitted || change.type !== 'state')
       .scan((previous, change) => {
         const arr = previous.slice()
         switch (change.type) {
@@ -120,22 +125,28 @@ function makePresentable(observable, query) {
           if (index !== -1) {
             arr.splice(index, 1)
           }
+          hasEmitted = true
           break
         }
         case 'add':
         case 'initial': {
           // Add new values to the array
           arr.push(change.new_val)
+          hasEmitted = true
           break
         }
         case 'change': {
           // Modify in place if a change is happening
           const index = arr.findIndex(x => x.id === change.old_val.id)
           arr[index] = change.new_val
+          hasEmitted = true
           break
         }
         case 'state': {
-          throw new Error('Should be unreachable, states are filtered out')
+          // This gets hit if we have not emitted yet, and should
+          // result in an empty array being output.
+          hasEmitted = true
+          break
         }
         default:
           throw new Error(
