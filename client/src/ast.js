@@ -95,56 +95,70 @@ function makePresentable(observable, query) {
   const orderedQuery = Boolean(query.order)
 
   if (pointQuery) {
+    let hasEmitted = false
     const seedVal = null
     // Simplest case: just pass through new_val
-    return observable.scan((previous, change) => {
-      if (change.state === 'synced') {
-        return previous
-      } else {
-        return change.new_val
-      }
-    }, seedVal)
+    return observable
+      .filter(change => !hasEmitted || change.type !== 'state')
+      .scan((previous, change) => {
+        hasEmitted = true
+        if (change.state === 'synced') {
+          return previous
+        } else {
+          return change.new_val
+        }
+      }, seedVal)
   } else {
+    // Need to track whether anything has been emitted yet, so we can
+    // emit an empty array upon receiving a 'synced' state
+    // change. Otherwise, we don't want state changes to re-emit the
+    // current array.
+    let hasEmitted = false
     const seedVal = []
     // Need to incrementally add to and remove from an array
-    return observable.scan((previous, change) => {
-      const arr = previous.slice()
-      switch (change.type) {
-      case 'remove':
-      case 'uninitial': {
-        // Remove old values from the array
-        const index = arr.findIndex(x => x.id === change.old_val.id)
-        if (index !== -1) {
-          arr.splice(index, 1)
+    return observable
+      // Filter out state changes since they shouldn't cause us to re-emit
+      .filter(change => !hasEmitted || change.type !== 'state')
+      .scan((previous, change) => {
+        const arr = previous.slice()
+        switch (change.type) {
+        case 'remove':
+        case 'uninitial': {
+          // Remove old values from the array
+          const index = arr.findIndex(x => x.id === change.old_val.id)
+          if (index !== -1) {
+            arr.splice(index, 1)
+          }
+          break
         }
-        break
-      }
-      case 'add':
-      case 'initial': {
-        // Add new values to the array
-        arr.push(change.new_val)
-        break
-      }
-      case 'change': {
-        // Modify in place if a change is happening
-        const index = arr.findIndex(x => x.id === change.old_val.id)
-        arr[index] = change.new_val
-        break
-      }
-      case 'state': {
-        // just emit the accumulator unchanged
-        break
-      }
-      default:
-        throw new Error(
-          `unrecognized 'type' field from server ${JSON.stringify(change)}`)
-      }
-      // Sort the array if the query is ordered
-      if (orderedQuery) {
-        sortByFields(arr, query.order[0], query.order[1] === 'ascending')
-      }
-      return arr
-    }, seedVal)
+        case 'add':
+        case 'initial': {
+          // Add new values to the array
+          arr.push(change.new_val)
+          break
+        }
+        case 'change': {
+          // Modify in place if a change is happening
+          const index = arr.findIndex(x => x.id === change.old_val.id)
+          arr[index] = change.new_val
+          break
+        }
+        case 'state': {
+          // This gets hit if we have not emitted yet, and should
+          // result in an empty array being output.
+          break
+        }
+        default:
+          throw new Error(
+            `unrecognized 'type' field from server ${JSON.stringify(change)}`)
+        }
+        // Sort the array if the query is ordered
+        if (orderedQuery) {
+          sortByFields(arr, query.order[0], query.order[1] === 'ascending')
+        }
+        hasEmitted = true
+        return arr
+      }, seedVal)
   }
 }
 
