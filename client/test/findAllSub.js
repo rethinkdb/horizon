@@ -94,7 +94,6 @@ const findAllSubscriptionSuite = window.findAllSubscriptionSuite = getData => ()
         ],
         expected: [
           [ { id: 1, a: 1 } ],
-          [ { id: 1, a: 1 } ],
           [ { id: 1, a: 2 } ],
           [],
         ],

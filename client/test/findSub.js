@@ -71,7 +71,6 @@ const findSubscriptionSuite = window.findSubscriptionSuite = (getData) => () => 
         ],
         expected: [
           { id: 1, a: 1 },
-          { id: 1, a: 1 },
           { id: 1, a: 2 },
           null,
         ],
