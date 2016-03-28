@@ -95,15 +95,19 @@ function makePresentable(observable, query) {
   const orderedQuery = Boolean(query.order)
 
   if (pointQuery) {
+    let hasEmitted = false
     const seedVal = null
     // Simplest case: just pass through new_val
-    return observable.scan((previous, change) => {
-      if (change.state === 'synced') {
-        return previous
-      } else {
-        return change.new_val
-      }
-    }, seedVal)
+    return observable
+      .filter(change => !hasEmitted || change.type !== 'state')
+      .scan((previous, change) => {
+        hasEmitted = true
+        if (change.state === 'synced') {
+          return previous
+        } else {
+          return change.new_val
+        }
+      }, seedVal)
   } else {
     // Need to track whether anything has been emitted yet, so we can
     // emit an empty array upon receiving a 'synced' state
@@ -125,27 +129,23 @@ function makePresentable(observable, query) {
           if (index !== -1) {
             arr.splice(index, 1)
           }
-          hasEmitted = true
           break
         }
         case 'add':
         case 'initial': {
           // Add new values to the array
           arr.push(change.new_val)
-          hasEmitted = true
           break
         }
         case 'change': {
           // Modify in place if a change is happening
           const index = arr.findIndex(x => x.id === change.old_val.id)
           arr[index] = change.new_val
-          hasEmitted = true
           break
         }
         case 'state': {
           // This gets hit if we have not emitted yet, and should
           // result in an empty array being output.
-          hasEmitted = true
           break
         }
         default:
@@ -156,6 +156,7 @@ function makePresentable(observable, query) {
         if (orderedQuery) {
           sortByFields(arr, query.order[0], query.order[1] === 'ascending')
         }
+        hasEmitted = true
         return arr
       }, seedVal)
   }
