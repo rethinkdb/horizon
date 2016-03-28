@@ -107,44 +107,46 @@ function makePresentable(observable, query) {
   } else {
     const seedVal = []
     // Need to incrementally add to and remove from an array
-    return observable.scan((previous, change) => {
-      const arr = previous.slice()
-      switch (change.type) {
-      case 'remove':
-      case 'uninitial': {
-        // Remove old values from the array
-        const index = arr.findIndex(x => x.id === change.old_val.id)
-        if (index !== -1) {
-          arr.splice(index, 1)
+    return observable
+      // Filter out state changes since they shouldn't cause us to re-emit
+      .filter(change => change.type !== 'state')
+      .scan((previous, change) => {
+        const arr = previous.slice()
+        switch (change.type) {
+        case 'remove':
+        case 'uninitial': {
+          // Remove old values from the array
+          const index = arr.findIndex(x => x.id === change.old_val.id)
+          if (index !== -1) {
+            arr.splice(index, 1)
+          }
+          break
         }
-        break
-      }
-      case 'add':
-      case 'initial': {
-        // Add new values to the array
-        arr.push(change.new_val)
-        break
-      }
-      case 'change': {
-        // Modify in place if a change is happening
-        const index = arr.findIndex(x => x.id === change.old_val.id)
-        arr[index] = change.new_val
-        break
-      }
-      case 'state': {
-        // just emit the accumulator unchanged
-        break
-      }
-      default:
-        throw new Error(
-          `unrecognized 'type' field from server ${JSON.stringify(change)}`)
-      }
-      // Sort the array if the query is ordered
-      if (orderedQuery) {
-        sortByFields(arr, query.order[0], query.order[1] === 'ascending')
-      }
-      return arr
-    }, seedVal)
+        case 'add':
+        case 'initial': {
+          // Add new values to the array
+          arr.push(change.new_val)
+          break
+        }
+        case 'change': {
+          // Modify in place if a change is happening
+          const index = arr.findIndex(x => x.id === change.old_val.id)
+          arr[index] = change.new_val
+          break
+        }
+        case 'state': {
+          throw new Error('Should be unreachable, states are filtered out')
+        }
+        default:
+          throw new Error(
+            `unrecognized 'type' field from server ${JSON.stringify(change)}`)
+        }
+        // Sort the array if the query is ordered
+        if (orderedQuery) {
+          sortByFields(arr, query.order[0], query.order[1] === 'ascending')
+        }
+        return arr
+      }, seedVal)
   }
 }
 
