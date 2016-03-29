@@ -587,7 +587,13 @@ This is the only method of authentication that verifies a user's identity. To au
 
 ``` js
 const horizon = Horizon({ authType: 'token' });
-window.location.replace(horizon.authEndpoint('twitter'));
+if (horizon.hasAuthToken()) {
+  horizon.authEndpoint('twitter').toPromise()
+    .then(endpoint =>
+        window.location.replace(endpoint));
+} else {
+  // we're have a token already, do horizon stuff here...
+}
 ```
 After logging in with twitter, the user will be redirected back to the app, where the horizon client will grab the jwt from the redirected url, to be used on subsequent requests where `authType = 'token'`. If the token is lost (because of a browser wipe, or changing computers etc), the user can be recovered by re-authenticating with Twitter.
 
