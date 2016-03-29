@@ -15,7 +15,6 @@ function authEndpoint(name) {
     console.log('No auth methods, have to fetch')
     return Rx.DOM.getJSON(`${this._horizonPath}/auth_methods`)
       .do(authMethods => {
-        console.log('Got methods: ', authMethods)
         this._authMethods = authMethods
       }).map(endpointForName)
   } else {
@@ -128,6 +127,12 @@ class TokenStorage {
         return reg
       })
     }
+  }
+
+  // Whether there is an auth token for the provided authType
+  hasAuthToken() {
+    console.log(`Looking for a ${this._authType} token`)
+    return Boolean(this.get(this._authType))
   }
 }
 
