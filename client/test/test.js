@@ -1,4 +1,5 @@
 const BROWSER = (typeof window !== 'undefined')
+const path = require('path')
 
 if (BROWSER) {
   // Use source maps in mocha errors (ordinarily source maps
@@ -38,7 +39,12 @@ if (BROWSER) {
   // we test the actual packaged module. It is listed as an external
   // in webpack config, so that it is not bundled here to avoid
   // race conditions when packaging.
-  window.Horizon = require('./horizon.js')
+
+  if (__dirname.split(path.sep).pop(-1) === 'test') {
+    window.Horizon = require('../lib/index.js')
+  } else {
+    window.Horizon = require("./horizon.js")
+  }
 }
 
 window.chai = require('chai/chai.js')

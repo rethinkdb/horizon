@@ -23,13 +23,11 @@ function authEndpoint(name) {
 }
 
 // Simple shim to make a Map look like local/session storage
-class FakeStorage extends Map {
-  setItem(a, b) {
-    return this.set(a, b)
-  }
-  getItem(a) {
-    return this.get(a)
-  }
+class FakeStorage {
+  constructor() { this.map = new Map() }
+  setItem(a, b) { return this.map.set(a, b) }
+  getItem(a) { return this.map.get(a) }
+  removeItem(a) { return this.map.delete(a) }
 }
 
 function getStorage() {
@@ -138,6 +136,7 @@ class TokenStorage {
 
 function clearAuthTokens() {
   const storage = getStorage().removeItem('horizon-jwt')
+  getStorage().removeItem('horizon-jwt')
 }
 
 module.exports = {

@@ -3,6 +3,7 @@
   "version": "0.0.4-0",
   "description": "RethinkDB Horizon is an open-source developer platform for building realtime, scalable web apps.",
   "scripts": {
+    "coverage": "istanbul cover _mocha test/test.js",
     "dev": "webpack --watch --progress --colors",
     "devtest": "nodemon --watch dist --exec 'npm test -- --reporter dot && npm run lint -s'",
     "builddebug": "webpack --progress --colors --display-modules --display-reasons",
@@ -35,6 +36,7 @@
     "chai": "^3.5.0",
     "copy-webpack-plugin": "^1.1.1",
     "eslint": "2.2.x",
+    "istanbul": "^0.4.2",
     "lodash": "^4.6.1",
     "mocha": "2.3.4",
     "nodemon": "^1.9.1",
