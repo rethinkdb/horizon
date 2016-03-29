@@ -86,7 +86,7 @@ class TokenStorage {
   setAuthFromQueryParams(tokenStorage) {
     const parsed = queryParse(window.location.search)
     if (parsed.horizon_auth != null) {
-      tokenStorage.set('oauth', parsed.horizon_auth)
+      tokenStorage.set('oauth', parsed.horizon_token)
     }
   }
 
