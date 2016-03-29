@@ -2,6 +2,8 @@ const queryParse = require('./util/query-parse')
 const Rx = require('rx')
 require('rx-dom-ajax') // add Rx.DOM.ajax methods
 
+const HORIZON_JWT = 'horizon-jwt'
+
 /** @this Horizon **/
 function authEndpoint(name) {
   const endpointForName = methods => {
@@ -50,94 +52,53 @@ function getStorage() {
 }
 
 class TokenStorage {
-  constructor(authType = 'token') {
+  constructor(authType = 'unauthenticated') {
     this._storage = getStorage()
     this._authType = authType
-    this._withRegistry = modify => {
-      const rawRegistry = this._storage.getItem('horizon-jwt')
-      const oldRegistry = rawRegistry ? JSON.parse(rawRegistry) : {}
-      const newRegistry = modify(oldRegistry)
-      if (newRegistry != null) {
-        return this._storage.setItem('horizon-jwt', JSON.stringify(newRegistry))
-      }
-      return null
-    }
   }
 
-  set(name, jwt) {
-    return this._withRegistry(reg => { reg[name] = jwt })
+  set(jwt) {
+    return this._storage.setItem(HORIZON_JWT, jwt)
   }
 
-  get(name) {
-    let val
-    this._withRegistry(reg => { val = reg[name] })
-    return val
+  get() {
+    return this._storage.getItem(HORIZON_JWT)
   }
 
-  remove(name) {
-    return this._withRegistry(reg => { delete reg[name] })
-  }
-
-  // Remove all jwt tokens from localStorage
-  clear() {
-    return this._withRegistry(() => ({}))
+  remove() {
+    return this._storage.removeItem(HORIZON_JWT)
   }
 
   setAuthFromQueryParams() {
     const parsed = queryParse(window.location.search)
     if (parsed.horizon_auth != null) {
-      this.set('oauth', parsed.horizon_token)
+      this.set(parsed.horizon_auth)
     }
   }
 
   // Handshake types are implemented here
   handshake() {
-    switch (this._authType) {
-    case 'unauthenticated':
-    case 'anonymous': {
-      // If we have anonymous credentials, we should send them rather
-      // than requesting new ones
-      const token = this.get(this._authType)
-      if (token != null) {
-        return { method: 'token', token }
-      } else {
-        return { method: this._authType }
-      }
-    }
-    case 'token': {
-      const oauthTk = this.get('oauth')
-      if (oauthTk) {
-        return { method: 'token', token: oauthTk }
-      } else {
-        throw new Error(
-          'Attempting to authenticate with a token, but no token is present')
-      }
-    }
-    default:
-      throw new Error(`Unrecognized auth type: ${this._authType}`)
-    }
-  }
-
-  maybeSaveToken(authType, token) {
-    if (authType === 'anonymous' || authType === 'unauthenticated') {
-      this._withRegistry(reg => {
-        if (reg[authType] !== token) {
-          reg[authType] = token
-        }
-        return reg
-      })
+    // If we have a token, we should send it rather than requesting a
+    // new one
+    const token = this.get()
+    if (token != null) {
+      return { method: 'token', token }
+    } else if (this._authType === 'token') {
+      throw new Error(
+        'Attempting to authenticate with a token, but no token is present')
+    } else {
+      return { method: this._authType }
     }
   }
 
   // Whether there is an auth token for the provided authType
   hasAuthToken() {
-    console.log(`Looking for a ${this._authType} token`)
-    return Boolean(this.get(this._authType))
+    return Boolean(this.get())
   }
 }
 
 function clearAuthTokens() {
-  const storage = getStorage().removeItem('horizon-jwt')
+  getStorage().removeItem(HORIZON_JWT)
 }
 
 module.exports = {

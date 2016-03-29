@@ -5,11 +5,6 @@
 // API of the client library. This also doesn't cover subscriptions, there is a
 // separate test suite for that.
 
-before(done => {
-  // Ensure no auth tokens are hanging around from previous runs
-  Horizon.clearAuthTokens()
-  done()
-})
 // Test the methods and event callbacks on the Horizon object.
 describe('Horizon Object API', horizonObjectSuite)
 
@@ -23,6 +18,7 @@ describe('Core API tests', () => {
 
   // Set up the horizon connection before running these tests.
   before(done => {
+    Horizon.clearAuthTokens()
     horizon = Horizon({ secure: false, lazyWrites: true })
     horizon.connect(err => done(err))
     horizon.onConnected(() => {

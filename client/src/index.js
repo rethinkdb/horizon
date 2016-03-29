@@ -27,7 +27,7 @@ function Horizon({
   // Store whatever token we get back from the server when we get a
   // handshake response
   socket.handshake.subscribe(
-    handshake => tokenStorage.maybeSaveToken(authType, handshake.token)
+    handshake => tokenStorage.set(handshake.token)
   )
 
   // This is the object returned by the Horizon function. It's a
