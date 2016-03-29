@@ -135,7 +135,7 @@ class TokenStorage {
 }
 
 function clearAuthTokens() {
-  return getStorage().removeItem('horizon-jwt')
+  return getStorage().removeItem(HORIZON_JWT)
 }
 
 module.exports = {
