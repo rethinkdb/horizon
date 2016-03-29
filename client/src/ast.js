@@ -125,8 +125,10 @@ function makePresentable(observable, query) {
         case 'remove':
         case 'uninitial': {
           // Remove old values from the array
-          const index = arr.findIndex(x => x.id === change.old_val.id)
-          if (index !== -1) {
+          if (change.old_offset != null) {
+            arr.splice(change.old_offset, 1)
+          } else {
+            const index = arr.findIndex(x => x.id === change.old_val.id)
             arr.splice(index, 1)
           }
           break
@@ -134,13 +136,30 @@ function makePresentable(observable, query) {
         case 'add':
         case 'initial': {
           // Add new values to the array
-          arr.push(change.new_val)
+          if (change.new_offset != null) {
+            // If we have an offset, put it in the correct location
+            arr.splice(change.new_offset, 0, change.new_val)
+          } else {
+            // otherwise for unordered results, push it on the end
+            arr.push(change.new_val)
+          }
           break
         }
         case 'change': {
           // Modify in place if a change is happening
-          const index = arr.findIndex(x => x.id === change.old_val.id)
-          arr[index] = change.new_val
+          if (change.old_offset != null) {
+            // Remove the old document from the results
+            arr.splice(change.old_offset, 1)
+          }
+          if (change.new_offset != null) {
+            // Splice in the new val if we have an offset
+            arr.splice(change.new_offset, 0, change.new_val)
+          } else {
+            // If we don't have an offset, find the old val and
+            // replace it with the new val
+            const index = arr.findIndex(x => x.id === change.old_val.id)
+            arr[index] = change.new_val
+          }
           break
         }
         case 'state': {
@@ -152,34 +171,10 @@ function makePresentable(observable, query) {
           throw new Error(
             `unrecognized 'type' field from server ${JSON.stringify(change)}`)
         }
-        // Sort the array if the query is ordered
-        if (orderedQuery) {
-          sortByFields(arr, query.order[0], query.order[1] === 'ascending')
-        }
         hasEmitted = true
         return arr
       }, seedVal)
   }
-}
-
-// Sorts documents in an array by the fields specified.
-// Note: arr must be an array of objects Also, this does not sort the
-// same way RethinkDB does, it's a stop-gap until orderBy.limit
-// changefeeds support giving the position for new_val and old_val in
-// the results
-function sortByFields(arr, fields, ascending) {
-  const result = ascending ? -1 : 1
-  return arr.sort((a, b) => {
-    const af = fields.map(field => a[field])
-    const bf = fields.map(field => b[field])
-    if (af < bf) {
-      return result
-    } else if (af > bf) {
-      return -result
-    } else {
-      return 0
-    }
-  })
 }
 
 /** @this Collection
@@ -195,7 +190,8 @@ function writeOp(name, args, documents) {
     // Don't bother sending no-ops to the server
     return Rx.Observable.empty()
   }
-  const options = Object.assign({}, this._query, { data: serialize(wrappedDocs) })
+  const options = Object.assign(
+    {}, this._query, { data: serialize(wrappedDocs) })
   let observable = this._sendRequest(name, options)
   if (!this._lazyWrites) {
     // Need to buffer response since this becomes a hot observable and
