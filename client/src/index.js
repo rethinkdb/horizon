@@ -21,8 +21,8 @@ function Horizon({
   const tokenStorage = new TokenStorage(authType)
   tokenStorage.setAuthFromQueryParams()
 
-  // Websocket Subject
-  const socket = new HorizonSocket(host, secure, path, tokenStorage.handshake())
+  const socket = new HorizonSocket(
+    host, secure, path, tokenStorage.handshake.bind(tokenStorage))
 
   // Store whatever token we get back from the server when we get a
   // handshake response

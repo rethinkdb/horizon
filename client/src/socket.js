@@ -32,7 +32,7 @@ class ProtocolError extends Error {
 // request_ids, looking at the `state` field to decide when an
 // observable is closed.
 class HorizonSocket extends Rx.AnonymousSubject {
-  constructor(host, secure, path, handshakeObject) {
+  constructor(host, secure, path, handshaker) {
     const hostString = `ws${secure ? 's' : ''}://${host}/${path}`
     const msgBuffer = []
     let ws, handshakeDisp
@@ -65,7 +65,7 @@ class HorizonSocket extends Rx.AnonymousSubject {
       ws.onopen = () => {
         // Send the handshake
         statusSubject.onNext(STATUS_CONNECTED)
-        handshakeDisp = this.makeRequest(handshakeObject).subscribe(
+        handshakeDisp = this.makeRequest(handshaker()).subscribe(
           x => {
             handshake.onNext(x)
             handshake.onCompleted()
