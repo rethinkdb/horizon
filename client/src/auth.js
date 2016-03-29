@@ -135,8 +135,7 @@ class TokenStorage {
 }
 
 function clearAuthTokens() {
-  const storage = getStorage().removeItem('horizon-jwt')
-  getStorage().removeItem('horizon-jwt')
+  return getStorage().removeItem('horizon-jwt')
 }
 
 module.exports = {
