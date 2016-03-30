@@ -149,7 +149,7 @@ Optional Args| Description
 
 One can also configure Horizon with a `.hzconfig` [toml](https://github.com/toml-lang/toml) configuration file. Here is an example configuration file below. Note that by default, `hz serve` will look for `.hzconfig` (which is created by `hz init`) in the current directory. 
 
-This example shows the current defaults. To change them, you need to remove the `#` from the beginning of the line and change the value. Note that `[ table_name ]` toml table declarations need to also be uncommented in the OAuth configuration.
+This example shows the current defaults. To change them, you need to remove the `#` from the beginning of the line and change the value. Note that `[ table_name ]` toml table declarations need to also be uncommented in the OAuth configuration at the end of the file.
 
 ```toml
 # This is a TOML file
