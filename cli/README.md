@@ -98,7 +98,7 @@ npm link
 
 ### `hz init`
 Create a horizon app directory, automatically creating a `src` and `dist`
-directory within the folder.
+directories within the folder, as well as a `.hzconfig` toml configuration file.
 
 Positional Args | Description
 ----------------|------------
@@ -144,3 +144,91 @@ Optional Args| Description
 
   Once a key file and cert file have been obtained, launch the server without the `--insecure`
   flag, and provide the files in the `--key-file` and `--cert-file` options.
+
+### `.hzconfig` file
+
+One can also configure Horizon with a `.hzconfig` [toml](https://github.com/toml-lang/toml) configuration file. Here is an example configuration file below. Note that by default, `hz serve` will look for `.hzconfig` (which is created by `hz init`) in the current directory. 
+
+This example shows the current defaults. To change them, you need to remove the `#` from the beginning of the line and change the value. Note that `[ table_name ]` toml table declarations need to also be uncommented in the OAuth configuration.
+
+```toml
+# This is a TOML file
+###############################################################################
+# IP options
+# 'bind' controls which local interfaces will be listened on
+# 'port' controls which port will be listened on
+#------------------------------------------------------------------------------
+# bind = [ "localhost" ]
+# port = 8181
+###############################################################################
+# HTTPS Options
+# 'insecure' will disable HTTPS and use HTTP instead
+# 'key_file' and 'cert_file' are required for serving HTTPS
+#------------------------------------------------------------------------------
+# insecure = true
+# key_file = "key.pem"
+# cert_file = "cert.pem"
+###############################################################################
+# App Options
+# 'project' will change to the given directory
+# 'serve_static' will serve files from the given directory over HTTP/HTTPS
+#------------------------------------------------------------------------------
+# project = "horizon"
+# serve_static = "dist"
+###############################################################################
+# Data Options
+# WARNING: these should probably not be enabled on a publically accessible
+# service.  Tables and indexes are not lightweight objects, and allowing them
+# to be created like this could open the service up to denial-of-service
+# attacks.
+# 'auto_create_table' creates a table when one is needed but does not exist
+# 'auto_create_index' creates an index when one is needed but does not exist
+#------------------------------------------------------------------------------
+# auto_create_table = true
+# auto_create_index = true
+###############################################################################
+# RethinkDB Options
+# These options are mutually exclusive
+# 'connect' will connect to an existing RethinkDB instance
+# 'start_rethinkdb' will run an internal RethinkDB instance
+#------------------------------------------------------------------------------
+# connect = "localhost:28015"
+# start_rethinkdb = false
+###############################################################################
+# Debug Options
+# 'debug' enables debug log statements
+#------------------------------------------------------------------------------
+# debug = true
+###############################################################################
+# Authentication Options
+# Each auth subsection will add an endpoint for authenticating through the
+# specified provider.
+# 'allow_anonymous' issues new accounts to users without an auth provider
+# 'allow_unauthenticated' allows connections that are not tied to a user id
+# 'auth_redirect' specifies where users will be redirected to after login
+#------------------------------------------------------------------------------
+# allow_anonymous = true
+# allow_unauthenticated = true
+# auth_redirect = "/"
+#
+# [auth.facebook]
+# id = "000000000000000"
+# secret = "00000000000000000000000000000000"
+#
+# [auth.google]
+# id = "00000000000-00000000000000000000000000000000.apps.googleusercontent.com"
+# secret = "000000000000000000000000"
+#
+# [auth.twitter]
+# id = "0000000000000000000000000"
+# secret = "00000000000000000000000000000000000000000000000000"
+#
+# [auth.github]
+# id = "00000000000000000000"
+# secret = "0000000000000000000000000000000000000000"
+#
+# [auth.twitch]
+# id = "0000000000000000000000000000000"
+# secret = "0000000000000000000000000000000"
+
+
