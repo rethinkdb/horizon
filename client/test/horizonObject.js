@@ -6,6 +6,7 @@
 var horizonObjectSuite = window.horizonObjectSuite = () => {
   describe('Horizon', () => {
     it('connects and can track its status', done => {
+      Horizon.clearAuthTokens()
       const horizon = Horizon({ secure: false })
       assert.isDefined(horizon)
       horizon.status(
