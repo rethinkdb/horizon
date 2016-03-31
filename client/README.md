@@ -577,13 +577,13 @@ This is the default authentication method and provides no means to separate user
 
 ### Anonymous
 
-The second auth type is anonymous. If anonymous authentication is enabled in the config, any user requesting anonymous authentication will be given a new JWT, with no other confirmation necessary. The server will create a user entry in the users table for this jwt, with no other way to authenticate as this user than by passing the jwt back. (This is done under the hood with the jwt being stored in localStorage and passed back on subsequent requests automatically).
+The second auth type is anonymous. If anonymous authentication is enabled in the config, any user requesting anonymous authentication will be given a new JWT, with no other confirmation necessary. The server will create a user entry in the users table for this JWT, with no other way to authenticate as this user than by passing the JWT back. (This is done under the hood with the jwt being stored in localStorage and passed back on subsequent requests automatically).
 
 ``` js
 const horizon = Horizon({ authType: 'anonymous' });
 ```
 
-This type of authentication is useful when you need to differentiate users but don't need to identify them separately but each will be doing private things in your application. 
+This type of authentication is useful when you need to differentiate users but don't want to use a popular 3rd party to authenticate them. This is essentially the means of "Creating an account" or "Signing up" for people who use your website. 
 
 ### Token
 
@@ -593,10 +593,11 @@ This is the only method of authentication that verifies a user's identity with a
 const horizon = Horizon({ authType: 'token' });
 if (!horizon.hasAuthToken()) {
   horizon.authEndpoint('twitter').toPromise()
-    .then(endpoint =>
-        window.location.pathname = endpoint;
+    .then((endpoint) => {
+      window.location.pathname = endpoint;
+    })
 } else {
-  // We have a token already, do horizon stuff here...
+  // We have a token already, do authenticated horizon stuff here...
 }
 ```
 After logging in with Twitter, the user will be redirected back to the app, where the Horizon client will grab the JWT from the redirected url, which will be used on subsequent connections where `authType = 'token'`. If the token is lost (because of a browser wipe, or changing computers etc), the user can be recovered by re-authenticating with Twitter.
@@ -608,6 +609,6 @@ This is type of authentication is useful for quickly getting your application ru
 Sometimes you may wish to delete all authentication tokens from localStorage. You can do that with:
 
 ``` js
-# Note the 'H'
+// Note the 'H'
 Horizon.clearAuthTokens()
 ```
