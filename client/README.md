@@ -377,7 +377,7 @@ chats.store([
 // 2 (because `id` was provided)
 ```
 
-When `.forEach` is chained off of a changefeed it accepts two functions, one which handles the changefeed results as well as an error handler. 
+When `.forEach` is chained off of a changefeed it accepts two functions, one which handles the changefeed results as well as an error handler.
 
 ```js
 chats.watch().forEach(
@@ -559,4 +559,56 @@ horizon('chats').watch({ rawChanges: true }).forEach(change => {
 // Chat changed: { type: 'added', new_val: { id: 1, chat: 'Hey there' }, old_val: null }
 // Chat changed: { type: 'added', new_val: { id: 2, chat: 'Ho there' }, old_val: null }
 // Chat changed: { type: 'removed', new_val: null, old_val: { id: 1, chat: 'Hey there' } }
+```
+
+## Authenticating
+
+There are three types of authentication types that Horizon recognizes.
+
+### Unauthenticated
+
+The first auth type is unauthenticated. One [JWT](https://jwt.io/) is shared by all unauthenticated users. To create a connection using the 'unauthenticated' method do:
+
+``` js
+const horizon = Horizon({ authType: 'unauthenticated' });
+```
+
+This is the default authentication method and provides no means to separate user permissions or data in the Horizon application. 
+
+### Anonymous
+
+The second auth type is anonymous. If anonymous authentication is enabled in the config, any user requesting anonymous authentication will be given a new JWT, with no other confirmation necessary. The server will create a user entry in the users table for this JWT, with no other way to authenticate as this user than by passing the JWT back. (This is done under the hood with the jwt being stored in localStorage and passed back on subsequent requests automatically).
+
+``` js
+const horizon = Horizon({ authType: 'anonymous' });
+```
+
+This type of authentication is useful when you need to differentiate users but don't want to use a popular 3rd party to authenticate them. This is essentially the means of "Creating an account" or "Signing up" for people who use your website. 
+
+### Token
+
+This is the only method of authentication that verifies a user's identity with a third party. To authenticate, first pick an OAuth identity provider. For example, to use Twitter for authentication, you might do something like:
+
+``` js
+const horizon = Horizon({ authType: 'token' });
+if (!horizon.hasAuthToken()) {
+  horizon.authEndpoint('twitter').toPromise()
+    .then((endpoint) => {
+      window.location.pathname = endpoint;
+    })
+} else {
+  // We have a token already, do authenticated horizon stuff here...
+}
+```
+After logging in with Twitter, the user will be redirected back to the app, where the Horizon client will grab the JWT from the redirected url, which will be used on subsequent connections where `authType = 'token'`. If the token is lost (because of a browser wipe, or changing computers etc), the user can be recovered by re-authenticating with Twitter.
+
+This is type of authentication is useful for quickly getting your application running with information relevant to your application provided by a third party. Users don't need to create yet another user acount for your application and can reuse the ones they already have. 
+
+### Clearing tokens
+
+Sometimes you may wish to delete all authentication tokens from localStorage. You can do that with:
+
+``` js
+// Note the 'H'
+Horizon.clearAuthTokens()
 ```
