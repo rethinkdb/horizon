@@ -115,6 +115,13 @@ projectName |  Name of directory to create. Defaults to current directory
 This serves the directory and supplies all the tooling needed for serving a
 Horizon web application.
 
+*Note:* `hz serve` will be configured by options in the following order of 
+least to highest precedence: 
+
+```
+environment variables < config file (`.hzconfig`) < command-line flags 
+```
+
 ##### Available options
 
 Positional Args | Description
@@ -137,19 +144,20 @@ Optional Args| Description
   --serve-static [PATH] | Serve static files from a directory. Defaults to `dist`.
   --dev               | Runs the server in development mode, this sets `--debug`, `--insecure`, `--auto-create-tables`, and `--auto-create-indexes`.
 
-  #### Serving securely, generating certs for SSL
-  There are proper ways to get a certificate registered through a Certificate
-  Authority, but for the purpose of getting up-and-running as soon as possible,
-  generate a self-signed certificate.  This command will generate the certificate
-  using the default options from `openssl`, and should not be used for anything
-  serious:
+#### Serving securely, generating certs for SSL
+  
+There are proper ways to get a certificate registered through a Certificate
+Authority, but for the purpose of getting up-and-running as soon as possible,
+generate a self-signed certificate.  This command will generate the certificate
+using the default options from `openssl`, and should not be used for anything
+serious:
 
-  ```sh
-  openssl req -x509 -newkey rsa:2048 -keyout horizon-key.pem -out horizon-cert.pem -days 365 -nodes -batch
-  ```
+```sh
+openssl req -x509 -newkey rsa:2048 -keyout horizon-key.pem -out horizon-cert.pem -days 365 -nodes -batch
+```
 
-  Once a key file and cert file have been obtained, launch the server without the `--insecure`
-  flag, and provide the files in the `--key-file` and `--cert-file` options.
+Once a key file and cert file have been obtained, launch the server without the `--insecure`
+flag, and provide the files in the `--key-file` and `--cert-file` options. 
 
 ### `.hzconfig` file
 
