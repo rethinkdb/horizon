@@ -74,14 +74,23 @@ their app.
 
 ### How do you start Horizon?
 
+This first step is to install the Horizon command line tool. 
+
 ```sh
 $ npm install -g horizon
+```
+
+You can then create the boilerplate with `hz init` and then launch Horizon Server and an instance of RethinkDB with `hz serve --dev`.
+
+```sh
 $ hz init myapp
 $ hz serve myapp --dev
 # localhost:8181 has a demo page on it
 # Horizon client connections can be made to ws://localhost:8181/horizon
 # The horizon client library is served from localhost:8181/horizon/horizon.js
 ```
+
+There is a much more thorough getting started example and a list of argument flags in the [horizon/cli](/cli) directory.
 
 ### What does the code look like?
 
