@@ -2,7 +2,7 @@
 
 const logger = require('./logger');
 
-const MIN_VERSION = [ 2, 2, 5 ];
+const MIN_VERSION = [ 2, 3, 0 ];
 
 // Recursive version compare, could be flatter but opted for instant return if
 //  comparison is greater rather than continuing to compare to end.
