@@ -1,5 +1,10 @@
 <img style="width:100%;" src="/github-banner.png">
 
+> **At the moment you need the not-yet-released version 2.3 of RethinkDB due out at the end of the first week of April. Here are Linux and OSX statically-compiled pre-release binaries so you can still get started with Horizon. Make sure the binary takes precedence over your system installed RethinkDB in your path and you will be fine! Otherwise contact @dalanmiller in the RethinkDB #horizon slack channel**
+
+> * Linux -  https://www.dropbox.com/s/j5mo656i2nmsmae/rethinkdb-2.3.0-pre-horizon-x64-linux?dl=1
+> * OSX - https://www.dropbox.com/s/z9grxsl9wd84cm8/rethinkdb-2.3.0-pre-horizon-x64-mac?dl=1
+
 # What is Horizon?
 
 Horizon is an open-source developer platform for building sophisticated realtime
