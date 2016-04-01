@@ -4,7 +4,7 @@
 > * OSX - https://www.dropbox.com/s/z9grxsl9wd84cm8/rethinkdb-2.3.0-pre-horizon-x64-mac?dl=1
 
 
-# Getting started with Horizon
+# Getting started with the Horizon CLI
 
 First, install horizon from npm:
 
