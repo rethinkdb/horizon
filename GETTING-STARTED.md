@@ -84,6 +84,30 @@ By default, horizon creates a basic `index.html` to serve so you can verify ever
 
 ---
 
+## Starting Horizon Server
+
+From here, we now need to start the Horizon Server to both serve your static files as well as
+start the Node application which server the Horizon Client API and connects to RethinkDB.
+
+Luckily, running `hz serve --dev` has all that covered for you. Here's a comparison of what happens with and without `--dev`:
+
+|  | `hz serve`| `hz serve --dev` | Command-line Flag                 |
+|----------------------------|:-----------:|:-----:|----------------------|
+|Starts Horizon Server       | ✅        | ✅  |                      |
+|Starts RethinkDB Server     | ❌        | ✅  | `--start-rethinkdb`  |
+|Insecure Mode (no HTTPS/WSS)| ❌        | ✅  | `--insecure`         |
+|Auto creates tables         | ❌        | ✅  | `--auto-create-table`|
+|Auto creates indexes        | ❌        | ✅  | `--auto-create-index`|
+
+
+
+Here is
+[the complete list of command line flags](https://github.com/rethinkdb/horizon/tree/next/cli#hz-serve) for `hz serve` ➡️.
+
+Locally, you will likely always use `hz serve --dev` just know that it will begin a new instance of RethinkDB
+for you and will automatically create tables and indexes for you.
+---
+
 ## The Horizon Client Library
 
 In the boilerplate created by `hz init`, you can see that the Horizon client library is being
