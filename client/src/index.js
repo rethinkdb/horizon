@@ -72,6 +72,7 @@ function Horizon({
 
   horizon._authMethods = null
   horizon._horizonPath = path
+  horizon._horizonHost = host
   horizon.authEndpoint = authEndpoint
   horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
 

@@ -15,7 +15,7 @@ function authEndpoint(name) {
   }
   if (!this._authMethods) {
     console.log('No auth methods, have to fetch')
-    return Rx.DOM.getJSON(`${this._horizonPath}/auth_methods`)
+    return Rx.DOM.getJSON(`${this._horizonHost}/${this._horizonPath}/auth_methods`)
       .do(authMethods => {
         this._authMethods = authMethods
       }).map(endpointForName)
