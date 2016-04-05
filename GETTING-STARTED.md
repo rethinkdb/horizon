@@ -87,7 +87,7 @@ By default, horizon creates a basic `index.html` to serve so you can verify ever
 ## Starting Horizon Server
 
 From here, we now need to start the Horizon Server to both serve your static files as well as
-start the Node application which server the Horizon Client API and connects to RethinkDB.
+start the Node application which serves the Horizon Client API and connects to RethinkDB.
 
 Luckily, running `hz serve --dev` has all that covered for you. Here's a comparison of what happens with and without `--dev`:
 
@@ -102,16 +102,21 @@ Luckily, running `hz serve --dev` has all that covered for you. Here's a compari
 
 
 Here is
-[the complete list of command line flags](https://github.com/rethinkdb/horizon/tree/next/cli#hz-serve) for `hz serve` ➡️.
+<a href="https://github.com/rethinkdb/horizon/tree/next/cli#hz-serve">the complete list of command line flags</a> for `hz serve` ➡️.
 
-Locally, you will likely always use `hz serve --dev` just know that it will begin a new instance of RethinkDB
-for you and will automatically create tables and indexes for you.
+On your local dev machine, you will likely always use `hz serve --dev` which will begin a new instance of RethinkDB for you and will automatically create tables and indexes. However, if you deploy your own [Horizon Cloud](https://github.com/rethinkdb/horizon-cloud), you'll need to setup and configure your own instance of Horizon Server.
+
+### Configuring Horizon Server
+
+Horizon Server is also configurable via the `.hzconfig` file which is in the [toml](https://github.com/toml-lang/toml) config format. By default, `hz serve` will look for this file
+in the current working directory. Here is [an example `.hzconfig` file from the Horizon CLI documentation](https://github.com/rethinkdb/horizon/tree/next/cli#hzconfig-file) ➡️.
+
 ---
 
 ## The Horizon Client Library
 
 In the boilerplate created by `hz init`, you can see that the Horizon client library is being
-imported from a path served by Horizon Server.
+imported from the path `/horizon/horizon.js` served by Horizon Server. If you
 
 
 ```html
