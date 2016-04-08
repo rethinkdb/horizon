@@ -10,7 +10,7 @@ We're happy you want to contribute! You can help us in different ways:
 
 To submit a pull request, fork the [Horizon repository][3] and then clone your fork:
 
-    git clone git@github.com:<your-name>/rethinkdb.git
+    git clone git@github.com:<your-name>/horizon.git
 
 [3]: https://github.com/rethinkdb/horizon
 
