@@ -19,6 +19,7 @@ class ReqlConnection {
     this._ready = false;
     this._reconnect_delay = 0;
     this._ready_promise = new Promise((resolve) => this._reconnect(resolve));
+    this._closed = false;
   }
 
   _reconnect(resolve) {
@@ -27,15 +28,37 @@ class ReqlConnection {
     this._ready = false;
     this._clients.forEach((client) => client.reql_connection_lost());
     this._clients.clear();
-    setTimeout(() => this._init_connection(resolve), this._reconnect_delay);
-    this._reconnect_delay = Math.min(this._reconnect_delay + 100, 1000);
+
+    if (!this._closed) {
+      setTimeout(() => this._init_connection(resolve), this._reconnect_delay);
+      this._reconnect_delay = Math.min(this._reconnect_delay + 100, 1000);
+    }
   }
 
   _init_connection(resolve) {
+    let retried = false;
+    const retry = () => {
+      if (!retried) {
+        retried = true;
+        if (!this._ready) {
+          this._reconnect(resolve);
+        } else {
+          this._ready_promise = new Promise((new_resolve) => this._reconnect(new_resolve));
+        }
+      }
+    };
+
     logger.info(`Connecting to RethinkDB: ${this._host}:${this._port}`);
     r.connect({ host: this._host, port: this._port, db: this._db })
      .then((conn) => {
        logger.info('Connection to RethinkDB established.');
+       conn.once('close', () => {
+         retry();
+       });
+       conn.on('error', (err) => {
+         logger.error('Error on connection to RethinkDB: ${err}.');
+         retry();
+       });
        return conn.server().then((serv) =>
          r.db('rethinkdb').table('server_status')
           .get(serv.id)('process')('version')
@@ -51,17 +74,14 @@ class ReqlConnection {
                                      this._auto_create_index);
        return this._metadata.ready();
      }).then(() => {
+       logger.info('Metadata synced with database, ready for traffic.');
        this._reconnect_delay = 0;
        this._ready = true;
-       this._connection.once('close', () => {
-         this._ready_promise = new Promise((res) => this._reconnect(res));
-       });
-       logger.info('Metadata synced with database, ready for traffic.');
        resolve(this);
      }).catch((err) => {
        logger.error(`Connection to RethinkDB terminated: ${err}`);
        logger.debug(`stack: ${err.stack}`);
-       this._reconnect(resolve);
+       retry();
      });
   }
 
@@ -85,6 +105,7 @@ class ReqlConnection {
 
   close() {
     if (this._connection) {
+      this._closed = true;
       this._connection.close();
     }
   }
