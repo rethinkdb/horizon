@@ -16,6 +16,7 @@ module.exports.auth = {
   facebook: require('./auth/facebook'),
   github: require('./auth/github'),
   google: require('./auth/google'),
+  slack: require('./auth/slack'),
   twitch: require('./auth/twitch'),
   twitter: require('./auth/twitter'),
 };
