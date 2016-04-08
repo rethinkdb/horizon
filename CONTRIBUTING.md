@@ -4,7 +4,7 @@ We're happy you want to contribute! You can help us in different ways:
 
 - [Open an issue][1] with suggestions for improvements and errors you're facing
 - Fork this repository and submit a pull request
-- Improve the [documentation][2] (coming soon, see [Resources](#resources) below for now)
+- Improve the <a>documentation</a> (coming soon, see [Resources](#resources) below for now)
 
 [1]: https://github.com/rethinkdb/horizon/issues
 
