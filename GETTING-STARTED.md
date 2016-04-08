@@ -1,16 +1,13 @@
 ![](/horizon.png)
 
-> **At the moment you need the not-yet-released version 2.3 of RethinkDB due out at the end of the first week of April. Here are Linux and OSX statically-compiled pre-release binaries so you can still get started with Horizon. Make sure the binary takes precedence over your system installed RethinkDB in your path and you will be fine! Otherwise contact @dalanmiller in the RethinkDB #horizon slack channel**
-
-> * Linux -  https://www.dropbox.com/s/j5mo656i2nmsmae/rethinkdb-2.3.0-pre-horizon-x64-linux?dl=1
-> * OSX - https://www.dropbox.com/s/z9grxsl9wd84cm8/rethinkdb-2.3.0-pre-horizon-x64-mac?dl=1
-
 # Getting Started with Horizon
 
 **Getting Started**
 * [Installation](#installation)
 * [Creating your first app](#creating-your-first-app)
-* [Intro to the Horizon Client Library](#)
+* [Starting Horizon Server](#starting-horizon-server)
+ * [Configuring Horizon Server](#configuring-horizon-server)
+* [Intro to the Horizon Client Library](#the-horizon-client-library)
  * [Storing documents](#storing-documents)
  * [Retrieving documents](#retrieving-documents)
  * [Removing documents](#removing-documents)
@@ -99,17 +96,22 @@ Luckily, running `hz serve --dev` has all that covered for you. Here's a compari
 |Auto creates tables         | ❌        | ✅  | `--auto-create-table`|
 |Auto creates indexes        | ❌        | ✅  | `--auto-create-index`|
 
+So when using `hz serve --dev` you don't have to worry about explicitly creating tables, or  worry about creating indexes to ensure your Horizon queries are always fast. As well, Horizon will start an instance of RethinkDB specifically for Horizon and create a `rethinkdb_data` folder in your current directory when you start `hz serve --dev`
 
+> Using authentication _requires_ that you use https. To setup authentication for your app you will have to use `hz serve` without `--dev` and with `--key` and `--cert` flags as well as any other options you require. 
 
-Here is
+Here you can find
 <a href="https://github.com/rethinkdb/horizon/tree/next/cli#hz-serve">the complete list of command line flags</a> for `hz serve` ➡️.
 
-On your local dev machine, you will likely always use `hz serve --dev` which will begin a new instance of RethinkDB for you and will automatically create tables and indexes. However, if you deploy your own [Horizon Cloud](https://github.com/rethinkdb/horizon-cloud), you'll need to setup and configure your own instance of Horizon Server.
+On your local dev machine, you will usually use `hz serve --dev` which will begin a new instance of RethinkDB for you and will automatically create tables and indexes. However, if you deploy your own [Horizon Cloud](https://github.com/rethinkdb/horizon-cloud), you'll need to setup and configure your own instance of Horizon Server.
 
 ### Configuring Horizon Server
 
-Horizon Server is also configurable via the `.hzconfig` file which is in the [toml](https://github.com/toml-lang/toml) config format. By default, `hz serve` will look for this file
+Horizon Server is configurable via the `.hzconfig` file which is in the [toml](https://github.com/toml-lang/toml) config format. By default, `hz serve` will look for this file
 in the current working directory. Here is [an example `.hzconfig` file from the Horizon CLI documentation](https://github.com/rethinkdb/horizon/tree/next/cli#hzconfig-file) ➡️.
+
+> Be warned that there is a precedence to config file setting in the order of:
+> environment variables > config file > command-line flags
 
 ---
 
