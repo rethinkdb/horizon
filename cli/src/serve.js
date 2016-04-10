@@ -79,10 +79,10 @@ const addArguments = (parser) => {
       help: 'Runs the server in development mode, this sets ' +
       '--debug, ' +
       '--insecure, ' +
-      '--auto-create-tables, ' +
+      '--auto-create-table, ' +
       '--start-rethinkdb, ' +
       '--serve-static, ' +
-      'and --auto-create-indexes.' });
+      'and --auto-create-index.' });
 
   parser.addArgument([ '--config' ],
     { type: 'string', metavar: 'PATH',
