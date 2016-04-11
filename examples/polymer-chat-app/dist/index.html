@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+
+  <title>polymer chat example</title>
+  <meta name="description" content="">
+
+  <!-- Mobile -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Chrome / Android -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="black">
+  <link rel="icon" href="icon.png">
+
+  <!-- Safari / iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon-precomposed" href="apple-touch-icon.png">
+
+  <!-- Web Components -->
+  <script src="/bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="/bower_components/paper-toolbar/paper-toolbar.html">
+  <link rel="import" href="/bower_components/paper-input/paper-input.html">
+  <link rel="import" href="/bower_components/iron-a11y-keys/iron-a11y-keys.html">
+  <style>
+    html,
+    body {
+      margin: 0;
+      height: calc(100% - 44px);
+    }
+
+    paper-input {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+    }
+
+    ul {
+      height: calc(100% - 44px);
+      overflow: scroll;
+      list-style-type: none;
+    }
+
+  </style>
+</head>
+
+<body unresolved>
+  <paper-toolbar>
+    <p class="title">Polymer-Horizon Chat Demo</p>
+  </paper-toolbar>
+
+  <template is="dom-bind">
+    <ul id='list'>
+      <template is="dom-repeat" items="[[messages]]" as="message">
+        <li className="message">
+          <img height="50px" width="50px" src="http://api.adorable.io/avatars/50/[[message.authorId]].png" />
+          <span className="text">
+            {{message.text}}
+          </span>
+        </li>
+      </template>
+    </ul>
+    <iron-a11y-keys target="[[target]]" keys="enter" on-keys-pressed="onEnter"></iron-a11y-keys>
+    <paper-input id="input" placeholder="Enter text here" ></paper-input>
+  </template>
+
+
+  <script src="/horizon/horizon.js" charset="utf-8"></script>
+  <script type="text/javascript">
+    var horizon = Horizon();
+    (function(app, Message) {
+      app.messages = [];
+
+      //--------------------------
+      // Pull last 8 messages from DB, subscribe for changes, assign changes to `app.messages`.
+      Message
+        .order("datetime", "descending")
+        .limit(8)
+        .watch()
+        .subscribe(messages => {
+          app.messages = messages.reverse();
+        });
+
+      /**
+      * Save a message to the database
+      *
+      * @param {String} - message content
+      */
+      var save = function(message) {
+        Message.store({
+          id: this.uuid(),
+          text: message,
+          authorId: this.author.authorId,
+          datetime: new Date()
+        }).subscribe();
+      }.bind(app);
+
+      //--------------------------
+      // Generate a user to post from
+      app.author = app.author || {};
+      app.uuid = function() {
+        /*jshint bitwise:false */
+        var i, random;
+        var uuid = '';
+
+        for (i = 0; i < 32; i++) {
+          random = Math.random() * 16 | 0;
+          if (i === 8 || i === 12 || i === 16 || i === 20) {
+            uuid += '-';
+          }
+          uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random))
+            .toString(16);
+        }
+        return uuid;
+      };
+      app.author.authorId = new Date().getMilliseconds();
+      app.author.image = new Image();
+
+      //-------------------------
+      // fires when when enter pressed inside input
+      app.onEnter = function() {
+        save(this.$.input.value);
+        this.$.input.value = '';
+        this.async(function() {
+          this.$.list.scrollTop = this.$.list.scrollHeight;
+        });
+      };
+
+      window.addEventListener('WebComponentsReady', function(e) {
+        this.target = this.$.input;
+      }.bind(app));
+
+    })(document.querySelector('template[is="dom-bind"]'), horizon('messages'));
+  </script>
+</body>
+
+</html>
+

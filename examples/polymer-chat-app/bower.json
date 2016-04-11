@@ -1,0 +1,23 @@
+{
+  "name": "polymer-chat-app",
+  "homepage": "https://github.com/BLamy/horizon",
+  "authors": [
+    "Brett Lamy <bel423@me.com>"
+  ],
+  "description": "",
+  "main": "",
+  "moduleType": [],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "iron-a11y-keys": "PolymerElements/iron-a11y-keys#~1.0.4",
+    "paper-input": "PolymerElements/paper-input#~1.1.10",
+    "paper-toolbar": "PolymerElements/paper-toolbar#~1.1.4"
+  }
+}
