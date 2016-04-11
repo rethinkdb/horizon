@@ -4,7 +4,7 @@
 
 
 ## Usage
-1) `cd dist`
+1) `cd polymer-chat-app`
 2) `bower install`
-3) `cd ../..`
+3) `cd ..`
 4) `hz serve polymer-chat-app --dev`
