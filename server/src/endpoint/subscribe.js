@@ -5,7 +5,11 @@ const logger = require('../logger');
 
 const make_reql = (raw_request, metadata) => {
   return query.make_reql(raw_request, metadata).changes(
-    { include_initial: true, include_states: true, include_types: true });
+    { include_initial: true,
+      include_states: true,
+      include_types: true,
+      include_offsets: Boolean(raw_request.options.order),
+    });
 };
 
 const handle_response = (request, feed, send_cb) => {

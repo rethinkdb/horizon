@@ -111,6 +111,7 @@ require('./findSub.js')
 require('./findAllSub.js')
 require('./aboveSub.js')
 require('./belowSub.js')
+require('./orderLimitSub.js')
 
 // Load the suite runner
 require('./api.js')
