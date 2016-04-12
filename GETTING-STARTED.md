@@ -7,6 +7,7 @@
 * [Creating your first app](#creating-your-first-app)
 * [Starting Horizon Server](#starting-horizon-server)
  * [Configuring Horizon Server](#configuring-horizon-server)
+ * [Adding OAuth authentication](#adding-oauth-authentication)
 * [Intro to the Horizon Client Library](#the-horizon-client-library)
  * [Storing documents](#storing-documents)
  * [Retrieving documents](#retrieving-documents)
@@ -112,6 +113,89 @@ in the current working directory. Here is [an example `.hzconfig` file from the 
 
 > Be warned that there is a precedence to config file setting in the order of:
 > environment variables > config file > command-line flags
+
+### Adding OAuth authentication
+
+With Horizon, we wanted to make it easy to allow your users to authenticate with the accounts
+they already have with the most popular services.
+
+You can find [a full list of OAuth implementations we support here](/server/src/auth).
+
+The first thing you need to do is create an application with the provider you'd like to authenticate with, usually at the developer portal portion of their website. Here are links
+ to a the providers we currently support.
+
+* 😵📖 - [Facebook](https://developers.facebook.com/apps/)
+* 💻🏦 - [Github](https://github.com/settings/applications/new)
+* 🔟<sup>100</sup> - [Google](https://console.developers.google.com/project)
+* 🎮📹 - [Twitch](https://www.twitch.tv/kraken/oauth2/clients/new)
+* 🐦💬 - [Twitter](https://apps.twitter.com/app/new)
+
+From each of these providers you will eventually have a `client_id` and `client_secret`
+(sometimes just `id` and `secret`) that you will need to put into the `.hzconfig`
+configuration file.
+
+Near the bottom of the automatically generated `.hzconfig` file you'll see commented out
+sample OAuth settings, you'll just need to uncomment them out and replace the values with your `client_id` and `client_secret`. Adding Github OAuth configuration would look like this:
+
+```toml
+# [auth.facebook]
+# id = "000000000000000"
+# secret = "00000000000000000000000000000000"
+#
+# [auth.google]
+# id = "00000000000-00000000000000000000000000000000.apps.googleusercontent.com"
+# secret = "000000000000000000000000"
+#
+# [auth.twitter]
+# id = "0000000000000000000000000"
+# secret = "00000000000000000000000000000000000000000000000000"
+#
+
+[auth.github]
+id = "your_client_id"
+secret = "your_client_secret"
+```
+
+Once you've added the lines in your `.hzconfig` you're basically all set. To verify that
+Horizon Server picked them up, run `hz serve` then go to
+`https://localhost:8181/horizon/auth_methods` (or where ever you are running Horizon Server) to
+see a list of currently active authentication options.
+
+> At this point, ensure that you're using `--key-file` and `--cert-file` with `hz serve` as you cannot have authentication without also using TLS or serving assets via HTTPS/WSS. As well,
+ensure that you are now using `https://` for all your URLs.
+
+You should see `github` included in the object of available auth methods, if you just see a blank object like so `{ }`, ensure that you restarted Horizon Server and that it is using the `.hzconfig` you edited. It should look like this:
+
+```js
+{
+  github: "/horizon/github"
+}
+```
+
+Now the value of the property `github` is the path to replace on the current `window.location`
+that will begin the authentication process. Or, just type in
+`https://localhost:8181/horizon/github` in your browser to test it out.
+
+As a result of a successful authentication, the browser will be redirected by to the root of the
+dev server (`https://localhost:8181/`) with the `?horizon_token=` in the query parameters and you
+can now consider the user properly authenticated at this point. If an error occurs somewhere
+during the authentication process, the browser will be redirected back to the root of the dev server with an error message in the query parameters.
+
+A couple notes to mention:
+
+* ***Where is the data available from authenticating with the provider?***: At the moment we just
+allow users to prove they have an account with the given provider. But obviously part of the
+power of OAuth is the convenience of sharing controlled slices of user data. For example, I may want users to allow my app to have access to their friends list, or see who they're following on Github. This is coming soon, and in the future, we will allow developers to specify the requested authentication scopes and give developer access to the returned data via the Users table.
+
+* ***Why can't I configure the final redirect url?***: Customizing the final redirect_url on the
+original domain will be possible in the future.
+
+* ***Why doesn't Horizon use Passport?***: Passport was definitely considered for Horizon but
+ultimately was too heavily tied with Express to achieve the amount of extensibility we wanted.
+To ensure this extensibility we decided to implement our own handling of OAuth routes for
+the different providers. If you're still convinced we should use Passport, feel free to
+[open an issue](https://github.com/rethinkdb/horizon/issues/new) and direct your comments
+to @Tryneus.
 
 ---
 
