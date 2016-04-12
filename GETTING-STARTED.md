@@ -14,6 +14,11 @@
  * [Removing documents](#removing-documents)
  * [Watching for changes](#watching-for-changes)
 * [Putting it all together](#putting-it-all-together)
+* [Using an already existing application with Horizon](#bringing-your-app-to-Horizon)
+ * [Do I need to move all my files into the `dist` folder?](#do-i-need-to-output-all-my-files-into-the--dist-folder-)
+ * [How do I add Horizon to X?](#how-do-i-add-horizon-to-x-)
+
+
 
 **Examples**
 * [Example Horizon Applications](#example-applications)
@@ -442,6 +447,49 @@ without writing a single line of backend code.
 
 There's also plenty of other functions in the Horizon Client library to meet your needs, including:
 [above][above], [below][below], [limit][limit], [replace][replace], and [upsert][upsert].
+
+
+## Bringing your app to Horizon
+
+We expect many people to already have an application in place but want to leverage
+the power of Horizon for their realtime data. Here are a few scenario that will
+be relevant to you:
+
+### Do I need to output all my files into the `dist` folder?
+
+The short and long answer is, **_no_**.
+
+If you are already using some other process to server your static files, you absolutely
+do not need to now do Yet Another Refactor™️ just to get the power of Horizon. From your already existing code base you have two options to get include and then `require` the Horizon Client library:
+
+1. Use `horizon.js` served by Horizon Server (simplest option)
+1. Install `@horizon/client` as a dependency in your project
+
+We recommend using the `horizon.js` library as served by Horizon Server for solely the
+reason that there will be no mismatches between your client library version and your
+current running version of Horizon Server.  
+
+This means somewhere in your application, you'll need to have:
+
+```html
+<script src="localhost:8181/horizon/horizon.js"></script>
+```
+
+And then when you init the Horizon connection you need to specify the `host` property:
+
+```js
+const horizon = Horizon({host: 'localhost:8181'});
+```
+
+However, if requesting the .js library at page load time isn't desirable, or you are using [webpack](https://webpack.github.io/) and similar build setups for your front-end code, just add `npm install @horizon/client` to your project, and dependency wise, you'll be good to go.
+
+Just remember that when you make connections to Horizon Server to specify the port number (which is by default `8181`) when connecting.
+
+> **Note:** This will likely require setting CORS headers on the Horizon Server responses, which is a feature in progress, refer to [issue #239 for progress](https://github.com/rethinkdb/horizon/issues/239).
+
+### How do I add Horizon to X?
+
+If you already have a React, Angular, or Whatever Is Cool These Days:tm: application, you should first check our [examples directory](/examples) for different ways on how we have integrated Horizon into these frameworks.
 
 ---
 
