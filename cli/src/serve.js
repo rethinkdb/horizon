@@ -1,6 +1,7 @@
 'use strict';
 
 const horizon_server = require('@horizon/server');
+const interrupt = require('./utils/interrupt');
 
 const fs = require('fs');
 const http = require('http');
@@ -78,10 +79,10 @@ const addArguments = (parser) => {
       help: 'Runs the server in development mode, this sets ' +
       '--debug, ' +
       '--insecure, ' +
-      '--auto-create-tables, ' +
+      '--auto-create-table, ' +
       '--start-rethinkdb, ' +
       '--serve-static, ' +
-      'and --auto-create-indexes.' });
+      'and --auto-create-index.' });
 
   parser.addArgument([ '--config' ],
     { type: 'string', metavar: 'PATH',
@@ -434,15 +435,17 @@ const runCommand = (opts, done) => {
 
   let http_servers, hz_instance;
 
-  const shutdown = () => {
+  interrupt.on_interrupt((done) => {
     if (hz_instance) {
       hz_instance.close();
     }
-    process.exit(0);
-  };
-
-  process.on('SIGTERM', shutdown);
-  process.on('SIGINT', shutdown);
+    if (http_servers) {
+      http_servers.forEach((serv) => {
+        serv.close();
+      });
+    }
+    done();
+  });
 
   return (
     opts.insecure ?

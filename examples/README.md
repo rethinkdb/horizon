@@ -11,12 +11,24 @@ We decided it was important to leverage Horizon alongside all your normal app fu
 * [Horizon & Hapi](/examples/hapi-server)
 
 # Horizon App Examples
-And finally, we've created a few example applications to help you get started with Horizon. If you have any questions just ask on [Slack](http://slack.rethinkdb.com) or [Twitter](https://twitter.com/rethinkdb)!
+And finally, we've created a few example applications to help you get started with Horizon. In each directory
+you will find a `dist` folder which will have all the files needed to serve the example application. In some of the
+TodoMVC examples, you will find a `package.json` inside the `dist` directory, and you will need to run `npm install` for
+some of their dependencies. 
 
-## Vuejs
-* [Vue.js Chat App](/examples/vue-chat-app/)
-* [Vue Todo App](/examples/vue-todo-app/)
+If you have any questions just ask on [Slack](http://slack.rethinkdb.com) or [Twitter](https://twitter.com/rethinkdb)!
+
+## CycleJS
+
+* [CycleJS Chat App](/examples/cyclejs-chat-app)
 
 ## React
 * [React Chat App](/examples/react-chat-app/)
 * [React Todo App](/examples/react-todo-app/)
+
+## RiotJS
+* [RiotJS Chat App](/examples/riotjs-chat-app)
+
+## Vuejs
+* [Vue.js Chat App](/examples/vue-chat-app/)
+* [Vue Todo App](/examples/vue-todo-app/)

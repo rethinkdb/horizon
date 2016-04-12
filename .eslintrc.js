@@ -5,6 +5,7 @@ const ERROR = 2;
 module.exports = {
   extends: "eslint:recommended",
   rules: {
+    "arrow-body-style": [ERROR, "as-needed"],
     "array-bracket-spacing": [ ERROR, "always" ],
     "arrow-parens": [ ERROR, "always" ],
     "arrow-spacing": [ ERROR ],
