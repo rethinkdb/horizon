@@ -29,7 +29,7 @@ const orderSuite = window.orderSuite = (getData, getTestData) => () => {
   // Let's try ordering by a different field.
   it('can order results by a field other than id', assertCompletes(() =>
     data.order('b').fetch().toArray()
-      .do(res => assert.deepEqual(res.slice(3), [
+      .do(res => assert.deepEqual(res.slice(0, 3), [
         { id: 2, a: 20, b: 1 },
         { id: 3, a: 20, b: 2 },
         { id: 4, a: 20, b: 3 },
@@ -47,9 +47,9 @@ const orderSuite = window.orderSuite = (getData, getTestData) => () => {
   ))
 
   // Let's try to order by a missing field
-  it('returns in arbitrary order if a bad field is given', assertCompletes(() =>
+  it('returns no documents if a bad field is given', assertCompletes(() =>
     data.order('abracadabra').fetch().toArray()
-      .do(res => assert.sameDeepMembers(res, testData))
+      .do(res => assert.sameDeepMembers(res, []))
   ))
 
   // We can pass multiple fields to `order` to disambiguate.
