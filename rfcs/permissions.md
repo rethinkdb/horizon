@@ -304,7 +304,7 @@ Example:
 ANYONE = [
   "horizon('messages').findAll({to: USER.id})",
   "horizon('messages').findAll({from: USER.id})",
-  "horizon('broadcasts').findAll({to_group: USER.groups, from: ANYTHING})
+  "horizon('broadcasts').findAll({to_group: USER.groups, from: ANYTHING})",
 ]
 admin = [
   "horizon('messages').findAll({})",
