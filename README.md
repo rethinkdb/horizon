@@ -112,7 +112,12 @@ todoCollection.watch().subscribe( todos => {
 
 ### How do I get it?
 
-Right now you have to install it locally from this repo. Follow the guides for [installing the Horizon server](/server#installation) and then read through on how to [import the client library](/client#getting-started) into your project.
+You have two options:
+
+1. `npm install -g horizon` (we try to publish weekly)
+1. Move into the `/test` folder here and run `./setupDev.sh` which will install it on your system using this repo.
+
+Refer to the the [CLI README](/cli/README.md) for the most up-to-date public install instructions.
 
 ### How is Horizon different from Firebase?
 
