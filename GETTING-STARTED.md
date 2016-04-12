@@ -89,8 +89,13 @@ By default, horizon creates a basic `index.html` to serve so you can verify ever
 
 ## Starting Horizon Server
 
-From here, we now need to start the Horizon Server to both serve your static files as well as
-start the Node application which serves the Horizon Client API and connects to RethinkDB.
+We now need to start Horizon Server. Running `hz serve` does three main things:
+
+1. Starts the Horizon Server node app which serves the Horizon Client API / WebSocket endpoint.  
+1. Serves the `horizon.js` client library.  
+1. Serves everything in the `dist` folder, _if it exists in the current working directory_.
+
+Normally, running `hz serve` requires a running instance of RethinkDB as well as pre-created tables in your RethinkDB instance.
 
 Luckily, running `hz serve --dev` has all that covered for you. Here's a comparison of what happens with and without `--dev`:
 
@@ -102,14 +107,14 @@ Luckily, running `hz serve --dev` has all that covered for you. Here's a compari
 |Auto creates tables         | ❌        | ✅  | `--auto-create-table`|
 |Auto creates indexes        | ❌        | ✅  | `--auto-create-index`|
 
-So when using `hz serve --dev` you don't have to worry about explicitly creating tables, or  worry about creating indexes to ensure your Horizon queries are always fast. As well, Horizon will start an instance of RethinkDB specifically for Horizon and create a `rethinkdb_data` folder in your current directory when you start `hz serve --dev`
+So when using `hz serve --dev`, you don't have to worry about explicitly creating tables, or  worry about creating indexes to ensure your Horizon queries are always fast. As well, Horizon will start an instance of RethinkDB specifically for Horizon and create a `rethinkdb_data` folder in your current directory when you start `hz serve --dev`
 
-> Using authentication _requires_ that you use https. To setup authentication for your app you will have to use `hz serve` without `--dev` and with `--key` and `--cert` flags as well as any other options you require. 
+> Using authentication _requires_ that you use TLS. To setup authentication for your app you will have to use `hz serve` without `--dev` and with `--key-file` and `--cert-file` flags as well as any other options you require.
 
 Here you can find
 <a href="https://github.com/rethinkdb/horizon/tree/next/cli#hz-serve">the complete list of command line flags</a> for `hz serve` ➡️.
 
-On your local dev machine, you will usually use `hz serve --dev` which will begin a new instance of RethinkDB for you and will automatically create tables and indexes. However, if you deploy your own [Horizon Cloud](https://github.com/rethinkdb/horizon-cloud), you'll need to setup and configure your own instance of Horizon Server.
+On your local dev machine, you will usually use `hz serve --dev` which will begin a new instance of RethinkDB for you and will automatically create tables and indexes making your development workflow easy. In a production environment, you will want to just use `hz serve` and make use of the `.hzconfig` file.
 
 ### Configuring Horizon Server
 
@@ -356,7 +361,7 @@ chat.order("datetime").watch().forEach(
 
 To learn more about how Horizon works with React, check out [this complete Horizon & React example](https://github.com/rethinkdb/horizon/tree/next/examples/react-chat-app) ➡️.
 
-### Putting it all together
+## Putting it all together
 
 Now that we have the basics covered, let's pretend we are building a
 simple chat application where the messages are displayed
