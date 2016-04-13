@@ -14,9 +14,9 @@
  * [Removing documents](#removing-documents)
  * [Watching for changes](#watching-for-changes)
 * [Putting it all together](#putting-it-all-together)
-* [Using an already existing application with Horizon](#bringing-your-app-to-Horizon)
- * [Do I need to move all my files into the `dist` folder?](#do-i-need-to-output-all-my-files-into-the--dist-folder-)
- * [How do I add Horizon to X?](#how-do-i-add-horizon-to-x-)
+* [Using an already existing application with Horizon](#bringing-your-app-to-horizon)
+ * [Do I need to move all my files into the `dist` folder?](#do-i-need-to-output-all-my-files-into-the-dist-folder)
+ * [How do I add Horizon to X?](#how-do-i-add-horizon-to-x)
 
 
 
