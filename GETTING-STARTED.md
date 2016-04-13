@@ -171,8 +171,7 @@ Horizon Server picked them up, run `hz serve` then go to
 `https://localhost:8181/horizon/auth_methods` (or where ever you are running Horizon Server) to
 see a list of currently active authentication options.
 
-> At this point, ensure that you're using `--key-file` and `--cert-file` with `hz serve` as you cannot have authentication without also using TLS or serving assets via HTTPS/WSS. As well,
-ensure that you are now using `https://` for all your URLs.
+> At this point, ensure that you're using `--key-file` and `--cert-file` with `hz serve` as you cannot have authentication without also using TLS to serve assets via HTTPS/WSS. Also ensure that you are now using `https://` for all your URLs.
 
 You should see `github` included in the object of available auth methods, if you just see a blank object like so `{ }`, ensure that you restarted Horizon Server and that it is using the `.hzconfig` you edited. It should look like this:
 
@@ -186,14 +185,14 @@ Now the value of the property `github` is the path to replace on the current `wi
 that will begin the authentication process. Or, just type in
 `https://localhost:8181/horizon/github` in your browser to test it out.
 
-As a result of a successful authentication, the browser will be redirected by to the root of the
+As a result of a successful authentication, the browser will be redirected to the root of the
 dev server (`https://localhost:8181/`) with the `?horizon_token=` in the query parameters and you
 can now consider the user properly authenticated at this point. If an error occurs somewhere
 during the authentication process, the browser will be redirected back to the root of the dev server with an error message in the query parameters.
 
 A couple notes to mention:
 
-* ***Where is the data available from authenticating with the provider?***: At the moment we just
+* ***Where is the user data from authenticating with OAuth?***: At the moment we just
 allow users to prove they have an account with the given provider. But obviously part of the
 power of OAuth is the convenience of sharing controlled slices of user data. For example, I may want users to allow my app to have access to their friends list, or see who they're following on Github. This is coming soon, and in the future, we will allow developers to specify the requested authentication scopes and give developer access to the returned data via the Users table.
 
