@@ -90,7 +90,7 @@ const addArguments = (parser) => {
 
   parser.addArgument([ '--config' ],
     { type: 'string', metavar: 'PATH',
-      help: 'Path to the config file to use, defaults to ".hzconfig".' });
+      help: 'Path to the config file to use, defaults to ".hz/config.toml".' });
 
   parser.addArgument([ '--auth' ],
     { type: 'string', action: 'append', metavar: 'PROVIDER,ID,SECRET', defaultValue: [ ],
@@ -101,7 +101,7 @@ const addArguments = (parser) => {
       help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
 };
 
-const default_config_file = './.hzconfig';
+const default_config_file = './.hz/config.toml';
 
 const make_default_config = () => ({
   config: default_config_file,

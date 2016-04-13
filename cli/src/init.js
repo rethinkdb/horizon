@@ -160,8 +160,15 @@ const runCommand = (parsed) => {
     fs.mkdirSync('dist');
     fs.appendFileSync('./dist/index.html', indexHTML);
   }
-  if (fileDoesntExist('.hzconfig')) {
-    fs.appendFileSync('.hzconfig', makeDefaultConfig());
+  if (fileDoesntExist('.hz')) {
+    fs.mkdirSync('.hz');
+  }
+  if (fileDoesntExist('.hz/config.toml')) {
+    fs.appendFileSync('.hz/config.toml', makeDefaultConfig(), {
+      encoding: 'utf8',
+      mode: 0o600, // Secrets are put in this config, so set it user
+                   // read/write only
+    });
   }
 };
 

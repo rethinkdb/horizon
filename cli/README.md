@@ -1,4 +1,3 @@
-
 # Getting started with the Horizon CLI
 
 First, install horizon from npm:
@@ -20,7 +19,8 @@ $ tree -aF example-app/
 example-app/
 ├── dist/
 │   └── index.html
-├── .hzconfig
+├── .hz/
+│   └── config.toml
 └── src/
 ```
 
@@ -99,7 +99,7 @@ npm link
 
 ### `hz init`
 Create a horizon app directory, automatically creating a `src` and `dist`
-directories within the folder, as well as a `.hzconfig` toml configuration file.
+directories within the folder, as well as a `.hz/config.toml` configuration file.
 
 Positional Args | Description
 ----------------|------------
@@ -110,11 +110,11 @@ projectName |  Name of directory to create. Defaults to current directory
 This serves the directory and supplies all the tooling needed for serving a
 Horizon web application.
 
-*Note:* `hz serve` will be configured by options in the following order of 
-least to highest precedence: 
+*Note:* `hz serve` will be configured by options in the following order of
+least to highest precedence:
 
 ```
-environment variables < config file (`.hzconfig`) < command-line flags 
+environment variables < config file (`.hz/config.toml`) < command-line flags
 ```
 
 ##### Available options
@@ -140,7 +140,7 @@ Optional Args| Description
   --dev               | Runs the server in development mode, this sets `--debug`, `--insecure`, `--auto-create-tables`, and `--auto-create-indexes`.
 
 #### Serving securely, generating certs for SSL
-  
+
 There are proper ways to get a certificate registered through a Certificate
 Authority, but for the purpose of getting up-and-running as soon as possible,
 generate a self-signed certificate.  This command will generate the certificate
@@ -152,11 +152,11 @@ openssl req -x509 -newkey rsa:2048 -keyout horizon-key.pem -out horizon-cert.pem
 ```
 
 Once a key file and cert file have been obtained, launch the server without the `--insecure`
-flag, and provide the files in the `--key-file` and `--cert-file` options. 
+flag, and provide the files in the `--key-file` and `--cert-file` options.
 
-### `.hzconfig` file
+### `.hz/config.toml` file
 
-One can also configure Horizon with a `.hzconfig` [toml](https://github.com/toml-lang/toml) configuration file. Here is an example configuration file below. Note that by default, `hz serve` will look for `.hzconfig` (which is created by `hz init`) in the current directory. 
+One can also configure Horizon with a `.hz/config.toml` [toml](https://github.com/toml-lang/toml) configuration file. Here is an example configuration file below. Note that by default, `hz serve` will look for `.hz/config.toml` (which is created by `hz init`) in the current directory.
 
 This example shows the current defaults. To change them, you need to remove the `#` from the beginning of the line and change the value. Note that `[ table_name ]` toml table declarations need to also be uncommented in the OAuth configuration at the end of the file.
 
@@ -239,5 +239,3 @@ This example shows the current defaults. To change them, you need to remove the 
 # [auth.twitch]
 # id = "0000000000000000000000000000000"
 # secret = "0000000000000000000000000000000"
-
-
