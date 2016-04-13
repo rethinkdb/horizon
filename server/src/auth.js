@@ -33,10 +33,11 @@ class Auth {
 
     this._parent = server;
 
-    // TODO: we need to persist the secret such that all horizon servers in
-    // the deployment use have the same one. Thus, disconnected clients can
-    // reconnect through any horizon server - useful behind a load balancer.
-    this._hmac_secret = crypto.randomBytes(64);
+    if (options.token_secret != null) {
+      this._hmac_secret = new Buffer(options.token_secret, 'base64');
+    } else {
+      this._hmac_secret = crypto.randomBytes(64);
+    }
   }
 
   // A generated token contains the data:

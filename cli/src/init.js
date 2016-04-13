@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const crypto = require('crypto');
 
 const indexHTML = `\
 <!doctype html>
@@ -22,7 +23,7 @@ const indexHTML = `\
 </html>
 `;
 
-const default_config = `\
+const makeDefaultConfig = () => `\
 # This is a TOML file
 
 ###############################################################################
@@ -87,10 +88,12 @@ const default_config = `\
 # Authentication Options
 # Each auth subsection will add an endpoint for authenticating through the
 # specified provider.
+# 'token_secret' is the key used to sign jwts
 # 'allow_anonymous' issues new accounts to users without an auth provider
 # 'allow_unauthenticated' allows connections that are not tied to a user id
 # 'auth_redirect' specifies where users will be redirected to after login
 #------------------------------------------------------------------------------
+token_secret = "${crypto.randomBytes(64).toString('base64')}"
 # allow_anonymous = true
 # allow_unauthenticated = true
 # auth_redirect = "/"
@@ -158,7 +161,7 @@ const runCommand = (parsed) => {
     fs.appendFileSync('./dist/index.html', indexHTML);
   }
   if (fileDoesntExist('.hzconfig')) {
-    fs.appendFileSync('.hzconfig', default_config);
+    fs.appendFileSync('.hzconfig', makeDefaultConfig());
   }
 };
 

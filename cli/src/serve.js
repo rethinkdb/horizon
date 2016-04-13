@@ -39,6 +39,10 @@ const addArguments = (parser) => {
     { type: 'string', metavar: 'PATH',
       help: 'Path to the cert file to use, defaults to "./cert.pem".' });
 
+  parser.addArgument([ '--token-secret' ],
+    { type: 'string', metavar: 'SECRET',
+      help: 'Key for signing jwts. Default is random on each run' });
+
   parser.addArgument([ '--allow-unauthenticated' ],
     { action: 'storeTrue',
       help: 'Whether to allow unauthenticated Horizon connections.' });
@@ -120,6 +124,7 @@ const make_default_config = () => ({
   rdb_host: 'localhost',
   rdb_port: 28015,
 
+  token_secret: null,
   allow_anonymous: false,
   allow_unauthenticated: false,
   auth_redirect: '/',
@@ -411,6 +416,7 @@ const startHorizonServer = (servers, opts) => {
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
     auth: {
+      token_secret: opts.token_secret,
       allow_unauthenticated: opts.allow_unauthenticated,
       allow_anonymous: opts.allow_anonymous,
       success_redirect: opts.auth_redirect,
