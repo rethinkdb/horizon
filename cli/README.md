@@ -1,59 +1,6 @@
 
 # Getting started with the Horizon CLI
 
-First, install horizon from npm:
-
-```
-$ npm install -g horizon
-```
-
-Now you can initialize a new horizon project:
-
-```
-$ hz init example-app
-```
-
-This will create a directory with the following files:
-
-```
-$ tree -aF example-app/
-example-app/
-├── dist/
-│   └── index.html
-├── .hzconfig
-└── src/
-```
-
-The `dist` directory is where you should output your static
-files. Horizon doesn't have any opinions about what front-end build
-system you use, just that the files to serve end up in `dist`. Your
-source files would go into `src` but that's just a convention. Horizon
-doesn't touch anything in `src`.
-
-If you want, you can `npm init` or `bower init` in the `example-app`
-directory to set up dependencies etc.
-
-By default, horizon creates a basic `index.html` to serve so you can
-verify everything is working:
-
-```html
-<!doctype html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <script src="/horizon/horizon.js"></script>
-    <script>
-      var horizon = Horizon();
-      horizon.onConnected(function() {
-        document.querySelector('h1').innerHTML = 'It works!'
-      });
-    </script>
-  </head>
-  <body>
-   <marquee><h1></h1></marquee>
-  </body>
-</html>
-```
 
 Finally, let's start up a Horizon server in dev mode. This will start
 a RethinkDB instance, connect to it, and serve our static files from
@@ -110,11 +57,11 @@ projectName |  Name of directory to create. Defaults to current directory
 This serves the directory and supplies all the tooling needed for serving a
 Horizon web application.
 
-*Note:* `hz serve` will be configured by options in the following order of 
-least to highest precedence: 
+*Note:* `hz serve` will be configured by options in the following order of
+least to highest precedence:
 
 ```
-environment variables < config file (`.hzconfig`) < command-line flags 
+environment variables < config file (`.hzconfig`) < command-line flags
 ```
 
 ##### Available options
@@ -140,7 +87,7 @@ Optional Args| Description
   --dev               | Runs the server in development mode, this sets `--debug`, `--insecure`, `--auto-create-tables`, and `--auto-create-indexes`.
 
 #### Serving securely, generating certs for SSL
-  
+
 There are proper ways to get a certificate registered through a Certificate
 Authority, but for the purpose of getting up-and-running as soon as possible,
 generate a self-signed certificate.  This command will generate the certificate
@@ -152,11 +99,11 @@ openssl req -x509 -newkey rsa:2048 -keyout horizon-key.pem -out horizon-cert.pem
 ```
 
 Once a key file and cert file have been obtained, launch the server without the `--insecure`
-flag, and provide the files in the `--key-file` and `--cert-file` options. 
+flag, and provide the files in the `--key-file` and `--cert-file` options.
 
 ### `.hzconfig` file
 
-One can also configure Horizon with a `.hzconfig` [toml](https://github.com/toml-lang/toml) configuration file. Here is an example configuration file below. Note that by default, `hz serve` will look for `.hzconfig` (which is created by `hz init`) in the current directory. 
+One can also configure Horizon with a `.hzconfig` [toml](https://github.com/toml-lang/toml) configuration file. Here is an example configuration file below. Note that by default, `hz serve` will look for `.hzconfig` (which is created by `hz init`) in the current directory.
 
 This example shows the current defaults. To change them, you need to remove the `#` from the beginning of the line and change the value. Note that `[ table_name ]` toml table declarations need to also be uncommented in the OAuth configuration at the end of the file.
 
@@ -239,5 +186,3 @@ This example shows the current defaults. To change them, you need to remove the 
 # [auth.twitch]
 # id = "0000000000000000000000000000000"
 # secret = "0000000000000000000000000000000"
-
-

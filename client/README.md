@@ -27,116 +27,9 @@ npm run devtest     | Run tests and linting continually
 
 ## Docs
 
+
 ### Getting Started
-
-While you could build and import this library, you wouldn't have any place to connect to! Once you have the [Horizon Server](/server) running, the Horizon client library is hosted by the server as seen in the getting started example below.
-
-First you need to ensure that you have included the `horizon.js` client library in your HTML.
-**Note**: that you'll want to have `http` instead of `https` if you started Horizon Server with `--insecure`. By default Horizon Server hosts the `horizon.js` client library on port 8181.
-
-```html
-...
-<head>
-<script src="//localhost:8181/horizon/horizon.js"></script>
-</head>
-...
-```
-
-Then wherever you want to use Project Horizon you will need to `require` the Horizon client library and then connect to your running instance of Horizon Server.
-
-**Note:** if you started Horizon Server with `--insecure`, you'll need to [disable the secure flag](#Horizon).
-
-```js
-const Horizon = require("@horizon/client"); // or use global `window.Horizon`
-const horizon = Horizon();
-```
-
-From here you can start to interact with RethinkDB collections through the Horizon collection. Having `--dev` mode enabled on the Horizon Server creates collections and indexes automatically so you can get your application setup with as little hassle as possible.
-
-```js
-const chat = horizon("messages");
-```
-
-Now, `chat` is a Horizon collection of documents. You can perform a variety of operations on this collection to filter them down to the ones you need. Let's pretend we are building a simple chat application where the messages are displayed in ascending order. Here are some basic functions that would allow you to build such an app.
-
-```js
-
-let chats = []
-
-// Retrieve all messages from the server
-const retrieveMessages = () => {
-  chat.order('datetime')
-  // fetch all results as an array, rather than one at a time
-  .fetch().toArray()
-  // Retrieval successful, update our model
-  .forEach(newChats => {
-    chats = chats.concat(newChats)
-  },
-  // Error handler
-  error => console.log(error),
-  // onCompleted handler
-  () => console.log('All results received!')
-  )
-}
-
-// Retrieve an single item by id
-const retrieveMessage = id => {
-  chat.find(id).fetch()
-    // Retrieval successful
-    .forEach(result => {
-      chats.push(result);
-    },
-    // Error occurred
-    error => console.log(error))
-}
-
-// Store new item
-const storeMessage = (message) => {
-   chat.store(message)
-    .forEach( // forEach is an alias of .subscribe
-      // Returns id of saved objects
-      result => console.log(result),
-      // Returns server error message
-      error => console.log(error)
-    )
-}
-
-// Replace item that has equal `id` field
-//  or insert if it doesn't exist.
-const updateMessage = message => {
-  chat.replace(message)
-}
-
-// Remove item from collection
-const deleteMessage = message => {
-  chat.remove(message)
-}
-```
-
-And lastly, the `.watch` method exposes all the changefeeds awesomeness you could want from RethinkDB. Using just `chat.watch()`, and the updated results will be pushed to you any time they change on the server. You can also `.watch` changes on a query or a single document.
-
-
-```js
-
-chat.watch().forEach(chats => {
-  // Each time through it will returns all results of your query
-    renderChats(allChats)
-  },
-
-  // When error occurs on server
-  error => console.log(error),
-)
-```
-
-You can also get notifications when the client connects and disconnects from the server
-
-``` js
-  // Triggers when client successfully connects to server
-  horizon.onConnected().forEach(() => console.log("Connected to Horizon Server"))
-
-  // Triggers when disconnected from server
-  horizon.onDisconnected().forEach(() => console.log("Disconnected from Horizon Server"))
-```
+[Check out our Getting Started guide.](GETTING-STARTED.md)
 
 ### API
 
@@ -573,7 +466,7 @@ The first auth type is unauthenticated. One [JWT](https://jwt.io/) is shared by 
 const horizon = Horizon({ authType: 'unauthenticated' });
 ```
 
-This is the default authentication method and provides no means to separate user permissions or data in the Horizon application. 
+This is the default authentication method and provides no means to separate user permissions or data in the Horizon application.
 
 ### Anonymous
 
@@ -583,7 +476,7 @@ The second auth type is anonymous. If anonymous authentication is enabled in the
 const horizon = Horizon({ authType: 'anonymous' });
 ```
 
-This type of authentication is useful when you need to differentiate users but don't want to use a popular 3rd party to authenticate them. This is essentially the means of "Creating an account" or "Signing up" for people who use your website. 
+This type of authentication is useful when you need to differentiate users but don't want to use a popular 3rd party to authenticate them. This is essentially the means of "Creating an account" or "Signing up" for people who use your website.
 
 ### Token
 
@@ -602,7 +495,7 @@ if (!horizon.hasAuthToken()) {
 ```
 After logging in with Twitter, the user will be redirected back to the app, where the Horizon client will grab the JWT from the redirected url, which will be used on subsequent connections where `authType = 'token'`. If the token is lost (because of a browser wipe, or changing computers etc), the user can be recovered by re-authenticating with Twitter.
 
-This is type of authentication is useful for quickly getting your application running with information relevant to your application provided by a third party. Users don't need to create yet another user acount for your application and can reuse the ones they already have. 
+This is type of authentication is useful for quickly getting your application running with information relevant to your application provided by a third party. Users don't need to create yet another user acount for your application and can reuse the ones they already have.
 
 ### Clearing tokens
 
