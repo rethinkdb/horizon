@@ -1,6 +1,8 @@
 <img style="width:100%;" src="/github-banner.png">
 
-# What is Horizon?
+# [Horizon](https://horizon.io)
+
+## What is Horizon?
 
 Horizon is an open-source developer platform for building sophisticated realtime
 apps. It provides a complete backend that makes it dramatically simpler to
@@ -65,6 +67,15 @@ complex to need custom business logic on the backend, developers can
 incrementally add backend code at any time in the development cycle of
 their app.
 
+## Get Involved
+
+We'd love for you to help us build Horizon. If you'd like to be a contributor, 
+check out our [Contributing guide](/CONTRIBUTING.md). 
+
+Also, to stay up-to-date on all Horizon related news and the community you should 
+definitely [join us on Slack](http://slack.rethinkdb.com), [follow us on Twitter](https://twitter.com/horizonjs),
+and join our Horizon mailing list at [Horizon.io](https://horizon.io).
+
 ## FAQ
 
 ### How do you start Horizon?
@@ -75,7 +86,8 @@ This first step is to install the Horizon command line tool.
 $ npm install -g horizon
 ```
 
-You can then create the boilerplate with `hz init` and then launch Horizon Server and an instance of RethinkDB with `hz serve --dev`.
+You can then create the boilerplate with `hz init` and then launch Horizon Server 
+and an instance of RethinkDB with `hz serve --dev`.
 
 ```sh
 $ hz init myapp
@@ -85,7 +97,7 @@ $ hz serve myapp --dev
 # The horizon client library is served from localhost:8181/horizon/horizon.js
 ```
 
-There is a much more thorough getting started example and a list of argument flags in the [horizon/cli](/cli) directory.
+Check out the [Getting Started](/GETTING-STARTED.md) guide for a complete walkthrough.
 
 ### What does the code look like?
 
@@ -118,6 +130,10 @@ You have two options:
 1. Move into the `/test` folder here and run `./setupDev.sh` which will install it on your system using this repo.
 
 Refer to the the [CLI README](/cli/README.md) for the most up-to-date public install instructions.
+
+### Where do I start? 
+
+Check out our [Getting Started guide](/GETTING-STARTED.md). If you have more questions, come [join us on Slack](http://slack.rethinkdb.com) in #horizon or feel free to tweet us at [@horizonjs](https://twitter.com/horizonjs).
 
 ### How is Horizon different from Firebase?
 
@@ -167,3 +183,5 @@ the necessary information to allow for a scalable feeds implementation.
 
 We still have to figure out the exact license, but Horizon will be
 fully open-source (we'll probably use MIT or Apache).
+
+
