@@ -49,7 +49,8 @@ $ tree -aF example-app/
 example-app/
 ├── dist/
 │   └── index.html
-├── .hzconfig
+├── .hz/
+│   └── config.toml
 └── src/
 ```
 
@@ -62,7 +63,7 @@ Horizon doesn't touch anything in `src`.
 If you want, you can `npm init` or `bower init` in the `example-app`
 directory to set up dependencies etc.
 
-`.hzconfig` is a [toml](https://github.com/toml-lang/toml) configuration file where you can set all the different options for Horizon Server. [Read more about available configuration options here](/client/README.md#--hzconfig--file).
+`.hz/config.toml` is a [toml](https://github.com/toml-lang/toml) configuration file where you can set all the different options for Horizon Server. [Read more about available configuration options here](/cli/README.md#hzconfigtoml-file).
 
 By default, horizon creates a basic `index.html` to serve so you can verify everything is working:
 
@@ -77,6 +78,7 @@ By default, horizon creates a basic `index.html` to serve so you can verify ever
       horizon.onConnected(function() {
         document.querySelector('h1').innerHTML = 'It works!'
       });
+      horizon.connect();
     </script>
   </head>
   <body>
@@ -91,8 +93,8 @@ By default, horizon creates a basic `index.html` to serve so you can verify ever
 
 We now need to start Horizon Server. Running `hz serve` does three main things:
 
-1. Starts the Horizon Server node app which serves the Horizon Client API / WebSocket endpoint.  
-1. Serves the `horizon.js` client library.  
+1. Starts the Horizon Server node app which serves the Horizon Client API / WebSocket endpoint.
+1. Serves the `horizon.js` client library.
 1. Serves everything in the `dist` folder, _if it exists in the current working directory_.
 
 Normally, running `hz serve` requires a running instance of RethinkDB as well as pre-created tables in your RethinkDB instance.
@@ -114,12 +116,12 @@ So when using `hz serve --dev`, you don't have to worry about explicitly creatin
 Here you can find
 <a href="https://github.com/rethinkdb/horizon/tree/next/cli#hz-serve">the complete list of command line flags</a> for `hz serve` ➡️.
 
-On your local dev machine, you will usually use `hz serve --dev` which will begin a new instance of RethinkDB for you and will automatically create tables and indexes making your development workflow easy. In a production environment, you will want to just use `hz serve` and make use of the `.hzconfig` file.
+On your local dev machine, you will usually use `hz serve --dev` which will begin a new instance of RethinkDB for you and will automatically create tables and indexes making your development workflow easy. In a production environment, you will want to just use `hz serve` and make use of the `.hz/config.toml` file.
 
 ### Configuring Horizon Server
 
-Horizon Server is configurable via the `.hzconfig` file which is in the [toml](https://github.com/toml-lang/toml) config format. By default, `hz serve` will look for this file
-in the current working directory. Here is [an example `.hzconfig` file from the Horizon CLI documentation](https://github.com/rethinkdb/horizon/tree/next/cli#hzconfig-file) ➡️.
+Horizon Server is configurable via the `.hz/config.toml` file which is in the [toml](https://github.com/toml-lang/toml) config format. By default, `hz serve` will look for this file
+in the current working directory. Here is [an example `.hz/config.toml` file from the Horizon CLI documentation](/cli/README.md#hzconfigtoml-file) ➡️.
 
 > Be warned that there is a precedence to config file setting in the order of:
 > environment variables > config file > command-line flags
@@ -141,10 +143,10 @@ The first thing you need to do is create an application with the provider you'd 
 * 🐦💬 - [Twitter](https://apps.twitter.com/app/new)
 
 From each of these providers you will eventually have a `client_id` and `client_secret`
-(sometimes just `id` and `secret`) that you will need to put into the `.hzconfig`
+(sometimes just `id` and `secret`) that you will need to put into the `.hz/config.toml`
 configuration file.
 
-Near the bottom of the automatically generated `.hzconfig` file you'll see commented out
+Near the bottom of the automatically generated `.hz/config.toml` file you'll see commented out
 sample OAuth settings, you'll just need to uncomment them out and replace the values with your `client_id` and `client_secret`. Adding Github OAuth configuration would look like this:
 
 ```toml
@@ -166,14 +168,14 @@ id = "your_client_id"
 secret = "your_client_secret"
 ```
 
-Once you've added the lines in your `.hzconfig` you're basically all set. To verify that
+Once you've added the lines in your `.hz/config.toml` you're basically all set. To verify that
 Horizon Server picked them up, run `hz serve` then go to
 `https://localhost:8181/horizon/auth_methods` (or where ever you are running Horizon Server) to
 see a list of currently active authentication options.
 
 > At this point, ensure that you're using `--key-file` and `--cert-file` with `hz serve` as you cannot have authentication without also using TLS to serve assets via HTTPS/WSS. Also ensure that you are now using `https://` for all your URLs.
 
-You should see `github` included in the object of available auth methods, if you just see a blank object like so `{ }`, ensure that you restarted Horizon Server and that it is using the `.hzconfig` you edited. It should look like this:
+You should see `github` included in the object of available auth methods, if you just see a blank object like so `{ }`, ensure that you restarted Horizon Server and that it is using the `.hz/config.toml` you edited. It should look like this:
 
 ```js
 {
@@ -280,7 +282,7 @@ chat.fetch().forEach(
   //  will execute with the `err` message
   (err) => {
     console.log(err);
-  })  
+  })
 ```
 
 Each document of the result `.forEach` will pass individually through the result handler as the results are emitted from the server. If you'd rather handle the entire results array at once, you can add [`.toArray()`][toArray] after [`.fetch()`][fetch] like so:
@@ -471,7 +473,7 @@ do not need to now do Yet Another Refactor™️ just to get the power of Horizo
 
 We recommend using the `horizon.js` library as served by Horizon Server for solely the
 reason that there will be no mismatches between your client library version and your
-current running version of Horizon Server.  
+current running version of Horizon Server.
 
 This means somewhere in your application, you'll need to have:
 

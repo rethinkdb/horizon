@@ -39,6 +39,10 @@ const addArguments = (parser) => {
     { type: 'string', metavar: 'PATH',
       help: 'Path to the cert file to use, defaults to "./cert.pem".' });
 
+  parser.addArgument([ '--token-secret' ],
+    { type: 'string', metavar: 'SECRET',
+      help: 'Key for signing jwts. Default is random on each run' });
+
   parser.addArgument([ '--allow-unauthenticated' ],
     { action: 'storeTrue',
       help: 'Whether to allow unauthenticated Horizon connections.' });
@@ -86,7 +90,7 @@ const addArguments = (parser) => {
 
   parser.addArgument([ '--config' ],
     { type: 'string', metavar: 'PATH',
-      help: 'Path to the config file to use, defaults to ".hzconfig".' });
+      help: 'Path to the config file to use, defaults to ".hz/config.toml".' });
 
   parser.addArgument([ '--auth' ],
     { type: 'string', action: 'append', metavar: 'PROVIDER,ID,SECRET', defaultValue: [ ],
@@ -97,7 +101,7 @@ const addArguments = (parser) => {
       help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
 };
 
-const default_config_file = './.hzconfig';
+const default_config_file = './.hz/config.toml';
 
 const make_default_config = () => ({
   config: default_config_file,
@@ -120,6 +124,7 @@ const make_default_config = () => ({
   rdb_host: 'localhost',
   rdb_port: 28015,
 
+  token_secret: null,
   allow_anonymous: false,
   allow_unauthenticated: false,
   auth_redirect: '/',
@@ -411,6 +416,7 @@ const startHorizonServer = (servers, opts) => {
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
     auth: {
+      token_secret: opts.token_secret,
       allow_unauthenticated: opts.allow_unauthenticated,
       allow_anonymous: opts.allow_anonymous,
       success_redirect: opts.auth_redirect,
@@ -429,8 +435,22 @@ const runCommand = (opts, done) => {
     try {
       process.chdir(opts.project);
     } catch (err) {
-      done(new Error(`Failed to find "${opts.project}" project: ${err}`));
+      console.error(`Failed to find "${opts.project}" project directory`);
+      process.exit(1);
     }
+  }
+  // Check for .hz directory
+  try {
+    if (!fs.statSync('.hz').isDirectory()) {
+      throw new Error();
+    }
+  } catch (e) {
+    if (opts.project == null) {
+      console.error('There is no .hz directory here');
+    } else {
+      console.error(`There is no .hz directory in ${opts.project}`);
+    }
+    process.exit(1);
   }
 
   let http_servers, hz_instance;

@@ -1,8 +1,10 @@
 'use strict';
 
 const fs = require('fs');
+const crypto = require('crypto');
+const fileDoesntExist = require('./utils/file_doesnt_exist.js');
 
-const indexHTML = `\
+const makeIndexHTML = (projectName) => `\
 <!doctype html>
 <html>
   <head>
@@ -11,7 +13,7 @@ const indexHTML = `\
     <script>
       var horizon = Horizon();
       horizon.onConnected(function() {
-        document.querySelector('h1').innerHTML = 'It works!'
+        document.querySelector('h1').innerHTML = '${projectName} works!'
       });
       horizon.connect();
     </script>
@@ -22,7 +24,7 @@ const indexHTML = `\
 </html>
 `;
 
-const default_config = `\
+const makeDefaultConfig = (projectName) => `\
 # This is a TOML file
 
 ###############################################################################
@@ -49,7 +51,7 @@ const default_config = `\
 # 'project' will change to the given directory
 # 'serve_static' will serve files from the given directory over HTTP/HTTPS
 #------------------------------------------------------------------------------
-# project = "horizon"
+project = "${projectName}"
 # serve_static = "dist"
 
 
@@ -87,10 +89,12 @@ const default_config = `\
 # Authentication Options
 # Each auth subsection will add an endpoint for authenticating through the
 # specified provider.
+# 'token_secret' is the key used to sign jwts
 # 'allow_anonymous' issues new accounts to users without an auth provider
 # 'allow_unauthenticated' allows connections that are not tied to a user id
 # 'auth_redirect' specifies where users will be redirected to after login
 #------------------------------------------------------------------------------
+token_secret = "${crypto.randomBytes(64).toString('base64')}"
 # allow_anonymous = true
 # allow_unauthenticated = true
 # auth_redirect = "/"
@@ -125,28 +129,19 @@ const addArguments = (parser) => {
   );
 };
 
-const fileDoesntExist = (path) => {
-  try {
-    fs.statSync(path);
-    console.error(`Bailing! ${path} already exists`);
-    process.exit(1);
-  } catch (e) {
-    return true;
-  }
-};
-
 const processConfig = (parsed) => {
   // Nothing needs to be done
   return parsed;
 };
 
 const runCommand = (parsed) => {
-  if (parsed.projectName !== null &&
+  if (parsed.projectName != null &&
       fileDoesntExist(parsed.projectName)) {
     fs.mkdirSync(parsed.projectName);
     console.log(`Created new project directory ${parsed.projectName}`);
     process.chdir(parsed.projectName);
   } else {
+    parsed.projectName = path.basename(process.cwd());
     console.log('Creating new project in current directory');
   }
 
@@ -155,10 +150,17 @@ const runCommand = (parsed) => {
   }
   if (fileDoesntExist('dist')) {
     fs.mkdirSync('dist');
-    fs.appendFileSync('./dist/index.html', indexHTML);
+    fs.appendFileSync('./dist/index.html', makeIndexHTML(parsed.projectName));
   }
-  if (fileDoesntExist('.hzconfig')) {
-    fs.appendFileSync('.hzconfig', default_config);
+  if (fileDoesntExist('.hz')) {
+    fs.mkdirSync('.hz');
+  }
+  if (fileDoesntExist('.hz/config.toml')) {
+    fs.appendFileSync('.hz/config.toml', makeDefaultConfig(parsed.projectName), {
+      encoding: 'utf8',
+      mode: 0o600, // Secrets are put in this config, so set it user
+                   // read/write only
+    });
   }
 };
 
