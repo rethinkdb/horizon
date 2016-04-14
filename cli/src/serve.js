@@ -90,7 +90,7 @@ const addArguments = (parser) => {
 
   parser.addArgument([ '--config' ],
     { type: 'string', metavar: 'PATH',
-      help: 'Path to the config file to use, defaults to ".hzconfig".' });
+      help: 'Path to the config file to use, defaults to ".hz/config.toml".' });
 
   parser.addArgument([ '--auth' ],
     { type: 'string', action: 'append', metavar: 'PROVIDER,ID,SECRET', defaultValue: [ ],
@@ -101,7 +101,7 @@ const addArguments = (parser) => {
       help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
 };
 
-const default_config_file = './.hzconfig';
+const default_config_file = './.hz/config.toml';
 
 const make_default_config = () => ({
   config: default_config_file,
@@ -437,6 +437,19 @@ const runCommand = (opts, done) => {
     } catch (err) {
       done(new Error(`Failed to find "${opts.project}" project: ${err}`));
     }
+  }
+  // Check for .hz directory
+  try {
+    if (!fs.statSync('.hz').isDirectory()) {
+      throw new Error();
+    }
+  } catch (e) {
+    if (opts.project == null) {
+      console.error('There is no .hz directory here');
+    } else {
+      console.error(`There is no .hz directory in ${opts.project}`);
+    }
+    process.exit(1);
   }
 
   let http_servers, hz_instance;
