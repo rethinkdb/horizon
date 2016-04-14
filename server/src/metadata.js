@@ -148,6 +148,11 @@ class Metadata {
     this._auto_create_index = auto_create_index;
     this._ready = false;
 
+    let createIndex = (db, table, index, expr) =>
+      r.branch(
+        r.db(db).table(table).indexList().contains(index), r.expr(true),
+        r.db(db).table(table).indexCreate(index, expr));
+
     let query =
       r.db('horizon_internal')
        .table('collections')
@@ -159,9 +164,15 @@ class Metadata {
       query = r.expr([ 'horizon', 'horizon_internal' ])
        .forEach((db) => r.branch(r.dbList().contains(db), [], r.dbCreate(db)))
        .do(() =>
-         r.expr([ 'collections', 'users_auth', 'users' ])
+         r.expr([ 'collections', 'users_auth', 'users', 'stats_clients', 'stats_requests' ])
           .forEach((table) => r.branch(r.db('horizon_internal').tableList().contains(table),
                                        [], r.db('horizon_internal').tableCreate(table)))
+          .do(() => r.expr([
+            createIndex('horizon_internal', 'stats_clients', 'connected'),
+            createIndex('horizon_internal', 'stats_requests', 'time'),
+            createIndex('horizon_internal', 'stats_requests', 'cursors',
+                        row => row('cursors').gt(0))
+          ]))
           .do(() => query));
     }
 
