@@ -63,7 +63,7 @@ Horizon doesn't touch anything in `src`.
 If you want, you can `npm init` or `bower init` in the `example-app`
 directory to set up dependencies etc.
 
-`.hz/config.toml` is a [toml](https://github.com/toml-lang/toml) configuration file where you can set all the different options for Horizon Server. [Read more about available configuration options here](/cli/README.md#--hz_config_toml--file).
+`.hz/config.toml` is a [toml](https://github.com/toml-lang/toml) configuration file where you can set all the different options for Horizon Server. [Read more about available configuration options here](/cli/README.md#hzconfigtoml-file).
 
 By default, horizon creates a basic `index.html` to serve so you can verify everything is working:
 
@@ -121,7 +121,7 @@ On your local dev machine, you will usually use `hz serve --dev` which will begi
 ### Configuring Horizon Server
 
 Horizon Server is configurable via the `.hz/config.toml` file which is in the [toml](https://github.com/toml-lang/toml) config format. By default, `hz serve` will look for this file
-in the current working directory. Here is [an example `.hz/config.toml` file from the Horizon CLI documentation](https://github.com/rethinkdb/horizon/tree/next/cli#hzconfig-file) ➡️.
+in the current working directory. Here is [an example `.hz/config.toml` file from the Horizon CLI documentation](/cli/README.md#hzconfigtoml-file) ➡️.
 
 > Be warned that there is a precedence to config file setting in the order of:
 > environment variables > config file > command-line flags
