@@ -435,7 +435,8 @@ const runCommand = (opts, done) => {
     try {
       process.chdir(opts.project);
     } catch (err) {
-      done(new Error(`Failed to find "${opts.project}" project: ${err}`));
+      console.error(`Failed to find "${opts.project}" project directory`);
+      process.exit(1);
     }
   }
   // Check for .hz directory
