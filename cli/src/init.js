@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const crypto = require('crypto');
+const fileDoesntExist = require('./utils/file_doesnt_exist.js');
 
 const indexHTML = `\
 <!doctype html>
@@ -128,16 +129,6 @@ const addArguments = (parser) => {
   );
 };
 
-const fileDoesntExist = (path) => {
-  try {
-    fs.statSync(path);
-    console.error(`Bailing! ${path} already exists`);
-    process.exit(1);
-  } catch (e) {
-    return true;
-  }
-};
-
 const processConfig = (parsed) => {
   // Nothing needs to be done
   return parsed;
@@ -150,6 +141,7 @@ const runCommand = (parsed) => {
     console.log(`Created new project directory ${parsed.projectName}`);
     process.chdir(parsed.projectName);
   } else {
+    parsed.projectName = path.basename(process.cwd());
     console.log('Creating new project in current directory');
   }
 

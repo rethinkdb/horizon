@@ -438,6 +438,19 @@ const runCommand = (opts, done) => {
       done(new Error(`Failed to find "${opts.project}" project: ${err}`));
     }
   }
+  // Check for .hz directory
+  try {
+    if (!fs.statSync('.hz').isDirectory()) {
+      throw new Error();
+    }
+  } catch (e) {
+    if (opts.project == null) {
+      console.error('There is no .hz directory here');
+    } else {
+      console.error(`There is no .hz directory in ${opts.project}`);
+    }
+    process.exit(1);
+  }
 
   let http_servers, hz_instance;
 
