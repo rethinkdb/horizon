@@ -3,7 +3,7 @@
 const fs = require('fs');
 const crypto = require('crypto');
 
-const indexHTML = `\
+const makeIndexHTML = (projectName) => `\
 <!doctype html>
 <html>
   <head>
@@ -12,7 +12,7 @@ const indexHTML = `\
     <script>
       var horizon = Horizon();
       horizon.onConnected(function() {
-        document.querySelector('h1').innerHTML = 'It works!'
+        document.querySelector('h1').innerHTML = '${projectName} works!'
       });
       horizon.connect();
     </script>
@@ -23,7 +23,7 @@ const indexHTML = `\
 </html>
 `;
 
-const makeDefaultConfig = () => `\
+const makeDefaultConfig = (projectName) => `\
 # This is a TOML file
 
 ###############################################################################
@@ -50,7 +50,7 @@ const makeDefaultConfig = () => `\
 # 'project' will change to the given directory
 # 'serve_static' will serve files from the given directory over HTTP/HTTPS
 #------------------------------------------------------------------------------
-# project = "horizon"
+project = "${projectName}"
 # serve_static = "dist"
 
 
@@ -144,12 +144,13 @@ const processConfig = (parsed) => {
 };
 
 const runCommand = (parsed) => {
-  if (parsed.projectName !== null &&
+  if (parsed.projectName != null &&
       fileDoesntExist(parsed.projectName)) {
     fs.mkdirSync(parsed.projectName);
     console.log(`Created new project directory ${parsed.projectName}`);
     process.chdir(parsed.projectName);
   } else {
+    parsed.projectName = path.basename(path.resolve('.'));
     console.log('Creating new project in current directory');
   }
 
@@ -158,10 +159,10 @@ const runCommand = (parsed) => {
   }
   if (fileDoesntExist('dist')) {
     fs.mkdirSync('dist');
-    fs.appendFileSync('./dist/index.html', indexHTML);
+    fs.appendFileSync('./dist/index.html', makeIndexHTML(parsed.projectName));
   }
   if (fileDoesntExist('.hzconfig')) {
-    fs.appendFileSync('.hzconfig', makeDefaultConfig());
+    fs.appendFileSync('.hzconfig', makeDefaultConfig(parsed.projectName));
   }
 };
 

@@ -44,7 +44,7 @@ verify everything is working:
     <script>
       var horizon = Horizon();
       horizon.onConnected(function() {
-        document.querySelector('h1').innerHTML = 'It works!'
+        document.querySelector('h1').innerHTML = 'example-app works!'
       });
     </script>
   </head>
