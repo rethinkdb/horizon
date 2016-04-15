@@ -90,11 +90,14 @@ You can then create the boilerplate with `hz init` and then launch Horizon Serve
 and an instance of RethinkDB with `hz serve --dev`.
 
 ```sh
-$ hz init myapp
-$ hz serve myapp --dev
+$ hz init myapp && cd myapp
+$ hz serve --dev
 # localhost:8181 has a demo page on it
 # Horizon client connections can be made to ws://localhost:8181/horizon
 # The horizon client library is served from localhost:8181/horizon/horizon.js
+
+# RethinkDB Administration Console will be served as an random port
+# Listening for administrative HTTP connections on port xxxxx
 ```
 
 Check out the [Getting Started](/GETTING-STARTED.md) guide for a complete walkthrough.
