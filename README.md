@@ -166,7 +166,7 @@ backend framework (e.g. Rails, Express, Koa, etc.)
 
 By contrast, Meteor is a much more prescriptive framework. Horizon is a
 reasonably small component that has a very clean separation with the
-database and the frontend, while Meteor is a much more monolithic
+database and the front-end, while Meteor is a much more monolithic
 experience.
 
 Another major difference is architectural -- Meteor uses a LiveQuery
