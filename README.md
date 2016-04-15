@@ -91,7 +91,8 @@ and an instance of RethinkDB with `hz serve --dev`.
 
 ```sh
 $ hz init myapp
-$ hz serve myapp --dev
+$ cd myapp
+$ hz serve --dev
 # localhost:8181 has a demo page on it
 # Horizon client connections can be made to ws://localhost:8181/horizon
 # The horizon client library is served from localhost:8181/horizon/horizon.js
