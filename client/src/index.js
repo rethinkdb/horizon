@@ -74,6 +74,7 @@ function Horizon({
   horizon._horizonPath = path
   horizon.authEndpoint = authEndpoint
   horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
+  horizon.send = sendRequest;
 
   return horizon
 

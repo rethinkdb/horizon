@@ -7,6 +7,7 @@ const schemas = require('./schema/horizon_protocol');
 const Joi = require('joi');
 const r = require('rethinkdb');
 const websocket = require('ws');
+const uuid = require("uuid");
 
 class Request {
   constructor(client, raw_request) {
@@ -32,10 +33,12 @@ class Request {
           cursor.constructor.name === 'OrderByLimitFeed',
           'Endpoint provided a non-cursor as a cursor.');
     this.client.cursors.set(this.id, cursor);
+    this.client.parent._admin.add_cursor(this.client, this);
   }
 
   remove_cursor() {
     this.client.cursors.delete(this.id);
+    this.client.parent._admin.remove_cursor(this.client, this);
   }
 
   _run_reql() {
@@ -106,6 +109,11 @@ class Client {
     this.socket = socket;
     this.parent = parent_server;
     this.cursors = new Map();
+    this.id = uuid.v4();
+
+    // Socket is already open when client is instantiated
+    // So we should probably just invoke this here?
+    this.handle_open();
 
     this.socket.on('open', () => this.handle_open());
     this.socket.on('close', (code, msg) => this.handle_close(code, msg));
@@ -114,14 +122,20 @@ class Client {
       this.error_wrap_socket(() => this.handle_handshake(data)));
   }
 
+  get_address() {
+    return this.socket.upgradeReq.connection.remoteAddress;
+  }
+
   handle_open() {
     logger.debug('Client connection established.');
     this.parent._clients.add(this); // TODO: this is a race condition - the client could miss a reql_connection_lost call
+    this.parent._admin.add_client(this);
   }
 
   handle_close() {
     logger.debug('Client connection terminated.');
     this.parent._clients.delete(this);
+    this.parent._admin.remove_client(this);
     this.cursors.forEach((cursor) => cursor.close());
   }
 
@@ -230,7 +244,8 @@ class Client {
       }
 
       // Kick off the request - it will handle errors and send the response
-      new Request(this, request);
+      let req = new Request(this, request);
+      this.parent._admin.add_request(req, this);
     }
   }
 
@@ -239,6 +254,8 @@ class Client {
     if (this.cursors.delete(raw_request.request_id)) {
       cursor.close();
     }
+
+    this.parent._admin.remove_cursor(this, raw_request);
   }
 
   send_response(request_id, data) {
