@@ -68,6 +68,10 @@ const addArguments = (parser) => {
     { action: 'storeTrue',
       help: 'Create indexes used by requests if they do not exist.' });
 
+  parser.addArgument([ '--stats' ],
+    { action: 'storeTrue',
+      help: 'Collect statistics for the Horizon dashboard' });
+
   parser.addArgument([ '--serve-static' ],
     { type: 'string',
       nargs: '?',
@@ -119,6 +123,8 @@ const make_default_config = () => ({
 
   rdb_host: 'localhost',
   rdb_port: 28015,
+
+  stats: false,
 
   allow_anonymous: false,
   allow_unauthenticated: false,
@@ -325,7 +331,8 @@ const read_config_from_flags = (parsed) => {
                        'auto_create_table',
                        'allow_unauthenticated',
                        'allow_anonymous',
-                       'auth_redirect' ];
+                       'auth_redirect',
+                       'stats'];
 
   bool_flags.forEach((key) => {
     if (parsed[key]) {
@@ -410,6 +417,7 @@ const startHorizonServer = (servers, opts) => {
     auto_create_index: opts.auto_create_index,
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
+    stats: opts.stats,
     auth: {
       allow_unauthenticated: opts.allow_unauthenticated,
       allow_anonymous: opts.allow_anonymous,

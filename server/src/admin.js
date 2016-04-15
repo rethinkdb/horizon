@@ -7,8 +7,10 @@ const client_table = admin_db.table('stats_clients');
 const request_table = admin_db.table('stats_requests');
 
 class Admin {
-  constructor(server) {
+  constructor(server, enabled) {
+    console.log("Stats enabled:", enabled);
     this.server = server;
+    this.enabled = enabled;
   }
 
   clear_tables() {
@@ -67,7 +69,8 @@ class Admin {
   }
 
   _run_query(query) {
-    query.run(this.server._reql_conn.connection());
+    if (this.enabled)
+      query.run(this.server._reql_conn.connection());
   }
 }
 

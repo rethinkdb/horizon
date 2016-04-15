@@ -81,7 +81,7 @@ class Server {
                                          this._clients);
 
     this._auth = new Auth(this, opts.auth);
-    this._admin = new Admin(this);
+    this._admin = new Admin(this, opts.stats);
     this._reql_conn.ready().then(() => this._admin.clear_tables());
 
     for (let key of Object.keys(endpoints)) {
