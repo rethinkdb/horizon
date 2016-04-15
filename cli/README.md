@@ -12,7 +12,7 @@ For a tutorial learn how to use the cli, see the [getting started guide](/GETTIN
 
 ### `hz init`
 Create a horizon app directory, automatically creating a `src` and `dist`
-directories within the folder, as well as a `.hz/config.toml` configuration file.
+directories within the folder, as well as a `.hzconfig` configuration file.
 
 Positional Args | Description
 ----------------|------------
@@ -27,7 +27,7 @@ Horizon web application.
 least to highest precedence:
 
 ```
-environment variables < config file (`.hz/config.toml`) < command-line flags
+environment variables < config file (`.hzconfig`) < command-line flags
 ```
 
 ##### Available options
@@ -67,9 +67,9 @@ openssl req -x509 -newkey rsa:2048 -keyout horizon-key.pem -out horizon-cert.pem
 Once a key file and cert file have been obtained, launch the server without the `--insecure`
 flag, and provide the files in the `--key-file` and `--cert-file` options.
 
-### `.hz/config.toml` file
+### `.hzconfig` file
 
-One can also configure Horizon with a `.hz/config.toml` [toml](https://github.com/toml-lang/toml) configuration file. Here is an example configuration file below. Note that by default, `hz serve` will look for `.hz/config.toml` (which is created by `hz init`) in the current directory.
+One can also configure Horizon with a `.hzconfig` [toml](https://github.com/toml-lang/toml) configuration file. Here is an example configuration file below. Note that by default, `hz serve` will look for `.hzconfig` (which is created by `hz init`) in the current directory.
 
 This example shows the current defaults. To change them, you need to remove the `#` from the beginning of the line and change the value. Note that `[ table_name ]` toml table declarations need to also be uncommented in the OAuth configuration at the end of the file.
 
