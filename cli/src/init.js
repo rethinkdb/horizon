@@ -2,7 +2,6 @@
 
 const fs = require('fs');
 const crypto = require('crypto');
-const fileDoesntExist = require('./utils/file_doesnt_exist.js');
 
 const makeIndexHTML = (projectName) => `\
 <!doctype html>
@@ -127,6 +126,16 @@ const addArguments = (parser) => {
       nargs: '?',
     }
   );
+};
+
+const fileDoesntExist = (path) => {
+  try {
+    fs.statSync(path);
+    console.error(`Bailing! ${path} already exists`);
+    process.exit(1);
+  } catch (e) {
+    return true;
+  }
 };
 
 const processConfig = (parsed) => {
