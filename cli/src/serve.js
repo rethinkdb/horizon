@@ -13,6 +13,7 @@ const url = require('url');
 const extend = require('util')._extend;
 
 const start_rdb_server = require('./utils/start_rdb_server');
+const action_cors = require('./utils/action_cors');
 
 const addArguments = (parser) => {
   parser.addArgument([ '--project' ],
@@ -38,6 +39,11 @@ const addArguments = (parser) => {
   parser.addArgument([ '--cert-file' ],
     { type: 'string', metavar: 'PATH',
       help: 'Path to the cert file to use, defaults to "./cert.pem".' });
+
+  parser.addArgument([ '--cors' ],
+    { action: action_cors.ActionCORS, metavar: 'LIST',
+      help: 'Comma-separated list of domains permitted to make requests to horizon. If no list is provided, \
+      the server will allow all request origins to make requests' });
 
   parser.addArgument([ '--allow-unauthenticated' ],
     { action: 'storeTrue',
@@ -125,6 +131,7 @@ const make_default_config = () => ({
   auth_redirect: '/',
 
   auth: { },
+  cors: null,
 });
 
 const default_config = make_default_config();
@@ -158,14 +165,17 @@ const serve_file = (file_path, res) => {
   });
 };
 
-const fileServer = (distDir) => (req, res) => {
+const fileServer = (opts) => (req, res) => {
+
+  horizon_server.Server.cors_header_handler(opts.cors, req, res);
+
   const req_path = url.parse(req.url).pathname;
   // Serve client files directly
   if (req_path === '/' || req_path === '') {
-    serve_file(path.join(distDir, 'index.html'), res);
+    serve_file(path.join(opts.serve_static, 'index.html'), res);
   } else if (!req_path.match(/\/horizon\/.*$/)) {
     // All other static files come from the dist directory
-    serve_file(path.join(distDir, req_path), res);
+    serve_file(path.join(opts.serve_static, req_path), res);
   }
   // Fall through otherwise. Should be handled by horizon server
 };
@@ -179,7 +189,8 @@ const initialize_servers = (ctor, opts) => {
       servers.add(srv);
       if (opts.serve_static) {
         logger.info(`Serving static files from ${opts.serve_static}`);
-        srv.on('request', fileServer(opts.serve_static));
+        if (opts.cors) { logger.info('Adding additional CORS header to responses'); }
+        srv.on('request', fileServer(opts));
       }
       srv.on('listening', () => {
         logger.info(`Listening on ${srv.address().address}:` +
@@ -252,6 +263,8 @@ const read_config_from_file = (config_file) => {
   for (const field in file_config) {
     if (field === 'connect') {
       parse_connect(file_config.connect, config);
+    } else if (field === 'cors') {
+      config.cors = typeof file_config.cors === 'string' ? action_cors.raw_cors_parser(file_config.cors) : false
     } else if (default_config[field] !== undefined) {
       config[field] = file_config[field];
     } else {
@@ -279,6 +292,8 @@ const read_config_from_env = () => {
 
       if (dest_var_name === 'connect') {
         parse_connect(value, config);
+      } else if (dest_var_name === 'cors') {
+        config.cors = typeof value === 'string' ? action_cors.raw_cors_parser(value) : false
       } else if (dest_var_name === 'bind') {
         config[dest_var_name] = value.split(',');
       } else if (var_path[0] === 'auth' && var_path.length === 3) {
@@ -315,6 +330,13 @@ const read_config_from_flags = (parsed) => {
 
   if (parsed.project !== null) {
     config.project = parsed.project;
+  }
+
+  console.log("PARSED.CORS === "+parsed.cors)
+  if (parsed.cors !== null) {
+    config.cors = parsed.cors;
+  } else {
+    config.cors = false;
   }
 
   // Simple boolean flags
@@ -410,6 +432,7 @@ const startHorizonServer = (servers, opts) => {
     auto_create_index: opts.auto_create_index,
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
+    cors: opts.cors,
     auth: {
       allow_unauthenticated: opts.allow_unauthenticated,
       allow_anonymous: opts.allow_anonymous,

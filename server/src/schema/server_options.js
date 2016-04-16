@@ -14,6 +14,7 @@ const server = Joi.object({
   db: Joi.string().token().default('horizon'),
 
   auth: Joi.object().default({ }),
+  cors: Joi.alternatives().try(Joi.boolean().allow(false), Joi.string(), Joi.array().items(Joi.string())),
 }).unknown(false);
 
 const auth = Joi.object({

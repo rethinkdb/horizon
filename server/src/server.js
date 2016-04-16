@@ -41,7 +41,7 @@ const accept_protocol = (protocols, cb) => {
   }
 };
 
-const serve_file = (file_path, res) => {
+const serve_file = (file_path, req, res) => {
   fs.access(file_path, fs.R_OK | fs.F_OK, (exists) => {
     if (exists) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -65,6 +65,7 @@ class Server {
     const opts = Joi.attempt(user_opts || { }, options_schema);
     this._path = opts.path;
     this._name = opts.db;
+    this._cors = opts.cors;
     this._auth_methods = { };
     this._request_handlers = new Map();
     this._http_handlers = new Map();
@@ -125,14 +126,17 @@ class Server {
     };
 
     this.add_http_handler('horizon.js', (req, res) => {
-      serve_file(horizon_client_path, res);
+      Server.cors_header_handler(this._cors, req, res);
+      serve_file(horizon_client_path, req, res);
     });
 
     this.add_http_handler('horizon.js.map', (req, res) => {
-      serve_file(`${horizon_client_path}.map`, res);
+      Server.cors_header_handler(this._cors, req, res);
+      serve_file(`${horizon_client_path}.map`, req, res);
     });
 
     this.add_http_handler('auth_methods', (req, res) => {
+      Server.cors_header_handler(this._cors, req, res);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(this._auth_methods));
     });
@@ -150,6 +154,19 @@ class Server {
     assert(handle_response !== undefined);
     assert(this._request_handlers.get(request_name) === undefined);
     this._request_handlers.set(request_name, { make_reql: make_reql, handle_response: handle_response });
+  }
+
+  // Takes the cors setting (either: null, "*", [http[s]://domain.com [, http[s]://moar.com]]) and the req and response
+  //  to determine whether or not to add CORS headers to the response.
+  //   https://www.w3.org/TR/cors/#access-control-allow-origin-response-header
+  static cors_header_handler(cors, req, res) {
+    // If certain domains are specified in the cors list, return the matching domain
+    if (Array.isArray(cors) && cors.indexOf(req.headers.Origin) !== -1) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.Origin);
+    // If all domains are allowed set header to '*'
+    } else if (cors) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
   }
 
   get_request_handler(request) {
