@@ -29,7 +29,7 @@ npm run devtest     | Run tests and linting continually
 
 
 ### Getting Started
-[Check out our Getting Started guide.](GETTING-STARTED.md)
+[Check out our Getting Started guide.](/GETTING-STARTED.md)
 
 ### API
 
