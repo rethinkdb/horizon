@@ -1,6 +1,6 @@
 {
   "name": "horizon",
-  "version": "0.2.5-1",
+  "version": "0.2.5-2",
   "description": "An open-source developer platform for building realtime, scalable web apps.",
   "main": "src/main.js",
   "repository": {
