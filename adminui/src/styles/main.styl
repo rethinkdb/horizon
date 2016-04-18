@@ -1,0 +1,74 @@
+// out: ../../dist/main.css
+
+@import "components"
+@import "colors"
+
+html, body
+  display flex
+  height 100%
+  width 100%
+  margin 0
+
+  font-family "Source Sans Pro"
+  background #F2F3F5
+  font-size 14px
+
+#app
+  flex-grow 1
+  overflow scroll
+  background: white
+  margin 0 auto
+  max-width 900px
+  padding 0 50px 50px
+
+  border-left 1px solid color-grey-line
+  border-right 1px solid color-grey-line
+
+  h1
+    padding-top 10px
+    font-size 60px
+    font-weight 100
+    margin 0
+
+#dashboard
+  .tiles
+    display flex
+    flex-grow: 1
+    margin-top: 25px
+
+    .tile
+      flex-grow 1
+      &:not(:first-child)
+        margin-left 35px
+
+  .graph-container
+    margin-top 35px
+    padding 15px
+    border 1px solid color-grey-line
+
+  .box
+    margin-top 25px
+
+  table
+    border-spacing: 10px
+
+    th
+      font-weight bold
+      text-transform uppercase
+      color lighten(color-grey-text, 10)
+      text-align: left;
+
+    .between
+      color darken(color-grey-text, 10)
+
+  .request
+    font-size 14px
+
+    .token
+      font-size 12px
+      i {font-size: 16px}
+      border-radius: 4px
+
+    span
+      margin-right 5px
+      margin-left 5px

@@ -1,0 +1,90 @@
+
+<link jumptag="time">
+
+<template id="tile" type="jumptag">
+  <div class="tile ${opts.class}">
+    <div class="inner">
+      <div class="content"><expand /></div>
+      <div class="caption">${opts.caption}</div>
+    </div>
+  </div>
+</template>
+
+<template id="tiles" type="jumptag">
+  <div class="tiles">
+    <tile caption="Clients" class="clients">
+      <i class="icon ion-ios-person"></i>
+      <div class="value">${opts.data.clients.length}</div>
+    </tile>
+
+    <tile caption="Collections" class="collections">
+      <i class="icon ion-ios-copy"></i>
+      <div class="value">${opts.data.collections.length}</div>
+    </tile>
+
+    <tile caption="Requests" class="requests">
+      <i class="icon ion-ios-pulse"></i>
+      <div class="value">${opts.data.cursors.length}</div>
+    </tile>
+  </div>
+</template>
+
+<template id="dashboard" type="jumptag">
+  <div id="dashboard" class="epoch-theme-default">
+    
+    <tiles data={opts.data}></tiles>
+    
+    <div class="graph-container">
+      <update check="{!opts.model.graph}">
+        <div id="graph" class="epoch"></div>
+        <script>opts.model.initializeGraph();</script>
+      </update>
+    </div>
+
+    <div class="box">
+      <div class="title requests">
+        <h2>Recent Requests</h2>
+        <i class="icon ion-ios-pulse"></i>
+      </div>
+
+      <table>
+        <tr>
+          <th>Command</th>
+          <th></th>
+          <th>Client</th>
+          <th></th>
+          <th>Collection</th>
+          <th></th>
+          <th>Time</th>
+        </tr>
+        <for var="req" in={opts.data.requests}>
+          <tr class="request">
+            <td class="token requests ${req.raw.type}">
+                <i class="icon ion-ionic icon-${req.raw.type}"></i>
+                <span class="text">${req.raw.type}</span>
+              </span>
+            </td>
+            <td class="between">performed by</td>
+            <td class="clients token">
+              <i class="icon ion-ios-person"></i>
+              <span class="text">${req.client.ip}</span>
+            </td>
+            <td class="between">on</td>
+            <td class="collections token">
+              <i class="icon ion-ios-copy"></i>
+              <span class="text">${req.raw.options.collection}</span>
+            </td>
+            <td class="between">at</td>
+            <td class="timestamp token">
+              <i class="icon ion-ios-clock"></i>
+              <span class="text">
+                <time time={req.time} format="MMM D hh:mm a"></time>
+              </span>
+            </td>
+          </tr>
+        </for>
+      </table>
+      
+    </div>
+  </div>
+</template>

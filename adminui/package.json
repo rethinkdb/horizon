@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "jumptag": "git+https://github.com/segphault/jumptag.git",
+    "stylus": "^0.54.2"
+  }
+}

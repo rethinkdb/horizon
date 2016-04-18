@@ -1,0 +1,13 @@
+
+<link jumptag="dashboard">
+
+<template id="app" type="jumptag">
+  <script>
+    let data = model.data();
+  </script>
+
+  <h1>Horizon</h1>
+  
+  <dashboard model={model} data={data}></dashboard>
+
+</template>

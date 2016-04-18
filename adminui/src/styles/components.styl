@@ -1,0 +1,75 @@
+@import "colors"
+
+.tile
+  display inline-block
+  font-size 62px
+  font-weight 100
+  color white
+
+  .content
+    padding 15px 25px
+
+  .inner
+    border-left 8px solid rgba(255, 255, 255, 0.5)
+
+  .value
+    display inline-block
+    vertical-align: middle;
+
+  .caption
+    padding 10px
+    font-size 18px
+    font-weight normal
+    background rgba(255, 255, 255, 0.2)
+    text-align right
+
+  .icon
+    display inline-block
+    color rgba(255, 255, 255, 0.5)
+    vertical-align: middle;
+    font-size 72px
+    width 85px
+
+.epoch
+  margin-left -30px
+  height 300px
+
+  .category1
+    .line {stroke: color-clients}
+
+  .category2
+    .line {stroke: color-requests}
+
+  .axis
+    font-weight 100
+    stroke: color-grey
+    line {display: none}
+    path {display: none}
+
+.box
+  .title
+    padding 10px
+    display flex
+
+    border-left 8px solid rgba(255, 255, 255, 0.5)
+    color white
+
+    h2
+      margin 0
+      margin-top 5px
+      font-size 18px
+      font-weight 100
+      letter-spacing 0.8px
+      flex-grow 1
+
+    .icon
+      font-size 24px
+      vertical-align: middle;
+
+.token
+  padding 7px 12px
+  border-left: 5px solid rgba(255, 255, 255, 0.5)
+  text-transform: uppercase;
+  color white
+
+  i, .text { vertical-align: middle; }
