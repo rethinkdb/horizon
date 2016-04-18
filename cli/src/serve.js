@@ -3,14 +3,15 @@
 const horizon_server = require('@horizon/server');
 const interrupt = require('./utils/interrupt');
 
+const extend = require('util')._extend;
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
 const logger = horizon_server.logger;
+const open = require("open");
 const path = require('path');
 const toml = require('toml');
 const url = require('url');
-const extend = require('util')._extend;
 
 const start_rdb_server = require('./utils/start_rdb_server');
 
@@ -106,6 +107,7 @@ const default_config_file = './.hz/config.toml';
 const make_default_config = () => ({
   config: default_config_file,
   debug: false,
+  dev: false,
   project: null,
 
   bind: [ 'localhost' ],
@@ -308,14 +310,15 @@ const read_config_from_flags = (parsed) => {
 
   // Dev mode
   if (parsed.dev) {
-    config.debug = true;
-    config.allow_unauthenticated = true;
     config.allow_anonymous = true;
-    config.insecure = true;
-    config.start_rethinkdb = true;
-    config.auto_create_table = true;
+    config.allow_unauthenticated = true;
     config.auto_create_index = true;
+    config.auto_create_table = true;
+    config.debug = true;
+    config.dev = true;
+    config.insecure = true;
     config.serve_static = 'dist';
+    config.start_rethinkdb = true;
   }
 
   if (parsed.project !== null) {
@@ -324,6 +327,7 @@ const read_config_from_flags = (parsed) => {
 
   // Simple boolean flags
   const bool_flags = [ 'debug',
+                       'dev',
                        'insecure',
                        'start_rethinkdb',
                        'auto_create_index',
@@ -490,6 +494,28 @@ const runCommand = (opts, done) => {
         hz_instance.add_auth_provider(provider,
                                       extend({ path: name }, opts.auth[name]));
       }
+    }
+  }).then(() => {
+    // Automatically open up index.html in the `dist` directory only if
+    //  in dev mode and an index.html exists in the directory.
+    if (opts.dev === true && opts.serve_static) {
+      // Check if index.html exists and readable in serve static_static directory
+      fs.access(`${opts.serve_static}/index.html`, fs.R_OK | fs.F_OK, (err) => {
+        if (err) {
+          logger.info('Could not find index.html, will not auto open');
+        } else {
+          logger.info('Attempting open of index.html in default browser');
+          // Determine scheme from options
+          const scheme = opts.insecure ? 'http://' : 'https://';
+          // Open up index.html in default browser
+          try {
+            open(`${scheme}${opts.bind}:${opts.port}/index.html`);
+          } catch (open_err) {
+            logger.info(`Error occurred while trying to open ${opts.serve_static}/index.html`);
+            logger.info(open_err);
+          }
+        }
+      });
     }
   }).catch(done);
 };

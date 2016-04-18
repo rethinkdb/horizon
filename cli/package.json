@@ -24,6 +24,7 @@
     "@horizon/server": "^0.0.5-0",
     "argparse": "^1.0.3",
     "hasbin": "^1.2.1",
+    "open": "0.0.5",
     "toml": "^2.3.0"
   },
   "devDependencies": {
