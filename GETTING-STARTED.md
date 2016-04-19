@@ -458,14 +458,14 @@ There's also plenty of other functions in the Horizon Client library to meet you
 ## Bringing your app to Horizon
 
 We expect many people to already have an application in place but want to leverage
-the power of Horizon for their realtime data. Here are a few scenario that will
+the power of Horizon for their realtime data. Here are a few scenarios that will
 be relevant to you:
 
 ### Do I need to output all my files into the `dist` folder?
 
 The short and long answer is, **_no_**.
 
-If you are already using some other process to server your static files, you absolutely
+If you are already using some other process to serve your static files, you absolutely
 do not need to now do Yet Another Refactor™️ just to get the power of Horizon. From your already existing code base you have two options to get include and then `require` the Horizon Client library:
 
 1. Use `horizon.js` served by Horizon Server (simplest option)
