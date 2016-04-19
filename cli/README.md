@@ -50,7 +50,7 @@ Optional Args| Description
   --auto-create-table | Create tables used by requests if they do not exist
   --auto-create-index | Create indexes used by requests if they do not exist
   --serve-static [PATH] | Serve static files from a directory. Defaults to `dist`.
-  --dev               | Runs the server in development mode, this sets `--debug`, `--insecure`, `--auto-create-tables`, and `--auto-create-indexes`.
+  --dev               | Runs the server in development mode, this sets `--insecure`, `--auto-create-tables`, and `--auto-create-indexes`.
 
 #### Serving securely, generating certs for SSL
 

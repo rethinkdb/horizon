@@ -81,7 +81,6 @@ const addArguments = (parser) => {
   parser.addArgument([ '--dev' ],
     { action: 'storeTrue',
       help: 'Runs the server in development mode, this sets ' +
-      '--debug, ' +
       '--insecure, ' +
       '--auto-create-table, ' +
       '--start-rethinkdb, ' +
@@ -308,7 +307,7 @@ const read_config_from_flags = (parsed) => {
 
   // Dev mode
   if (parsed.dev) {
-    config.debug = true;
+    config.debug = false;
     config.allow_unauthenticated = true;
     config.allow_anonymous = true;
     config.insecure = true;
