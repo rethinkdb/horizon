@@ -465,7 +465,7 @@ be relevant to you:
 
 The short and long answer is, **_no_**.
 
-If you are already using some other process to server your static files, you absolutely
+If you are already using some other process to serve your static files, you absolutely
 do not need to now do Yet Another Refactor™️ just to get the power of Horizon. From your already existing code base you have two options to get include and then `require` the Horizon Client library:
 
 1. Use `horizon.js` served by Horizon Server (simplest option)
