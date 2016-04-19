@@ -432,23 +432,15 @@ const runCommand = (opts, done) => {
 
   if (opts.project !== null) {
     try {
+      if (!fs.statSync('.hz').isDirectory()) {
+        throw new Error();
+      }
+    } catch (e) {
       process.chdir(opts.project);
-    } catch (err) {
-      console.error(`Failed to find "${opts.project}" project directory`);
-      process.exit(1);
     }
-  }
-  // Check for .hz directory
-  try {
-    if (!fs.statSync('.hz').isDirectory()) {
-      throw new Error();
-    }
-  } catch (e) {
-    if (opts.project == null) {
-      console.error('There is no .hz directory here');
-    } else {
-      console.error(`There is no .hz directory in ${opts.project}`);
-    }
+  } else {
+    console.error('Project not specified or .hz directory not found.\nTry changing to a project' +
+      ' with a .hz directory,\nor specify your project path with the --project option');
     process.exit(1);
   }
 
