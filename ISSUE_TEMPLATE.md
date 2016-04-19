@@ -1,3 +1,4 @@
-If you have a question please open a new topic in Horizon's [Get Help](c5d6c815745b5ed2b1bdd85c8e579fa92bcc34e4) forum.
+* If you have a **question** please open a new topic in Horizon's [Get Help](https://discuss.horizon.io/c/get-help) forum.
+* If you want to suggest a **feature**, consider discussing it in [Features](https://discuss.horizon.io/c/features) first
 
-We're trying to limit GitHub issues to bug reports and feature requests, thanks!
+If you have a bug report, fire away!
