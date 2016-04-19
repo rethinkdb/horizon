@@ -30,7 +30,7 @@ const removeSuite = window.removeSuite = getData => () => {
     data.remove(1)
       .do(res => assert.equal(res, 1))
       // Let's make sure the removed document isn't there
-      .flatMap(() => data.find(1).fetch())
+      .mergeMap(() => data.find(1).fetch())
       // Let's make sure the removed document isn't there
       .do(res => assert.isNull(res))
   ))
@@ -39,7 +39,7 @@ const removeSuite = window.removeSuite = getData => () => {
     data.remove({ id: 2 })
       .do(res => assert.equal(res, 2))
       // Let's make sure the removed document isn't there
-      .flatMap(() => data.find(2).fetch())
+      .mergeMap(() => data.find(2).fetch())
       // Let's make sure the removed document isn't there
       .do(res => assert.isNull(res))
   ))

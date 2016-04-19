@@ -11,7 +11,7 @@ if (typeof window !== 'undefined') {
   } else {
     // In polyfill version we expose Rx, as users generally want to use the
     // same Rx as the library itself -- for example `Rx.Observable.empty()`
-    window.Rx = require('rx')
+    window.Rx = require('rxjs')
   }
 }
 

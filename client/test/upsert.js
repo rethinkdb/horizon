@@ -14,15 +14,15 @@ const upsertSuite = window.upsertSuite = getData => () => {
       // should return an array with an ID of the inserted document.
       .do(res => assert.deepEqual(res, [ 1 ]))
       // Let's make sure we get back the document that we put in.
-      .flatMap(data.find(1).fetch())
+      .mergeMap(() => data.find(1).fetch())
       // Check that we get back what we put in.
       .do(res => assert.deepEqual(res, { id: 1, a: { b: 1, c: 1 }, d: 1 }))
       // Let's update the document now
-      .flatMap(data.upsert({ id: 1, a: { c: 2 } })).toArray()
+      .mergeMap(() => data.upsert({ id: 1, a: { c: 2 } })).toArray()
       // We should have gotten the ID back again
       .do(res => assert.deepEqual([ 1 ], res))
       // Make sure `upsert` updated the original document
-      .flatMap(data.find(1).fetch())
+      .mergeMap(() => data.find(1).fetch())
       // Check that the document was updated correctly
       .do(res => assert.deepEqual(res, { id: 1, a: { b: 1, c: 2 }, d: 1 }))
   ))
@@ -42,15 +42,15 @@ const upsertSuite = window.upsertSuite = getData => () => {
         new_id = res[0]
       })
       // Let's make sure we get back the document that we put in.
-      .flatMap(() => data.find(new_id).fetch())
+      .mergeMap(() => data.find(new_id).fetch())
       // Check that we get back what we put in.
       .do(res => assert.deepEqual(res, { id: new_id, a: { b: 1, c: 1 }, d: 1 }))
       // Let's update the document now
-      .flatMap(() => data.upsert({ id: new_id, a: { c: 2 } })).toArray()
+      .mergeMap(() => data.upsert({ id: new_id, a: { c: 2 } })).toArray()
       // We should have gotten the ID back again
       .do(res => assert.deepEqual(res, [ new_id ]))
       // Make sure `upsert` updated the original document
-      .flatMap(() => data.find(new_id).fetch())
+      .mergeMap(() => data.find(new_id).fetch())
       // Check that we get back what we put in.
       .do(res => assert.deepEqual(res, { id: new_id, a: { b: 1, c: 2 }, d: 1 }))
   }))
@@ -91,7 +91,7 @@ const upsertSuite = window.upsertSuite = getData => () => {
         new_id_1 = res[1]
       })
       // Make sure we get what we put in.
-      .flatMap(() => data.findAll(new_id_0, new_id_1, 1).fetch().toArray())
+      .mergeMap(() => data.findAll(new_id_0, new_id_1, 1).fetch().toArray())
       // We're supposed to get an array of documents we put in
       .do(res => assert.sameDeepMembers(res, [
         { id: new_id_0 },

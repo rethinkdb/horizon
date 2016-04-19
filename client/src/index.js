@@ -1,7 +1,23 @@
-const Rx = require('rx')
-const { Collection } = require('./ast')
-const HorizonSocket = require('./socket')
-const { log, logError, enableLogging } = require('./logging')
+const { Observable } = require('rxjs');
+// TODO: size reduction
+// const { Observable } = require('rxjs/Observable');
+// require('rxjs/add/observable/fromArray');
+// require('rxjs/add/operator/catch');
+// require('rxjs/add/operator/concatMap');
+// require('rxjs/add/operator/do');
+// require('rxjs/add/operator/filter');
+
+// TODO: used by tests
+// require('rxjs/add/operator/concat');
+// require('rxjs/add/operator/ignoreElements');
+// require('rxjs/add/operator/mergeMap');
+// require('rxjs/add/operator/pluck');
+// require('rxjs/add/operator/take');
+// require('rxjs/add/operator/toArray')
+
+const { Collection } = require('./ast.js')
+const HorizonSocket = require('./socket.js')
+const { log, logError, enableLogging } = require('./logging.js')
 const { authEndpoint, TokenStorage, clearAuthTokens } = require('./auth')
 
 const defaultHost = window && window.location &&
@@ -38,7 +54,7 @@ function Horizon({
   }
 
   horizon.dispose = () => {
-    socket.onCompleted()
+    socket.complete()
   }
 
   // Dummy subscription to force it to connect to the
@@ -87,14 +103,14 @@ function Horizon({
       .concatMap(resp => {
         // unroll arrays being returned
         if (resp.data) {
-          return resp.data
+          return Observable.fromArray(resp.data)
         } else {
           // Still need to emit a document even if we have no new data
-          return [ { state: resp.state, type: resp.type } ]
+          return Observable.fromArray([ { state: resp.state, type: resp.type } ])
         }
       })
-      .catch(e => Rx.Observable.create(observer => {
-        observer.onError(new Error(e.error))
+      .catch(e => Observable.create(observer => {
+        observer.error(new Error(e.error))
       })) // on error, strip error message
   }
 }

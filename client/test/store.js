@@ -14,15 +14,15 @@ const storeSuite = window.storeSuite = getData => () => {
       // document.
       .do(res => assert.deepEqual(res, 1))
       // Let's make sure we get back the document that we put in.
-      .flatMap(data.find(1).fetch())
+      .mergeMap(() => data.find(1).fetch())
       // Check that we get back what we put in.
       .do(res => assert.deepEqual(res, { id: 1, a: 1, b: 1 }))
       // Let's overwrite the document now
-      .flatMap(data.store({ id: 1, c: 1 }))
+      .mergeMap(() => data.store({ id: 1, c: 1 }))
       // We should have gotten the ID back again
       .do(res => assert.deepEqual(res, 1))
       // Make sure `store` overwrote the original document
-      .flatMap(data.find(1).fetch())
+      .mergeMap(() => data.find(1).fetch())
       // Check that we get back what we put in.
       .do(res => assert.deepEqual(res, { id: 1, c: 1 }))
   ))
@@ -42,15 +42,15 @@ const storeSuite = window.storeSuite = getData => () => {
         new_id = res[0]
       })
       // Let's make sure we get back the document that we put in.
-      .flatMap(() => data.find(new_id).fetch())
+      .mergeMap(() => data.find(new_id).fetch())
       // Check that we get back what we put in.
       .do(res => assert.deepEqual({ id: new_id, a: 1, b: 1 }, res))
       // Let's overwrite the document now
-      .flatMap(() => data.store({ id: new_id, c: 1 }))
+      .mergeMap(() => data.store({ id: new_id, c: 1 }))
       // We should have gotten the ID back again
       .do(res => assert.deepEqual(new_id, res))
       // Make sure `store` overwrote the original document
-      .flatMap(() => data.find(new_id).fetch())
+      .mergeMap(() => data.find(new_id).fetch())
       // Check that we get back what we put in.
       .do(res => assert.deepEqual({ id: new_id, c: 1 }, res))
   }))
@@ -93,7 +93,7 @@ const storeSuite = window.storeSuite = getData => () => {
         new_id_1 = res[1]
       })
       // Make sure we get what we put in.
-      .flatMap(() => data.findAll(new_id_0, new_id_1, 1)
+      .mergeMap(() => data.findAll(new_id_0, new_id_1, 1)
                .fetch().toArray())
       // We're supposed to get an array of documents we put in
       .do(res => assert.sameDeepMembers(res, [
@@ -124,7 +124,7 @@ const storeSuite = window.storeSuite = getData => () => {
   it('stores date objects and retrieves them again', assertCompletes(() => {
     const originalDate = new Date()
     return data.store({ date: originalDate }).toArray()
-      .flatMap(id => data.find(id[0]).fetch())
+      .mergeMap(id => data.find(id[0]).fetch())
       .do(result => assert.deepEqual(originalDate, result.date))
   }))
 } // Testing `store`
