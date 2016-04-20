@@ -46,11 +46,12 @@ dependencies:
     - ./setupDev.sh:
         pwd: test
 
+database:
+  override:
+    - ./test/serve.js:
+
 ## Customize test commands
 test:
-  pre:
-    - ./test/serve.js:
-        background: true
   override:
     # Run client tests
     - mkdir -p $CIRCLE_TEST_REPORTS/xunit; touch $CIRCLE_TEST_REPORTS/xunit/client-tests.xml; ./node_modules/.bin/mocha --timeout 15000 -R xunit dist/test.js > $CIRCLE_TEST_REPORTS/xunit/client-tests.xml:
