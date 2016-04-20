@@ -2,14 +2,15 @@
 
 const query = require('../schema/horizon_protocol').query;
 const check = require('../error.js').check;
+const validate = require('../permissions/validator').validate;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
 
-// This is also used by the 'subscribe' endpoint
+// This is exposed to be reused by 'subscribe'
 const make_reql = (raw_request, metadata) => {
   const parsed = Joi.validate(raw_request.options, query);
-  if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
+  if (parsed.error !== null) { done(new Error(parsed.error.details[0].message)); }
   const options = parsed.value;
 
   const table = metadata.get_table(parsed.value.collection);
@@ -83,24 +84,38 @@ const make_reql = (raw_request, metadata) => {
   return reql;
 };
 
-const handle_response = (request, res, send_cb) => {
-  if (res !== null && res.constructor.name === 'Cursor') {
-    request.add_cursor(res);
-    res.each((err, item) => {
-      if (err !== null) {
-        send_cb({ error: `${err}` });
-      } else {
-        send_cb({ data: [ item ] });
+const run = (raw_request, context, rules, metadata, done_cb) => {
+  const reql = make_reql(raw_request, metadata);
+
+  reql.run(metadata.get_connection()).then((res) => {
+    if (res !== null && res.constructor.name === 'Cursor') {
+      res.each((err, item) => {
+        if (err !== null) {
+          send_cb(err);
+        } else if (!validate(rules, context, item)) {
+          send_cb(new Error('Operation not permitted.'));
+          res.close();
+        } else {
+          send_cb(null, { data: [ item ] });
+        }
+      }, () => {
+        send_cb(null, { data: [ ], state: 'complete' });
+      });
+    } else if (res !== null && res.constructor.name === 'Array') {
+      for (const item of res) {
+        if (!validate(rules, context, item)) {
+          return send_cb(new Error('Operation not permitted.'));
+        }
       }
-    }, () => {
-      request.remove_cursor();
-      send_cb({ data: [ ], state: 'complete' });
-    });
-  } else if (res !== null && res.constructor.name === 'Array') {
-    send_cb({ data: res, state: 'complete' });
-  } else {
-    send_cb({ data: [ res ], state: 'complete' });
-  }
+      send_cb(null, { data: res, state: 'complete' });
+    } else {
+      if (!validate(rules, context, res)) {
+        send_cb(new Error('Operation not permitted.'));
+      } else {
+        send_cb(null, { data: [ res ], state: 'complete' });
+      }
+    }
+  }, done_cb);
 };
 
-module.exports = { make_reql, handle_response };
+module.exports = { make_reql, run };

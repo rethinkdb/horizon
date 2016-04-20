@@ -2,6 +2,7 @@
 
 const check = require('./error').check;
 const logger = require('./logger');
+const Group = require('./permissions/group').Group;
 
 const r = require('rethinkdb');
 
@@ -149,9 +150,10 @@ class Metadata {
     this._ready = false;
 
     let query =
-      r.db('horizon_internal')
-       .table('collections')
-       .map((row) => ({ name: row('id'), indexes: row('indexes') })).coerceTo('array');
+      r.expr({
+        'collections': r.db('horizon_internal').table('collections').coerceTo('array'),
+        'groups': r.db('horizon_internal').table('groups').coerceTo('array'),
+      });
 
     // If we're in dev mode, add additional steps to ensure dbs and tables exist
     // Note that because of this, it is not safe to run multiple horizon servers in dev mode
@@ -159,7 +161,7 @@ class Metadata {
       query = r.expr([ 'horizon', 'horizon_internal' ])
        .forEach((db) => r.branch(r.dbList().contains(db), [], r.dbCreate(db)))
        .do(() =>
-         r.expr([ 'collections', 'users_auth', 'users' ])
+         r.expr([ 'collections', 'users_auth', 'users', 'groups' ])
           .forEach((table) => r.branch(r.db('horizon_internal').tableList().contains(table),
                                        [], r.db('horizon_internal').tableCreate(table)))
           .do(() => query));
@@ -169,11 +171,14 @@ class Metadata {
     this._ready_promise = query.run(this._conn).then((res) => {
       logger.info('metadata sync complete');
       this._tables = new Map();
-      res.forEach((table) =>
-        this._tables.set(table.name,
-          new Table(table.name,
+      this._groups = new Map();
+      res.collections.forEach((table) =>
+        this._tables.set(table.id,
+          new Table(table.id,
             new Set(Object.keys(table.indexes).map((idx) =>
               new Index(idx, table.indexes[idx]))))));
+      res.groups.forEach((group) =>
+        this._groups.set(group.id, new Group(group)));
       this._ready = true;
     }).then(() => this);
   }
@@ -252,6 +257,10 @@ class Metadata {
 
   get_user_info(id, done) {
     r.db('horizon_internal').table('users').get(id).run(this._conn, done);
+  }
+
+  get_group(group_name) {
+    return this._groups.get(group_name);
   }
 }
 

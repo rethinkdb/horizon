@@ -8,99 +8,6 @@ const Joi = require('joi');
 const r = require('rethinkdb');
 const websocket = require('ws');
 
-class Request {
-  constructor(client, raw_request) {
-    this.client = client;
-    this.raw = raw_request;
-    this.id = this.raw.request_id;
-    this.start_time = Date.now();
-
-    try {
-      this.endpoint = client.parent.get_request_handler(this.raw);
-      this._run_reql();
-    } catch (err) {
-      this._handle_error(err);
-    }
-  }
-
-  add_cursor(cursor) {
-    check(this.client.cursors.get(this.id) === undefined,
-          'Endpoint added more than one cursor.');
-    check(cursor.constructor.name === 'Cursor' ||
-          cursor.constructor.name === 'Feed' ||
-          cursor.constructor.name === 'AtomFeed' ||
-          cursor.constructor.name === 'OrderByLimitFeed',
-          'Endpoint provided a non-cursor as a cursor.');
-    this.client.cursors.set(this.id, cursor);
-  }
-
-  remove_cursor() {
-    this.client.cursors.delete(this.id);
-  }
-
-  _run_reql() {
-    try {
-      this.client.check_permissions(this.raw);
-
-      const conn = this.client.parent._reql_conn.connection();
-      const metadata = this.client.parent._reql_conn.metadata();
-      check(conn !== undefined && metadata !== undefined,
-            'Connection to the database is down.');
-
-      const reql = this.endpoint.make_reql(this.raw, metadata);
-      logger.debug(`Running ${r.Error.printQuery(reql)}`);
-      reql.run(conn, { timeFormat: 'raw', binaryFormat: 'raw' })
-          .then((res) => this._handle_response(res),
-                (err) => this._handle_error(err));
-    } catch (err) {
-      this._handle_error(err);
-    }
-  }
-
-  _handle_error(err) {
-    logger.debug(`Error on request ${this.id}: ${err}`);
-
-    // Ignore responses for disconnected clients
-    if (this.client.socket.readyState !== websocket.OPEN) {
-      return logger.debug(`Disconnected client got an error: ${JSON.stringify(err)}.`);
-    }
-
-    const metadata = this.client.parent._reql_conn.metadata();
-    if (metadata === undefined) {
-      this.client.send_response(this.id, { error: 'Connection to the database is down.' });
-    } else {
-      metadata.handle_error(err, (inner_err) => {
-        if (inner_err) {
-          logger.error(`Error (${inner_err}) when handling error (${err}).`);
-          this.client.send_response(this.id, { error: inner_err.message });
-        } else {
-          setTimeout(() => this._run_reql(), 0);
-        }
-      });
-    }
-  }
-
-  _handle_response(res) {
-    logger.debug(`Got result ${res} for ${this.id} - ${this.raw.type}`);
-    try {
-      this.endpoint.handle_response(this, res, (data) => this.client.send_response(this.id, data));
-    } catch (err) {
-      // TODO: maybe pass this through the metadata error handler - are there
-      // any cases where this could be useful?
-      logger.debug(`Error when handling response: ${err.message}`);
-      this.client.send_response(this.id, { error: err.message });
-    }
-  }
-
-  // TODO: add functions for endpoint access:
-  //   - handle_error(err) - use default error handling
-  //     - in dev mode, this will automatically create/wait for dbs, tables, indexes
-  //     - in release mode, this will just pass the error back to the client
-  //     - allow users to register error handlers?
-  // TODO: should we allow user-defined endpoints to run multiple reql queries?
-  //   probably not
-}
-
 class Client {
   constructor(socket, parent_server) {
     this.socket = socket;
@@ -229,8 +136,54 @@ class Client {
         return this.end_subscription(request); // there is no response for end_subscription
       }
 
-      // Kick off the request - it will handle errors and send the response
-      new Request(this, request);
+      const endpoint = this.parent.get_request_handler(request);
+      let handle_error;
+
+      const run_query = () => {
+        const conn = this.parent._reql_conn.connection();
+        const metadata = this.parent._reql_conn.metadata();
+        check(conn !== undefined && metadata !== undefined,
+              'Connection to the database is down.');
+
+        const rules = this.get_matching_rules(this.raw, metadata);
+
+        endpoint.run(request, this.user_info, rules, metadata, (err, response) => {
+          if (err) {
+            handle_error(err);
+          } else {
+            this.send_response(request.request_id, data);
+          }
+        });
+
+      }
+
+      handle_error = (err) => {
+        logger.debug(`Error on request ${request.request_id}: ${err}`);
+
+        // Ignore responses for disconnected clients
+        if (this.client.socket.readyState !== websocket.OPEN) {
+          return logger.debug(`Disconnected client got an error: ${JSON.stringify(err)}.`);
+        }
+
+        const metadata = this.client.parent._reql_conn.metadata();
+        if (metadata === undefined) {
+          this.client.send_response(this.id, { error: 'Connection to the database is down.' });
+        } else {
+          metadata.handle_error(err, (inner_err) => {
+            if (inner_err) {
+              this.client.send_response(this.id, { error: inner_err.message });
+            } else {
+              setImmediate(run_query);
+            }
+          });
+        }
+      }
+
+      try {
+        run_query();
+      } catch (err) {
+        handle_error(err);
+      }
     }
   }
 
@@ -256,8 +209,19 @@ class Client {
     // TODO: notify client, other cleanup
   }
 
-  check_permissions() {
-    // TODO: implement this, probably using Metadata
+  get_matching_rules(raw_query, metadata) {
+    const matching_rules = [ ];
+    for (const group_name of this.user_info.groups) {
+      const group = this.metadata.get_group(group_name);
+      if (group !== undefined) {
+        for (const rule of group.rules) {
+          if (rule.is_match(this.user_info, raw_query)) {
+            matching_rules.push(rule);
+          }
+        }
+      }
+    }
+    return matching_rules;
   }
 }
 
