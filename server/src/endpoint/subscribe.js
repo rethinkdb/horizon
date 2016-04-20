@@ -12,20 +12,20 @@ const run = (raw_request, context, rules, metadata, done_cb) => {
       .then((feed) => {
     feed.each((err, item) => {
       if (err !== null) {
-        send_cb(err);
+        done_cb(err);
       } else if (item.state === 'initializing') {
         // Do nothing - we don't care
       } else if (item.state === 'ready') {
-        send_cb(null, { state: 'synced' });
+        done_cb({ state: 'synced' });
       } else {
         if (!validate(rules, context, item)) {
-          send_cb(new Error('Operation not permitted.'));
+          done_cb(new Error('Operation not permitted.'));
         } else {
-          send_cb(null, { data: [ item ] });
+          done_cb({ data: [ item ] });
         }
       }
     }, () => {
-      send_cb(null, { state: 'complete' });
+      done_cb({ state: 'complete' });
     });
   }, done_cb);
 };

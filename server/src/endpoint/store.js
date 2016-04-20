@@ -1,53 +1,48 @@
 'use strict';
 
 const store = require('../schema/horizon_protocol').store;
-const handle_response = require('./insert').handle_response;
+const make_write_response = require('./insert').make_write_response;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
 
 const run = (raw_request, context, rules, metadata, done_cb) => {
-  const conn = metadata.get_connection();
   const parsed = Joi.validate(raw_request.options, store);
   if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
 
   const table = metadata.get_table(parsed.value.collection);
+  const conn = metadata.get_connection();
 
-  // Get the existing version of each row, then validate changes
-  const ids = [ ];
-  const old_values = [ ];
-  const valid_rows = [ ];
-  const response_data = [ ];
-  for (const row of parsed.value.data) {
-    if (row.id !== undefined) {
-      ids.push(row.id);
-      old_values.push(row.id);
-    } else {
-      old_values.push(null);
+  const results = parsed.value.data.map((row) => new Promise((resolve) => {
+    // Get old row, if it exists, to check for validity
+    if (row.id === undefined || !validation_needed(rules)) {
+      r.table(table.name).insert(row, { conflict: 'replace' }).run(conn).then((res) => {
+
     }
-  }
 
-  r.table(table.name)
-   .get_all(r.args(ids))
-   .run(conn).then((res) => {
-     let index = 0;
+    r.table(table.name).get(row.id).run(conn).then((old_row) => {
+      if (validate(rules, context, old_row, row)) {
+        // TODO: check old version, add new version
+        r.table(table.name).insert(row, { conflict: 'replace' }).run(conn).then((res) => {
+          if (res.errors !== 0) {
+            resolve(new Error(res.first_error));
+          } else if (row.id !== undefined) {
+            resolve(row.id);
+          } else if (response.generated_keys && response.generated_keys.length === 1) {
+            resolve(response.generated_keys[0]);
+          } else {
+            resolve(new Error('Write query should have generated a key.'));
+          }
+        }, resolve);
+      } else {
+        resolve(new Error('Operation is not permitted.'));
+      }
+    }, resolve);
+  }));
 
-     check(old_values.length === parsed.value.data.length);
-     for (let i = 0; i < old_values.length; ++i) {
-       if (validate(rules, context, old_values[i], parsed.value.data[i])) {
-         valid_rows.push(parsed.value.data[i]);
-         response_data.push(null);
-       } else {
-         response_data.push({ error: 'Operation is not permitted.' });
-       }
-     }
-
-     return r.table(table.name).insert(valid_rows, { conflict: 'replace' }).run(conn);
-  }).then((res) => {
-    
-  }).catch((err) => {
-    done_cb(null, make_error_response(err));
-  });
+  Promise.all(results).then((data) => {
+    done_cb(make_write_response(data));
+  }).catch(done_cb);
 };
 
 const make_reql = (raw_request, metadata) => {

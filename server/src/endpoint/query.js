@@ -91,28 +91,28 @@ const run = (raw_request, context, rules, metadata, done_cb) => {
     if (res !== null && res.constructor.name === 'Cursor') {
       res.each((err, item) => {
         if (err !== null) {
-          send_cb(err);
+          done_cb(err);
         } else if (!validate(rules, context, item)) {
-          send_cb(new Error('Operation not permitted.'));
+          done_cb(new Error('Operation not permitted.'));
           res.close();
         } else {
-          send_cb(null, { data: [ item ] });
+          done_cb({ data: [ item ] });
         }
       }, () => {
-        send_cb(null, { data: [ ], state: 'complete' });
+        done_cb({ data: [ ], state: 'complete' });
       });
     } else if (res !== null && res.constructor.name === 'Array') {
       for (const item of res) {
         if (!validate(rules, context, item)) {
-          return send_cb(new Error('Operation not permitted.'));
+          return done_cb(new Error('Operation not permitted.'));
         }
       }
-      send_cb(null, { data: res, state: 'complete' });
+      done_cb({ data: res, state: 'complete' });
     } else {
       if (!validate(rules, context, res)) {
-        send_cb(new Error('Operation not permitted.'));
+        done_cb(new Error('Operation not permitted.'));
       } else {
-        send_cb(null, { data: [ res ], state: 'complete' });
+        done_cb({ data: [ res ], state: 'complete' });
       }
     }
   }, done_cb);

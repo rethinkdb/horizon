@@ -147,11 +147,11 @@ class Client {
 
         const rules = this.get_matching_rules(this.raw, metadata);
 
-        endpoint.run(request, this.user_info, rules, metadata, (err, response) => {
-          if (err) {
-            handle_error(err);
+        endpoint.run(request, this.user_info, rules, metadata, (result) => {
+          if (result instanceof Error) {
+            handle_error(result);
           } else {
-            this.send_response(request.request_id, data);
+            this.send_response(request.request_id, result);
           }
         });
 

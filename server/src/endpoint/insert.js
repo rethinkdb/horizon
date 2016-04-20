@@ -12,70 +12,40 @@ const run = (raw_request, context, rules, metadata, done_cb) => {
   if (parsed.error !== null) { done_cb(new Error(parsed.error.details[0].message)); }
 
   const table = metadata.get_table(parsed.value.collection);
+  const conn = metadata.get_connection();
 
-  const response_data = [ ];
-  const valid_rows = [ ];
-  for (const row of parsed.value.data) {
+  const results = parsed.value.data.map((row) => new Promise((resolve) => {
     if (validate(rules, context, null, row)) {
-      valid_rows.push(row);
-      response_data.push(null); // Placeholder for ID from the server
+      // TODO: add version field
+      r.table(table.name).insert(row, { conflict: 'error' }).run(conn).then((res) => {
+        if (res.errors !== 0) {
+          resolve(new Error(res.first_error));
+        } else if (row.id !== undefined) {
+          resolve(row.id);
+        } else if (response.generated_keys && response.generated_keys.length === 1) {
+          resolve(response.generated_keys[0]);
+        } else {
+          resolve(new Error('Write query should have generated a key.'));
+        }
+      }, (err) => resolve(err));
     } else {
-      response_data.push({ error: 'Operation is not permitted.' });
+      resolve(new Error('Operation is not permitted.'));
     }
-  };
+  }));
 
-  const next_index = (i) => {
-    const res = i;
-    while (response_data[res] !== null) {
-      ++res;
-      check(res < response_data.length);
-    }
-    return res;
-  };
-
-  const make_error_response = (err) => {
-    let index = 0;
-    for (const row of valid_rows) {
-       index = next_index(index);
-       response_data[index] = { error: err.message };
-    }
-    return { data: response_data, state: 'complete' };
-  };
-
-  if (valid_rows.length === 0) {
-    done_cb(new Error('Operation is not permitted.'));
-  } else {
-    r.table(table.name)
-     .insert(valid_rows, { conflict: 'error' })
-     .run(metadata.get_connection())
-     .then((res) => {
-       if (res.errors !== 0) {
-         done_cb(new Error(response.first_error));
-       } else {
-         let response_index = 0;
-         let key_index = 0;
-         for (const row of valid_rows) {
-           response_index = next_index(response_index);
-           if (row.id !== undefined) {
-             // TODO: response data also needs to include the version UUIDs we (still need to) generate
-             response_data[index] = row.id;
-           } else {
-             if (!response.generated_keys || response.generated_keys.length <= key_index) {
-               const response = make_error_response(
-                 new Error('ReQL response does not contain enough generated keys.'));
-               done_cb(null, response);
-               return;
-             }
-             response_data[index] = response.generated_keys[key_index++];
-           }
-         }
-         done_cb(null, { data: response_data, state: 'complete' });
-       }
-     },
-     (err) => {
-        done_cb(null, make_error_response(err));
-     });
-  }
+  Promise.all(results).then((data) => {
+    done_cb(make_write_response(data));
+  }).catch(done_cb);
 }
 
-module.exports = { run };
+const make_write_response = (data) => {
+  // TODO: pass back versions (make data an array of pairs?)
+  for (let i = 0; i < data.length; ++i) {
+    if (data[i] instanceof Error) {
+      data[i] = { error: data[i].message };
+    }
+  }
+  return { data, state: 'complete' };
+};
+
+module.exports = { run, make_write_response };
