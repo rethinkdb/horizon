@@ -1,14 +1,12 @@
-const { AsyncSubject, BehaviorSubject, Subject, Observable } = require('rxjs');
-
 // TODO: size reduction
-// const { AsyncSubject } = require('rxjs/subject/AsyncSubject');
-// const { BehaviorSubject } = require('rxjs/subject/BehaviorSubject');
-// const { Subject } = require('rxjs/Subject');
-// const { Observable } = require('rxjs/Observable');
-// require('rxjs/add/observable/merge');
-// require('rxjs/add/operator/filter');
-// require('rxjs/add/operator/merge');
-// require('rxjs/add/operator/share');
+const { AsyncSubject } = require('rxjs/AsyncSubject')
+const { BehaviorSubject } = require('rxjs/BehaviorSubject')
+const { Subject } = require('rxjs/Subject')
+const { Observable } = require('rxjs/Observable')
+require('rxjs/add/observable/merge')
+require('rxjs/add/operator/filter')
+require('rxjs/add/operator/merge')
+require('rxjs/add/operator/share')
 
 const { WebSocket } = require('./shim.js')
 const { serialize, deserialize } = require('./serialization.js')
@@ -35,7 +33,7 @@ class ProtocolError extends Error {
   }
 }
 
-// Wraps native websockets with a Subject, which is both an Observer
+// Wraps native websockets with a Subject, which is both an Subscriber
 // and an Observable (it is bi-directional after all!). This
 // implementation is adapted from Rx.DOM.fromWebSocket and
 // RxSocketSubject by Ben Lesh, but it also deals with some simple
@@ -62,7 +60,7 @@ class HorizonSocket extends Subject {
 
     // This is the observable part of the Subject. It forwards events
     // from the underlying websocket
-    const socketObservable = Observable.create(observer => {
+    const socketObservable = Observable.create(subscriber => {
       ws = new WebSocket(hostString, PROTOCOL_VERSION)
       ws.onerror = () => {
         // If the websocket experiences the error, we forward it through
@@ -71,7 +69,7 @@ class HorizonSocket extends Subject {
         // reason to forward it on and we just send a generic error.
         statusSubject.next(STATUS_ERROR)
         const errMsg = `Websocket ${hostString} experienced an error`
-        observer.error(new Error(errMsg))
+        subscriber.error(new Error(errMsg))
       }
       ws.onopen = () => {
         // Send the handshake
@@ -94,7 +92,7 @@ class HorizonSocket extends Subject {
       ws.onmessage = event => {
         const deserialized = deserialize(JSON.parse(event.data))
         log('Received', deserialized)
-        observer.next(deserialized)
+        subscriber.next(deserialized)
       }
       ws.onclose = e => {
         // This will happen if the socket is closed by the server If
@@ -102,17 +100,17 @@ class HorizonSocket extends Subject {
         // listener will be removed
         statusSubject.next(STATUS_DISCONNECTED)
         if (e.code !== 1000 || !e.wasClean) {
-          observer.error(
+          subscriber.error(
             new Error(`Socket closed unexpectedly with code: ${e.code}`))
         } else {
-          observer.complete()
+          subscriber.complete()
         }
       }
       return () => {
         if (handshakeDisp) {
           handshakeDisp.unsubscribe()
         }
-        // This is the "dispose" method on the final Subject
+        // This is the "unsubscribe" method on the final Subject
         closeSocket(1000, '')
       }
     }).share() // This makes it a "hot" observable, and refCounts it
@@ -120,11 +118,11 @@ class HorizonSocket extends Subject {
     // .multicast(() => new Subject()).refCount() // RxJS 5
     // .multicast(new Subject()).refCount() // RxJS 4
 
-    // This is the Observer part of the Subject. How we can send stuff
+    // This is the Subscriber part of the Subject. How we can send stuff
     // over the websocket
-    const socketObserver = {
+    const socketSubscriber = {
       next(messageToSend) {
-        // When next is called on this observer
+        // When next is called on this subscriber
         // Note: If we aren't ready, the message is silently dropped
         if (isOpen()) {
           log('Sending', messageToSend)
@@ -135,7 +133,7 @@ class HorizonSocket extends Subject {
         }
       },
       error(error) {
-        // The observer is receiving an error. Better close the
+        // The subscriber is receiving an error. Better close the
         // websocket with an error
         if (!error.code) {
           throw new Error('no code specified. Be sure to pass ' +
@@ -144,7 +142,7 @@ class HorizonSocket extends Subject {
         closeSocket(error.code, error.reason)
       },
       complete() {
-        // complete for the observer here is equivalent to "close
+        // complete for the subscriber here is equivalent to "close
         // this socket successfully (which is what code 1000 is)"
         closeSocket(1000, '')
       },
@@ -162,7 +160,7 @@ class HorizonSocket extends Subject {
       ws.onmessage = undefined
     }
 
-    super(socketObserver, socketObservable)
+    super(socketSubscriber, socketObservable)
 
     // Subscriptions will be the observable containing all
     // queries/writes/changefeed requests. Specifically, the documents
@@ -177,7 +175,7 @@ class HorizonSocket extends Subject {
     let activeRequests = 0
     // Monotonically increasing counter for request_ids
     let requestCounter = 0
-    // Disposer for subscriptions/unsubscriptions
+    // Unsubscriber for subscriptions/unsubscriptions
     let subDisp = null
     // Now that super has been called, we can add attributes to this
     this.handshake = handshake
@@ -189,7 +187,7 @@ class HorizonSocket extends Subject {
       if (++activeRequests === 1) {
         // We subscribe the socket itself to the subscription and
         // unsubscription requests. Since the socket is both an
-        // observable and an observer. Here it's acting as an observer,
+        // observable and an subscriber. Here it's acting as an subscriber,
         // watching our requests.
         subDisp = outgoing.subscribe(this)
       }
@@ -214,7 +212,7 @@ class HorizonSocket extends Subject {
       if (rawRequest.type === 'subscribe') {
         unsubscribeRequest = { request_id, type: 'end_subscription' }
       }
-      return Observable.create(reqObserver => {
+      return Observable.create(reqSubscriber => {
         // First, increment activeRequests and decide if we need to
         // connect to the socket
         incrementActive()
@@ -223,30 +221,30 @@ class HorizonSocket extends Subject {
         subscriptions.next(rawRequest)
 
         // Create an observable from the socket that filters by request_id
-        const disposeFilter = this
+        const unsubscribeFilter = this
             .filter(x => x.request_id === request_id)
             .subscribe(
               resp => {
                 // Need to faithfully end the stream if there is an error
                 if (resp.error !== undefined) {
-                  reqObserver.error(
+                  reqSubscriber.error(
                     new ProtocolError(resp.error, resp.error_code))
                 } else if (resp.data !== undefined ||
                           resp.token !== undefined) {
-                  reqObserver.next(resp)
+                  reqSubscriber.next(resp)
                 }
                 if (resp.state === 'synced') {
                   // Create a little dummy object for sync notifications
-                  reqObserver.next({
+                  reqSubscriber.next({
                     type: 'state',
                     state: 'synced',
                   })
                 } else if (resp.state === 'complete') {
-                  reqObserver.complete()
+                  reqSubscriber.complete()
                 }
               },
-              err => reqObserver.error(err),
-              () => reqObserver.complete()
+              err => reqSubscriber.error(err),
+              () => reqSubscriber.complete()
             )
         return () => {
           // Unsubscribe if necessary
@@ -254,7 +252,7 @@ class HorizonSocket extends Subject {
             unsubscriptions.next(unsubscribeRequest)
           }
           decrementActive()
-          disposeFilter.unsubscribe()
+          unsubscribeFilter.unsubscribe()
         }
       })
     }

@@ -1,5 +1,5 @@
 const queryParse = require('./util/query-parse')
-const Rx = require('rxjs')
+const Observable = require('rxjs/Observable')
 const fetchJSON = require('./util/fetch.js')
 
 const HORIZON_JWT = 'horizon-jwt'
@@ -15,12 +15,12 @@ function authEndpoint(name) {
   }
   if (!this._authMethods) {
     console.log('No auth methods, have to fetch')
-    return ajax(`${this._horizonPath}/auth_methods`)
+    return fetchJSON(`${this._horizonPath}/auth_methods`)
       .do(authMethods => {
         this._authMethods = authMethods
       }).map(endpointForName)
   } else {
-    return Rx.Observable.just(this._authMethods).map(endpointForName)
+    return Observable.just(this._authMethods).map(endpointForName)
   }
 }
 

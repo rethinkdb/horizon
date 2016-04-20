@@ -1,12 +1,10 @@
-const { Observable } = require('rxjs')
-// TODO: size reduction
-// const { Observable } = require('rxjs/Observable')
-// require('rxjs/add/observable/empty')
-// require('rxjs/add/operator/publishReplay')
-// require('rxjs/add/operator/scan')
-// require('rxjs/add/operator/toArray')
+const { Observable } = require('rxjs/Observable')
+require('rxjs/add/observable/empty')
+require('rxjs/add/operator/publishReplay')
+require('rxjs/add/operator/scan')
+require('rxjs/add/operator/toArray')
 
-const snakeCase = require('lodash.snakecase')
+const snakeCase = require('snake-case')
 
 const checkArgs = require('./util/check-args')
 const validIndexValue = require('./util/valid-index-value.js')

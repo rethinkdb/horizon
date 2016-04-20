@@ -55,7 +55,8 @@ window.assert = window.chai.assert
 
 window._ = require('lodash/lodash.js')
 
-assert.isDefined(window.Rx, 'window.Rx is exposed by polyfilled Horizon library')
+assert.isDefined(window.Observable,
+                 'window. Observable is exposed by polyfilled Horizon library')
 
 // Wait until server is ready before proceeding to tests
 describe('Waiting until server ready...', function() {

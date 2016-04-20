@@ -1,19 +1,17 @@
-const { Observable } = require('rxjs');
-// TODO: size reduction
-// const { Observable } = require('rxjs/Observable');
-// require('rxjs/add/observable/fromArray');
-// require('rxjs/add/operator/catch');
-// require('rxjs/add/operator/concatMap');
-// require('rxjs/add/operator/do');
-// require('rxjs/add/operator/filter');
+const { Observable } = require('rxjs/Observable')
+require('rxjs/add/observable/from')
+require('rxjs/add/operator/catch')
+require('rxjs/add/operator/concatMap')
+require('rxjs/add/operator/do')
+require('rxjs/add/operator/filter')
 
-// TODO: used by tests
-// require('rxjs/add/operator/concat');
-// require('rxjs/add/operator/ignoreElements');
-// require('rxjs/add/operator/mergeMap');
-// require('rxjs/add/operator/pluck');
-// require('rxjs/add/operator/take');
-// require('rxjs/add/operator/toArray')
+// Used by tests
+require('rxjs/add/operator/concat')
+require('rxjs/add/operator/ignoreElements')
+require('rxjs/add/operator/mergeMap')
+require('rxjs/add/operator/pluck')
+require('rxjs/add/operator/take')
+require('rxjs/add/operator/toArray')
 
 const { Collection } = require('./ast.js')
 const HorizonSocket = require('./socket.js')
@@ -38,7 +36,7 @@ function Horizon({
   tokenStorage.setAuthFromQueryParams()
 
   const socket = new HorizonSocket(
-    host, secure, path, tokenStorage.handshake.bind(tokenStorage))
+    host, secure, path, ::tokenStorage.handshake)
 
   // Store whatever token we get back from the server when we get a
   // handshake response
@@ -89,7 +87,7 @@ function Horizon({
   horizon._authMethods = null
   horizon._horizonPath = path
   horizon.authEndpoint = authEndpoint
-  horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
+  horizon.hasAuthToken = ::tokenStorage.hasAuthToken
 
   return horizon
 
@@ -103,14 +101,14 @@ function Horizon({
       .concatMap(resp => {
         // unroll arrays being returned
         if (resp.data) {
-          return Observable.fromArray(resp.data)
+          return Observable.from(resp.data)
         } else {
           // Still need to emit a document even if we have no new data
-          return Observable.fromArray([ { state: resp.state, type: resp.type } ])
+          return Observable.from([ { state: resp.state, type: resp.type } ])
         }
       })
       .catch(e => Observable.create(observer => {
-        observer.error(new Error(e.error))
+        observer.error(e)
       })) // on error, strip error message
   }
 }

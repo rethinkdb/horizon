@@ -1,10 +1,10 @@
 const { Observable } = require('rxjs/Observable')
-const rx = require('rxjs/add/observable/fromPromise')
+require('rxjs/add/observable/fromPromise')
 const fetch = require('isomorphic-fetch')
 
-function getJSON(url) {
+function fetchJSON(url) {
   return Observable.fromPromise(fetch(url))
     .map(response => response.json())
 }
 
-module.exports = fetch
+module.exports = fetchJSON
