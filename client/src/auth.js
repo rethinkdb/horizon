@@ -1,6 +1,6 @@
 const queryParse = require('./util/query-parse')
-const Rx = require('rx')
-require('rx-dom-ajax') // add Rx.DOM.ajax methods
+const Rx = require('rxjs')
+const fetchJSON = require('./util/fetch.js')
 
 const HORIZON_JWT = 'horizon-jwt'
 
@@ -15,7 +15,7 @@ function authEndpoint(name) {
   }
   if (!this._authMethods) {
     console.log('No auth methods, have to fetch')
-    return Rx.DOM.getJSON(`${this._horizonPath}/auth_methods`)
+    return ajax(`${this._horizonPath}/auth_methods`)
       .do(authMethods => {
         this._authMethods = authMethods
       }).map(endpointForName)
