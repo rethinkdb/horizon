@@ -48,7 +48,10 @@ dependencies:
 
 database:
   override:
-    - ./test/serve.js
+    - ./test/serve.js:
+      background: true
+    - sleep 15
+
 
 ## Customize test commands
 test:
