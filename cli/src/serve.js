@@ -15,7 +15,7 @@ const extend = require('util')._extend;
 const start_rdb_server = require('./utils/start_rdb_server');
 
 const addArguments = (parser) => {
-  parser.addArgument([ '--project' ],
+  parser.addArgument([ 'project' ],
     { type: 'string', nargs: '?',
       help: 'Change to this directory before serving' });
 
