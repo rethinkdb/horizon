@@ -48,7 +48,7 @@ dependencies:
 
 database:
   override:
-    - ./test/serve.js:
+    - ./test/serve.js
 
 ## Customize test commands
 test:
