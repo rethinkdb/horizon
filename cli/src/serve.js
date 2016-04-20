@@ -429,19 +429,28 @@ const runCommand = (opts, done) => {
   if (opts.debug) {
     logger.level = 'debug';
   }
-
   if (opts.project !== null) {
     try {
-      if (!fs.statSync('.hz').isDirectory()) {
-        throw new Error();
+      // Try to get stats on dir, if successful, change directory to project
+      if (fs.statSync(path.join(opts.project, '.hz'))) {
+        process.chdir(opts.project);
       }
     } catch (e) {
-      process.chdir(opts.project);
+      console.error('Project specified but no .hz directory was found.');
+      console.error(e);
+      process.exit(1);
     }
   } else {
-    console.error('Project not specified or .hz directory not found.\nTry changing to a project' +
-      ' with a .hz directory,\nor specify your project path with the --project option');
-    process.exit(1);
+    try {
+      // Try to get stats on dir, if it doesn't exist, statSync will throw
+      fs.statSync('.hz')
+      // Don't need to change directories as we assume we are in a Horizon app dir
+    } catch (e) {
+      console.error('Project not specified or .hz directory not found.\nTry changing to a project' +
+        ' with a .hz directory,\nor specify your project path with the --project option');
+      console.error(e);
+      process.exit(1);
+    }
   }
 
   let http_servers, hz_instance;
