@@ -29,6 +29,7 @@
   "devDependencies": {
     "eslint": "^2.3.0",
     "mocha": "2.4.5",
+    "mock-fs": "3.8.0",
     "sinon": "1.17.3"
   },
   "engines": {
