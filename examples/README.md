@@ -18,6 +18,9 @@ some of their dependencies.
 
 If you have any questions just ask on [Slack](http://slack.rethinkdb.com) or [Twitter](https://twitter.com/rethinkdb)!
 
+## Angular2
+* [Angular2 Chat App](/examples/angular2-chat-app/)
+ 
 ## CycleJS
 
 * [CycleJS Chat App](/examples/cyclejs-chat-app)
