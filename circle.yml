@@ -49,7 +49,7 @@ dependencies:
 database:
   override:
     - ./test/serve.js:
-      background: true
+        background: true
     - sleep 15
 
 
