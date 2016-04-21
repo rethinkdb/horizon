@@ -36,7 +36,7 @@ describe('Init Command', () => {
 
     initCommand.runCommand({ projectName: 'test-app' });
 
-    assert.equal(console.error.args[0][0], 'test-app already exists!');
+    assert(console.error.args[0][0].match(/test-app already exists/));
     assert(process.exit.calledWith(1) === true);
 
     console.error.restore();

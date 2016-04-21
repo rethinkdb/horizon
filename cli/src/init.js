@@ -132,7 +132,7 @@ const addArguments = (parser) => {
 const fileDoesntExist = (pathName) => {
   try {
     fs.statSync(pathName);
-    console.error(`${pathName} already exists!`);
+    console.error(`Bailing! ${pathName} already exists`);
     process.exit(1);
   } catch (e) {
     return true;
