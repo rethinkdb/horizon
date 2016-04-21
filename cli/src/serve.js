@@ -429,6 +429,7 @@ const runCommand = (opts, done) => {
   if (opts.debug) {
     logger.level = 'debug';
   }
+
   if (opts.project !== null) {
     try {
       // Try to get stats on dir, if successful, change directory to project
@@ -443,7 +444,7 @@ const runCommand = (opts, done) => {
   } else {
     try {
       // Try to get stats on dir, if it doesn't exist, statSync will throw
-      fs.statSync('.hz')
+      fs.statSync('.hz');
       // Don't need to change directories as we assume we are in a Horizon app dir
     } catch (e) {
       console.error('Project not specified or .hz directory not found.\nTry changing to a project' +
