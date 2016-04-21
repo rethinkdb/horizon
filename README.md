@@ -69,10 +69,10 @@ their app.
 
 ## Get Involved
 
-We'd love for you to help us build Horizon. If you'd like to be a contributor, 
-check out our [Contributing guide](/CONTRIBUTING.md). 
+We'd love for you to help us build Horizon. If you'd like to be a contributor,
+check out our [Contributing guide](/CONTRIBUTING.md).
 
-Also, to stay up-to-date on all Horizon related news and the community you should 
+Also, to stay up-to-date on all Horizon related news and the community you should
 definitely [join us on Slack](http://slack.rethinkdb.com), [follow us on Twitter](https://twitter.com/horizonjs),
 and join our Horizon mailing list at [Horizon.io](https://horizon.io).
 
@@ -80,13 +80,13 @@ and join our Horizon mailing list at [Horizon.io](https://horizon.io).
 
 ### How do you start Horizon?
 
-This first step is to install the Horizon command line tool. 
+This first step is to install the Horizon command line tool.
 
 ```sh
 $ npm install -g horizon
 ```
 
-You can then create the boilerplate with `hz init` and then launch Horizon Server 
+You can then create the boilerplate with `hz init` and then launch Horizon Server
 and an instance of RethinkDB with `hz serve --dev`.
 
 ```sh
@@ -131,7 +131,7 @@ You have two options:
 
 Refer to the the [CLI README](/cli/README.md) for the most up-to-date public install instructions.
 
-### Where do I start? 
+### Where do I start?
 
 Check out our [Getting Started guide](/GETTING-STARTED.md). If you have more questions, come [join us on Slack](http://slack.rethinkdb.com) in #horizon or feel free to tweet us at [@horizonjs](https://twitter.com/horizonjs).
 
@@ -165,7 +165,7 @@ backend framework (e.g. Rails, Express, Koa, etc.)
 
 By contrast, Meteor is a much more prescriptive framework. Horizon is a
 reasonably small component that has a very clean separation with the
-database and the frontend, while Meteor is a much more monolithic
+database and the front-end, while Meteor is a much more monolithic
 experience.
 
 Another major difference is architectural -- Meteor uses a LiveQuery
@@ -183,5 +183,3 @@ the necessary information to allow for a scalable feeds implementation.
 
 We still have to figure out the exact license, but Horizon will be
 fully open-source (we'll probably use MIT or Apache).
-
-
