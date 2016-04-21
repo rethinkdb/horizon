@@ -150,6 +150,7 @@ const runCommand = (parsed) => {
     console.log(`Created new project directory ${parsed.projectName}`);
     process.chdir(parsed.projectName);
   } else {
+    let path = require('path')
     parsed.projectName = path.basename(process.cwd());
     console.log('Creating new project in current directory');
   }
