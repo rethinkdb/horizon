@@ -34,7 +34,7 @@ class FakeStorage {
 
 function getStorage() {
   try {
-    if (!window || window.localStorage === undefined) {
+    if (typeof window !== 'object' || window.localStorage === undefined) {
       return new FakeStorage()
     }
     window.localStorage.setItem('$$fake', 1)
