@@ -1,4 +1,6 @@
-'use strict'
+import { Observable } from 'rxjs/Observable'
+import { empty } from 'rxjs/observable/empty'
+
 window.removeAllData = function removeAllData(collection, done) {
   // Read all elements from the collection
   collection.fetch().toArray() // all documents in the collection
@@ -83,7 +85,7 @@ window.observableInterleave = function observableInterleave(options) {
       if (i < operations.length) {
         return operations[i].ignoreElements()
       } else {
-        return Observable.empty()
+        return Observable::empty()
       }
     })
     .do({ complete() { equality(expected, values) } })

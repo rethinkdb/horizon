@@ -1,14 +1,14 @@
-const { Observable } = require('rxjs/Observable')
-require('rxjs/add/observable/empty')
-require('rxjs/add/operator/publishReplay')
-require('rxjs/add/operator/scan')
-require('rxjs/add/operator/toArray')
+import { Observable } from 'rxjs/Observable'
+import { empty } from 'rxjs/observable/empty'
+import { publishReplay } from 'rxjs/operator/publishReplay'
+import { scan } from 'rxjs/operator/scan'
+import { filter } from 'rxjs/operator/filter'
 
-const snakeCase = require('snake-case')
+import snakeCase from 'snake-case'
 
-const checkArgs = require('./util/check-args')
-const validIndexValue = require('./util/valid-index-value.js')
-const { serialize } = require('./serialization.js')
+import checkArgs from './util/check-args'
+import validIndexValue from './util/valid-index-value.js'
+import { serialize } from './serialization.js'
 
 
 /**
@@ -17,9 +17,7 @@ const { serialize } = require('./serialization.js')
  Validation check to throw an exception if a method is chained onto a
  query that already has it. It belongs to TermBase, but we don't want
  to pollute the objects with it (since it isn't useful to api users),
- so it's dynamically bound with .call inside methods that use it. Once
- ES7 is relatively stable, it'd be nice to use the (::) syntax for
- this kind of call
+ so it's dynamically bound with :: inside methods that use it.
 */
 function checkIfLegalToChain(key) {
   if (this._legalMethods.indexOf(key) === -1) {
@@ -57,32 +55,32 @@ class TermBase {
     return this._sendRequest('query', this._query)
   }
   findAll(...fieldValues) {
-    checkIfLegalToChain.call(this, 'findAll')
+    this::checkIfLegalToChain('findAll')
     checkArgs('findAll', arguments, { maxArgs: 100 })
     return new FindAll(this._sendRequest, this._query, fieldValues)
   }
   find(idOrObject) {
-    checkIfLegalToChain.call(this, 'find')
+    this::checkIfLegalToChain('find')
     checkArgs('find', arguments)
     return new Find(this._sendRequest, this._query, idOrObject)
   }
   order(fields, direction = 'ascending') {
-    checkIfLegalToChain.call(this, 'order')
+    this::checkIfLegalToChain('order')
     checkArgs('order', arguments, { minArgs: 1, maxArgs: 2 })
     return new Order(this._sendRequest, this._query, fields, direction)
   }
   above(aboveSpec, bound = 'closed') {
-    checkIfLegalToChain.call(this, 'above')
+    this::checkIfLegalToChain('above')
     checkArgs('above', arguments, { minArgs: 1, maxArgs: 2 })
     return new Above(this._sendRequest, this._query, aboveSpec, bound)
   }
   below(belowSpec, bound = 'open') {
-    checkIfLegalToChain.call(this, 'below')
+    this::checkIfLegalToChain('below')
     checkArgs('below', arguments, { minArgs: 1, maxArgs: 2 })
     return new Below(this._sendRequest, this._query, belowSpec, bound)
   }
   limit(size) {
-    checkIfLegalToChain.call(this, 'limit')
+    this::checkIfLegalToChain('limit')
     checkArgs('limit', arguments)
     return new Limit(this._sendRequest, this._query, size)
   }
@@ -96,16 +94,14 @@ class TermBase {
 function makePresentable(observable, query) {
   // Whether the entire data structure is in each change
   const pointQuery = Boolean(query.find)
-  // Whether the result set must be sorted before emitting it
-  const orderedQuery = Boolean(query.order)
 
   if (pointQuery) {
     let hasEmitted = false
     const seedVal = null
     // Simplest case: just pass through new_val
     return observable
-      .filter(change => !hasEmitted || change.type !== 'state')
-      .scan((previous, change) => {
+      ::filter(change => !hasEmitted || change.type !== 'state')
+      ::scan((previous, change) => {
         hasEmitted = true
         if (change.state === 'synced') {
           return previous
@@ -123,8 +119,8 @@ function makePresentable(observable, query) {
     // Need to incrementally add to and remove from an array
     return observable
       // Filter out state changes since they shouldn't cause us to re-emit
-      .filter(change => !hasEmitted || change.type !== 'state')
-      .scan((previous, change) => {
+      ::filter(change => !hasEmitted || change.type !== 'state')
+      ::scan((previous, change) => {
         const arr = previous.slice()
         switch (change.type) {
         case 'remove':
@@ -193,7 +189,7 @@ function writeOp(name, args, documents) {
     wrappedDocs = [ documents ]
   } else if (documents.length === 0) {
     // Don't bother sending no-ops to the server
-    return Observable.empty()
+    return Observable::empty()
   }
   const options = Object.assign(
     {}, this._query, { data: serialize(wrappedDocs) })
@@ -201,7 +197,7 @@ function writeOp(name, args, documents) {
   if (!this._lazyWrites) {
     // Need to buffer response since this becomes a hot observable and
     // when we subscribe matters
-    observable = observable.publishReplay().refCount()
+    observable = observable::publishReplay().refCount()
     observable.subscribe()
   }
   return observable
@@ -216,24 +212,24 @@ class Collection extends TermBase {
     this._lazyWrites = lazyWrites
   }
   store(documents) {
-    return writeOp.call(this, 'store', arguments, documents)
+    return this::writeOp('store', arguments, documents)
   }
   upsert(documents) {
-    return writeOp.call(this, 'upsert', arguments, documents)
+    return this::writeOp('upsert', arguments, documents)
   }
   insert(documents) {
-    return writeOp.call(this, 'insert', arguments, documents)
+    return this::writeOp('insert', arguments, documents)
   }
   replace(documents) {
-    return writeOp.call(this, 'replace', arguments, documents)
+    return this::writeOp('replace', arguments, documents)
   }
   update(documents) {
-    return writeOp.call(this, 'update', arguments, documents)
+    return this::writeOp('update', arguments, documents)
   }
   remove(documentOrId) {
     const wrapped = validIndexValue(documentOrId) ?
           { id: documentOrId } : documentOrId
-    return writeOp.call(this, 'remove', arguments, wrapped)
+    return this::writeOp('remove', arguments, wrapped)
   }
   removeAll(documentsOrIds) {
     if (!Array.isArray(documentsOrIds)) {
@@ -246,7 +242,7 @@ class Collection extends TermBase {
         return item
       }
     })
-    return writeOp.call(this, 'removeAll', arguments, wrapped)
+    return this::writeOp('removeAll', arguments, wrapped)
   }
 }
 
