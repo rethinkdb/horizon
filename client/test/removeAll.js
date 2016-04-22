@@ -33,7 +33,7 @@ const removeAllSuite = window.removeAllSuite = getData => () => {
     data.removeAll([ 1 ])
       .do(res => assert.equal(res, 1))
       // Let's make sure the removed document isn't there
-      .mergeMap(() => data.find(1).fetch())
+      .mergeMapTo(data.find(1).fetch())
       // Let's make sure the removed document isn't there
       .do(res => assert.isNull(res))
   ))
@@ -43,7 +43,7 @@ const removeAllSuite = window.removeAllSuite = getData => () => {
     data.removeAll([ { id: 2 } ])
       .do(res => assert.equal(res, 2))
       // Let's make sure the removed document isn't there
-      .mergeMap(() => data.find(2).fetch())
+      .mergeMapTo(data.find(2).fetch())
       // Let's make sure the removed document isn't there
       .do(res => assert.isNull(res))
   ))
@@ -53,7 +53,7 @@ const removeAllSuite = window.removeAllSuite = getData => () => {
     data.removeAll([ 3, 50, { id: 4 } ]).toArray()
       .do(res => assert.deepEqual(res, [ 3, 50, 4 ]))
       // Let's make sure the removed document isn't there
-      .mergeMap(data.findAll(3, 50, 4).fetch().toArray())
+      .mergeMapTo(data.findAll(3, 50, 4).fetch().toArray())
       // Let's make sure the removed document isn't there
       .do(res => assert.deepEqual(res, []))
   ))
