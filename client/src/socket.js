@@ -1,16 +1,14 @@
-// TODO: size reduction
-const { AsyncSubject } = require('rxjs/AsyncSubject')
-const { BehaviorSubject } = require('rxjs/BehaviorSubject')
-const { Subject } = require('rxjs/Subject')
-const { Observable } = require('rxjs/Observable')
-require('rxjs/add/observable/merge')
-require('rxjs/add/operator/filter')
-require('rxjs/add/operator/merge')
-require('rxjs/add/operator/share')
+import { AsyncSubject } from 'rxjs/AsyncSubject'
+import { BehaviorSubject } from 'rxjs/BehaviorSubject'
+import { Subject } from 'rxjs/Subject'
+import { Observable } from 'rxjs/Observable'
+import { merge } from 'rxjs/observable/merge'
+import { filter } from 'rxjs/operator/filter'
+import { share } from 'rxjs/operator/share'
 
-const { WebSocket } = require('./shim.js')
-const { serialize, deserialize } = require('./serialization.js')
-const { log } = require('./logging.js')
+import { WebSocket } from './shim.js'
+import { serialize, deserialize } from './serialization.js'
+import { log } from './logging.js'
 
 const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
 
@@ -113,7 +111,7 @@ class HorizonSocket extends Subject {
         // This is the "unsubscribe" method on the final Subject
         closeSocket(1000, '')
       }
-    }).share() // This makes it a "hot" observable, and refCounts it
+    })::share() // This makes it a "hot" observable, and refCounts it
     // Note possible edge cases: the `share` operator is equivalent to
     // .multicast(() => new Subject()).refCount() // RxJS 5
     // .multicast(new Subject()).refCount() // RxJS 4
@@ -170,7 +168,7 @@ class HorizonSocket extends Subject {
     // close a particular request_id on the server. Currently we only
     // need these for changefeeds.
     const unsubscriptions = new Subject()
-    const outgoing = Observable.merge(subscriptions, unsubscriptions)
+    const outgoing = Observable::merge(subscriptions, unsubscriptions)
     // How many requests are outstanding
     let activeRequests = 0
     // Monotonically increasing counter for request_ids
@@ -222,7 +220,7 @@ class HorizonSocket extends Subject {
 
         // Create an observable from the socket that filters by request_id
         const unsubscribeFilter = this
-            .filter(x => x.request_id === request_id)
+            ::filter(x => x.request_id === request_id)
             .subscribe(
               resp => {
                 // Need to faithfully end the stream if there is an error
