@@ -142,20 +142,29 @@ const serve_file = (file_path, res) => {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end(`File "${file_path}" not found\n`);
     } else {
-      fs.readFile(file_path, 'binary', (err, file) => {
+      fs.lstat(file_path, (err, stats) => {
         if (err) {
           res.writeHead(500, { 'Content-Type': 'text/plain' });
           res.end(`${err}\n`);
-        } else {
-          if (file_path.endsWith('.js')) {
-            res.writeHead(200, {
-              'Content-Type': 'application/javascript' });
-          } else if (file_path.endsWith('.html')) {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-          } else {
-            res.writeHead(200);
-          }
-          res.end(file, 'binary');
+        } else if (stats.isFile()) {
+          fs.readFile(file_path, 'binary', (err, file) => {
+            if (err) {
+              res.writeHead(500, { 'Content-Type': 'text/plain' });
+              res.end(`${err}\n`);
+            } else {
+              if (file_path.endsWith('.js')) {
+                res.writeHead(200, {
+                  'Content-Type': 'application/javascript' });
+              } else if (file_path.endsWith('.html')) {
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+              } else {
+                res.writeHead(200);
+              }
+              res.end(file, 'binary');
+            }
+          });
+        } else if (stats.isDirectory()) {
+          serve_file(path.join(file_path, 'index.html'), res);
         }
       });
     }
