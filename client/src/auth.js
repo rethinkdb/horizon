@@ -1,11 +1,12 @@
-const queryParse = require('./util/query-parse')
-const Observable = require('rxjs/Observable')
-const fetchJSON = require('./util/fetch.js')
+import queryParse from './util/query-parse'
+import { Observable } from 'rxjs/Observable'
+import { map } from 'rxjs/operator/map'
+import fetchJSON from './util/fetch.js'
 
 const HORIZON_JWT = 'horizon-jwt'
 
 /** @this Horizon **/
-function authEndpoint(name) {
+export function authEndpoint(name) {
   const endpointForName = methods => {
     if (methods.hasOwnProperty(name)) {
       return methods[name]
@@ -18,18 +19,18 @@ function authEndpoint(name) {
     return fetchJSON(`${this._horizonPath}/auth_methods`)
       .do(authMethods => {
         this._authMethods = authMethods
-      }).map(endpointForName)
+      })::map(endpointForName)
   } else {
-    return Observable.just(this._authMethods).map(endpointForName)
+    return Observable.of(this._authMethods)::map(endpointForName)
   }
 }
 
 // Simple shim to make a Map look like local/session storage
 class FakeStorage {
-  constructor() { this.map = new Map() }
-  setItem(a, b) { return this.map.set(a, b) }
-  getItem(a) { return this.map.get(a) }
-  removeItem(a) { return this.map.delete(a) }
+  constructor() { this._storage = new Map() }
+  setItem(a, b) { return this._storage.set(a, b) }
+  getItem(a) { return this._storage.get(a) }
+  removeItem(a) { return this._storage.delete(a) }
 }
 
 function getStorage() {
@@ -49,7 +50,7 @@ function getStorage() {
   }
 }
 
-class TokenStorage {
+export class TokenStorage {
   constructor(authType = 'unauthenticated') {
     this._storage = getStorage()
     this._authType = authType
@@ -95,12 +96,6 @@ class TokenStorage {
   }
 }
 
-function clearAuthTokens() {
+export function clearAuthTokens() {
   return getStorage().removeItem(HORIZON_JWT)
-}
-
-module.exports = {
-  authEndpoint,
-  TokenStorage,
-  clearAuthTokens,
 }
