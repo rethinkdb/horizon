@@ -1,20 +1,8 @@
 const Rx = require('rx')
+const constants = require('./constants.js').connection
 const { WebSocket } = require('./shim.js')
 const { serialize, deserialize } = require('./serialization.js')
 const { log } = require('./logging.js')
-
-const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
-
-// Before connecting the first time
-const STATUS_UNCONNECTED = { type: 'unconnected' }
-// After the websocket is opened, but before handshake
-const STATUS_CONNECTED = { type: 'connected' }
-// After the websocket is opened and handshake is completed
-const STATUS_READY = { type: 'ready' }
-// After unconnected, maybe before or after connected. Any socket level error
-const STATUS_ERROR = { type: 'error' }
-// Occurs when the socket closes
-const STATUS_DISCONNECTED = { type: 'disconnected' }
 
 class ProtocolError extends Error {
   constructor(msg, errorCode) {
@@ -41,7 +29,7 @@ class HorizonSocket extends Rx.AnonymousSubject {
     // Handshake is an asyncsubject because we want it to always cache
     // the last value it received, like a promise
     const handshake = new Rx.AsyncSubject()
-    const statusSubject = new Rx.BehaviorSubject(STATUS_UNCONNECTED)
+    const statusSubject = new Rx.BehaviorSubject(constants.STATUS_UNCONNECTED)
 
     const isOpen = () => Boolean(ws) && ws.readyState === WebSocket.OPEN
 
@@ -54,25 +42,25 @@ class HorizonSocket extends Rx.AnonymousSubject {
     // This is the observable part of the Subject. It forwards events
     // from the underlying websocket
     const socketObservable = Rx.Observable.create(observer => {
-      ws = new WebSocket(hostString, PROTOCOL_VERSION)
+      ws = new WebSocket(hostString, constants.PROTOCOL_VERSION)
       ws.onerror = () => {
         // If the websocket experiences the error, we forward it through
         // to the observable. Unfortunately, the event we receive in
         // this callback doesn't tell us much of anything, so there's no
         // reason to forward it on and we just send a generic error.
-        statusSubject.onNext(STATUS_ERROR)
+        statusSubject.onNext(constants.STATUS_ERROR)
         const errMsg = `Websocket ${hostString} experienced an error`
         observer.onError(new Error(errMsg))
       }
       ws.onopen = () => {
         // Send the handshake
-        statusSubject.onNext(STATUS_CONNECTED)
+        statusSubject.onNext(constants.STATUS_CONNECTED)
         handshakeDisp = this.makeRequest(handshaker()).subscribe(
           x => {
             handshake.onNext(x)
             handshake.onCompleted()
 
-            statusSubject.onNext(STATUS_READY)
+            statusSubject.onNext(constants.STATUS_READY)
           },
           err => handshake.onError(err),
           () => handshake.onCompleted()
@@ -93,7 +81,7 @@ class HorizonSocket extends Rx.AnonymousSubject {
         // This will happen if the socket is closed by the server If
         // .close is called from the client (see closeSocket), this
         // listener will be removed
-        statusSubject.onNext(STATUS_DISCONNECTED)
+        statusSubject.onNext(constants.STATUS_DISCONNECTED)
         if (e.code !== 1000 || !e.wasClean) {
           observer.onError(
             new Error(`Socket closed unexpectedly with code: ${e.code}`))
@@ -141,7 +129,7 @@ class HorizonSocket extends Rx.AnonymousSubject {
     )
 
     function closeSocket(code, reason) {
-      statusSubject.onNext(STATUS_DISCONNECTED)
+      statusSubject.onNext(constants.STATUS_DISCONNECTED)
       if (!code) {
         ws.close() // successful close
       } else {

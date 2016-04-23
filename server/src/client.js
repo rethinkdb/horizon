@@ -2,6 +2,7 @@
 
 const check = require('./error').check;
 const logger = require('./logger');
+const constants = require('@horizon/client/lib/constants').auth;
 const schemas = require('./schema/horizon_protocol');
 
 const Joi = require('joi');
@@ -193,7 +194,7 @@ class Client {
         metadata.get_user_info(decoded.user, (rdb_err, res) => {
           if (rdb_err) {
             this.send_response(request.request_id, { error: 'User does not exist.', error_code: 0 });
-            this.socket.close(1002, `Invalid user.`);
+            this.socket.close(1002, 'Invalid user.');
           } else {
             // TODO: listen on feed
             success(res, token);
@@ -205,13 +206,13 @@ class Client {
     };
 
     switch (request.method) {
-    case 'token':
+    case constants.TYPE_TOKEN:
       this.parent._auth.verify_jwt(request.token, done);
       break;
-    case 'anonymous':
+    case constants.TYPE_ANONYMOUS:
       this.parent._auth.generate_anon_jwt(done);
       break;
-    case 'unauthenticated':
+    case constants.TYPE_UNAUTHENTICATED:
       this.parent._auth.generate_unauth_jwt(done);
       break;
     default:
