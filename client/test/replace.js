@@ -1,4 +1,7 @@
-'use strict'
+import { _do as tap } from 'rxjs/operator/do'
+import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
+import { toArray } from 'rxjs/operator/toArray'
+
 const replaceSuite = window.replaceSuite = getData => () => {
   let data
 
@@ -8,21 +11,21 @@ const replaceSuite = window.replaceSuite = getData => () => {
 
   // Let's store a document first, then replace it.
   it('replaces an existing document completely', assertCompletes(() =>
-    data.store({ id: 1, a: { b: 1, c: 1 }, d: 1 }).toArray()
+    data.store({ id: 1, a: { b: 1, c: 1 }, d: 1 })::toArray()
       // should return an array with an ID of the inserted document.
-      .do(res => assert.deepEqual(res, [ 1 ]))
+      ::tap(res => assert.deepEqual(res, [ 1 ]))
       // Let's make sure we get back the document that we put in.
-      .mergeMapTo(data.find(1).fetch())
+      ::mergeMapTo(data.find(1).fetch())
       // Check that we get back what we put in.
-      .do(res => assert.deepEqual(res, { id: 1, a: { b: 1, c: 1 }, d: 1 }))
+      ::tap(res => assert.deepEqual(res, { id: 1, a: { b: 1, c: 1 }, d: 1 }))
       // Let's replace the document now
-      .mergeMapTo(data.replace({ id: 1, a: { c: 2 } })).toArray()
+      ::mergeMapTo(data.replace({ id: 1, a: { c: 2 } }))::toArray()
       // We should have gotten the ID back again
-      .do(res => assert.deepEqual(res, [ 1 ]))
+      ::tap(res => assert.deepEqual(res, [ 1 ]))
       // Make sure `replace` replaced the original document
-      .mergeMapTo(data.find(1).fetch())
+      ::mergeMapTo(data.find(1).fetch())
       // Check that the document was updated correctly
-      .do(res => assert.deepEqual(res, { id: 1, a: { c: 2 } }))
+      ::tap(res => assert.deepEqual(res, { id: 1, a: { c: 2 } }))
   ))
 
   // The `replace` command replaces documents already in the database. It
@@ -59,28 +62,28 @@ const replaceSuite = window.replaceSuite = getData => () => {
     data.store([
       { id: 1, a: { b: 1, c: 1 }, d: 1 },
       { id: 2, a: { b: 2, c: 2 }, d: 2 },
-    ]).toArray()
+    ])::toArray()
       // should return an array with an ID of the inserted document.
-      .do(res => assert.deepEqual(res, [ 1, 2 ]))
+      ::tap(res => assert.deepEqual(res, [ 1, 2 ]))
       // Let's make sure we get back the documents that we put in.
-      .mergeMapTo(data.findAll(1, 2).fetch().toArray())
+      ::mergeMapTo(data.findAll(1, 2).fetch()::toArray())
       // Check that we get back what we put in.
-      .do(res => assert.sameDeepMembers(res, [
+      ::tap(res => assert.sameDeepMembers(res, [
         { id: 1, a: { b: 1, c: 1 }, d: 1 },
         { id: 2, a: { b: 2, c: 2 }, d: 2 },
       ]))
       // All right. Let's update the documents now
-      .mergeMapTo(data.replace([
+      ::mergeMapTo(data.replace([
         { id: 1, a: { c: 2 } },
         { id: 2, d: 3 },
       ]))
-      .toArray()
+      ::toArray()
       // We should have gotten the ID back again
-      .do(res => assert.deepEqual(res, [ 1, 2 ]))
+      ::tap(res => assert.deepEqual(res, [ 1, 2 ]))
       // Make sure `update` updated the documents properly
-      .mergeMapTo(data.findAll(1, 2).fetch().toArray())
+      ::mergeMapTo(data.findAll(1, 2).fetch()::toArray())
       // Check that we get back what we put in.
-      .do(res => assert.sameDeepMembers(res, [
+      ::tap(res => assert.sameDeepMembers(res, [
         { id: 1, a: { c: 2 } },
         { id: 2, d: 3 },
       ]))
@@ -97,7 +100,7 @@ const replaceSuite = window.replaceSuite = getData => () => {
   // array.
   it('allows an empty batch of documents', assertCompletes(() =>
     data.replace([])
-      .do(res => {
+      ::tap(res => {
         // should return an array with the IDs of the documents in
         // order, including the generated IDS.
         assert.isArray(res)
