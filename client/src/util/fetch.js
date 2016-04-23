@@ -5,5 +5,5 @@ import fetch from 'isomorphic-fetch'
 
 export default function fetchJSON(url) {
   return Observable::fromPromise(fetch(url))
-    .map(response => response.json())
+    ::map(response => response.json())
 }
