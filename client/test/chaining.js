@@ -1,5 +1,7 @@
-'use strict'
-const chainingSuite = window.chainingSuite = (getData) => () => {
+import { _do as tap } from 'rxjs/operator/do'
+import { toArray } from 'rxjs/operator/toArray'
+
+const chainingSuite = window.chainingSuite = getData => () => {
   let data
 
   before(() => {
@@ -12,10 +14,10 @@ const chainingSuite = window.chainingSuite = (getData) => () => {
       .order('id')
       .above({ id: 2 })
       .below({ id: 4 })
-      .fetch().toArray()
-      .do(res => assert.deepEqual(res, [
+      .fetch()::toArray()
+      ::tap(res => assert.deepEqual(res, [
         { id: 2, a: 20, b: 1 },
-        { id: 3, a: 20, b: 2 }
+        { id: 3, a: 20, b: 2 },
       ]))
   ))
 
@@ -25,8 +27,8 @@ const chainingSuite = window.chainingSuite = (getData) => () => {
       .below({ id: 4 })
       .above({ id: 2 })
       .order('id', 'descending')
-      .fetch().toArray()
-      .do(res => assert.deepEqual(res, [
+      .fetch()::toArray()
+      ::tap(res => assert.deepEqual(res, [
         { id: 3, a: 20, b: 2 },
         { id: 2, a: 20, b: 1 },
       ]))
@@ -37,8 +39,8 @@ const chainingSuite = window.chainingSuite = (getData) => () => {
     data.findAll({ a: 20 })
       .above({ id: 2 })
       .order('id').below({ id: 4 }).limit(1)
-      .fetch().toArray()
-      .do(res => assert.deepEqual(res, [{ id: 2, a: 20, b: 1 }]))
+      .fetch()::toArray()
+      ::tap(res => assert.deepEqual(res, [ { id: 2, a: 20, b: 1 } ]))
   ))
 
   // Let's do it on the collection
@@ -47,8 +49,8 @@ const chainingSuite = window.chainingSuite = (getData) => () => {
       .order('id')
       .above({ id: 2 })
       .limit(1)
-      .fetch().toArray()
-      .do(res => assert.deepEqual(res, [{ id: 2, a: 20, b: 1 }]))
+      .fetch()::toArray()
+      ::tap(res => assert.deepEqual(res, [ { id: 2, a: 20, b: 1 } ]))
   ))
 
   // Let's try a big compound example
@@ -58,15 +60,15 @@ const chainingSuite = window.chainingSuite = (getData) => () => {
       .above({ id: 2 })
       .below({ id: 4 }, 'closed')
       .limit(2)
-      .fetch().toArray()
-      .do(res => assert.deepEqual(res, [
+      .fetch()::toArray()
+      ::tap(res => assert.deepEqual(res, [
         { id: 2, a: 20, b: 1 },
         { id: 3, a: 20, b: 2 },
       ]))
   ))
 
   // Can't chain off vararg `findAll`
-  it(`throws if order is chained off a multi-arg findAll`, assertThrows(
+  it('throws if order is chained off a multi-arg findAll', assertThrows(
     'order cannot be called on the current query',
     () => data.findAll({ a: 20 }, { a: 50 }).order('id').fetch()
   ))
