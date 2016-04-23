@@ -27,122 +27,27 @@ npm run devtest     | Run tests and linting continually
 
 ## Docs
 
+
 ### Getting Started
-
-While you could build and import this library, you wouldn't have any place to connect to! Once you have the [Horizon Server](/server) running, the Horizon client library is hosted by the server as seen in the getting started example below.
-
-First you need to ensure that you have included the `horizon.js` client library in your HTML.
-**Note**: that you'll want to have `http` instead of `https` if you started Horizon Server with `--insecure`. By default Horizon Server hosts the `horizon.js` client library on port 8181.
-
-```html
-...
-<head>
-<script src="//localhost:8181/horizon/horizon.js"></script>
-</head>
-...
-```
-
-Then wherever you want to use Project Horizon you will need to `require` the Horizon client library and then connect to your running instance of Horizon Server.
-
-**Note:** if you started Horizon Server with `--insecure`, you'll need to [disable the secure flag](#Horizon).
-
-```javascript
-const Horizon = require("@horizon/client"); // or use global `window.Horizon`
-const horizon = Horizon();
-```
-
-From here you can start to interact with RethinkDB collections through the Horizon collection. Having `--dev` mode enabled on the Horizon Server creates collections and indexes automatically so you can get your application setup with as little hassle as possible.
-
-```javascript
-const chat = horizon("messages");
-```
-
-Now, `chat` is a Horizon collection of documents. You can perform a variety of operations on this collection to filter them down to the ones you need. Let's pretend we are building a simple chat application where the messages are displayed in ascending order. Here are some basic functions that would allow you to build such an app.
-
-```javascript
-
-let chats = []
-
-// Retrieve all messages from the server
-const retrieveMessages = () => {
-  chat.order('datetime')
-  // fetch all results as an array, rather than one at a time
-  .fetch({ asCursor: false })
-  // Retrieval successful, update our model
-  .subscribe(
-    newChats => {
-      chats = chats.concat(newChats)
-    },
-    // Error handler
-    error => console.log(error),
-    // onCompleted handler
-    () => console.log('All results received!')
-  )
-}
-
-// Retrieve an single item by id
-const retrieveMessage = id => {
-  chat.find(id).fetch()
-    // Retrieval successful
-    .subscribe(
-      result => {
-        chats.push(result);
-      },
-      // Error occurred
-      error => console.log(error)
-    )
-}
-
-// Store new item
-const storeMessage = (message) => {
-  chat.store(message)
-    .forEach( // forEach is an alias of .subscribe, returning Promise
-      // Returns id of saved objects
-      result => console.log(result)
-    )
-    // Returns server error message
-    .catch(error => console.log(error))
-}
-
-// Replace item that has equal `id` field
-//  or insert if it doesn't exist.
-const updateMessage = message => {
-  chat.replace(message)
-}
-
-// Remove item from collection
-const deleteMessage = message => {
-  chat.remove(message)
-}
-```
-
-And lastly, the `.watch` method exposes all the changefeeds awesomeness you could want from RethinkDB. Using just `chat.watch()`, and the updated results will be pushed to you any time they change on the server. You can also `.watch` changes on a query or a single document.
-
-
-```javascript
-
-chat.watch().forEach(
-  chats => {
-    // Each time through it will returns all results of your query
-    renderChats(allChats)
-  }
-).catch(
-  // When error occurs on server
-  error => console.log(error),
-)
-```
-
-You can also get notifications when the client connects and disconnects from the server
-
-``` js
-  // Triggers when client successfully connects to server
-  horizon.onConnected().subscribe(() => console.log("Connected to Horizon Server"))
-
-  // Triggers when disconnected from server
-  horizon.onDisconnected().subscribe(() => console.log("Disconnected from Horizon Server"))
-```
+[Check out our Getting Started guide.](/GETTING-STARTED.md)
 
 ### API
+
+* [Horizon](#horizon)
+* [Collection](#collection)
+* [above](#above-limit-integer--key-value-closed-string-)
+* [below](#below-limit-integer--key-value-closed-string-)
+* [fetch](#fetch)
+* [find](#find---id-any-)
+* [findAll](#findall--id-any----id-any--)
+* [limit](#limit-num-integer-)
+* [order](#order---directionascending-)
+* [remove](#remove-id-any--id-any-)
+* [removeAll](#removeall--id-any--id-any-----id-any---id-any---)
+* [replace](#replace--)
+* [store](#store-------)
+* [upsert](#upsert------)
+* [watch](#watch--rawchanges-false--)
 
 #### Horizon
 
@@ -152,7 +57,7 @@ If Horizon server has been started with `--insecure` then you will need to conne
 
 ###### Example
 
-```javascript
+```js
 const Horizon = require("@horizon/client")
 const horizon = Horizon()
 
@@ -164,7 +69,7 @@ const unsecure_horizon = Horizon({ secure: false })
 Object which represents a collection of documents on which queries can be performed.
 
 ###### Example
-```javascript
+```js
 // Setup connection the Horizon server
 const Horizon = require("@horizon/client")
 const horizon = Horizon()
@@ -173,7 +78,7 @@ const horizon = Horizon()
 const messages = horizon('messages')
 ```
 
-##### above(*limit integer* || *{key: value}*, *closed string*)
+##### above( *limit* *&lt;integer&gt;* || *{key: value}*, *closed* *&lt;string&gt;* )
 
 The `.above` method can be chained onto all methods with the exception of `.find` and `.limit` and restricts the range of results returned.
 
@@ -183,41 +88,41 @@ The second parameter allows only either "closed" or "open" as arguments for incl
 
 ###### Example
 
-```javascript
+```js
 
-chat.store([{
-  id: 1,
-  text: "Top o' the morning to ya! 🇮🇪",
-  author: "kittybot"
-}, {
-  id: 2,
-  text: "Howdy! 🇺🇸",
-  author: "grey"
-}, {
-  id: 3,
-  text: "Bonjour 🇫🇷",
-  author: "coffeemug"
-}, {
-  id: 4,
-  text: "Gutentag 🇩🇪",
-  author: "deontologician"
-}, {
-  id: 5,
-  text: "G'day 🇦🇺",
-  author: "dalanmiller"
-}]);
+// {
+//  id: 1,
+//  text: "Top o' the morning to ya! 🇮🇪",
+//  author: "kittybot"
+// }, {
+//  id: 2,
+//  text: "Howdy! 🇺🇸",
+//  author: "grey"
+// }, {
+//  id: 3,
+//  text: "Bonjour 🇫🇷",
+//  author: "coffeemug"
+// }, {
+//  id: 4,
+//  text: "Gutentag 🇩🇪",
+//  author: "deontologician"
+// }, {
+//  id: 5,
+//  text: "G'day 🇦🇺",
+//  author: "dalanmiller"
+// }
 
 // Returns docs with id 4 and 5
-chat.messages.order("id").above(3);
+chat.messages.order("id").above(3).fetch().forEach(doc => console.log(doc));
 
 // Returns docs with id 3, 4, and 5
-chat.messages.order("id").above(3, "closed");
+chat.messages.order("id").above(3, "closed").fetch().forEach(doc => console.log(doc));
 
 // Returns the documents with ids 1, 2, 4, and 5 (alphabetical)
-chat.messages.order("id").above({author: "d"});
+chat.messages.order("id").above({author: "d"}).fetch().forEach(doc => console.log(doc));
 ```
 
-##### below([limit integer || {key: value}], closed string)
+##### below( *limit* *&lt;integer&gt;* || *{key: value}*, *closed* *&lt;string&gt;* )
 
 The `.below` method can only be chained onto an `.order(...)` method and limits the range of results returned.
 
@@ -229,99 +134,185 @@ The second parameter allows only either "closed" or "open" as arguments for incl
 
 ```javascript
 
-chat.store([{
-  id: 1,
-  text: "Top o' the morning to ya! 🇮🇪",
-  author: "kittybot"
-}, {
-  id: 2,
-  text: "Howdy! 🇺🇸",
-  author: "grey"
-}, {
-  id: 3,
-  text: "Bonjour 🇫🇷",
-  author: "coffeemug"
-}, {
-  id: 4,
-  text: "Gutentag 🇩🇪",
-  author: "deontologician"
-}, {
-  id: 5,
-  text: "G'day 🇦🇺",
-  author: "dalanmiller"
-}]);
+// {
+//  id: 1,
+//  text: "Top o' the morning to ya! 🇮🇪",
+//  author: "kittybot"
+// }, {
+//  id: 2,
+//  text: "Howdy! 🇺🇸",
+//  author: "grey"
+// }, {
+//  id: 3,
+//  text: "Bonjour 🇫🇷",
+//  author: "coffeemug"
+// }, {
+//  id: 4,
+//  text: "Gutentag 🇩🇪",
+//  author: "deontologician"
+// }, {
+//  id: 5,
+//  text: "G'day 🇦🇺",
+//  author: "dalanmiller"
+// }
 
 // Returns docs with id 1 and 2
-chat.messages.order("id").below(3);
+chat.messages.order("id").below(3).fetch().forEach(doc => console.log(doc));
 
 // Returns docs with id 1, 2, and 3
-chat.messages.order("id").below(3, "closed");
+chat.messages.order("id").below(3, "closed").fetch().forEach(doc => console.log(doc));
 
 // Returns the document with id 3 (alphabetical)
-chat.messages.order("id").below({author: "d"});
+chat.messages.order("id").below({author: "d"}).fetch().forEach(doc => console.log(doc));
 ```
 
-##### find(*object*)
+##### fetch()
+
+Queries for the results of a query currently, without updating results when they change. This is used to complete and send
+the query request.
+
+##### Example
+
+```js
+
+// Returns the entire contents of the collection
+horizon('chats').fetch().forEach(
+  result => console.log('Result:', result),
+  err => console.error(err),
+  () => console.log('Results fetched, query done!')
+)
+
+// Sample output
+// Result: { id: 1, chat: 'Hey there' }
+// Result: { id: 2, chat: 'Ho there' }
+// Results fetched, query done!
+```
+
+If you would rather get the results all at once as an array, you can
+chain `.toArray()` to the call:
+
+```js
+horizon('chats').fetch().toArray().forEach(
+  results => console.log('All results: ', results),
+  err => console.error(err),
+  () => console.log('Results fetched, query done!')
+)
+
+// Sample output
+// All results: [ { id: 1, chat: 'Hey there' }, { id: 2, chat: 'Ho there' } ]
+// Results fetched, query done!
+```
+
+##### find( *{}* || *id* *&lt;any&gt;* )
 
 Retrieve a single object from the Horizon collection.
 
 ###### Example
 
-```javascript
+```js
 // Using id, both are equivalent
-chats.find(1)
-chats.find({id:1})
+chats.find(1).fetch().forEach(doc => console.log(doc));
+chats.find({ id: 1 }).fetch().forEach(doc => console.log(doc));
 
 // Using another field
-chats.find({name: "dalan"})
+chats.find({ name: "dalan" }).fetch().forEach(doc => console.log(doc));
 ```
 
-##### findAll(*object* [, *object*])
+##### findAll( *{ id:* *&lt;any&gt; }* [, *{ id:* *&lt;any&gt; }*] )
 
 Retrieve multiple objects from the Horizon collection. Returns `[]` if queried documents do not exist.
 
 ###### Example
 
-```javascript
-chats.findAll({id: 1}, {id: 2});
+```js
+chats.findAll({ id: 1 }, { id: 2 }).fetch().forEach(doc => console.log(doc));
 
-chats.findAll({name: "dalan"}, {id: 3});
+chats.findAll({ name: "dalan" }, { id: 3 }).fetch().forEach(doc => console.log(doc));
 ```
 
-##### limit(*num integer*)
+##### forEach( *readResult[s]* *&lt;function&gt;*, *error* *&lt;function&gt;*, *completed* *&lt;function&gt;* || *writeResult[s] *&lt;function&gt;*, *error* *&lt;function&gt;* || *changefeedHandler* *&lt;function&gt;*, *error* *&lt;function&gt;*)
+
+Means of providing handlers to a query on a Horizon collection.
+
+###### Example
+
+When `.forEach` is chained off of a read operation it accepts three functions as parameters. A results handler, a error handler, and a result completion handler.
+
+```js
+// Documents are returned one at a time.
+chats.fetch().forEach(
+  (result) => { console.log("A single document =>" + result ) },
+  (error) => { console.log ("Danger Will Robinson 🤖! || " + error ) },
+  () => { console.log("Read is now complete" ) }
+);
+
+// To wait and retrieve all documents as a single array instead of immediately one at a time.
+chats.toArray().fetch().forEach(
+  (result) => { console.log("A single document =>" + result ) },
+  (error) => { console.log ("Danger Will Robinson 🤖! || " + error ) },
+  () => { console.log("Read is now complete" ) }
+);
+```
+
+When `.forEach` is chained off of a write operation it accepts two functions, one which handles successful writes and handles the returned `id` of the document from the server as well as an error handler.
+
+```js
+chats.store([
+    { text: "So long, and thanks for all the 🐟!" },
+    { id: 2, text: "Don't forget your towel!" }
+  ]).forEach(
+    (id) => { console.log("A saved document id =>" + id ) },
+    (error) => { console.log ("An error has occurred || " + error ) },
+  );
+
+// Output:
+// f8dd67dc-2301-487a-85ab-c4b573acad2d
+// 2 (because `id` was provided)
+```
+
+When `.forEach` is chained off of a changefeed it accepts two functions, one which handles the changefeed results as well as an error handler.
+
+```js
+chats.watch().forEach(
+  (chats) => { console.log("The entire chats collection triggered by changes =>" + chats ) },
+  (error) => { console.log ("An error has occurred || " + error ) },
+);
+```
+
+##### limit( *num* *&lt;integer&gt;* )
 
 Limit the output of a query to the provided number of documents. If the result of the query prior to `.limit(...)` is fewer than the value passed to `.limit` then the results returned will be limited to that amount.
 
 If using `.limit(...)` it must be the final method in your query.
 
-##### Example
+###### Example
 
-```javascript
+```js
 
-chats.limit(5);
+chats.limit(5).fetch().forEach(doc => console.log(doc));
 
-chats.findAll({author: "dalan"}).limit(5);
+chats.findAll({ author: "dalan" }).limit(5).fetch().forEach(doc => console.log(doc));
 
-chats.order("datetime", "descending").limit(5);
+chats.order("datetime", "descending").limit(5).fetch().forEach(doc => console.log(doc));
 ```
 
-##### order(*string* [, *direction*="ascending"])
+##### order( *<string>* [, *direction*="ascending"] )
 
 Order the results of the query by the given field string. The second parameter is also a string that determines order direction. Default is ascending ⏫.
 
 ###### Example
 
-```javascript
-chats.order("id");
+```js
+chats.order("id").fetch().forEach(doc => console.log(doc));
 
 // Equal result
-chats.order("name");
-chats.order("name", "ascending");
+chats.order("name").fetch().forEach(doc => console.log(doc));
+chats.order("name", "ascending").fetch().forEach(doc => console.log(doc));
 
-chats.order("age", "descending");
+chats.order("age", "descending").fetch().forEach(doc => console.log(doc));
 ```
 
-##### remove(*id string* || *{id: integer}*)
+##### remove( *id* *&lt;any>* || *{id:* *\<any>}* )
 
 Remove a single document from the collection. Takes an `id` representing the `id` of the document to remove or an object that has an `id` key.
 
@@ -331,29 +322,29 @@ Remove a single document from the collection. Takes an `id` representing the `id
 
 // Equal results
 chat.remove(1);
-chat.remove({id:1})
+chat.remove({ id: 1 })
 
 ```
-##### removeAll(*[id integer [, id integer]]* || *{id: integer [,{id: integer}]}*)
+##### removeAll( [ *id* *&lt;any&gt;* [, *id* *&lt;any&gt;* ]] || [ *{* *id:* *&lt;any&gt;* [, *{* *id:* *&lt;any&gt;* *}* ]] )
 
 Remove multiple documents from the collection via an array of `id` integers or an array of objects that have an `id` key.
 
 ###### Example
 
-```javascript
+```js
 
 // Equal results
 chat.removeAll([1, 2, 3]);
-chat.removeAll([{id: 1}, {id: 2}, {id: 3}]);
+chat.removeAll([{ id: 1 }, { id: 2 }, { id: 3 }]);
 ```
 
-##### replace(*{}*)
+##### replace( *{}* )
 
 The `replace` command replaces documents already in the database. An error will occur if the document does not exist.
 
 ###### Example
 
-```javascript
+```js
 
 // Will result in error
 chat.replace({
@@ -374,16 +365,40 @@ chat.replace({
 });
 ```
 
-##### upsert(*{}* || *{} [,{}]*)
+##### store( *{}* || [ *{}* [, *{}*] )
 
-The `upsert` method allows storing multiple documents in one call. If any of them exist, the existing version of the document will be updated with the new version supplied to the method.
+The `store` method stores objects or arrays of objects. One can also chain `.forEach` off of `.store` which takes two
+functions to handle store succeses and errors.
+
+###### Example
+
+```js
+chat.store({
+  id:1,
+  text: "Hi 😁"
+});
+
+chat.find({ id: 1 }).fetch().forEach((doc) => {
+  console.log(doc); // matches stored document above
+});
+
+chat.store({ id: 2, text: "G'day!" }).forEach(
+  (id) => { console.log("saved doc id: " + id) },
+  (error) => { console.log(err) }
+);
+
+```
+
+##### upsert( *{}* || [ *{}* [, *{}* ]] )
+
+The `upsert` method allows storing a single or multiple documents in a single call. If any of them exist, the existing version of the document will be updated with the new version supplied to the method. Replacements are determined by already existing documents with an equal `id`.
 
 ###### Example
 
 ```javascript
 
 chat.store({
-  id:1,
+  id: 1,
   text: "Hi 😁"
 });
 
@@ -398,16 +413,14 @@ chat.upsert([{
   text: "How have you been?"
 }]);
 
-chat.find(1).fetch().toPromise().then((message) => {
-
+chat.find(1).fetch().forEach((doc) => {
   // Returns "Howdy 😅"
   console.log(message.text);
 });
 
 ```
 
-##### watch({ rawChanges: false })
-
+##### watch( *{ rawChanges: false }* )
 Turns the query into a changefeed query, returning an observable that receives a live-updating view of the results every time they change.
 
 ###### Example
@@ -421,59 +434,74 @@ horizon('chats').watch().forEach(allChats => {
 })
 
 // Sample output
-Chats: []
-Chats: [{ id: 1, chat: 'Hey there' }]
-Chats: [{ id: 1, chat: 'Hey there' }, {id: 2, chat: 'Ho there' }]
-Chats: [{ id: 2, chat: 'Ho there' }]
+// Chats: []
+// Chats: [{ id: 1, chat: 'Hey there' }]
+// Chats: [{ id: 1, chat: 'Hey there' }, {id: 2, chat: 'Ho there' }]
+// Chats: [{ id: 2, chat: 'Ho there' }]
 ```
 
 Alternately, you can provide the `rawChanges: true` option to receive change documents from the server directly, instead of having the client maintain the array of results for you.
 
-``` js
+```js
 horizon('chats').watch({ rawChanges: true }).forEach(change => {
   console.log('Chats changed:', change)
 })
 
 // Sample output
-Chat changed: { type: 'state', state: 'synced' }
-Chat changed: { type: 'added', new_val: { id: 1, chat: 'Hey there' }, old_val: null }
-Chat changed: { type: 'added', new_val: { id: 2, chat: 'Ho there' }, old_val: null }
-Chat changed: { type: 'removed', new_val: null, old_val: { id: 1, chat: 'Hey there' } }
+// Chat changed: { type: 'state', state: 'synced' }
+// Chat changed: { type: 'added', new_val: { id: 1, chat: 'Hey there' }, old_val: null }
+// Chat changed: { type: 'added', new_val: { id: 2, chat: 'Ho there' }, old_val: null }
+// Chat changed: { type: 'removed', new_val: null, old_val: { id: 1, chat: 'Hey there' } }
 ```
 
-##### fetch({ asCursor: true })
+## Authenticating
 
-Queries for the results of a query currently, without updating results when they change
+There are three types of authentication types that Horizon recognizes.
 
-##### Example
+### Unauthenticated
 
-```javascript
-
-// Returns the entire contents of the collection
-horizon('chats').fetch().subscribe(
-  result => console.log('Result:', result),
-  err => console.error(err),
-  () => console.log('Results fetched, query done!')
-)
-
-// Sample output
-Result: { id: 1, chat: 'Hey there' }
-Result: { id: 2, chat: 'Ho there' }
-Results fetched, query done!
-```
-
-If you pass `asCursor: false`, you will get the entire result set at once as an array.
+The first auth type is unauthenticated. One [JWT](https://jwt.io/) is shared by all unauthenticated users. To create a connection using the 'unauthenticated' method do:
 
 ``` js
-horizon('chats').fetch({ asCursor: false }).subscribe(
-  results => console.log('Results: ', result),
-  err => console.error(err),
-  () => console.log('Results fetched, query done!')
-)
-
-// Sample output
-Results: [ { id: 1, chat: 'Hey there' }, { id: 2, chat: 'Ho there' } ]
-Results fetched, query done!
+const horizon = Horizon({ authType: 'unauthenticated' });
 ```
 
-Doing `.fetch({ asCursor: false })` is basically equivalent to `.fetch().toArray()`, but it can be less verbose in cases where you want a `fetch()` query to work similarly to a `.watch()` query.
+This is the default authentication method and provides no means to separate user permissions or data in the Horizon application.
+
+### Anonymous
+
+The second auth type is anonymous. If anonymous authentication is enabled in the config, any user requesting anonymous authentication will be given a new JWT, with no other confirmation necessary. The server will create a user entry in the users table for this JWT, with no other way to authenticate as this user than by passing the JWT back. (This is done under the hood with the jwt being stored in localStorage and passed back on subsequent requests automatically).
+
+``` js
+const horizon = Horizon({ authType: 'anonymous' });
+```
+
+This type of authentication is useful when you need to differentiate users but don't want to use a popular 3rd party to authenticate them. This is essentially the means of "Creating an account" or "Signing up" for people who use your website.
+
+### Token
+
+This is the only method of authentication that verifies a user's identity with a third party. To authenticate, first pick an OAuth identity provider. For example, to use Twitter for authentication, you might do something like:
+
+``` js
+const horizon = Horizon({ authType: 'token' });
+if (!horizon.hasAuthToken()) {
+  horizon.authEndpoint('twitter').toPromise()
+    .then((endpoint) => {
+      window.location.pathname = endpoint;
+    })
+} else {
+  // We have a token already, do authenticated horizon stuff here...
+}
+```
+After logging in with Twitter, the user will be redirected back to the app, where the Horizon client will grab the JWT from the redirected url, which will be used on subsequent connections where `authType = 'token'`. If the token is lost (because of a browser wipe, or changing computers etc), the user can be recovered by re-authenticating with Twitter.
+
+This is type of authentication is useful for quickly getting your application running with information relevant to your application provided by a third party. Users don't need to create yet another user acount for your application and can reuse the ones they already have.
+
+### Clearing tokens
+
+Sometimes you may wish to delete all authentication tokens from localStorage. You can do that with:
+
+``` js
+// Note the 'H'
+Horizon.clearAuthTokens()
+```

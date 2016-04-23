@@ -111,7 +111,7 @@ const todoCollection = horizon("todo_items");
 const todoApp = document.querySelector('#app')
 
 // Function called when a user adds a todo item in the UI
-todoCollection.watch().forEach( todos => {
+todoCollection.watch().subscribe( todos => {
   const todoHTML = todos.map(todo =>
     `<div class="todo" id="${todo.id}">
        <input type="checkbox" ${todo.done ? 'checked' : ''}>
@@ -165,7 +165,7 @@ backend framework (e.g. Rails, Express, Koa, etc.)
 
 By contrast, Meteor is a much more prescriptive framework. Horizon is a
 reasonably small component that has a very clean separation with the
-database and the frontend, while Meteor is a much more monolithic
+database and the front-end, while Meteor is a much more monolithic
 experience.
 
 Another major difference is architectural -- Meteor uses a LiveQuery
