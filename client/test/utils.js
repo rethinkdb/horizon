@@ -1,13 +1,19 @@
 import { Observable } from 'rxjs/Observable'
 import { empty } from 'rxjs/observable/empty'
+import { toArray } from 'rxjs/operator/toArray'
+import { _do as tap } from 'rxjs/operator/do'
+import { mergeMap } from 'rxjs/operator/mergeMap'
+import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
+import { take } from 'rxjs/operator/take'
+import { ignoreElements } from 'rxjs/operator/ignoreElements'
 
 window.removeAllData = function removeAllData(collection, done) {
   // Read all elements from the collection
-  collection.fetch().toArray() // all documents in the collection
-    .mergeMap(docs => collection.removeAll(docs))
-    .mergeMap(() => collection.fetch())
-    .toArray()
-    .do(remaining => assert.deepEqual([], remaining))
+  collection.fetch()::toArray() // all documents in the collection
+    ::mergeMap(docs => collection.removeAll(docs))
+    ::mergeMapTo(collection.fetch())
+    ::toArray()
+    ::tap(remaining => assert.deepEqual([], remaining))
     .subscribe(doneObserver(done))
 }
 
@@ -78,15 +84,15 @@ window.observableInterleave = function observableInterleave(options) {
   const debug = options.debug || (() => {})
   const values = []
   return query
-    .take(expected.length)
-    .do(debug)
-    .flatMap((val, i) => {
+    ::take(expected.length)
+    ::tap(debug)
+    ::mergeMap((val, i) => {
       values.push(val)
       if (i < operations.length) {
-        return operations[i].ignoreElements()
+        return operations[i]::ignoreElements()
       } else {
         return Observable::empty()
       }
     })
-    .do({ complete() { equality(expected, values) } })
+    ::tap({ complete() { equality(expected, values) } })
 }
