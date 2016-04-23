@@ -1,4 +1,6 @@
-'use strict'
+import { _do as tap } from 'rxjs/operator/do'
+import { toArray } from 'rxjs/operator/toArray'
+
 const collectionSuite = window.collectionSuite = (getHorizon, getData, getTestData) => () => {
   let horizon, data, testData, empty_collection
 
@@ -16,13 +18,13 @@ const collectionSuite = window.collectionSuite = (getHorizon, getData, getTestDa
 
   // Grab everything from the collection.
   it('allows getting all values from the collection', assertCompletes(() =>
-    data.fetch().toArray()
-      .do(res => assert.sameDeepMembers(testData, res))
+    data.fetch()::toArray()
+      ::tap(res => assert.sameDeepMembers(testData, res))
   ))
 
   // Reading from an empty collection should result in an empty array
   it('returns an empty array from an empty collection', assertCompletes(() =>
-    empty_collection.fetch().toArray()
-      .do(res => assert.sameDeepMembers(res, []))
+    empty_collection.fetch()::toArray()
+      ::tap(res => assert.sameDeepMembers(res, []))
   ))
 } // Testing full collection reads
