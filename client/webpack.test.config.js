@@ -40,7 +40,7 @@ module.exports = {
       /chai\/chai\.js/,
       /lodash\/lodash\.js/,
       /source-map-support/,
-      /rx\/dist\/rx\.all\.js/,
+      /rxjs\/bundles\/Rx\.umd\.js/,
     ],
     loaders: [
       {

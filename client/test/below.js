@@ -1,4 +1,6 @@
-'use strict'
+import { _do as tap } from 'rxjs/operator/do'
+import { toArray } from 'rxjs/operator/toArray'
+
 const belowSuite = window.belowSuite = (getData) => () => {
   let data
 
@@ -8,8 +10,8 @@ const belowSuite = window.belowSuite = (getData) => () => {
 
   // By default `below` is open
   it('defaults to open', assertCompletes(() =>
-    data.order('id').below({ id: 3 }).fetch().toArray()
-      .do(res => assert.deepEqual(res, [
+    data.order('id').below({ id: 3 }).fetch()::toArray()
+      ::tap(res => assert.deepEqual(res, [
         { id: 1, a: 10 },
         { id: 2, a: 20, b: 1 }
       ]))
@@ -17,8 +19,8 @@ const belowSuite = window.belowSuite = (getData) => () => {
 
   // We can also pass that explicitly
   it('can be explicitly set to be an open bound', assertCompletes(() =>
-    data.order('id').below({ id: 3 }, 'open').fetch().toArray()
-      .do(res => assert.deepEqual(res, [
+    data.order('id').below({ id: 3 }, 'open').fetch()::toArray()
+      ::tap(res => assert.deepEqual(res, [
         { id: 1, a: 10 },
         { id: 2, a: 20, b: 1 },
       ]))
@@ -26,8 +28,8 @@ const belowSuite = window.belowSuite = (getData) => () => {
 
   // But we can make it closed
   it('can be explicitly set to be a closed bound', assertCompletes(() =>
-    data.order('id').below({ id: 3 }, 'closed').fetch().toArray()
-      .do(res => assert.deepEqual(res, [
+    data.order('id').below({ id: 3 }, 'closed').fetch()::toArray()
+      ::tap(res => assert.deepEqual(res, [
         { id: 1, a: 10 },
         { id: 2, a: 20, b: 1 },
         { id: 3, a: 20, b: 2 },
@@ -37,13 +39,13 @@ const belowSuite = window.belowSuite = (getData) => () => {
   // Let's try something that returns no values
   it('can return no values', assertCompletes(() =>
     data.order('id').below({ id: 0 }).fetch()
-      .do(() => assert.fail())
+      ::tap(() => assert.fail())
   ))
 
   // We can chain `below` off a collection
   it('can be chained off of a collection', assertCompletes(() =>
-    data.below({ id: 3 }).fetch().toArray()
-      .do(res => {
+    data.below({ id: 3 }).fetch()::toArray()
+      ::tap(res => {
         assert.isArray(res)
         assert.lengthOf(res, 2)
       })
@@ -51,8 +53,8 @@ const belowSuite = window.belowSuite = (getData) => () => {
 
   // Or off other things
   it('can be chained off of a findAll term', assertCompletes(() =>
-    data.findAll({ a: 20 }).below({ id: 4 }).fetch().toArray()
-      .do(res => {
+    data.findAll({ a: 20 }).below({ id: 4 }).fetch()::toArray()
+      ::tap(res => {
         assert.isArray(res)
         assert.lengthOf(res, 2)
       })
@@ -66,13 +68,13 @@ const belowSuite = window.belowSuite = (getData) => () => {
   // Let's try it on a non-primary index
   it('can bound a non-primary index', assertCompletes(() =>
     data.order([ 'a', 'id' ]).below({ a: 20 }).fetch()
-      .do(res => assert.deepEqual(res, { id: 1, a: 10 }))
+      ::tap(res => assert.deepEqual(res, { id: 1, a: 10 }))
   ))
 
   // Let's try it on a non-primary key, but closed
   it('can closed bound a non-primary key', assertCompletes(() =>
-    data.order([ 'a', 'id' ]).below({ a: 20 }, 'closed').fetch().toArray()
-      .do(res => assert.deepEqual(res, [
+    data.order([ 'a', 'id' ]).below({ a: 20 }, 'closed').fetch()::toArray()
+      ::tap(res => assert.deepEqual(res, [
         { id: 1, a: 10 },
         { id: 2, a: 20, b: 1 },
         { id: 3, a: 20, b: 2 },

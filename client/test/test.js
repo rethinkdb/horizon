@@ -55,9 +55,6 @@ window.assert = window.chai.assert
 
 window._ = require('lodash/lodash.js')
 
-window.Rx = require('rx/dist/rx.all.js')
-window.Rx.config.longStackSupport = true
-
 // Wait until server is ready before proceeding to tests
 describe('Waiting until server ready...', function() {
   this.timeout(60000)
