@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const crypto = require('crypto');
+const path = require('path');
 
 const makeIndexHTML = (projectName) => `\
 <!doctype html>
@@ -128,30 +129,26 @@ const addArguments = (parser) => {
   );
 };
 
-const fileDoesntExist = (path) => {
+const fileDoesntExist = (pathName) => {
   try {
-    fs.statSync(path);
-    console.error(`Bailing! ${path} already exists`);
+    fs.statSync(pathName);
+    console.error(`Bailing! ${pathName} already exists`);
     process.exit(1);
   } catch (e) {
     return true;
   }
 };
 
-const processConfig = (parsed) => {
-  // Nothing needs to be done
-  return parsed;
-};
+const processConfig = (parsed) => parsed;
 
 const runCommand = (parsed) => {
-  if (parsed.projectName != null &&
-      fileDoesntExist(parsed.projectName)) {
+  if (parsed.projectName != null && fileDoesntExist(parsed.projectName)) {
     fs.mkdirSync(parsed.projectName);
-    console.log(`Created new project directory ${parsed.projectName}`);
+    console.info(`Created new project directory ${parsed.projectName}`);
     process.chdir(parsed.projectName);
   } else {
     parsed.projectName = path.basename(process.cwd());
-    console.log('Creating new project in current directory');
+    console.info('Creating new project in current directory');
   }
 
   if (fileDoesntExist('src')) {

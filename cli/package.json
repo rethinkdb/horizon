@@ -1,6 +1,6 @@
 {
   "name": "horizon",
-  "version": "0.2.5-9",
+  "version": "0.2.5-11",
   "description": "An open-source developer platform for building realtime, scalable web apps.",
   "main": "src/main.js",
   "repository": {
@@ -28,7 +28,9 @@
   },
   "devDependencies": {
     "eslint": "^2.3.0",
-    "mocha": "2.3.4"
+    "mocha": "2.4.5",
+    "mock-fs": "3.8.0",
+    "sinon": "1.17.3"
   },
   "engines": {
     "node": ">=4.0.0"

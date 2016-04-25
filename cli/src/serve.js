@@ -15,7 +15,7 @@ const extend = require('util')._extend;
 const start_rdb_server = require('./utils/start_rdb_server');
 
 const addArguments = (parser) => {
-  parser.addArgument([ '--project' ],
+  parser.addArgument([ 'project' ],
     { type: 'string', nargs: '?',
       help: 'Change to this directory before serving' });
 
@@ -142,20 +142,29 @@ const serve_file = (file_path, res) => {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end(`File "${file_path}" not found\n`);
     } else {
-      fs.readFile(file_path, 'binary', (err, file) => {
+      fs.lstat(file_path, (err, stats) => {
         if (err) {
           res.writeHead(500, { 'Content-Type': 'text/plain' });
           res.end(`${err}\n`);
-        } else {
-          if (file_path.endsWith('.js')) {
-            res.writeHead(200, {
-              'Content-Type': 'application/javascript' });
-          } else if (file_path.endsWith('.html')) {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-          } else {
-            res.writeHead(200);
-          }
-          res.end(file, 'binary');
+        } else if (stats.isFile()) {
+          fs.readFile(file_path, 'binary', (err, file) => {
+            if (err) {
+              res.writeHead(500, { 'Content-Type': 'text/plain' });
+              res.end(`${err}\n`);
+            } else {
+              if (file_path.endsWith('.js')) {
+                res.writeHead(200, {
+                  'Content-Type': 'application/javascript' });
+              } else if (file_path.endsWith('.html')) {
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+              } else {
+                res.writeHead(200);
+              }
+              res.end(file, 'binary');
+            }
+          });
+        } else if (stats.isDirectory()) {
+          serve_file(path.join(file_path, 'index.html'), res);
         }
       });
     }
@@ -443,7 +452,7 @@ const runCommand = (opts, done) => {
   } else {
     try {
       // Try to get stats on dir, if it doesn't exist, statSync will throw
-      fs.statSync('.hz')
+      fs.statSync('.hz');
       // Don't need to change directories as we assume we are in a Horizon app dir
     } catch (e) {
       console.error('Project not specified or .hz directory not found.\nTry changing to a project' +
