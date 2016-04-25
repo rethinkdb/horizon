@@ -3,7 +3,6 @@
 const logger = require('./logger');
 const options_schema = require('./schema/server_options').auth;
 
-const assert = require('assert');
 const crypto = require('crypto');
 const Joi = require('joi');
 const jwt = require('jsonwebtoken');
@@ -113,9 +112,7 @@ class Auth {
   }
 
   verify_jwt(token, cb) {
-    jwt.verify(token, this._hmac_secret,
-               { algorithms: [ 'HS512' ] },
-               (err, decoded) => {
+    jwt.verify(token, this._hmac_secret, { algorithms: [ 'HS512' ] }, (err, decoded) => {
       if (err) {
         return cb(err);
       } else if (decoded.user === undefined || decoded.provider === undefined) {

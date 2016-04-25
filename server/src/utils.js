@@ -1,7 +1,5 @@
 'use strict';
 
-const logger = require('./logger');
-
 const MIN_VERSION = [ 2, 3, 0 ];
 
 // Recursive version compare, could be flatter but opted for instant return if
@@ -31,7 +29,7 @@ const rethinkdb_version_check = (version_string) => {
                       `(${MIN_VERSION.join('.')}) for use with Horizon.`);
     }
   } else {
-    throw new Error(`Unable to determine RethinkDB version, check ` +
+    throw new Error('Unable to determine RethinkDB version, check ' +
                     `RethinkDB is >= ${MIN_VERSION.join('.')}.`);
   }
 };

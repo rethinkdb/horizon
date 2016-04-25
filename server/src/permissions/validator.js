@@ -1,5 +1,7 @@
 'use strict';
+
 const vm = require('vm');
+const check = require('../error').check;
 
 class Validator {
   constructor(str) {

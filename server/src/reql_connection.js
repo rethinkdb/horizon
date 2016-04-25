@@ -4,7 +4,7 @@ const check = require('./error').check;
 const logger = require('./logger');
 const Metadata = require('./metadata').Metadata;
 const r = require('rethinkdb');
-const utils = require("./utils");
+const utils = require('./utils');
 
 class ReqlConnection {
   constructor(host, port, db, auto_create_table, auto_create_index, clients) {
@@ -56,7 +56,7 @@ class ReqlConnection {
          retry();
        });
        conn.on('error', (err) => {
-         logger.error('Error on connection to RethinkDB: ${err}.');
+         logger.error(`Error on connection to RethinkDB: ${err}.`);
          retry();
        });
        return conn.server().then((serv) =>

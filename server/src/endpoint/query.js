@@ -2,7 +2,7 @@
 
 const query = require('../schema/horizon_protocol').query;
 const check = require('../error.js').check;
-const validate = require('../permissions/validator').validate;
+const validate = require('../permissions/rule').validate;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
@@ -10,7 +10,7 @@ const r = require('rethinkdb');
 // This is exposed to be reused by 'subscribe'
 const make_reql = (raw_request, metadata) => {
   const parsed = Joi.validate(raw_request.options, query);
-  if (parsed.error !== null) { done(new Error(parsed.error.details[0].message)); }
+  if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
   const options = parsed.value;
 
   const table = metadata.get_table(parsed.value.collection);
@@ -108,12 +108,10 @@ const run = (raw_request, context, rules, metadata, done_cb) => {
         }
       }
       done_cb({ data: res, state: 'complete' });
+    } else if (!validate(rules, context, res)) {
+      done_cb(new Error('Operation not permitted.'));
     } else {
-      if (!validate(rules, context, res)) {
-        done_cb(new Error('Operation not permitted.'));
-      } else {
-        done_cb({ data: [ res ], state: 'complete' });
-      }
+      done_cb({ data: [ res ], state: 'complete' });
     }
   }, done_cb);
 };

@@ -5,7 +5,6 @@ const logger = require('./logger');
 const schemas = require('./schema/horizon_protocol');
 
 const Joi = require('joi');
-const r = require('rethinkdb');
 const websocket = require('ws');
 
 class Client {
@@ -86,8 +85,8 @@ class Client {
 
     const success = (user_info, token) => {
       this.user_info = user_info;
-      this.socket.on('message', (data) =>
-        this.error_wrap_socket(() => this.handle_request(data)));
+      this.socket.on('message', (msg) =>
+        this.error_wrap_socket(() => this.handle_request(msg)));
       this.send_response(request.request_id, { token });
     };
 
@@ -100,7 +99,7 @@ class Client {
         metadata.get_user_info(decoded.user, (rdb_err, res) => {
           if (rdb_err) {
             this.send_response(request.request_id, { error: 'User does not exist.', error_code: 0 });
-            this.socket.close(1002, `Invalid user.`);
+            this.socket.close(1002, 'Invalid user.');
           } else {
             // TODO: listen on feed
             success(res, token);
@@ -145,7 +144,7 @@ class Client {
         check(conn !== undefined && metadata !== undefined,
               'Connection to the database is down.');
 
-        const rules = this.get_matching_rules(this.raw, metadata);
+        const rules = this.get_matching_rules(request, metadata);
 
         endpoint.run(request, this.user_info, rules, metadata, (result) => {
           if (result instanceof Error) {
@@ -154,30 +153,29 @@ class Client {
             this.send_response(request.request_id, result);
           }
         });
-
-      }
+      };
 
       handle_error = (err) => {
         logger.debug(`Error on request ${request.request_id}: ${err}`);
 
         // Ignore responses for disconnected clients
-        if (this.client.socket.readyState !== websocket.OPEN) {
+        if (this.socket.readyState !== websocket.OPEN) {
           return logger.debug(`Disconnected client got an error: ${JSON.stringify(err)}.`);
         }
 
-        const metadata = this.client.parent._reql_conn.metadata();
+        const metadata = this.parent._reql_conn.metadata();
         if (metadata === undefined) {
-          this.client.send_response(this.id, { error: 'Connection to the database is down.' });
+          this.send_response(request.request_id, { error: 'Connection to the database is down.' });
         } else {
           metadata.handle_error(err, (inner_err) => {
             if (inner_err) {
-              this.client.send_response(this.id, { error: inner_err.message });
+              this.client.send_response(request.request_id, { error: inner_err.message });
             } else {
               setImmediate(run_query);
             }
           });
         }
-      }
+      };
 
       try {
         run_query();
@@ -212,7 +210,7 @@ class Client {
   get_matching_rules(raw_query, metadata) {
     const matching_rules = [ ];
     for (const group_name of this.user_info.groups) {
-      const group = this.metadata.get_group(group_name);
+      const group = metadata.get_group(group_name);
       if (group !== undefined) {
         for (const rule of group.rules) {
           if (rule.is_match(this.user_info, raw_query)) {

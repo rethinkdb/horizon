@@ -1,13 +1,15 @@
 'use strict';
-const ast = require('horizon-client');
-const vm = require('vm');
 
-const dummy_send = (type, options) => {
-  return { request_id: new Any(), type, options };
-}
+const check = require('../error').check;
+
+const ast = require('horizon-client');
+const extend = require('util')._extend;
+const vm = require('vm');
 
 class Any { }
 class UserId { }
+
+const dummy_send = (type, options) => ({ request_id: new Any(), type, options });
 
 const env = {
   collection: (name) => new ast.Collection(dummy_send, name, false),
@@ -15,12 +17,12 @@ const env = {
   user: {
     id: new UserId(),
   },
-}
+};
 
 const make_template = (str) => {
   const sandbox = extend({}, env);
   return vm.runInNewContext(str, sandbox);
-}
+};
 
 const template_compare = (query, template, context) => {
   for (const key of query) {
@@ -40,7 +42,7 @@ const template_compare = (query, template, context) => {
       }
     } else if (Array.isArray(template_value)) {
       if (!Array.isArray(query_value) ||
-          template_value.length != query_value.length) {
+          template_value.length !== query_value.length) {
         return false;
       }
       for (let i = 0; i < template_value.length; ++i) {
@@ -53,10 +55,8 @@ const template_compare = (query, template, context) => {
           !template_compare(query_value, template_value, context)) {
         return false;
       }
-    } else {
-      if (template_value !== query_value) {
-        return false;
-      }
+    } else if (template_value !== query_value) {
+      return false;
     }
   }
 
@@ -66,7 +66,9 @@ const template_compare = (query, template, context) => {
       return false;
     }
   }
-}
+
+  return true;
+};
 
 class Template {
   constructor(str) {
@@ -77,7 +79,7 @@ class Template {
   }
 
   is_match(raw_query, context) {
-     return template_compare(raw_query, this._value, context);
+    return template_compare(raw_query, this._value, context);
   }
 }
 

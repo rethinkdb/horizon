@@ -1,8 +1,8 @@
 'use strict';
 
-const check = require('../error').check;
 const insert = require('../schema/horizon_protocol').insert;
-const validate = require('../permissions/validator').validate;
+const validate = require('../permissions/rule').validate;
+const writes = require('./writes');
 
 const Joi = require('joi');
 const r = require('rethinkdb');
@@ -14,38 +14,25 @@ const run = (raw_request, context, rules, metadata, done_cb) => {
   const table = metadata.get_table(parsed.value.collection);
   const conn = metadata.get_connection();
 
-  const results = parsed.value.data.map((row) => new Promise((resolve) => {
-    if (validate(rules, context, null, row)) {
-      // TODO: add version field
-      r.table(table.name).insert(row, { conflict: 'error' }).run(conn).then((res) => {
-        if (res.errors !== 0) {
-          resolve(new Error(res.first_error));
-        } else if (row.id !== undefined) {
-          resolve(row.id);
-        } else if (response.generated_keys && response.generated_keys.length === 1) {
-          resolve(response.generated_keys[0]);
-        } else {
-          resolve(new Error('Write query should have generated a key.'));
-        }
-      }, (err) => resolve(err));
+  // TODO: shortcut if validation isn't needed (for all write request types)
+  const response_data = [ ];
+  const valid_rows = [ ];
+  for (let i = 0; i < parsed.value.data.length; ++i) {
+    if (validate(rules, context, null, parsed.value.data[i])) {
+      valid_rows.push(parsed.value.data[i]);
+      response_data.push(null);
     } else {
-      resolve(new Error('Operation is not permitted.'));
-    }
-  }));
-
-  Promise.all(results).then((data) => {
-    done_cb(make_write_response(data));
-  }).catch(done_cb);
-}
-
-const make_write_response = (data) => {
-  // TODO: pass back versions (make data an array of pairs?)
-  for (let i = 0; i < data.length; ++i) {
-    if (data[i] instanceof Error) {
-      data[i] = { error: data[i].message };
+      response_data.push(new Error('Operation not permitted.'));
     }
   }
-  return { data, state: 'complete' };
+
+  // TODO: shortcut if valid rows is empty (for all write request types)
+  r.table(table.name)
+    .insert(valid_rows.map((row) => writes.add_new_version(row)), { conflict: 'error' })
+    .run(conn)
+    .then((insert_results) => {
+      done_cb(writes.make_write_response(response_data, insert_results));
+    }).catch(done_cb);
 };
 
-module.exports = { run, make_write_response };
+module.exports = { run };

@@ -16,12 +16,11 @@ class Rule {
   is_match(query, context) {
     return this._template.is_match(query, context);
   }
-  
+
   // The query is considered valid if it passes all validators for a matching template.
   // Variadic - passes all arguments down to the validators.
   is_valid() {
     for (const pair of this._validators) {
-      const name = pair[0];
       const validator = pair[1];
       if (!validator.is_valid(...arguments)) {
         return false;
@@ -43,6 +42,6 @@ const validate = () => {
       return rule;
     }
   }
-}
+};
 
 module.exports = { Rule, validate };

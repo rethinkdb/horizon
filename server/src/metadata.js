@@ -151,8 +151,8 @@ class Metadata {
 
     let query =
       r.expr({
-        'collections': r.db('horizon_internal').table('collections').coerceTo('array'),
-        'groups': r.db('horizon_internal').table('groups').coerceTo('array'),
+        collections: r.db('horizon_internal').table('collections').coerceTo('array'),
+        groups: r.db('horizon_internal').table('groups').coerceTo('array'),
       });
 
     // If we're in dev mode, add additional steps to ensure dbs and tables exist
