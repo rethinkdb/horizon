@@ -232,7 +232,9 @@ class HorizonSocket extends Subject {
                     new ProtocolError(resp.error, resp.error_code))
                 } else if (resp.data !== undefined ||
                            resp.token !== undefined) {
-                  reqSubscriber.next(resp)
+                  try {
+                    reqSubscriber.next(resp)
+                  } catch (e) { }
                 }
                 if (resp.state === 'synced') {
                   // Create a little dummy object for sync notifications
