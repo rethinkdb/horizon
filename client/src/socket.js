@@ -200,7 +200,7 @@ class HorizonSocket extends Subject {
     }
 
     // This is used externally to send requests to the server
-    this.makeRequest = rawRequest => {
+    this.makeRequest = rawRequest => Observable.create(reqSubscriber => {
       // Get a new request id
       const request_id = requestCounter++
       // Add the request id to the request and the unsubscribe request
@@ -210,16 +210,15 @@ class HorizonSocket extends Subject {
       if (rawRequest.type === 'subscribe') {
         unsubscribeRequest = { request_id, type: 'end_subscription' }
       }
-      return Observable.create(reqSubscriber => {
-        // First, increment activeRequests and decide if we need to
-        // connect to the socket
-        incrementActive()
+      // First, increment activeRequests and decide if we need to
+      // connect to the socket
+      incrementActive()
 
-        // Now send the request to the server
-        subscriptions.next(rawRequest)
+      // Now send the request to the server
+      subscriptions.next(rawRequest)
 
-        // Create an observable from the socket that filters by request_id
-        const unsubscribeFilter = this
+      // Create an observable from the socket that filters by request_id
+      const unsubscribeFilter = this
             ::filter(x => x.request_id === request_id)
             .subscribe(
               resp => {
@@ -228,7 +227,7 @@ class HorizonSocket extends Subject {
                   reqSubscriber.error(
                     new ProtocolError(resp.error, resp.error_code))
                 } else if (resp.data !== undefined ||
-                          resp.token !== undefined) {
+                           resp.token !== undefined) {
                   reqSubscriber.next(resp)
                 }
                 if (resp.state === 'synced') {
@@ -244,16 +243,15 @@ class HorizonSocket extends Subject {
               err => reqSubscriber.error(err),
               () => reqSubscriber.complete()
             )
-        return () => {
-          // Unsubscribe if necessary
-          if (unsubscribeRequest) {
-            unsubscriptions.next(unsubscribeRequest)
-          }
-          decrementActive()
-          unsubscribeFilter.unsubscribe()
+      return () => {
+        // Unsubscribe if necessary
+        if (unsubscribeRequest) {
+          unsubscriptions.next(unsubscribeRequest)
         }
-      })
-    }
+        decrementActive()
+        unsubscribeFilter.unsubscribe()
+      }
+    })
   }
 }
 

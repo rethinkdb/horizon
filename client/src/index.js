@@ -1,18 +1,8 @@
 const { Observable } = require('rxjs/Observable')
-require('rxjs/add/observable/from')
-require('rxjs/add/operator/catch')
-require('rxjs/add/operator/concatMap')
-require('rxjs/add/operator/do')
-require('rxjs/add/operator/filter')
-
-// Used by tests
-require('rxjs/add/operator/concat')
-require('rxjs/add/operator/ignoreElements')
-require('rxjs/add/operator/mergeMap')
-require('rxjs/add/operator/mergeMapTo')
-require('rxjs/add/operator/pluck')
-require('rxjs/add/operator/take')
-require('rxjs/add/operator/toArray')
+import { from } from 'rxjs/observable/from'
+import { _catch } from 'rxjs/operator/catch'
+import { concatMap } from 'rxjs/operator/concatMap'
+import { filter } from 'rxjs/operator/filter'
 
 const { Collection } = require('./ast.js')
 const HorizonSocket = require('./socket.js')
@@ -75,15 +65,15 @@ function Horizon({
 
   // Convenience method for finding out when disconnected
   horizon.onDisconnected = subscribeOrObservable(
-    socket.status.filter(x => x.type === 'disconnected'))
+    socket.status::filter(x => x.type === 'disconnected'))
 
   // Convenience method for finding out when opening
   horizon.onConnected = subscribeOrObservable(
-    socket.status.filter(x => x.type === 'connected'))
+    socket.status::filter(x => x.type === 'connected'))
 
   // Convenience method for finding out when an error occurs
   horizon.onSocketError = subscribeOrObservable(
-    socket.status.filter(x => x.type === 'error'))
+    socket.status::filter(x => x.type === 'error'))
 
   horizon._authMethods = null
   horizon._horizonPath = path
@@ -99,16 +89,16 @@ function Horizon({
     const normalizedType = type === 'removeAll' ? 'remove' : type
     return socket
       .makeRequest({ type: normalizedType, options }) // send the raw request
-      .concatMap(resp => {
+      ::concatMap(resp => {
         // unroll arrays being returned
         if (resp.data) {
-          return Observable.from(resp.data)
+          return Observable::from(resp.data)
         } else {
           // Still need to emit a document even if we have no new data
-          return Observable.from([ { state: resp.state, type: resp.type } ])
+          return Observable::from([ { state: resp.state, type: resp.type } ])
         }
       })
-      .catch(e => Observable.create(observer => {
+      ::_catch(e => Observable.create(observer => {
         observer.error(e)
       })) // on error, strip error message
   }
