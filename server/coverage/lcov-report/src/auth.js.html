@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for src/auth.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">src/</a> auth.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">15.38% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>10/65</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/33</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/7</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">15.38% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>10/65</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">'use strict';
+&nbsp;
+const logger = require('./logger');
+const options_schema = require('./schema/server_options').auth;
+&nbsp;
+const assert = require('assert');
+const crypto = require('crypto');
+const Joi = require('joi');
+const jwt = require('jsonwebtoken');
+const r = require('rethinkdb');
+const url = require('url');
+&nbsp;
+// Can't use objects in primary keys, so convert those to JSON in the db (deterministically)
+const auth_key = (provider, info) =&gt; {
+<span class="cstat-no" title="statement not covered" >  if (info === null || Array.isArray(info) || typeof info !== 'object') {</span>
+<span class="cstat-no" title="statement not covered" >    return [ provider, info ];</span>
+  } else {
+<span class="cstat-no" title="statement not covered" >    return [ provider, r.expr(info).toJSON() ];</span>
+  }
+};
+&nbsp;
+class Auth {
+  constructor<span class="fstat-no" title="function not covered" >(server, user_options) {</span>
+<span class="cstat-no" title="statement not covered" >    const options = Joi.attempt(user_options, options_schema);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    this._success_redirect = url.parse(options.success_redirect);</span>
+<span class="cstat-no" title="statement not covered" >    this._failure_redirect = url.parse(options.failure_redirect);</span>
+<span class="cstat-no" title="statement not covered" >    this._duration = options.duration;</span>
+<span class="cstat-no" title="statement not covered" >    this._create_new_users = options.create_new_users;</span>
+<span class="cstat-no" title="statement not covered" >    this._new_user_group = options.new_user_group;</span>
+<span class="cstat-no" title="statement not covered" >    this._allow_anonymous = options.allow_anonymous;</span>
+<span class="cstat-no" title="statement not covered" >    this._allow_unauthenticated = options.allow_unauthenticated;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    this._parent = server;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (options.token_secret != null) {</span>
+<span class="cstat-no" title="statement not covered" >      this._hmac_secret = new Buffer(options.token_secret, 'base64');</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      this._hmac_secret = crypto.randomBytes(64);</span>
+    }
+  }
+&nbsp;
+  // A generated token contains the data:
+  // { user: &lt;uuid&gt;, provider: &lt;string&gt; }
+  _jwt_from_user<span class="fstat-no" title="function not covered" >(user, provider) {</span>
+<span class="cstat-no" title="statement not covered" >    return jwt.sign({ user, provider },</span>
+                    this._hmac_secret,
+                    { expiresIn: this._duration,
+                      algorithm: 'HS512' });
+  }
+&nbsp;
+  // TODO: maybe we should write something into the user data to track open sessions/tokens
+  generate_jwt<span class="fstat-no" title="function not covered" >(provider, info, cb) {</span>
+<span class="cstat-no" title="statement not covered" >    const key = auth_key(provider, info);</span>
+<span class="cstat-no" title="statement not covered" >    let query = r.db('horizon_internal').table('users_auth').get(key);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (this._create_new_users) {</span>
+<span class="cstat-no" title="statement not covered" >      query = query.default(r.uuid().do((user_id) =&gt;</span>
+<span class="cstat-no" title="statement not covered" >                r.db('horizon_internal').table('users_auth').insert({ id: key, user_id },</span>
+                                                                   { returnChanges: true })
+                 .do((res) =&gt;
+<span class="cstat-no" title="statement not covered" >                   r.branch(res('inserted').eq(1),</span>
+                     r.db('horizon_internal').table('users')
+                      .insert({ id: user_id, groups: [ this._new_user_group ] })
+                      .do((res2) =&gt;
+<span class="cstat-no" title="statement not covered" >                        r.branch(res2('inserted').eq(1),</span>
+                          res('changes')(0)('new_val'),
+                          r.error(res2('first_error'))
+                        )),
+                     r.error(res('first_error'))
+                   )
+                 )
+             ));
+    } else {
+<span class="cstat-no" title="statement not covered" >      query = query.default(r.error('User not found and new user creation is disabled.'));</span>
+    }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    this.reql_call(query, (err, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >      if (err) {</span>
+        // TODO: if we got a `Duplicate primary key` error, it was likely a race condition
+        // and we should succeed if we try again.
+<span class="cstat-no" title="statement not covered" >        logger.debug('Failed user lookup or creation: ${err}');</span>
+<span class="cstat-no" title="statement not covered" >        cb(new Error('User lookup or creation in database failed.'));</span>
+      } else {
+<span class="cstat-no" title="statement not covered" >        cb(null, this._jwt_from_user(res.user_id, provider));</span>
+      }
+    });
+  }
+&nbsp;
+  generate_anon_jwt<span class="fstat-no" title="function not covered" >(cb) {</span>
+<span class="cstat-no" title="statement not covered" >    if (!this._allow_anonymous) {</span>
+<span class="cstat-no" title="statement not covered" >      cb(new Error('Anonymous connections are not allowed.'));</span>
+    }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    const query = r.db('horizon_internal').table('users')</span>
+                   .insert({ group: this._new_user_group });
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    this.reql_call(query, (err, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >      if (err) {</span>
+<span class="cstat-no" title="statement not covered" >        logger.error('Failed anonymous user creation: ${err}');</span>
+<span class="cstat-no" title="statement not covered" >        cb(new Error('Anonymous user creation in database failed.'));</span>
+      } else {
+<span class="cstat-no" title="statement not covered" >        this.verify_jwt(this._jwt_from_user(res.generated_keys[0], null), cb);</span>
+      }
+    });
+  }
+&nbsp;
+  generate_unauth_jwt<span class="fstat-no" title="function not covered" >(cb) {</span>
+<span class="cstat-no" title="statement not covered" >    if (!this._allow_unauthenticated) {</span>
+<span class="cstat-no" title="statement not covered" >      cb(new Error('Unauthenticated connections are not allowed.'));</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      this.verify_jwt(this._jwt_from_user(null, null), cb);</span>
+    }
+  }
+&nbsp;
+  verify_jwt<span class="fstat-no" title="function not covered" >(token, cb) {</span>
+<span class="cstat-no" title="statement not covered" >    jwt.verify(token, this._hmac_secret,</span>
+               { algorithms: [ 'HS512' ] },
+               (err, decoded) =&gt; {
+<span class="cstat-no" title="statement not covered" >      if (err) {</span>
+<span class="cstat-no" title="statement not covered" >        return cb(err);</span>
+      } else <span class="cstat-no" title="statement not covered" >if (decoded.user === undefined || decoded.provider === undefined) {</span>
+<span class="cstat-no" title="statement not covered" >        return cb(new Error('Invalid token data, "user" and "provider" must be specified.'));</span>
+      } else <span class="cstat-no" title="statement not covered" >if (decoded.provider === null) {</span>
+<span class="cstat-no" title="statement not covered" >        if (decoded.user === null) {</span>
+<span class="cstat-no" title="statement not covered" >          if (!this._allow_unauthenticated) {</span>
+<span class="cstat-no" title="statement not covered" >            return cb(new Error('Unauthenticated connections are not allowed.'));</span>
+          }
+        } else <span class="cstat-no" title="statement not covered" >if (!this._allow_anonymous) {</span>
+<span class="cstat-no" title="statement not covered" >          return cb(new Error('Anonymous connections are not allowed.'));</span>
+        }
+      }
+<span class="cstat-no" title="statement not covered" >      cb(err, token, decoded);</span>
+    });
+  }
+&nbsp;
+  reql_call<span class="fstat-no" title="function not covered" >(query, cb) {</span>
+<span class="cstat-no" title="statement not covered" >    if (!this._parent._reql_conn.ready()) {</span>
+<span class="cstat-no" title="statement not covered" >      cb(new Error('Connection to database is down, cannot perform authentication.'));</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      query.run(this._parent._reql_conn.connection(), cb);</span>
+    }
+  }
+}
+&nbsp;
+module.exports = { Auth };
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Sun Apr 24 2016 20:31:45 GMT-0400 (EDT)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>

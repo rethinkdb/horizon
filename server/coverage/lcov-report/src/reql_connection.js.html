@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for src/reql_connection.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">src/</a> reql_connection.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">8.82% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>6/68</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/8</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/8</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">9.38% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>6/64</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">'use strict';
+&nbsp;
+const check = require('./error').check;
+const logger = require('./logger');
+const Metadata = require('./metadata').Metadata;
+const r = require('rethinkdb');
+const utils = require("./utils");
+&nbsp;
+class ReqlConnection {
+  constructor<span class="fstat-no" title="function not covered" >(host, port, db, auto_create_table, auto_create_index, clients) {</span>
+<span class="cstat-no" title="statement not covered" >    this._host = host;</span>
+<span class="cstat-no" title="statement not covered" >    this._port = port;</span>
+<span class="cstat-no" title="statement not covered" >    this._db = db;</span>
+<span class="cstat-no" title="statement not covered" >    this._auto_create_table = auto_create_table;</span>
+<span class="cstat-no" title="statement not covered" >    this._auto_create_index = auto_create_index;</span>
+<span class="cstat-no" title="statement not covered" >    this._clients = clients;</span>
+<span class="cstat-no" title="statement not covered" >    this._connection = undefined;</span>
+<span class="cstat-no" title="statement not covered" >    this._metadata = undefined;</span>
+<span class="cstat-no" title="statement not covered" >    this._ready = false;</span>
+<span class="cstat-no" title="statement not covered" >    this._reconnect_delay = 0;</span>
+<span class="cstat-no" title="statement not covered" >    this._ready_promise = new Promise((resolve) =&gt; <span class="cstat-no" title="statement not covered" >this._reconnect(resolve))</span>;</span>
+<span class="cstat-no" title="statement not covered" >    this._closed = false;</span>
+  }
+&nbsp;
+  _reconnect<span class="fstat-no" title="function not covered" >(resolve) {</span>
+<span class="cstat-no" title="statement not covered" >    this._connection = undefined;</span>
+<span class="cstat-no" title="statement not covered" >    this._metadata = undefined;</span>
+<span class="cstat-no" title="statement not covered" >    this._ready = false;</span>
+<span class="cstat-no" title="statement not covered" >    this._clients.forEach((client) =&gt; <span class="cstat-no" title="statement not covered" >client.reql_connection_lost())</span>;</span>
+<span class="cstat-no" title="statement not covered" >    this._clients.clear();</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (!this._closed) {</span>
+<span class="cstat-no" title="statement not covered" >      setTimeout(() =&gt; <span class="cstat-no" title="statement not covered" >this._init_connection(resolve),</span> this._reconnect_delay);</span>
+<span class="cstat-no" title="statement not covered" >      this._reconnect_delay = Math.min(this._reconnect_delay + 100, 1000);</span>
+    }
+  }
+&nbsp;
+  _init_connection<span class="fstat-no" title="function not covered" >(resolve) {</span>
+<span class="cstat-no" title="statement not covered" >    let retried = false;</span>
+<span class="cstat-no" title="statement not covered" >    const retry = () =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >      if (!retried) {</span>
+<span class="cstat-no" title="statement not covered" >        retried = true;</span>
+<span class="cstat-no" title="statement not covered" >        if (!this._ready) {</span>
+<span class="cstat-no" title="statement not covered" >          this._reconnect(resolve);</span>
+        } else {
+<span class="cstat-no" title="statement not covered" >          this._ready_promise = new Promise((new_resolve) =&gt; <span class="cstat-no" title="statement not covered" >this._reconnect(new_resolve))</span>;</span>
+        }
+      }
+    };
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    logger.info(`Connecting to RethinkDB: ${this._host}:${this._port}`);</span>
+<span class="cstat-no" title="statement not covered" >    r.connect({ host: this._host, port: this._port, db: this._db })</span>
+     .then((conn) =&gt; {
+<span class="cstat-no" title="statement not covered" >       logger.info('Connection to RethinkDB established.');</span>
+<span class="cstat-no" title="statement not covered" >       conn.once('close', () =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >         retry();</span>
+       });
+<span class="cstat-no" title="statement not covered" >       conn.on('error', (err) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >         logger.error('Error on connection to RethinkDB: ${err}.');</span>
+<span class="cstat-no" title="statement not covered" >         retry();</span>
+       });
+<span class="cstat-no" title="statement not covered" >       return conn.server().then((serv) =&gt;</span>
+<span class="cstat-no" title="statement not covered" >         r.db('rethinkdb').table('server_status')</span>
+          .get(serv.id)('process')('version')
+          .run(conn)
+          .then((res) =&gt; {
+<span class="cstat-no" title="statement not covered" >            utils.rethinkdb_version_check(res);</span>
+<span class="cstat-no" title="statement not covered" >            return conn;</span>
+          }));
+     }).then((conn) =&gt; {
+<span class="cstat-no" title="statement not covered" >       this._connection = conn;</span>
+<span class="cstat-no" title="statement not covered" >       this._metadata = new Metadata(this._connection,</span>
+                                     this._auto_create_table,
+                                     this._auto_create_index);
+<span class="cstat-no" title="statement not covered" >       return this._metadata.ready();</span>
+     }).then(() =&gt; {
+<span class="cstat-no" title="statement not covered" >       logger.info('Metadata synced with database, ready for traffic.');</span>
+<span class="cstat-no" title="statement not covered" >       this._reconnect_delay = 0;</span>
+<span class="cstat-no" title="statement not covered" >       this._ready = true;</span>
+<span class="cstat-no" title="statement not covered" >       resolve(this);</span>
+     }).catch((err) =&gt; {
+<span class="cstat-no" title="statement not covered" >       logger.error(`Connection to RethinkDB terminated: ${err}`);</span>
+<span class="cstat-no" title="statement not covered" >       logger.debug(`stack: ${err.stack}`);</span>
+<span class="cstat-no" title="statement not covered" >       retry();</span>
+     });
+  }
+&nbsp;
+  is_ready<span class="fstat-no" title="function not covered" >() {</span>
+<span class="cstat-no" title="statement not covered" >    return this._ready;</span>
+  }
+&nbsp;
+  ready<span class="fstat-no" title="function not covered" >() {</span>
+<span class="cstat-no" title="statement not covered" >    return this._ready_promise;</span>
+  }
+&nbsp;
+  connection<span class="fstat-no" title="function not covered" >() {</span>
+<span class="cstat-no" title="statement not covered" >    check(this._ready, 'Connection to the database is down.');</span>
+<span class="cstat-no" title="statement not covered" >    return this._connection;</span>
+  }
+&nbsp;
+  metadata<span class="fstat-no" title="function not covered" >() {</span>
+<span class="cstat-no" title="statement not covered" >    check(this._ready, 'Connection to the database is down.');</span>
+<span class="cstat-no" title="statement not covered" >    return this._metadata;</span>
+  }
+&nbsp;
+  close<span class="fstat-no" title="function not covered" >() {</span>
+<span class="cstat-no" title="statement not covered" >    if (this._connection) {</span>
+<span class="cstat-no" title="statement not covered" >      this._closed = true;</span>
+<span class="cstat-no" title="statement not covered" >      this._connection.close();</span>
+    }
+  }
+}
+&nbsp;
+module.exports = { ReqlConnection };
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Sun Apr 24 2016 20:31:45 GMT-0400 (EDT)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>

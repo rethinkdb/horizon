@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for src/auth/twitter.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">src/auth/</a> twitter.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">16.44% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>12/73</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/32</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/1</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">16.44% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>12/73</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">'use strict';
+&nbsp;
+const logger = require('../logger');
+const auth_utils = require('./utils');
+&nbsp;
+const Joi = require('joi');
+const oauth = require('oauth');
+const url = require('url');
+&nbsp;
+const options_schema = Joi.object({
+  path: Joi.string().required(),
+  id: Joi.string().required(),
+  secret: Joi.string().required(),
+});
+&nbsp;
+// Cache for request token secrets
+const nonce_cache = new Map();
+const nonce_cache_ttl_ms = 60 * 60 * 1000;
+&nbsp;
+const store_app_token = (nonce, token) =&gt; {
+<span class="cstat-no" title="statement not covered" >  const time = Date.now();</span>
+<span class="cstat-no" title="statement not covered" >  const cutoff = time - nonce_cache_ttl_ms;</span>
+<span class="cstat-no" title="statement not covered" >  const iter = nonce_cache.entries();</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  let item = iter.next();</span>
+<span class="cstat-no" title="statement not covered" >  while (item.value &amp;&amp; item.value[1].time &lt; cutoff) {</span>
+<span class="cstat-no" title="statement not covered" >    nonce_cache.delete(item.value[0]);</span>
+<span class="cstat-no" title="statement not covered" >    item = iter.next();</span>
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  nonce_cache.set(nonce, { time, token });</span>
+};
+&nbsp;
+const get_app_token = (nonce) =&gt; {
+<span class="cstat-no" title="statement not covered" >  const res = nonce_cache.get(nonce);</span>
+<span class="cstat-no" title="statement not covered" >  nonce_cache.delete(nonce);</span>
+<span class="cstat-no" title="statement not covered" >  return res &amp;&amp; res.token;</span>
+};
+&nbsp;
+<span class="fstat-no" title="function not covered" >function twitter(horizon, raw_options) {</span>
+<span class="cstat-no" title="statement not covered" >  const options = Joi.attempt(raw_options, options_schema);</span>
+<span class="cstat-no" title="statement not covered" >  const provider = options.path;</span>
+<span class="cstat-no" title="statement not covered" >  const consumer_key = options.id;</span>
+<span class="cstat-no" title="statement not covered" >  const consumer_secret = options.secret;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  const oa = new oauth.OAuth('https://twitter.com/oauth/request_token',</span>
+                             'https://twitter.com/oauth/access_token',
+                             consumer_key,
+                             consumer_secret,
+                             '1.0a',
+                             '', // Callback URL, to be filled in per-user
+                             'HMAC-SHA1');
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  const user_info_url = 'https://api.twitter.com/1.1/account/verify_credentials.json';</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  const make_success_url = (horizon_token) =&gt;</span>
+<span class="cstat-no" title="statement not covered" >    url.format(auth_utils.extend_url_query(horizon._auth._success_redirect, { horizon_token }));</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  const make_failure_url = (horizon_error) =&gt;</span>
+<span class="cstat-no" title="statement not covered" >    url.format(auth_utils.extend_url_query(horizon._auth._failure_redirect, { horizon_error }));</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  horizon.add_http_handler(provider, (req, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    const request_url = url.parse(req.url, true);</span>
+<span class="cstat-no" title="statement not covered" >    const user_token = request_url.query &amp;&amp; request_url.query.oauth_token;</span>
+<span class="cstat-no" title="statement not covered" >    const verifier = request_url.query &amp;&amp; request_url.query.oauth_verifier;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    logger.debug(`oauth request: ${JSON.stringify(request_url)}`);</span>
+<span class="cstat-no" title="statement not covered" >    if (!user_token) {</span>
+      // Auth has not been started yet, determine our callback URL and register an app token for it
+      // First generate a nonce to track this client session to prevent CSRF attacks
+<span class="cstat-no" title="statement not covered" >      auth_utils.make_nonce((nonce_err, nonce) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >        if (nonce_err) {</span>
+<span class="cstat-no" title="statement not covered" >          logger.error(`Error creating nonce for oauth state: ${nonce_err}`);</span>
+<span class="cstat-no" title="statement not covered" >          auth_utils.do_redirect(res, make_failure_url('error generating nonce'));</span>
+        } else {
+<span class="cstat-no" title="statement not covered" >          oa._authorize_callback =</span>
+            url.format({ protocol: 'https',
+                         host: req.headers.host,
+                         pathname: request_url.pathname,
+                         query: { state: auth_utils.nonce_to_state(nonce) } });
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          console.log(`Requesting new app oauth token with auth_url: ${oa._authorize_callback}`);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          oa.getOAuthRequestToken((err, app_token, app_token_secret, body) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >            if (err || body.oauth_callback_confirmed !== 'true') {</span>
+<span class="cstat-no" title="statement not covered" >              logger.error(`Error acquiring app oauth token: ${JSON.stringify(err)}`);</span>
+<span class="cstat-no" title="statement not covered" >              auth_utils.do_redirect(res, make_failure_url('error acquiring app oauth token'));</span>
+            } else {
+<span class="cstat-no" title="statement not covered" >              store_app_token(nonce, app_token_secret);</span>
+<span class="cstat-no" title="statement not covered" >              auth_utils.set_nonce(res, horizon._name, nonce);</span>
+<span class="cstat-no" title="statement not covered" >              auth_utils.do_redirect(res, url.format({ protocol: 'https',</span>
+                                                       host: 'api.twitter.com',
+                                                       pathname: '/oauth/authenticate',
+                                                       query: { oauth_token: app_token } }));
+            }
+          });
+        }
+      });
+    } else {
+      // Make sure this is the same client who obtained the code to prevent CSRF attacks
+<span class="cstat-no" title="statement not covered" >      const nonce = auth_utils.get_nonce(req, horizon._name);</span>
+<span class="cstat-no" title="statement not covered" >      const state = request_url.query.state;</span>
+<span class="cstat-no" title="statement not covered" >      const app_token = get_app_token(nonce);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      if (!nonce || !state || !app_token || state !== auth_utils.nonce_to_state(nonce)) {</span>
+<span class="cstat-no" title="statement not covered" >        auth_utils.do_redirect(res, make_failure_url('session expired'));</span>
+      } else {
+<span class="cstat-no" title="statement not covered" >        oa.getOAuthAccessToken(user_token, app_token, verifier, (err, access_token, secret) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >          if (err) {</span>
+<span class="cstat-no" title="statement not covered" >            logger.error(`Error contacting oauth API: ${err}`);</span>
+<span class="cstat-no" title="statement not covered" >            auth_utils.do_redirect(res, make_failure_url('oauth provider error'));</span>
+          } else {
+<span class="cstat-no" title="statement not covered" >            oa.get(user_info_url, access_token, secret, (err2, body) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >              const user_info = auth_utils.try_json_parse(body);</span>
+<span class="cstat-no" title="statement not covered" >              const user_id = user_info &amp;&amp; user_info.id;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >              if (err2) {</span>
+<span class="cstat-no" title="statement not covered" >                logger.error(`Error contacting oauth API: ${err2}`);</span>
+<span class="cstat-no" title="statement not covered" >                auth_utils.do_redirect(res, make_failure_url('oauth provider error'));</span>
+              } else <span class="cstat-no" title="statement not covered" >if (!user_id) {</span>
+<span class="cstat-no" title="statement not covered" >                logger.error(`Bad JSON data from oauth API: ${body}`);</span>
+<span class="cstat-no" title="statement not covered" >                auth_utils.do_redirect(res, make_failure_url('unparseable inspect response'));</span>
+              } else {
+<span class="cstat-no" title="statement not covered" >                horizon._auth.generate_jwt(provider, user_id, (err3, jwt) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >                  auth_utils.clear_nonce(res, horizon._name);</span>
+<span class="cstat-no" title="statement not covered" >                  auth_utils.do_redirect(res, err3 ?</span>
+                    make_failure_url('invalid user') :
+                    make_success_url(jwt));
+                });
+              }
+            });
+          }
+        });
+      }
+    }
+  });
+}
+&nbsp;
+module.exports = twitter;
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Sun Apr 24 2016 20:31:45 GMT-0400 (EDT)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>
