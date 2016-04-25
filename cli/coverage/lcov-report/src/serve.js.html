@@ -1,0 +1,1598 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for src/serve.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">src/</a> serve.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">65.68% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>155/236</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">57.66% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>64/111</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/0</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">66.38% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>154/232</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line medium'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">47×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">46×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">46×</span>
+<span class="cline-any cline-yes">46×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-yes">28×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">23×</span>
+<span class="cline-any cline-yes">22×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">33×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">42×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">42×</span>
+<span class="cline-any cline-yes">6205×</span>
+<span class="cline-any cline-yes">6205×</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">40×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-yes">312×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">37×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">37×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">37×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">37×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">37×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">37×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">120×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">117×</span>
+<span class="cline-any cline-yes">175×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">175×</span>
+<span class="cline-any cline-yes">117×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">58×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">117×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">46×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">46×</span>
+<span class="cline-any cline-yes">46×</span>
+<span class="cline-any cline-yes">42×</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">'use strict';
+&nbsp;
+const horizon_server = require('@horizon/server');
+const interrupt = require('./utils/interrupt');
+&nbsp;
+const fs = require('fs');
+const http = require('http');
+const https = require('https');
+const logger = horizon_server.logger;
+const path = require('path');
+const toml = require('toml');
+const url = require('url');
+const extend = require('util')._extend;
+&nbsp;
+const start_rdb_server = require('./utils/start_rdb_server');
+&nbsp;
+const addArguments = (parser) =&gt; {
+  parser.addArgument([ 'project' ],
+    { type: 'string', nargs: '?',
+      help: 'Change to this directory before serving' });
+&nbsp;
+  parser.addArgument([ '--bind', '-b' ],
+    { type: 'string', action: 'append', metavar: 'HOST',
+      help: 'Local hostname to serve horizon on (repeatable).' });
+&nbsp;
+  parser.addArgument([ '--port', '-p' ],
+    { type: 'int', metavar: 'PORT',
+      help: 'Local port to serve horizon on.' });
+&nbsp;
+  parser.addArgument([ '--connect', '-c' ],
+    { type: 'string', metavar: 'HOST:PORT',
+      help: 'Host and port of the RethinkDB server to connect to.' });
+&nbsp;
+  parser.addArgument([ '--key-file' ],
+    { type: 'string', metavar: 'PATH',
+      help: 'Path to the key file to use, defaults to "./key.pem".' });
+&nbsp;
+  parser.addArgument([ '--cert-file' ],
+    { type: 'string', metavar: 'PATH',
+      help: 'Path to the cert file to use, defaults to "./cert.pem".' });
+&nbsp;
+  parser.addArgument([ '--token-secret' ],
+    { type: 'string', metavar: 'SECRET',
+      help: 'Key for signing jwts. Default is random on each run' });
+&nbsp;
+  parser.addArgument([ '--allow-unauthenticated' ],
+    { action: 'storeTrue',
+      help: 'Whether to allow unauthenticated Horizon connections.' });
+&nbsp;
+  parser.addArgument([ '--allow-anonymous' ],
+    { action: 'storeTrue',
+      help: 'Whether to allow anonymous Horizon connections.' });
+&nbsp;
+  parser.addArgument([ '--debug' ],
+    { action: 'storeTrue',
+      help: 'Enable debug logging.' });
+&nbsp;
+  parser.addArgument([ '--insecure' ],
+    { action: 'storeTrue',
+      help: 'Serve insecure websockets, ignore --key-file and ' +
+      '--cert-file.' });
+&nbsp;
+  parser.addArgument([ '--start-rethinkdb' ],
+    { action: 'storeTrue',
+      help: 'Start up a RethinkDB server in the current directory' });
+&nbsp;
+  parser.addArgument([ '--auto-create-table' ],
+    { action: 'storeTrue',
+      help: 'Create tables used by requests if they do not exist.' });
+&nbsp;
+  parser.addArgument([ '--auto-create-index' ],
+    { action: 'storeTrue',
+      help: 'Create indexes used by requests if they do not exist.' });
+&nbsp;
+  parser.addArgument([ '--serve-static' ],
+    { type: 'string',
+      nargs: '?',
+      metavar: 'PATH',
+      help: 'Serve static files from a directory, defaults to "./dist".' });
+&nbsp;
+  parser.addArgument([ '--dev' ],
+    { action: 'storeTrue',
+      help: 'Runs the server in development mode, this sets ' +
+      '--insecure, ' +
+      '--auto-create-table, ' +
+      '--start-rethinkdb, ' +
+      '--serve-static, ' +
+      'and --auto-create-index.' });
+&nbsp;
+  parser.addArgument([ '--config' ],
+    { type: 'string', metavar: 'PATH',
+      help: 'Path to the config file to use, defaults to ".hz/config.toml".' });
+&nbsp;
+  parser.addArgument([ '--auth' ],
+    { type: 'string', action: 'append', metavar: 'PROVIDER,ID,SECRET', defaultValue: [ ],
+      help: 'Auth provider and options comma-separated, e.g. "facebook,&lt;id&gt;,&lt;secret&gt;".' });
+&nbsp;
+  parser.addArgument([ '--auth-redirect' ],
+    { type: 'string', metavar: 'URL',
+      help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
+};
+&nbsp;
+const default_config_file = './.hz/config.toml';
+&nbsp;
+const make_default_config = () =&gt; ({
+  config: default_config_file,
+  debug: false,
+  project: null,
+&nbsp;
+  bind: [ 'localhost' ],
+  port: 8181,
+&nbsp;
+  start_rethinkdb: false,
+  serve_static: null,
+&nbsp;
+  insecure: false,
+  key_file: './key.pem',
+  cert_file: './cert.pem',
+&nbsp;
+  auto_create_table: false,
+  auto_create_index: false,
+&nbsp;
+  rdb_host: 'localhost',
+  rdb_port: 28015,
+&nbsp;
+  token_secret: null,
+  allow_anonymous: false,
+  allow_unauthenticated: false,
+  auth_redirect: '/',
+&nbsp;
+  auth: { },
+});
+&nbsp;
+const default_config = make_default_config();
+&nbsp;
+&nbsp;
+// Simple file server. 404s if file not found, 500 if file error,
+// otherwise serve it with a mime-type suggested by its file extension.
+const serve_file = (file_path, res) =&gt; {
+<span class="cstat-no" title="statement not covered" >  fs.access(file_path, fs.R_OK | fs.F_OK, (exists) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    if (exists) {</span>
+<span class="cstat-no" title="statement not covered" >      res.writeHead(404, { 'Content-Type': 'text/plain' });</span>
+<span class="cstat-no" title="statement not covered" >      res.end(`File "${file_path}" not found\n`);</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      fs.lstat(file_path, (err, stats) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >        if (err) {</span>
+<span class="cstat-no" title="statement not covered" >          res.writeHead(500, { 'Content-Type': 'text/plain' });</span>
+<span class="cstat-no" title="statement not covered" >          res.end(`${err}\n`);</span>
+        } else <span class="cstat-no" title="statement not covered" >if (stats.isFile()) {</span>
+<span class="cstat-no" title="statement not covered" >          fs.readFile(file_path, 'binary', (err, file) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >            if (err) {</span>
+<span class="cstat-no" title="statement not covered" >              res.writeHead(500, { 'Content-Type': 'text/plain' });</span>
+<span class="cstat-no" title="statement not covered" >              res.end(`${err}\n`);</span>
+            } else {
+<span class="cstat-no" title="statement not covered" >              if (file_path.endsWith('.js')) {</span>
+<span class="cstat-no" title="statement not covered" >                res.writeHead(200, {</span>
+                  'Content-Type': 'application/javascript' });
+              } else <span class="cstat-no" title="statement not covered" >if (file_path.endsWith('.html')) {</span>
+<span class="cstat-no" title="statement not covered" >                res.writeHead(200, { 'Content-Type': 'text/html' });</span>
+              } else {
+<span class="cstat-no" title="statement not covered" >                res.writeHead(200);</span>
+              }
+<span class="cstat-no" title="statement not covered" >              res.end(file, 'binary');</span>
+            }
+          });
+        } else <span class="cstat-no" title="statement not covered" >if (stats.isDirectory()) {</span>
+<span class="cstat-no" title="statement not covered" >          serve_file(path.join(file_path, 'index.html'), res);</span>
+        }
+      });
+    }
+  });
+};
+&nbsp;
+const fileServer = (distDir) =&gt; <span class="cstat-no" title="statement not covered" >(req, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  const req_path = url.parse(req.url).pathname;</span>
+  // Serve client files directly
+<span class="cstat-no" title="statement not covered" >  if (req_path === '/' || req_path === '') {</span>
+<span class="cstat-no" title="statement not covered" >    serve_file(path.join(distDir, 'index.html'), res);</span>
+  } else <span class="cstat-no" title="statement not covered" >if (!req_path.match(/\/horizon\/.*$/)) {</span>
+    // All other static files come from the dist directory
+<span class="cstat-no" title="statement not covered" >    serve_file(path.join(distDir, req_path), res);</span>
+  }
+  // Fall through otherwise. Should be handled by horizon server
+};
+&nbsp;
+const initialize_servers = (ctor, opts) =&gt; {
+  const servers = new Set();
+  let numReady = 0;
+  return new Promise((resolve) =&gt; {
+    opts.bind.forEach((host) =&gt; {
+<span class="cstat-no" title="statement not covered" >      const srv = ctor().listen(opts.port, host);</span>
+<span class="cstat-no" title="statement not covered" >      servers.add(srv);</span>
+<span class="cstat-no" title="statement not covered" >      if (opts.serve_static) {</span>
+<span class="cstat-no" title="statement not covered" >        logger.info(`Serving static files from ${opts.serve_static}`);</span>
+<span class="cstat-no" title="statement not covered" >        srv.on('request', fileServer(opts.serve_static));</span>
+      }
+<span class="cstat-no" title="statement not covered" >      srv.on('listening', () =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >        logger.info(`Listening on ${srv.address().address}:` +</span>
+                    `${srv.address().port}.`);
+<span class="cstat-no" title="statement not covered" >        if (++numReady === servers.size) {</span>
+<span class="cstat-no" title="statement not covered" >          resolve(servers);</span>
+        }
+      });
+<span class="cstat-no" title="statement not covered" >      srv.on('error', (err) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >        logger.error(</span>
+          `HTTP${opts.insecure ? '' : 'S'} server: ${err}`);
+<span class="cstat-no" title="statement not covered" >        process.exit(1);</span>
+      });
+    });
+  });
+};
+&nbsp;
+const createInsecureServers = (opts) =&gt; {
+  logger.warn('Creating insecure HTTP server.');
+  return initialize_servers(() =&gt; <span class="cstat-no" title="statement not covered" >new http.Server(),</span> opts);
+};
+&nbsp;
+const readCertFile = (file) =&gt; {
+<span class="cstat-no" title="statement not covered" >  try {</span>
+<span class="cstat-no" title="statement not covered" >    return fs.readFileSync(path.resolve(file));</span>
+  } catch (err) {
+<span class="cstat-no" title="statement not covered" >    throw new Error(</span>
+      `Could not access file "${file}" for running HTTPS server: ${err}`);
+  }
+};
+&nbsp;
+const createSecureServers = (opts) =&gt; {
+<span class="cstat-no" title="statement not covered" >  const key = readCertFile(opts.key_file);</span>
+<span class="cstat-no" title="statement not covered" >  const cert = readCertFile(opts.cert_file);</span>
+<span class="cstat-no" title="statement not covered" >  return initialize_servers(() =&gt; <span class="cstat-no" title="statement not covered" >new https.Server({ key, cert }),</span> opts);</span>
+};
+&nbsp;
+const parse_connect = (connect, config) =&gt; {
+  const host_port = connect.split(':');
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (host_port.length === 1) {
+<span class="cstat-no" title="statement not covered" >    config.rdb_host = host_port[0];</span>
+  } else if (host_port.length === 2) {
+    config.rdb_host = host_port[0];
+    config.rdb_port = parseInt(host_port[1]);
+    if (isNaN(config.rdb_port) || config.rdb_port &lt; 0 || config.rdb_port &gt; 65535) {
+      throw new Error(`Invalid port: "${host_port[1]}".`);
+    }
+  } else {
+    throw new Error(`Expected --connect HOST:PORT, but found "${connect}".`);
+  }
+};
+&nbsp;
+const read_config_from_file = (config_file) =&gt; {
+  const config = { auth: { } };
+&nbsp;
+  let file_data;
+  if (config_file) {
+    // Use specified config file - error if it doesn't exist
+    file_data = fs.readFileSync(config_file);
+  } else {
+    // Try default config file - ignore if anything goes wrong
+    try {
+      file_data = fs.readFileSync(default_config_file);
+    } catch (err) {
+      return config;
+    }
+  }
+&nbsp;
+  const file_config = toml.parse(file_data);
+  for (const field in file_config) {
+    if (field === 'connect') {
+      parse_connect(file_config.connect, config);
+    } else if (default_config[field] !== undefined) {
+      config[field] = file_config[field];
+    } else {
+      throw new Error(`Unknown config parameter: "${field}".`);
+    }
+  }
+&nbsp;
+  return config;
+};
+&nbsp;
+const env_regex = /^HZ_([A-Z]+([_]?[A-Z]+)*)$/;
+const read_config_from_env = () =&gt; {
+  const config = { auth: { } };
+&nbsp;
+  for (const env_var in process.env) {
+    const matches = env_regex.exec(env_var);
+    if (matches &amp;&amp; matches[1]) {
+      const dest_var_name = matches[1].toLowerCase();
+      const var_path = dest_var_name.split('_');
+      let value = process.env[env_var];
+&nbsp;
+      if ([ 'false', 'true' ].indexOf(value.toLowerCase()) !== -1) {
+        value = (value.toLowerCase() === 'true');
+      }
+&nbsp;
+      if (dest_var_name === 'connect') {
+        parse_connect(value, config);
+      } else if (dest_var_name === 'bind') {
+        config[dest_var_name] = value.split(',');
+      } else if (var_path[0] === 'auth' &amp;&amp; var_path.length === 3) {
+        config.auth[var_path[1]] = config.auth[var_path[1]] || { };
+&nbsp;
+        if (var_path[2] === 'id') {
+          config.auth[var_path[1]].id = value;
+        } else <span class="missing-if-branch" title="else path not taken" >E</span>if (var_path[2] === 'secret') {
+          config.auth[var_path[1]].secret = value;
+        }
+      } else if (default_config[dest_var_name] !== undefined) {
+        config[dest_var_name] = value;
+      }
+    }
+  }
+&nbsp;
+  return config;
+};
+&nbsp;
+const read_config_from_flags = (parsed) =&gt; {
+  const config = { auth: { } };
+&nbsp;
+  // Dev mode
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (parsed.dev) {
+<span class="cstat-no" title="statement not covered" >    config.debug = false;</span>
+<span class="cstat-no" title="statement not covered" >    config.allow_unauthenticated = true;</span>
+<span class="cstat-no" title="statement not covered" >    config.allow_anonymous = true;</span>
+<span class="cstat-no" title="statement not covered" >    config.insecure = true;</span>
+<span class="cstat-no" title="statement not covered" >    config.start_rethinkdb = true;</span>
+<span class="cstat-no" title="statement not covered" >    config.auto_create_table = true;</span>
+<span class="cstat-no" title="statement not covered" >    config.auto_create_index = true;</span>
+<span class="cstat-no" title="statement not covered" >    config.serve_static = 'dist';</span>
+  }
+&nbsp;
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (parsed.project !== null) {
+<span class="cstat-no" title="statement not covered" >    config.project = parsed.project;</span>
+  }
+&nbsp;
+  // Simple boolean flags
+  const bool_flags = [ 'debug',
+                       'insecure',
+                       'start_rethinkdb',
+                       'auto_create_index',
+                       'auto_create_table',
+                       'allow_unauthenticated',
+                       'allow_anonymous',
+                       'auth_redirect' ];
+&nbsp;
+  bool_flags.forEach((key) =&gt; {
+    if (parsed[key]) {
+      config[key] = true;
+    }
+  });
+&nbsp;
+  // Normalize RethinkDB connection options
+  if (parsed.connect) {
+    parse_connect(parsed.connect, config);
+  }
+&nbsp;
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (parsed.serve_static !== null) {
+<span class="cstat-no" title="statement not covered" >    config.serve_static = parsed.serve_static;</span>
+  }
+&nbsp;
+  // Normalize horizon socket options
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (parsed.port !== null) {
+<span class="cstat-no" title="statement not covered" >    config.port = parsed.port;</span>
+  }
+  if (parsed.bind !== null) {
+    config.bind = parsed.bind;
+  }
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (config.bind &amp;&amp; config.bind.indexOf('all') !== -1) {
+<span class="cstat-no" title="statement not covered" >    config.bind = [ '0.0.0.0' ];</span>
+  }
+&nbsp;
+  // Auth options
+  parsed.auth.forEach((auth_options) =&gt; {
+    const params = auth_options.split(',');
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (params.length !== 3) {
+<span class="cstat-no" title="statement not covered" >      throw new Error(`Expected --auth PROVIDER,ID,SECRET, but found "${auth_options}"`);</span>
+    }
+    config.auth[params[0]] = { id: params[1], secret: params[2] };
+  });
+&nbsp;
+  return config;
+};
+&nbsp;
+const merge_configs = (old_config, new_config) =&gt; {
+  if (new_config.start_rethinkdb &amp;&amp; new_config.rdb_host) {
+    throw new Error('Cannot provide both --start-rethinkdb and --connect.');
+  }
+&nbsp;
+  for (const key in new_config) {
+    if (key === 'rdb_host') {
+      old_config.start_rethinkdb = false;
+    }
+&nbsp;
+    if (key === 'auth') {
+      for (const provider in new_config.auth) {
+        old_config.auth[provider] = old_config.auth[provider] || { };
+        for (const field in new_config.auth[provider]) {
+          old_config.auth[provider][field] = new_config.auth[provider][field];
+        }
+      }
+    } else {
+      old_config[key] = new_config[key];
+    }
+  }
+&nbsp;
+  return old_config;
+};
+&nbsp;
+// Command-line flags have the highest precedence, followed by environment variables,
+// then the config file, and finally the default values.
+const processConfig = (parsed) =&gt; {
+  let config;
+&nbsp;
+  config = make_default_config();
+  config = merge_configs(config, read_config_from_file(parsed.config));
+  config = merge_configs(config, read_config_from_env());
+  config = merge_configs(config, read_config_from_flags(parsed));
+&nbsp;
+  return config;
+};
+&nbsp;
+const startHorizonServer = (servers, opts) =&gt; {
+<span class="cstat-no" title="statement not covered" >  logger.info('Starting Horizon...');</span>
+<span class="cstat-no" title="statement not covered" >  return new horizon_server.Server(servers, {</span>
+    auto_create_table: opts.auto_create_table,
+    auto_create_index: opts.auto_create_index,
+    rdb_host: opts.rdb_host,
+    rdb_port: opts.rdb_port,
+    auth: {
+      token_secret: opts.token_secret,
+      allow_unauthenticated: opts.allow_unauthenticated,
+      allow_anonymous: opts.allow_anonymous,
+      success_redirect: opts.auth_redirect,
+      failure_redirect: opts.auth_redirect,
+    },
+  });
+};
+&nbsp;
+// Actually serve based on the already validated options
+const runCommand = (opts, done) =&gt; {
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (opts.debug) {
+<span class="cstat-no" title="statement not covered" >    logger.level = 'debug';</span>
+  }
+&nbsp;
+  if (opts.project !== null) {
+    try {
+      // Try to get stats on dir, if successful, change directory to project
+      <span class="missing-if-branch" title="else path not taken" >E</span>if (fs.statSync(path.join(opts.project, '.hz'))) {
+        process.chdir(opts.project);
+      }
+    } catch (e) {
+      console.error('Project specified but no .hz directory was found.');
+      console.error(e);
+      process.exit(1);
+    }
+  } else {
+    try {
+      // Try to get stats on dir, if it doesn't exist, statSync will throw
+      fs.statSync('.hz');
+      // Don't need to change directories as we assume we are in a Horizon app dir
+    } catch (e) {
+      console.error('Project not specified or .hz directory not found.\nTry changing to a project' +
+        ' with a .hz directory,\nor specify your project path with the --project option');
+      console.error(e);
+      process.exit(1);
+    }
+  }
+&nbsp;
+  let http_servers, hz_instance;
+&nbsp;
+  interrupt.on_interrupt((done) =&gt; {
+<span class="cstat-no" title="statement not covered" >    if (hz_instance) {</span>
+<span class="cstat-no" title="statement not covered" >      hz_instance.close();</span>
+    }
+<span class="cstat-no" title="statement not covered" >    if (http_servers) {</span>
+<span class="cstat-no" title="statement not covered" >      http_servers.forEach((serv) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >        serv.close();</span>
+      });
+    }
+<span class="cstat-no" title="statement not covered" >    done();</span>
+  });
+&nbsp;
+  return (
+    opts.insecure ?
+      createInsecureServers(opts) : <span class="branch-1 cbranch-no" title="branch not covered" >createSecureServers(opts)</span>
+  ).then((servers) =&gt; {
+<span class="cstat-no" title="statement not covered" >    http_servers = servers;</span>
+<span class="cstat-no" title="statement not covered" >    if (opts.start_rethinkdb) {</span>
+<span class="cstat-no" title="statement not covered" >      return start_rdb_server().then((rdbOpts) =&gt; {</span>
+        // Don't need to check for host, always localhost.
+<span class="cstat-no" title="statement not covered" >        opts.rdb_port = rdbOpts.driverPort;</span>
+      });
+    }
+  }).then(() =&gt; {
+<span class="cstat-no" title="statement not covered" >    hz_instance = startHorizonServer(http_servers, opts);</span>
+  }).then(() =&gt; {
+<span class="cstat-no" title="statement not covered" >    if (opts.auth) {</span>
+<span class="cstat-no" title="statement not covered" >      for (const name in opts.auth) {</span>
+<span class="cstat-no" title="statement not covered" >        const provider = horizon_server.auth[name];</span>
+<span class="cstat-no" title="statement not covered" >        if (!provider) {</span>
+<span class="cstat-no" title="statement not covered" >          throw new Error(`Unrecognized auth provider "${name}"`);</span>
+        }
+<span class="cstat-no" title="statement not covered" >        hz_instance.add_auth_provider(provider,</span>
+                                      extend({ path: name }, opts.auth[name]));
+      }
+    }
+  }).catch(done);
+};
+&nbsp;
+module.exports = {
+  addArguments,
+  processConfig,
+  runCommand,
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Sun Apr 24 2016 20:29:36 GMT-0400 (EDT)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>
