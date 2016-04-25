@@ -16,6 +16,8 @@ const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
 const STATUS_UNCONNECTED = { type: 'unconnected' }
 // After the websocket is opened, but before handshake
 const STATUS_CONNECTED = { type: 'connected' }
+// After the websocket is opened and handshake is completed
+const STATUS_READY = { type: 'ready' }
 // After unconnected, maybe before or after connected. Any socket level error
 const STATUS_ERROR = { type: 'error' }
 // Occurs when the socket closes
@@ -76,6 +78,8 @@ class HorizonSocket extends Subject {
           x => {
             handshake.next(x)
             handshake.complete()
+
+            handshake.next(STATUS_READY)
           },
           err => handshake.error(err),
           () => handshake.complete()

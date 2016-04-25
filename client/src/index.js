@@ -9,9 +9,9 @@ const HorizonSocket = require('./socket.js')
 const { log, logError, enableLogging } = require('./logging.js')
 const { authEndpoint, TokenStorage, clearAuthTokens } = require('./auth')
 
-const defaultHost = window && window.location &&
+const defaultHost = typeof window !== 'undefined' && window.location &&
         `${window.location.host}` || 'localhost:8181'
-const defaultSecure = window && window.location &&
+const defaultSecure = typeof window !== 'undefined' && window.location &&
         window.location.protocol === 'https:' || false
 
 function Horizon({
@@ -70,6 +70,10 @@ function Horizon({
   // Convenience method for finding out when opening
   horizon.onConnected = subscribeOrObservable(
     socket.status::filter(x => x.type === 'connected'))
+
+  // Convenience method for finding out when ready
+  horizon.onReady = subscribeOrObservable(
+    socket.status.filter(x => x.type === 'ready'))
 
   // Convenience method for finding out when an error occurs
   horizon.onSocketError = subscribeOrObservable(

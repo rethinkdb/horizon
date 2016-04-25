@@ -15,7 +15,7 @@ const extend = require('util')._extend;
 const start_rdb_server = require('./utils/start_rdb_server');
 
 const addArguments = (parser) => {
-  parser.addArgument([ '--project' ],
+  parser.addArgument([ 'project' ],
     { type: 'string', nargs: '?',
       help: 'Change to this directory before serving' });
 
@@ -81,7 +81,6 @@ const addArguments = (parser) => {
   parser.addArgument([ '--dev' ],
     { action: 'storeTrue',
       help: 'Runs the server in development mode, this sets ' +
-      '--debug, ' +
       '--insecure, ' +
       '--auto-create-table, ' +
       '--start-rethinkdb, ' +
@@ -143,20 +142,29 @@ const serve_file = (file_path, res) => {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end(`File "${file_path}" not found\n`);
     } else {
-      fs.readFile(file_path, 'binary', (err, file) => {
+      fs.lstat(file_path, (err, stats) => {
         if (err) {
           res.writeHead(500, { 'Content-Type': 'text/plain' });
           res.end(`${err}\n`);
-        } else {
-          if (file_path.endsWith('.js')) {
-            res.writeHead(200, {
-              'Content-Type': 'application/javascript' });
-          } else if (file_path.endsWith('.html')) {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-          } else {
-            res.writeHead(200);
-          }
-          res.end(file, 'binary');
+        } else if (stats.isFile()) {
+          fs.readFile(file_path, 'binary', (err, file) => {
+            if (err) {
+              res.writeHead(500, { 'Content-Type': 'text/plain' });
+              res.end(`${err}\n`);
+            } else {
+              if (file_path.endsWith('.js')) {
+                res.writeHead(200, {
+                  'Content-Type': 'application/javascript' });
+              } else if (file_path.endsWith('.html')) {
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+              } else {
+                res.writeHead(200);
+              }
+              res.end(file, 'binary');
+            }
+          });
+        } else if (stats.isDirectory()) {
+          serve_file(path.join(file_path, 'index.html'), res);
         }
       });
     }
@@ -308,7 +316,7 @@ const read_config_from_flags = (parsed) => {
 
   // Dev mode
   if (parsed.dev) {
-    config.debug = true;
+    config.debug = false;
     config.allow_unauthenticated = true;
     config.allow_anonymous = true;
     config.insecure = true;
@@ -433,24 +441,26 @@ const runCommand = (opts, done) => {
 
   if (opts.project !== null) {
     try {
-      process.chdir(opts.project);
-    } catch (err) {
-      console.error(`Failed to find "${opts.project}" project directory`);
+      // Try to get stats on dir, if successful, change directory to project
+      if (fs.statSync(path.join(opts.project, '.hz'))) {
+        process.chdir(opts.project);
+      }
+    } catch (e) {
+      console.error('Project specified but no .hz directory was found.');
+      console.error(e);
       process.exit(1);
     }
-  }
-  // Check for .hz directory
-  try {
-    if (!fs.statSync('.hz').isDirectory()) {
-      throw new Error();
+  } else {
+    try {
+      // Try to get stats on dir, if it doesn't exist, statSync will throw
+      fs.statSync('.hz');
+      // Don't need to change directories as we assume we are in a Horizon app dir
+    } catch (e) {
+      console.error('Project not specified or .hz directory not found.\nTry changing to a project' +
+        ' with a .hz directory,\nor specify your project path with the --project option');
+      console.error(e);
+      process.exit(1);
     }
-  } catch (e) {
-    if (opts.project == null) {
-      console.error('There is no .hz directory here');
-    } else {
-      console.error(`There is no .hz directory in ${opts.project}`);
-    }
-    process.exit(1);
   }
 
   let http_servers, hz_instance;
