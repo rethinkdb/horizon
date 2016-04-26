@@ -129,44 +129,58 @@ const addArguments = (parser) => {
   );
 };
 
-const fileDoesntExist = (pathName) => {
+const fileExists = (pathName) => {
   try {
     fs.statSync(pathName);
-    console.error(`Bailing! ${pathName} already exists`);
-    process.exit(1);
-  } catch (e) {
     return true;
+  } catch (e) {
+    return false;
   }
 };
 
 const processConfig = (parsed) => parsed;
 
 const runCommand = (parsed) => {
-  if (parsed.projectName != null && fileDoesntExist(parsed.projectName)) {
-    fs.mkdirSync(parsed.projectName);
+  const runInSubdir = parsed.projectName != null;
+  const subdirExists = fileExists(parsed.projectName);
+  const projectDirName = parsed.projectName ?
+          path.join(process.cwd(), parsed.projectName) :
+          process.cwd();
+  const projectName = parsed.projectName || path.basename(process.cwd());
+
+  if (runInSubdir && !subdirExists) {
+    fs.mkdirSync(projectName);
     console.info(`Created new project directory ${parsed.projectName}`);
-    process.chdir(parsed.projectName);
   } else {
-    parsed.projectName = path.basename(process.cwd());
     console.info('Creating new project in current directory');
   }
+  if (runInSubdir) {
+    process.chdir(projectDirName);
+  }
 
-  if (fileDoesntExist('src')) {
+  // Before we create things, check if the directory is empty
+  const dirWasPopulated = fs.readdirSync(process.cwd()).length !== 0;
+
+  if (!dirWasPopulated && !fileExists('src')) {
     fs.mkdirSync('src');
   }
-  if (fileDoesntExist('dist')) {
+  if (!dirWasPopulated && !fileExists('dist')) {
     fs.mkdirSync('dist');
-    fs.appendFileSync('./dist/index.html', makeIndexHTML(parsed.projectName));
+    fs.appendFileSync('./dist/index.html', makeIndexHTML(projectName));
   }
-  if (fileDoesntExist('.hz')) {
+
+  if (!fileExists('.hz')) {
     fs.mkdirSync('.hz');
+    console.info('Created .hz directory');
   }
-  if (fileDoesntExist('.hz/config.toml')) {
-    fs.appendFileSync('.hz/config.toml', makeDefaultConfig(parsed.projectName), {
+  if (!fileExists('.hz/config.toml')) {
+    fs.appendFileSync('.hz/config.toml', makeDefaultConfig(projectName), {
       encoding: 'utf8',
       mode: 0o600, // Secrets are put in this config, so set it user
                    // read/write only
     });
+  } else {
+    console.info('.hz/config.toml already exists, not touching it.');
   }
 };
 
