@@ -97,6 +97,8 @@ We now need to start Horizon Server. Running `hz serve` does three main things:
 1. Serves the `horizon.js` client library.
 1. Serves everything in the `dist` folder, _if it exists in the current working directory_.
 
+*[RethinkDB](https://www.rethinkdb.com/docs/install/) needs to be installed first and accessible from the Path.*
+
 Normally, running `hz serve` requires a running instance of RethinkDB as well as pre-created tables in your RethinkDB instance.
 
 Luckily, running `hz serve --dev` has all that covered for you. Here's a comparison of what happens with and without `--dev`:
