@@ -87,7 +87,7 @@ $ npm install -g horizon
 ```
 
 You can then create the boilerplate with `hz init` and then launch Horizon Server
-and an instance of RethinkDB with `hz serve --dev`.
+and an instance of RethinkDB with `hz serve --dev`.  *[RethinkDB](https://www.rethinkdb.com/docs/install/) needs to be installed and accessible from the Path.*
 
 ```sh
 $ hz init myapp
