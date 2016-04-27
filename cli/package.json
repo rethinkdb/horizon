@@ -9,7 +9,8 @@
   },
   "scripts": {
     "lint": "eslint src test",
-    "test": "mocha test --timeout 10000"
+    "test": "mocha test --timeout 10000",
+    "coverage": "istanbul cover _mocha test"
   },
   "author": "RethinkDB",
   "license": "MIT",
@@ -29,6 +30,7 @@
   "devDependencies": {
     "chai": "^3.5.0",
     "eslint": "^2.3.0",
+    "istanbul": "^0.4.3",
     "mocha": "2.4.5",
     "mock-fs": "3.8.0",
     "sinon": "1.17.3",
