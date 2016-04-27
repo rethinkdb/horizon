@@ -1,8 +1,13 @@
-const Rx = require('rx')
-const constants = require('./constants')
-const { Collection } = require('./ast')
-const HorizonSocket = require('./socket')
-const { log, logError, enableLogging } = require('./logging')
+
+const { Observable } = require('rxjs/Observable')
+import { from } from 'rxjs/observable/from'
+import { _catch } from 'rxjs/operator/catch'
+import { concatMap } from 'rxjs/operator/concatMap'
+import { filter } from 'rxjs/operator/filter'
+import constants from './constants'
+const { Collection } = require('./ast.js')
+const HorizonSocket = require('./socket.js')
+const { log, logError, enableLogging } = require('./logging.js')
 const { authEndpoint, TokenStorage, clearAuthTokens } = require('./auth')
 
 const defaultHost = typeof window !== 'undefined' && window.location &&
@@ -23,7 +28,7 @@ function Horizon({
   tokenStorage.setAuthFromQueryParams()
 
   const socket = new HorizonSocket(
-    host, secure, path, tokenStorage.handshake.bind(tokenStorage))
+    host, secure, path, ::tokenStorage.handshake)
 
   // Store whatever token we get back from the server when we get a
   // handshake response
@@ -39,7 +44,7 @@ function Horizon({
   }
 
   horizon.dispose = () => {
-    socket.onCompleted()
+    socket.complete()
   }
 
   // Dummy subscription to force it to connect to the
@@ -61,32 +66,32 @@ function Horizon({
 
   // Convenience method for finding out when disconnected
   horizon.onDisconnected = subscribeOrObservable(
-    socket.status.filter(x =>
+    socket.status::filter(x =>
       x.type === constants.connection.STATUS_DISCONNECTED.type
   ))
 
   // Convenience method for finding out when opening
   horizon.onConnected = subscribeOrObservable(
-    socket.status.filter(x =>
+    socket.status::filter(x =>
       x.type === constants.connection.STATUS_CONNECTED.type
   ))
 
   // Convenience method for finding out when ready
   horizon.onReady = subscribeOrObservable(
-    socket.status.filter(x =>
+    socket.status::filter(x =>
       x.type === constants.connection.STATUS_READY.type
   ))
 
   // Convenience method for finding out when an error occurs
   horizon.onSocketError = subscribeOrObservable(
-    socket.status.filter(x =>
+    socket.status::filter(x =>
       x.type === constants.connection.STATUS_ERROR.type
   ))
 
   horizon._authMethods = null
   horizon._horizonPath = path
   horizon.authEndpoint = authEndpoint
-  horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
+  horizon.hasAuthToken = ::tokenStorage.hasAuthToken
 
   return horizon
 
@@ -97,17 +102,17 @@ function Horizon({
     const normalizedType = type === 'removeAll' ? 'remove' : type
     return socket
       .makeRequest({ type: normalizedType, options }) // send the raw request
-      .concatMap(resp => {
+      ::concatMap(resp => {
         // unroll arrays being returned
         if (resp.data) {
-          return resp.data
+          return Observable::from(resp.data)
         } else {
           // Still need to emit a document even if we have no new data
-          return [ { state: resp.state, type: resp.type } ]
+          return Observable::from([ { state: resp.state, type: resp.type } ])
         }
       })
-      .catch(e => Rx.Observable.create(observer => {
-        observer.onError(new Error(e.error))
+      ::_catch(e => Observable.create(observer => {
+        observer.error(e)
       })) // on error, strip error message
   }
 }

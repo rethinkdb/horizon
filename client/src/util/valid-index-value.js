@@ -1,6 +1,6 @@
 // Checks whether the return value is a valid primary or secondary
 // index value in RethinkDB.
-const validIndexValue = module.exports = val => {
+export default function validIndexValue(val) {
   if (val === null) {
     return false
   }

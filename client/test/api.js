@@ -1,4 +1,7 @@
-'use strict'
+import { ignoreElements } from 'rxjs/operator/ignoreElements'
+import { concat } from 'rxjs/operator/concat'
+import { _do as tap } from 'rxjs/operator/do'
+import { toArray } from 'rxjs/operator/toArray'
 // This test suite covers various edge cases in the Horizon client library API.
 // It does not cover correctness of the full system in various circumstances.
 // The purpose of the API test suite is to act as a runnable, checkable spec for
@@ -72,10 +75,9 @@ describe('Core API tests', () => {
     // Insert the test data and make sure it's in
     before(assertCompletes(() =>
       data.store(testData)
-        .ignoreElements() // we don't care about the results
-        .concat(data.fetch().toArray())
-        // Make sure it's there
-        .do(res => assert.sameDeepMembers(res, testData))
+       ::ignoreElements()
+       ::concat(data.fetch()::toArray())
+       ::tap(res => assert.sameDeepMembers(res, testData))
     ))
 
     describe('Testing full collection read',

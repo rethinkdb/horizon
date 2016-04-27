@@ -83,4 +83,197 @@ describe('Serve Command', () => {
       process.exit.restore();
     });
   });
+
+  describe('Test Optional Arguments', () => {
+
+    it('Binds to localhost:4000', () => {
+      mock({
+        'test-app': {
+          '.hz': {},
+        },
+      });
+
+      process.chdir('test-app');
+
+      opts.project = null;
+      opts.bind = 4000
+
+      assert.doesNotThrow(
+        () => { serveCommand.runCommand(opts, () => {}); }
+      );
+    });
+
+    it('Binds to localhost:4000, content server on localhost:3000', () => {
+      mock({
+        'test-app': {
+          '.hz': {},
+        },
+      });
+
+      process.chdir('test-app');
+
+      opts.project = null;
+      opts.bind = 4000
+      opts.port = 3000
+
+      assert.doesNotThrow(
+        () => { serveCommand.runCommand(opts, () => {}); }
+      );
+    });
+
+    it('Connect command works the same way (PORT 3000/4000)', () => {
+      mock({
+        'test-app': {
+          '.hz': {},
+        },
+      });
+
+      process.chdir('test-app');
+
+      opts.project = null;
+      opts.connect = "3000:4000"
+
+      assert.doesNotThrow(
+        () => { serveCommand.runCommand(opts, () => {}); }
+      );
+    });
+
+    it('Allow unauthenticated request works', () => {
+      mock({
+        'test-app': {
+          '.hz': {},
+        },
+      });
+
+      process.chdir('test-app');
+
+      opts.project = null;
+      opts["allow-unauthenticated"] = true
+
+      assert.doesNotThrow(
+        () => { serveCommand.runCommand(opts, () => {}); }
+      );
+    });
+
+    it('Enable Debugging works', () => {
+      mock({
+        'test-app': {
+          '.hz': {},
+        },
+      });
+
+      process.chdir('test-app');
+
+      opts.project = null;
+      opts["debug"] = true
+
+      assert.doesNotThrow(
+        () => { serveCommand.runCommand(opts, () => {}); }
+      );
+    });
+
+    it('Enable insecure connection', () => {
+      mock({
+        'test-app': {
+          '.hz': {},
+        },
+      });
+
+      process.chdir('test-app');
+
+      opts.project = null;
+      opts["insecure"] = true
+
+      assert.doesNotThrow(
+        () => { serveCommand.runCommand(opts, () => {}); }
+      );
+    });
+
+    it('Start RethinkDB in CWD', () => {
+      mock({
+        'test-app': {
+          '.hz': {},
+        },
+      });
+
+      process.chdir('test-app');
+
+      opts.project = null;
+      opts["start-rethinkdb"] = true
+
+      assert.doesNotThrow(
+        () => { serveCommand.runCommand(opts, () => {}); }
+      );
+    });
+
+    it('Auto create table', () => {
+      mock({
+        'test-app': {
+          '.hz': {},
+        },
+      });
+
+      process.chdir('test-app');
+
+      opts.project = null;
+      opts["auto-create-table"] = true
+
+      assert.doesNotThrow(
+        () => { serveCommand.runCommand(opts, () => {}); }
+      );
+    });
+
+    it('Auto create indexes', () => {
+      mock({
+        'test-app': {
+          '.hz': {},
+        },
+      });
+
+      process.chdir('test-app');
+
+      opts.project = null;
+      opts["auto-create-index"] = true
+
+      assert.doesNotThrow(
+        () => { serveCommand.runCommand(opts, () => {}); }
+      );
+    });
+
+    it('Serves static content to ./foo', () => {
+      mock({
+        'test-app': {
+          '.hz': {},
+        },
+      });
+
+      process.chdir('test-app');
+
+      opts.project = null;
+      opts["server-static"] = "foo"
+
+      assert.doesNotThrow(
+        () => { serveCommand.runCommand(opts, () => {}); }
+      );
+    });
+
+    it('Run in dev mode', () => {
+      mock({
+        'test-app': {
+          '.hz': {},
+        },
+      });
+
+      process.chdir('test-app');
+
+      opts.project = null;
+      opts["dev"] = true
+
+      assert.doesNotThrow(
+        () => { serveCommand.runCommand(opts, () => {}); }
+      );
+    });
+
+  });
+
 });

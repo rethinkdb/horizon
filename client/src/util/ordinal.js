@@ -1,4 +1,4 @@
-module.exports = x => {
+export default function ordinal(x) {
   if ([ 11, 12, 13 ].indexOf(x) !== -1) {
     return `${x}th`
   } else if (x % 10 === 1) {

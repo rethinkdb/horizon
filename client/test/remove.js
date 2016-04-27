@@ -1,4 +1,10 @@
-'use strict'
+import { _do as tap } from 'rxjs/operator/do'
+import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
+import { toArray } from 'rxjs/operator/toArray'
+import { concat } from 'rxjs/operator/concat'
+import { pluck } from 'rxjs/operator/pluck'
+import { ignoreElements } from 'rxjs/operator/ignoreElements'
+
 const removeSuite = window.removeSuite = getData => () => {
   let data
   const testData = [
@@ -20,32 +26,32 @@ const removeSuite = window.removeSuite = getData => () => {
 
   // Insert the test data and make sure it's in
   before(assertCompletes(() =>
-    data.store(testData).ignoreElements()
-      .concat(data.fetch().toArray())
+    data.store(testData)::ignoreElements()
+      ::concat(data.fetch()::toArray())
       // Make sure it's there
-      .do(res => assert.sameDeepMembers(res, testData))
+      ::tap(res => assert.sameDeepMembers(res, testData))
   ))
 
   it('removes a document when passed an id', assertCompletes(() =>
     data.remove(1)
-      .do(res => assert.equal(res, 1))
+      ::tap(res => assert.equal(res, 1))
       // Let's make sure the removed document isn't there
-      .flatMap(() => data.find(1).fetch())
+      ::mergeMapTo(data.find(1).fetch())
       // Let's make sure the removed document isn't there
-      .do(res => assert.isNull(res))
+      ::tap(res => assert.isNull(res))
   ))
 
   it('removes a document with an id field', assertCompletes(() =>
     data.remove({ id: 2 })
-      .do(res => assert.equal(res, 2))
+      ::tap(res => assert.equal(res, 2))
       // Let's make sure the removed document isn't there
-      .flatMap(() => data.find(2).fetch())
+      ::mergeMapTo(data.find(2).fetch())
       // Let's make sure the removed document isn't there
-      .do(res => assert.isNull(res))
+      ::tap(res => assert.isNull(res))
   ))
 
   it(`removing a document that doesn't exist doesn't error`, assertCompletes(() =>
-    data.remove('abracadabra').do(res => assert.equal(res, 'abracadabra'))
+    data.remove('abracadabra')::tap(res => assert.equal(res, 'abracadabra'))
   ))
 
   it('fails when called with no arguments', assertThrows(
@@ -68,9 +74,9 @@ const removeSuite = window.removeSuite = getData => () => {
   // Check that the remaining documents are there
   it(`doesn't remove documents we didn't ask it to`, assertCompletes(() =>
     data.fetch()
-      .pluck('id')
-      .toArray()
-      .do(res => assert.includeMembers(
+      ::pluck('id')
+      ::toArray()
+      ::tap(res => assert.includeMembers(
         res, [ 'do_not_remove_1', 'do_not_remove_2' ]))
   ))
 } // Testing `remove`
