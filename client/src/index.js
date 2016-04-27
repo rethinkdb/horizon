@@ -77,10 +77,6 @@ function Horizon({
       x.type === constants.connection.STATUS_READY.type
   ))
 
-  // Convenience method for finding out when ready
-  horizon.onReady = subscribeOrObservable(
-    socket.status.filter(x => x.type === 'ready'))
-
   // Convenience method for finding out when an error occurs
   horizon.onSocketError = subscribeOrObservable(
     socket.status.filter(x =>
