@@ -27,10 +27,12 @@
     "toml": "^2.3.0"
   },
   "devDependencies": {
+    "chai": "^3.5.0",
     "eslint": "^2.3.0",
     "mocha": "2.4.5",
     "mock-fs": "3.8.0",
-    "sinon": "1.17.3"
+    "sinon": "1.17.3",
+    "toml": "^2.3.0"
   },
   "engines": {
     "node": ">=4.0.0"
