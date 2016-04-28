@@ -28,7 +28,6 @@ const fs = require('fs');
 const Joi = require('joi');
 const url = require('url');
 const websocket = require('ws');
-const extend = require('util')._extend;
 
 const protocol_name = 'rethinkdb-horizon-v0';
 
@@ -94,7 +93,7 @@ class Server {
                          verifyClient: verify_client };
 
     const add_websocket = (server) => {
-      this._ws_servers.add(new websocket.Server(extend({ server }, ws_options))
+      this._ws_servers.add(new websocket.Server(Object.assign({}, { server }, ws_options))
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
         .on('connection', (socket) => new Client(socket, this)));
     };
