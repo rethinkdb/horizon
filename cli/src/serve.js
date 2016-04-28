@@ -15,9 +15,13 @@ const extend = require('util')._extend;
 const start_rdb_server = require('./utils/start_rdb_server');
 
 const addArguments = (parser) => {
-  parser.addArgument([ 'project' ],
+  parser.addArgument([ 'project-path' ],
     { type: 'string', nargs: '?',
       help: 'Change to this directory before serving' });
+
+  parser.addArgument([ '--project-name', '-n' ],
+    { type: 'string', action: 'store', metavar: 'NAME',
+      help: 'Name of the Horizon Project server' });
 
   parser.addArgument([ '--bind', '-b' ],
     { type: 'string', action: 'append', metavar: 'HOST',
@@ -76,7 +80,11 @@ const addArguments = (parser) => {
     { type: 'string',
       nargs: '?',
       metavar: 'PATH',
-      help: 'Serve static files from a directory, defaults to "./dist".' });
+      help: 'Serve static files from a directory.' });
+
+  parser.addArgument([ '--serve-static-off' ],
+    { type: 'storeTrue',
+      help: 'Turn off static file hosting.'});
 
   parser.addArgument([ '--dev' ],
     { action: 'storeTrue',
@@ -105,7 +113,12 @@ const default_config_file = './.hz/config.toml';
 const make_default_config = () => ({
   config: default_config_file,
   debug: false,
-  project: null,
+
+  // Default to current directory for path
+  project_path: '.',
+
+  // Default to current directory name for project name
+  project_name: path.parse(path.resolve('.')).name,
 
   bind: [ 'localhost' ],
   port: 8181,
@@ -323,11 +336,10 @@ const read_config_from_flags = (parsed) => {
     config.start_rethinkdb = true;
     config.auto_create_table = true;
     config.auto_create_index = true;
-    config.serve_static = 'dist';
   }
 
-  if (parsed.project !== null) {
-    config.project = parsed.project;
+  if (parsed.project_path) {
+    config.project_path = parsed.project_path;
   }
 
   // Simple boolean flags
@@ -338,6 +350,7 @@ const read_config_from_flags = (parsed) => {
                        'auto_create_table',
                        'allow_unauthenticated',
                        'allow_anonymous',
+                       'serve_static_off',
                        'auth_redirect' ];
 
   bool_flags.forEach((key) => {
@@ -438,25 +451,28 @@ const runCommand = (opts, done) => {
   if (opts.debug) {
     logger.level = 'debug';
   }
-  if (opts.project !== null) {
-    try {
-      // Try to get stats on dir, if successful, change directory to project
-      if (fs.statSync(path.join(opts.project, '.hz'))) {
-        process.chdir(opts.project);
-      }
-    } catch (e) {
-      console.error('Project specified but no .hz directory was found.');
-      console.error(e);
-      process.exit(1);
-    }
-  } else {
+
+
+  if(opts.project_path == '.'){
     try {
       // Try to get stats on dir, if it doesn't exist, statSync will throw
       fs.statSync('.hz');
       // Don't need to change directories as we assume we are in a Horizon app dir
     } catch (e) {
-      console.error('Project not specified or .hz directory not found.\nTry changing to a project' +
-        ' with a .hz directory,\nor specify your project path with the --project option');
+      console.error('.hz directory not found in current folder.' +
+        ' create an .hz directory with `hz init --config` or specify your ' +
+        'project path with the --project-path option');
+      console.error(e);
+      process.exit(1);
+    }
+  } else {
+    try {
+      // Try to get stats on dir, if successful, change directory to project
+      fs.statSync(path.join(opts.project_path, '.hz')
+      process.chdir(opts.project);
+
+    } catch (e) {
+      console.error('Project path specified but no .hz directory was found.');
       console.error(e);
       process.exit(1);
     }
