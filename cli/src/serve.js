@@ -10,7 +10,6 @@ const logger = horizon_server.logger;
 const path = require('path');
 const toml = require('toml');
 const url = require('url');
-const extend = require('util')._extend;
 
 const start_rdb_server = require('./utils/start_rdb_server');
 
@@ -498,7 +497,7 @@ const runCommand = (opts, done) => {
           throw new Error(`Unrecognized auth provider "${name}"`);
         }
         hz_instance.add_auth_provider(provider,
-                                      extend({ path: name }, opts.auth[name]));
+                                      Object.assign({}, { path: name }, opts.auth[name]));
       }
     }
   }).catch(done);

@@ -6,12 +6,11 @@ const processConfig = serve.processConfig;
 const argparse = require('argparse');
 const assert = require('assert');
 const fs = require('fs');
-const extend = require('util')._extend;
 
 const arg_parser = new argparse.ArgumentParser();
 serve.addArguments(arg_parser);
 
-const make_flags = (flags) => extend(arg_parser.parseArgs([]), flags);
+const make_flags = (flags) => Object.assign({}, arg_parser.parseArgs([]), flags);
 
 const config_file = './test_config.toml';
 const write_config = (config) => {
@@ -58,11 +57,11 @@ describe('Config', () => {
   let original_env;
 
   before('Save env', () => {
-    original_env = extend({}, process.env);
+    original_env = Object.assign({}, process.env);
   });
 
   afterEach('Restore env', () => {
-    process.env = extend({}, original_env);
+    process.env = Object.assign({}, original_env);
   });
 
   it('precedence', () => {
