@@ -4,12 +4,11 @@ const horizon_protocol = require('../src/schema/horizon_protocol');
 const utils = require('./utils');
 
 const assert = require('assert');
-const extend = require('util')._extend;
 
 describe('Schema', () => {
   const test_required_fields = (schema, valid, fields) => {
     fields.forEach((f) => {
-      const request = extend({ }, valid); // Create a shallow copy
+      const request = Object.assign({}, valid); // Create a shallow copy
       request[f] = undefined;
       const error = schema.validate(request).error;
       utils.check_error(error, `"${f}" is required`);
@@ -17,7 +16,7 @@ describe('Schema', () => {
   };
 
   const test_extra_field = (schema, valid) => {
-    const request = extend({ }, valid); // Create a shallow copy
+    const request = Object.assign({}, valid); // Create a shallow copy
     request.fake_field = false;
     const error = schema.validate(request).error;
     utils.check_error(error, '"fake_field" is not allowed');
@@ -43,21 +42,21 @@ describe('Schema', () => {
       });
 
       it('wrong "request_id" type', () => {
-        const request = extend({ }, valid);
+        const request = Object.assign({}, valid);
         request.request_id = 'str';
         const error = horizon_protocol.request.validate(request).error;
         utils.check_error(error, '"request_id" must be a number');
       });
 
       it('wrong "type" type', () => {
-        const request = extend({ }, valid);
+        const request = Object.assign({}, valid);
         request.type = 5;
         const error = horizon_protocol.request.validate(request).error;
         utils.check_error(error, '"type" must be a string');
       });
 
       it('wrong "options" type', () => {
-        const request = extend({ }, valid);
+        const request = Object.assign({}, valid);
         request.options = [ 5, 6 ];
         const error = horizon_protocol.request.validate(request).error;
         utils.check_error(error, '"options" must be an object');
@@ -114,35 +113,35 @@ describe('Schema', () => {
         });
 
         it('wrong "collection" type', () => {
-          const request = extend({ }, write_with_id);
+          const request = Object.assign({}, write_with_id);
           request.collection = true;
           const error = horizon_protocol.insert.validate(request).error;
           utils.check_error(error, '"collection" must be a string');
         });
 
         it('wrong "collection" value', () => {
-          const request = extend({ }, write_with_id);
+          const request = Object.assign({}, write_with_id);
           request.collection = '*.*';
           const error = horizon_protocol.insert.validate(request).error;
           utils.check_error(error, '"collection" must only contain alpha-numeric and underscore characters');
         });
 
         it('wrong "data" type', () => {
-          const request = extend({ }, write_with_id);
+          const request = Object.assign({}, write_with_id);
           request.data = 'abc';
           const error = horizon_protocol.insert.validate(request).error;
           utils.check_error(error, '"data" must be an array');
         });
 
         it('wrong "data" member type', () => {
-          const request = extend({ }, write_with_id);
+          const request = Object.assign({}, write_with_id);
           request.data = [ 7 ];
           const error = horizon_protocol.insert.validate(request).error;
           utils.check_error(error, '"0" must be an object');
         });
 
         it('empty "data" array', () => {
-          const request = extend({ }, write_with_id);
+          const request = Object.assign({}, write_with_id);
           request.data = [ ];
           const error = horizon_protocol.insert.validate(request).error;
           utils.check_error(error, '"data" must contain at least 1 items');
@@ -170,35 +169,35 @@ describe('Schema', () => {
         });
 
         it('wrong "collection" type', () => {
-          const request = extend({ }, write_with_id);
+          const request = Object.assign({}, write_with_id);
           request.collection = true;
           const error = horizon_protocol.replace.validate(request).error;
           utils.check_error(error, '"collection" must be a string');
         });
 
         it('wrong "collection" value', () => {
-          const request = extend({ }, write_with_id);
+          const request = Object.assign({}, write_with_id);
           request.collection = '*.*';
           const error = horizon_protocol.insert.validate(request).error;
           utils.check_error(error, '"collection" must only contain alpha-numeric and underscore characters');
         });
 
         it('wrong "data" type', () => {
-          const request = extend({ }, write_with_id);
+          const request = Object.assign({}, write_with_id);
           request.data = 'abc';
           const error = horizon_protocol.replace.validate(request).error;
           utils.check_error(error, '"data" must be an array');
         });
 
         it('wrong "data" member type', () => {
-          const request = extend({ }, write_with_id);
+          const request = Object.assign({}, write_with_id);
           request.data = [ 7 ];
           const error = horizon_protocol.replace.validate(request).error;
           utils.check_error(error, '"0" must be an object');
         });
 
         it('empty "data" array', () => {
-          const request = extend({ }, write_with_id);
+          const request = Object.assign({}, write_with_id);
           request.data = [ ];
           const error = horizon_protocol.replace.validate(request).error;
           utils.check_error(error, '"data" must contain at least 1 items');
@@ -233,7 +232,7 @@ describe('Schema', () => {
         });
 
         it('order', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'ascending' ];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
@@ -241,7 +240,7 @@ describe('Schema', () => {
         });
 
         it('above', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'ascending' ];
           request.above = [ { id: 10 }, 'open' ];
           const parsed = horizon_protocol.query.validate(request);
@@ -250,7 +249,7 @@ describe('Schema', () => {
         });
 
         it('below', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'ascending' ];
           request.below = [ { id: 5 }, 'open' ];
           const parsed = horizon_protocol.query.validate(request);
@@ -259,7 +258,7 @@ describe('Schema', () => {
         });
 
         it('limit', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.limit = 2;
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
@@ -267,7 +266,7 @@ describe('Schema', () => {
         });
 
         it('above and below and limit', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'ascending' ];
           request.below = [ { id: 0 }, 'closed' ];
           request.below = [ { id: 5 }, 'closed' ];
@@ -278,28 +277,28 @@ describe('Schema', () => {
         });
 
         it('wrong "collection" type', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.collection = null;
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"collection" must be a string');
         });
 
         it('wrong "collection" value', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.collection = '*.*';
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"collection" must only contain alpha-numeric and underscore characters');
         });
 
         it('wrong "order" type', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.order = true;
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"order" must be an array');
         });
 
         it('wrong "order" value', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           {
             request.order = [ ];
             const error = horizon_protocol.query.validate(request).error;
@@ -324,7 +323,7 @@ describe('Schema', () => {
         });
 
         it('"above" without "order"', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.above = [ { id: 5 }, 'open' ];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
@@ -332,14 +331,14 @@ describe('Schema', () => {
         });
 
         it('wrong "above" type', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.above = true;
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"above" must be an array');
         });
 
         it('wrong "above" value', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           {
             request.above = [ ];
             const error = horizon_protocol.query.validate(request).error;
@@ -364,7 +363,7 @@ describe('Schema', () => {
         });
 
         it('"below" without "order"', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.below = [ { id: 1 }, 'open' ];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
@@ -372,7 +371,7 @@ describe('Schema', () => {
         });
 
         it('wrong "below" type', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'ascending' ];
           request.below = true;
           const error = horizon_protocol.query.validate(request).error;
@@ -380,7 +379,7 @@ describe('Schema', () => {
         });
 
         it('wrong "below" value', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'ascending' ];
           {
             request.below = [ ];
@@ -406,14 +405,14 @@ describe('Schema', () => {
         });
 
         it('wrong "limit" type', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.limit = true;
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"limit" must be a number');
         });
 
         it('wrong "limit" value', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           {
             request.limit = -1;
             const error = horizon_protocol.query.validate(request).error;
@@ -439,35 +438,35 @@ describe('Schema', () => {
         });
 
         it('order', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'ascending' ];
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"order" is not allowed');
         });
 
         it('above', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.above = [ { id: 3 }, 'open' ];
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"above" is not allowed');
         });
 
         it('below', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.below = [ { id: 4 }, 'closed' ];
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"below" is not allowed');
         });
 
         it('limit', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.limit = 4;
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"limit" is not allowed');
         });
 
         it('wrong "find" type', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.find = 'score';
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"find" must be an object');
@@ -487,14 +486,14 @@ describe('Schema', () => {
         });
 
         it('order', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'descending' ];
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"order" is not allowed');
         });
 
         it('limit', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.limit = 2;
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
@@ -502,7 +501,7 @@ describe('Schema', () => {
         });
 
         it('above', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           {
             request.above = [ { id: 3 }, 'closed' ];
             const error = horizon_protocol.query.validate(request).error;
@@ -515,7 +514,7 @@ describe('Schema', () => {
         });
 
         it('below', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           {
             request.below = [ { id: 9 }, 'closed' ];
             const error = horizon_protocol.query.validate(request).error;
@@ -541,7 +540,7 @@ describe('Schema', () => {
         });
 
         it('order', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'descending' ];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
@@ -549,7 +548,7 @@ describe('Schema', () => {
         });
 
         it('limit', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.limit = 2;
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
@@ -557,7 +556,7 @@ describe('Schema', () => {
         });
 
         it('above', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'ascending' ];
           request.above = [ { id: 3 }, 'closed' ];
           const parsed = horizon_protocol.query.validate(request);
@@ -566,7 +565,7 @@ describe('Schema', () => {
         });
 
         it('below', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'descending' ];
           request.below = [ { id: 9 }, 'closed' ];
           const parsed = horizon_protocol.query.validate(request);
@@ -575,7 +574,7 @@ describe('Schema', () => {
         });
 
         it('above and below and limit', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'descending' ];
           request.above = [ { id: 'foo' }, 'open' ];
           request.below = [ { id: 'bar' }, 'closed' ];
@@ -586,14 +585,14 @@ describe('Schema', () => {
         });
 
         it('wrong "find_all" type', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.find_all = null;
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"find_all" must be an array');
         });
 
         it('wrong "find_all" value', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           {
             request.find_all = [ ];
             const error = horizon_protocol.query.validate(request).error;
@@ -606,7 +605,7 @@ describe('Schema', () => {
         });
 
         it('with "find"', () => {
-          const request = extend({ }, valid);
+          const request = Object.assign({}, valid);
           request.find = { id: 7 };
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"find" is not allowed'); // TODO: better message?

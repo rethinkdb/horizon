@@ -1,8 +1,10 @@
 'use strict';
 
 const fs = require('fs');
+const crypto = require('crypto');
+const path = require('path');
 
-const indexHTML = `\
+const makeIndexHTML = (projectName) => `\
 <!doctype html>
 <html>
   <head>
@@ -11,7 +13,7 @@ const indexHTML = `\
     <script>
       var horizon = Horizon();
       horizon.onConnected(function() {
-        document.querySelector('h1').innerHTML = 'It works!'
+        document.querySelector('h1').innerHTML = '${projectName} works!'
       });
       horizon.connect();
     </script>
@@ -22,7 +24,7 @@ const indexHTML = `\
 </html>
 `;
 
-const default_config = `\
+const makeDefaultConfig = (projectName) => `\
 # This is a TOML file
 
 ###############################################################################
@@ -49,7 +51,7 @@ const default_config = `\
 # 'project' will change to the given directory
 # 'serve_static' will serve files from the given directory over HTTP/HTTPS
 #------------------------------------------------------------------------------
-# project = "horizon"
+project = "${projectName}"
 # serve_static = "dist"
 
 
@@ -87,10 +89,12 @@ const default_config = `\
 # Authentication Options
 # Each auth subsection will add an endpoint for authenticating through the
 # specified provider.
+# 'token_secret' is the key used to sign jwts
 # 'allow_anonymous' issues new accounts to users without an auth provider
 # 'allow_unauthenticated' allows connections that are not tied to a user id
 # 'auth_redirect' specifies where users will be redirected to after login
 #------------------------------------------------------------------------------
+token_secret = "${crypto.randomBytes(64).toString('base64')}"
 # allow_anonymous = true
 # allow_unauthenticated = true
 # auth_redirect = "/"
@@ -125,40 +129,58 @@ const addArguments = (parser) => {
   );
 };
 
-const fileDoesntExist = (path) => {
+const fileExists = (pathName) => {
   try {
-    fs.statSync(path);
-    console.error(`Bailing! ${path} already exists`);
-    process.exit(1);
-  } catch (e) {
+    fs.statSync(pathName);
     return true;
+  } catch (e) {
+    return false;
   }
 };
 
-const processConfig = (parsed) => {
-  // Nothing needs to be done
-  return parsed;
-};
+const processConfig = (parsed) => parsed;
 
 const runCommand = (parsed) => {
-  if (parsed.projectName !== null &&
-      fileDoesntExist(parsed.projectName)) {
-    fs.mkdirSync(parsed.projectName);
-    console.log(`Created new project directory ${parsed.projectName}`);
-    process.chdir(parsed.projectName);
+  const runInSubdir = parsed.projectName != null;
+  const subdirExists = fileExists(parsed.projectName);
+  const projectDirName = parsed.projectName ?
+          path.join(process.cwd(), parsed.projectName) :
+          process.cwd();
+  const projectName = parsed.projectName || path.basename(process.cwd());
+
+  if (runInSubdir && !subdirExists) {
+    fs.mkdirSync(projectName);
+    console.info(`Created new project directory ${parsed.projectName}`);
   } else {
-    console.log('Creating new project in current directory');
+    console.info('Creating new project in current directory');
+  }
+  if (runInSubdir) {
+    process.chdir(projectDirName);
   }
 
-  if (fileDoesntExist('src')) {
+  // Before we create things, check if the directory is empty
+  const dirWasPopulated = fs.readdirSync(process.cwd()).length !== 0;
+
+  if (!dirWasPopulated && !fileExists('src')) {
     fs.mkdirSync('src');
   }
-  if (fileDoesntExist('dist')) {
+  if (!dirWasPopulated && !fileExists('dist')) {
     fs.mkdirSync('dist');
-    fs.appendFileSync('./dist/index.html', indexHTML);
+    fs.appendFileSync('./dist/index.html', makeIndexHTML(projectName));
   }
-  if (fileDoesntExist('.hzconfig')) {
-    fs.appendFileSync('.hzconfig', default_config);
+
+  if (!fileExists('.hz')) {
+    fs.mkdirSync('.hz');
+    console.info('Created .hz directory');
+  }
+  if (!fileExists('.hz/config.toml')) {
+    fs.appendFileSync('.hz/config.toml', makeDefaultConfig(projectName), {
+      encoding: 'utf8',
+      mode: 0o600, // Secrets are put in this config, so set it user
+                   // read/write only
+    });
+  } else {
+    console.info('.hz/config.toml already exists, not touching it.');
   }
 };
 

@@ -10,12 +10,11 @@ const logger = horizon_server.logger;
 const path = require('path');
 const toml = require('toml');
 const url = require('url');
-const extend = require('util')._extend;
 
 const start_rdb_server = require('./utils/start_rdb_server');
 
 const addArguments = (parser) => {
-  parser.addArgument([ '--project' ],
+  parser.addArgument([ 'project' ],
     { type: 'string', nargs: '?',
       help: 'Change to this directory before serving' });
 
@@ -38,6 +37,10 @@ const addArguments = (parser) => {
   parser.addArgument([ '--cert-file' ],
     { type: 'string', metavar: 'PATH',
       help: 'Path to the cert file to use, defaults to "./cert.pem".' });
+
+  parser.addArgument([ '--token-secret' ],
+    { type: 'string', metavar: 'SECRET',
+      help: 'Key for signing jwts. Default is random on each run' });
 
   parser.addArgument([ '--allow-unauthenticated' ],
     { action: 'storeTrue',
@@ -77,17 +80,16 @@ const addArguments = (parser) => {
   parser.addArgument([ '--dev' ],
     { action: 'storeTrue',
       help: 'Runs the server in development mode, this sets ' +
-      '--debug, ' +
       '--insecure, ' +
       '--permissions=no, ' +
-      '--auto-create-tables, ' +
+      '--auto-create-table, ' +
       '--start-rethinkdb, ' +
       '--serve-static, ' +
-      'and --auto-create-indexes.' });
+      'and --auto-create-index.' });
 
   parser.addArgument([ '--config' ],
     { type: 'string', metavar: 'PATH',
-      help: 'Path to the config file to use, defaults to ".hzconfig".' });
+      help: 'Path to the config file to use, defaults to ".hz/config.toml".' });
 
   parser.addArgument([ '--auth' ],
     { type: 'string', action: 'append', metavar: 'PROVIDER,ID,SECRET', defaultValue: [ ],
@@ -102,7 +104,7 @@ const addArguments = (parser) => {
       help: 'Enables or disables checking permissions on requests.' });
 };
 
-const default_config_file = './.hzconfig';
+const default_config_file = './.hz/config.toml';
 
 const make_default_config = () => ({
   config: default_config_file,
@@ -126,6 +128,7 @@ const make_default_config = () => ({
   rdb_host: 'localhost',
   rdb_port: 28015,
 
+  token_secret: null,
   allow_anonymous: false,
   allow_unauthenticated: false,
   auth_redirect: '/',
@@ -144,20 +147,29 @@ const serve_file = (file_path, res) => {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end(`File "${file_path}" not found\n`);
     } else {
-      fs.readFile(file_path, 'binary', (err, file) => {
+      fs.lstat(file_path, (err, stats) => {
         if (err) {
           res.writeHead(500, { 'Content-Type': 'text/plain' });
           res.end(`${err}\n`);
-        } else {
-          if (file_path.endsWith('.js')) {
-            res.writeHead(200, {
-              'Content-Type': 'application/javascript' });
-          } else if (file_path.endsWith('.html')) {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-          } else {
-            res.writeHead(200);
-          }
-          res.end(file, 'binary');
+        } else if (stats.isFile()) {
+          fs.readFile(file_path, 'binary', (err, file) => {
+            if (err) {
+              res.writeHead(500, { 'Content-Type': 'text/plain' });
+              res.end(`${err}\n`);
+            } else {
+              if (file_path.endsWith('.js')) {
+                res.writeHead(200, {
+                  'Content-Type': 'application/javascript' });
+              } else if (file_path.endsWith('.html')) {
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+              } else {
+                res.writeHead(200);
+              }
+              res.end(file, 'binary');
+            }
+          });
+        } else if (stats.isDirectory()) {
+          serve_file(path.join(file_path, 'index.html'), res);
         }
       });
     }
@@ -309,7 +321,7 @@ const read_config_from_flags = (parsed) => {
 
   // Dev mode
   if (parsed.dev) {
-    config.debug = true;
+    config.debug = false;
     config.allow_unauthenticated = true;
     config.allow_anonymous = true;
     config.insecure = true;
@@ -419,6 +431,7 @@ const startHorizonServer = (servers, opts) => {
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
     auth: {
+      token_secret: opts.token_secret,
       allow_unauthenticated: opts.allow_unauthenticated,
       allow_anonymous: opts.allow_anonymous,
       success_redirect: opts.auth_redirect,
@@ -435,9 +448,25 @@ const runCommand = (opts, done) => {
 
   if (opts.project !== null) {
     try {
-      process.chdir(opts.project);
-    } catch (err) {
-      done(new Error(`Failed to find "${opts.project}" project: ${err}`));
+      // Try to get stats on dir, if successful, change directory to project
+      if (fs.statSync(path.join(opts.project, '.hz'))) {
+        process.chdir(opts.project);
+      }
+    } catch (e) {
+      console.error('Project specified but no .hz directory was found.');
+      console.error(e);
+      process.exit(1);
+    }
+  } else {
+    try {
+      // Try to get stats on dir, if it doesn't exist, statSync will throw
+      fs.statSync('.hz');
+      // Don't need to change directories as we assume we are in a Horizon app dir
+    } catch (e) {
+      console.error('Project not specified or .hz directory not found.\nTry changing to a project' +
+        ' with a .hz directory,\nor specify your project path with the --project option');
+      console.error(e);
+      process.exit(1);
     }
   }
 
@@ -476,7 +505,7 @@ const runCommand = (opts, done) => {
           throw new Error(`Unrecognized auth provider "${name}"`);
         }
         hz_instance.add_auth_provider(provider,
-                                      extend({ path: name }, opts.auth[name]));
+                                      Object.assign({}, { path: name }, opts.auth[name]));
       }
     }
   }).catch(done);

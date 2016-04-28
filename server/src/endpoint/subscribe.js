@@ -7,7 +7,10 @@ const run = (raw_request, context, rules, metadata, send_cb) => {
   let errored = false;
   const reql = make_reql(raw_request, metadata);
 
-  reql.changes({ include_initial: true, include_states: true, include_types: true })
+  reql.changes({ include_initial: true,
+                 include_states: true,
+                 include_types: true,
+                 include_offsets: Boolean(raw_request.options.order) })
     .run(metadata.get_connection())
     .then((feed) =>
       feed.eachAsync((item) => {

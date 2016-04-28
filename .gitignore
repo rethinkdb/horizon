@@ -7,3 +7,4 @@ rethinkdb_data/
 **/*-key.pem
 **/*-cert.pem
 node_modules/
+**/.DS_Store

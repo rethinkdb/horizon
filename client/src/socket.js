@@ -1,7 +1,14 @@
-const Rx = require('rx')
-const { WebSocket } = require('./shim.js')
-const { serialize, deserialize } = require('./serialization.js')
-const { log } = require('./logging.js')
+import { AsyncSubject } from 'rxjs/AsyncSubject'
+import { BehaviorSubject } from 'rxjs/BehaviorSubject'
+import { Subject } from 'rxjs/Subject'
+import { Observable } from 'rxjs/Observable'
+import { merge } from 'rxjs/observable/merge'
+import { filter } from 'rxjs/operator/filter'
+import { share } from 'rxjs/operator/share'
+
+import { WebSocket } from './shim.js'
+import { serialize, deserialize } from './serialization.js'
+import { log } from './logging.js'
 
 const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
 
@@ -9,6 +16,8 @@ const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
 const STATUS_UNCONNECTED = { type: 'unconnected' }
 // After the websocket is opened, but before handshake
 const STATUS_CONNECTED = { type: 'connected' }
+// After the websocket is opened and handshake is completed
+const STATUS_READY = { type: 'ready' }
 // After unconnected, maybe before or after connected. Any socket level error
 const STATUS_ERROR = { type: 'error' }
 // Occurs when the socket closes
@@ -24,22 +33,22 @@ class ProtocolError extends Error {
   }
 }
 
-// Wraps native websockets with a Subject, which is both an Observer
+// Wraps native websockets with a Subject, which is both an Subscriber
 // and an Observable (it is bi-directional after all!). This
 // implementation is adapted from Rx.DOM.fromWebSocket and
 // RxSocketSubject by Ben Lesh, but it also deals with some simple
 // protocol level things like serializing from/to JSON, routing
 // request_ids, looking at the `state` field to decide when an
 // observable is closed.
-class HorizonSocket extends Rx.AnonymousSubject {
+class HorizonSocket extends Subject {
   constructor(host, secure, path, handshaker) {
     const hostString = `ws${secure ? 's' : ''}://${host}/${path}`
     const msgBuffer = []
     let ws, handshakeDisp
     // Handshake is an asyncsubject because we want it to always cache
     // the last value it received, like a promise
-    const handshake = new Rx.AsyncSubject()
-    const statusSubject = new Rx.BehaviorSubject(STATUS_UNCONNECTED)
+    const handshake = new AsyncSubject()
+    const statusSubject = new BehaviorSubject(STATUS_UNCONNECTED)
 
     const isOpen = () => Boolean(ws) && ws.readyState === WebSocket.OPEN
 
@@ -51,27 +60,29 @@ class HorizonSocket extends Rx.AnonymousSubject {
 
     // This is the observable part of the Subject. It forwards events
     // from the underlying websocket
-    const socketObservable = Rx.Observable.create(observer => {
+    const socketObservable = Observable.create(subscriber => {
       ws = new WebSocket(hostString, PROTOCOL_VERSION)
       ws.onerror = () => {
         // If the websocket experiences the error, we forward it through
         // to the observable. Unfortunately, the event we receive in
         // this callback doesn't tell us much of anything, so there's no
         // reason to forward it on and we just send a generic error.
-        statusSubject.onNext(STATUS_ERROR)
+        statusSubject.next(STATUS_ERROR)
         const errMsg = `Websocket ${hostString} experienced an error`
-        observer.onError(new Error(errMsg))
+        subscriber.error(new Error(errMsg))
       }
       ws.onopen = () => {
         // Send the handshake
-        statusSubject.onNext(STATUS_CONNECTED)
+        statusSubject.next(STATUS_CONNECTED)
         handshakeDisp = this.makeRequest(handshaker()).subscribe(
           x => {
-            handshake.onNext(x)
-            handshake.onCompleted()
+            handshake.next(x)
+            handshake.complete()
+
+            handshake.next(STATUS_READY)
           },
-          err => handshake.onError(err),
-          () => handshake.onCompleted()
+          err => handshake.error(err),
+          () => handshake.complete()
         )
         // Send any messages that have been buffered
         while (msgBuffer.length > 0) {
@@ -83,34 +94,37 @@ class HorizonSocket extends Rx.AnonymousSubject {
       ws.onmessage = event => {
         const deserialized = deserialize(JSON.parse(event.data))
         log('Received', deserialized)
-        observer.onNext(deserialized)
+        subscriber.next(deserialized)
       }
       ws.onclose = e => {
         // This will happen if the socket is closed by the server If
         // .close is called from the client (see closeSocket), this
         // listener will be removed
-        statusSubject.onNext(STATUS_DISCONNECTED)
+        statusSubject.next(STATUS_DISCONNECTED)
         if (e.code !== 1000 || !e.wasClean) {
-          observer.onError(
+          subscriber.error(
             new Error(`Socket closed unexpectedly with code: ${e.code}`))
         } else {
-          observer.onCompleted()
+          subscriber.complete()
         }
       }
       return () => {
         if (handshakeDisp) {
-          handshakeDisp.dispose()
+          handshakeDisp.unsubscribe()
         }
-        // This is the "dispose" method on the final Subject
+        // This is the "unsubscribe" method on the final Subject
         closeSocket(1000, '')
       }
-    }).share() // This makes it a "hot" observable, and refCounts it
+    })::share() // This makes it a "hot" observable, and refCounts it
+    // Note possible edge cases: the `share` operator is equivalent to
+    // .multicast(() => new Subject()).refCount() // RxJS 5
+    // .multicast(new Subject()).refCount() // RxJS 4
 
-    // This is the Observer part of the Subject. How we can send stuff
+    // This is the Subscriber part of the Subject. How we can send stuff
     // over the websocket
-    const socketObserver = Rx.Observer.create(
-      messageToSend => {
-        // When onNext is called on this observer
+    const socketSubscriber = {
+      next(messageToSend) {
+        // When next is called on this subscriber
         // Note: If we aren't ready, the message is silently dropped
         if (isOpen()) {
           log('Sending', messageToSend)
@@ -120,24 +134,24 @@ class HorizonSocket extends Rx.AnonymousSubject {
           msgBuffer.push(messageToSend)
         }
       },
-      error => {
-        // The observer is receiving an error. Better close the
+      error(error) {
+        // The subscriber is receiving an error. Better close the
         // websocket with an error
         if (!error.code) {
           throw new Error('no code specified. Be sure to pass ' +
-                          '{ code: ###, reason: "" } to onError()')
+                          '{ code: ###, reason: "" } to error()')
         }
         closeSocket(error.code, error.reason)
       },
-      () => {
-        // onCompleted for the observer here is equivalent to "close
+      complete() {
+        // complete for the subscriber here is equivalent to "close
         // this socket successfully (which is what code 1000 is)"
         closeSocket(1000, '')
-      }
-    )
+      },
+    }
 
     function closeSocket(code, reason) {
-      statusSubject.onNext(STATUS_DISCONNECTED)
+      statusSubject.next(STATUS_DISCONNECTED)
       if (!code) {
         ws.close() // successful close
       } else {
@@ -148,21 +162,22 @@ class HorizonSocket extends Rx.AnonymousSubject {
       ws.onmessage = undefined
     }
 
-    super(socketObserver, socketObservable)
-    // Unsubscriptions is similar, only it holds only requests to
-    // close a particular request_id on the server. Currently we only
-    // need these for changefeeds.
-    const unsubscriptions = new Rx.Subject()
+    super(socketSubscriber, socketObservable)
+
     // Subscriptions will be the observable containing all
     // queries/writes/changefeed requests. Specifically, the documents
     // that initiate them, each one with a different request_id
-    const subscriptions = new Rx.Subject()
-    const outgoing = Rx.Observable.merge(subscriptions, unsubscriptions)
+    const subscriptions = new Subject()
+    // Unsubscriptions is similar, only it holds only requests to
+    // close a particular request_id on the server. Currently we only
+    // need these for changefeeds.
+    const unsubscriptions = new Subject()
+    const outgoing = Observable::merge(subscriptions, unsubscriptions)
     // How many requests are outstanding
     let activeRequests = 0
     // Monotonically increasing counter for request_ids
     let requestCounter = 0
-    // Disposer for subscriptions/unsubscriptions
+    // Unsubscriber for subscriptions/unsubscriptions
     let subDisp = null
     // Now that super has been called, we can add attributes to this
     this.handshake = handshake
@@ -174,7 +189,7 @@ class HorizonSocket extends Rx.AnonymousSubject {
       if (++activeRequests === 1) {
         // We subscribe the socket itself to the subscription and
         // unsubscription requests. Since the socket is both an
-        // observable and an observer. Here it's acting as an observer,
+        // observable and an subscriber. Here it's acting as an subscriber,
         // watching our requests.
         subDisp = outgoing.subscribe(this)
       }
@@ -184,12 +199,12 @@ class HorizonSocket extends Rx.AnonymousSubject {
     // close the socket if we're the last request
     const decrementActive = () => {
       if (--activeRequests === 0) {
-        subDisp.dispose()
+        subDisp.unsubscribe()
       }
     }
 
     // This is used externally to send requests to the server
-    this.makeRequest = rawRequest => {
+    this.makeRequest = rawRequest => Observable.create(reqSubscriber => {
       // Get a new request id
       const request_id = requestCounter++
       // Add the request id to the request and the unsubscribe request
@@ -199,50 +214,50 @@ class HorizonSocket extends Rx.AnonymousSubject {
       if (rawRequest.type === 'subscribe') {
         unsubscribeRequest = { request_id, type: 'end_subscription' }
       }
-      return Rx.Observable.create(reqObserver => {
-        // First, increment activeRequests and decide if we need to
-        // connect to the socket
-        incrementActive()
+      // First, increment activeRequests and decide if we need to
+      // connect to the socket
+      incrementActive()
 
-        // Now send the request to the server
-        subscriptions.onNext(rawRequest)
+      // Now send the request to the server
+      subscriptions.next(rawRequest)
 
-        // Create an observable from the socket that filters by request_id
-        const disposeFilter = this
-            .filter(x => x.request_id === request_id)
+      // Create an observable from the socket that filters by request_id
+      const unsubscribeFilter = this
+            ::filter(x => x.request_id === request_id)
             .subscribe(
               resp => {
                 // Need to faithfully end the stream if there is an error
                 if (resp.error !== undefined) {
-                  reqObserver.onError(
+                  reqSubscriber.error(
                     new ProtocolError(resp.error, resp.error_code))
                 } else if (resp.data !== undefined ||
-                          resp.token !== undefined) {
-                  reqObserver.onNext(resp)
+                           resp.token !== undefined) {
+                  try {
+                    reqSubscriber.next(resp)
+                  } catch (e) { }
                 }
                 if (resp.state === 'synced') {
                   // Create a little dummy object for sync notifications
-                  reqObserver.onNext({
+                  reqSubscriber.next({
                     type: 'state',
                     state: 'synced',
                   })
                 } else if (resp.state === 'complete') {
-                  reqObserver.onCompleted()
+                  reqSubscriber.complete()
                 }
               },
-              err => reqObserver.onError(err),
-              () => reqObserver.onCompleted()
+              err => reqSubscriber.error(err),
+              () => reqSubscriber.complete()
             )
-        return () => {
-          // Unsubscribe if necessary
-          if (unsubscribeRequest) {
-            unsubscriptions.onNext(unsubscribeRequest)
-          }
-          decrementActive()
-          disposeFilter.dispose()
+      return () => {
+        // Unsubscribe if necessary
+        if (unsubscribeRequest) {
+          unsubscriptions.next(unsubscribeRequest)
         }
-      })
-    }
+        decrementActive()
+        unsubscribeFilter.unsubscribe()
+      }
+    })
   }
 }
 

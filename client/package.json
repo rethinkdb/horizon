@@ -1,6 +1,6 @@
 {
   "name": "@horizon/client",
-  "version": "0.0.4-0",
+  "version": "0.0.4-4",
   "description": "RethinkDB Horizon is an open-source developer platform for building realtime, scalable web apps.",
   "scripts": {
     "coverage": "istanbul cover _mocha test/test.js",
@@ -16,8 +16,8 @@
   "dependencies": {
     "babel-runtime": "^6.6.1",
     "core-js": "^2.1.0",
-    "rx": "^4.0.8",
-    "rx-dom-ajax": "^7.0.3",
+    "isomorphic-fetch": "^2.2.1",
+    "rxjs": "^5.0.0-beta.6",
     "snake-case": "^1.1.2"
   },
   "engines": {
