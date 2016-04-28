@@ -84,36 +84,38 @@ const make_reql = (raw_request, metadata) => {
   return reql;
 };
 
-const run = (raw_request, context, rules, metadata, done_cb) => {
+const run = (raw_request, context, rules, metadata, send_cb) => {
+  let errored = false;
   const reql = make_reql(raw_request, metadata);
 
   reql.run(metadata.get_connection()).then((res) => {
     if (res !== null && res.constructor.name === 'Cursor') {
-      res.each((err, item) => {
-        if (err !== null) {
-          done_cb(err);
-        } else if (!validate(rules, context, item)) {
-          done_cb(new Error('Operation not permitted.'));
+      return res.eachAsync((item) => {
+        if (!validate(rules, context, item)) {
+          errored = true;
+          send_cb(new Error('Operation not permitted.'));
           res.close();
         } else {
-          done_cb({ data: [ item ] });
+          send_cb({ data: [ item ] });
         }
-      }, () => {
-        done_cb({ data: [ ], state: 'complete' });
+      }).then(() => {
+        if (!errored) {
+          send_cb({ data: [ ], state: 'complete' });
+        }
       });
     } else if (res !== null && res.constructor.name === 'Array') {
       for (const item of res) {
         if (!validate(rules, context, item)) {
-          return done_cb(new Error('Operation not permitted.'));
+          return send_cb(new Error('Operation not permitted.'));
         }
       }
-      done_cb({ data: res, state: 'complete' });
+      send_cb({ data: res, state: 'complete' });
     } else if (!validate(rules, context, res)) {
-      done_cb(new Error('Operation not permitted.'));
+      send_cb(new Error('Operation not permitted.'));
     } else {
-      done_cb({ data: [ res ], state: 'complete' });
+      send_cb({ data: [ res ], state: 'complete' });
     }
-  }, done_cb);
+  }).catch(send_cb);
 };
 
 module.exports = { make_reql, run };

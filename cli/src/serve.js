@@ -79,6 +79,7 @@ const addArguments = (parser) => {
       help: 'Runs the server in development mode, this sets ' +
       '--debug, ' +
       '--insecure, ' +
+      '--permissions=no, ' +
       '--auto-create-tables, ' +
       '--start-rethinkdb, ' +
       '--serve-static, ' +
@@ -95,6 +96,10 @@ const addArguments = (parser) => {
   parser.addArgument([ '--auth-redirect' ],
     { type: 'string', metavar: 'URL',
       help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
+
+  parser.addArgument([ '--permissions' ],
+    { type: 'string', metavar: 'yes | no',
+      help: 'Enables or disables checking permissions on requests.' });
 };
 
 const default_config_file = './.hzconfig';
@@ -111,6 +116,7 @@ const make_default_config = () => ({
   serve_static: null,
 
   insecure: false,
+  permissions: true,
   key_file: './key.pem',
   cert_file: './cert.pem',
 
@@ -307,6 +313,7 @@ const read_config_from_flags = (parsed) => {
     config.allow_unauthenticated = true;
     config.allow_anonymous = true;
     config.insecure = true;
+    config.permissions = false;
     config.start_rethinkdb = true;
     config.auto_create_table = true;
     config.auto_create_index = true;
@@ -320,6 +327,7 @@ const read_config_from_flags = (parsed) => {
   // Simple boolean flags
   const bool_flags = [ 'debug',
                        'insecure',
+                       'permissions',
                        'start_rethinkdb',
                        'auto_create_index',
                        'auto_create_table',

@@ -8,7 +8,7 @@ const writes = require('./writes');
 const Joi = require('joi');
 const r = require('rethinkdb');
 
-const run = (raw_request, context, rules, metadata, done_cb) => {
+const run = (raw_request, context, rules, metadata, send_cb) => {
   const parsed = Joi.validate(raw_request.options, update);
   if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
 
@@ -47,8 +47,8 @@ const run = (raw_request, context, rules, metadata, done_cb) => {
                      { returnChanges: 'always' }))
                .run(conn);
     }).then((update_results) => {
-      done_cb(writes.make_write_response(response_data, update_results));
-    }).catch(done_cb);
+      send_cb(writes.make_write_response(response_data, update_results));
+    }).catch(send_cb);
 };
 
 module.exports = { run };

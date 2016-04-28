@@ -7,9 +7,9 @@ const writes = require('./writes');
 const Joi = require('joi');
 const r = require('rethinkdb');
 
-const run = (raw_request, context, rules, metadata, done_cb) => {
+const run = (raw_request, context, rules, metadata, send_cb) => {
   const parsed = Joi.validate(raw_request.options, insert);
-  if (parsed.error !== null) { done_cb(new Error(parsed.error.details[0].message)); }
+  if (parsed.error !== null) { send_cb(new Error(parsed.error.details[0].message)); }
 
   const table = metadata.get_table(parsed.value.collection);
   const conn = metadata.get_connection();
@@ -31,8 +31,8 @@ const run = (raw_request, context, rules, metadata, done_cb) => {
     .insert(valid_rows.map((row) => writes.add_new_version(row)), { conflict: 'error' })
     .run(conn)
     .then((insert_results) => {
-      done_cb(writes.make_write_response(response_data, insert_results));
-    }).catch(done_cb);
+      send_cb(writes.make_write_response(response_data, insert_results));
+    }).catch(send_cb);
 };
 
 module.exports = { run };

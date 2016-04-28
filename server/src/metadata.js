@@ -124,7 +124,7 @@ class Table {
   // fuzzy_fields and ordered_fields should both be arrays
   get_matching_index(fuzzy_fields, ordered_fields) {
     let match = undefined;
-    for (let index of this.indexes) {
+    for (const index of this.indexes) {
       if (index.is_match(fuzzy_fields, ordered_fields)) {
         if (index.promise === undefined) {
           return index;
@@ -261,6 +261,10 @@ class Metadata {
 
   get_group(group_name) {
     return this._groups.get(group_name);
+  }
+
+  get_connection() {
+    return this._conn;
   }
 }
 

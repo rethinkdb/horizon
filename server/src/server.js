@@ -33,6 +33,7 @@ const extend = require('util')._extend;
 const protocol_name = 'rethinkdb-horizon-v0';
 
 const accept_protocol = (protocols, cb) => {
+  logger.debug('accept_protocol');
   if (protocols.findIndex((x) => x === protocol_name) !== -1) {
     cb(true, protocol_name);
   } else {
@@ -77,11 +78,12 @@ class Server {
                                          opts.auto_create_index,
                                          this._clients);
     this._auth = new Auth(this, opts.auth);
-    for (let key of Object.keys(endpoints)) {
-      this.add_request_handler(key, endpoints[key].make_reql, endpoints[key].handle_response);
+    for (const key in endpoints) {
+      this.add_request_handler(key, endpoints[key]);
     }
 
     const verify_client = (info, cb) => {
+      logger.debug('verify_client');
       // Reject connections if we aren't synced with the database
       if (!this._reql_conn.is_ready()) {
         cb(false, 503, 'Connection to the database is down.');
@@ -90,7 +92,8 @@ class Server {
       }
     };
 
-    const ws_options = { handleProtocols: accept_protocol, path: this._path,
+    const ws_options = { handleProtocols: accept_protocol,
+                         path: this._path,
                          verifyClient: verify_client };
 
     const add_websocket = (server) => {
@@ -145,11 +148,10 @@ class Server {
     }
   }
 
-  add_request_handler(request_name, make_reql, handle_response) {
-    assert(make_reql !== undefined);
-    assert(handle_response !== undefined);
+  add_request_handler(request_name, obj) {
+    assert(obj.run !== undefined);
     assert(this._request_handlers.get(request_name) === undefined);
-    this._request_handlers.set(request_name, { make_reql: make_reql, handle_response: handle_response });
+    this._request_handlers.set(request_name, obj);
   }
 
   get_request_handler(request) {

@@ -8,7 +8,7 @@ class Rule {
     this._validators = new Map();
     if (info.validators) {
       for (const type in info.validators) {
-        this._validators.add(type, new Validator(info.validators[type]));
+        this._validators.set(type, new Validator(info.validators[type]));
       }
     }
   }
@@ -33,11 +33,13 @@ class Rule {
 // Helper function to check that a query passes at least one rule in a set
 // Returns the matching rule or undefined if no rules match
 // Variadic - extra arguments are passed down to the validators
-const validate = () => {
+const validate = function() {
   const args = Array.from(arguments);
   const rules = args.shift();
 
+  console.log(`Evaluating rules: ${JSON.stringify(rules)}`);
   for (const rule of rules) {
+    console.log(`Evaluating rule: ${JSON.stringify(rule)}`);
     if (rule.is_valid(...args)) {
       return rule;
     }

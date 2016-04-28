@@ -91,7 +91,7 @@ class Auth {
     }
 
     const query = r.db('horizon_internal').table('users')
-                   .insert({ group: this._new_user_group });
+                   .insert({ groups: [ this._new_user_group ] });
 
     this.reql_call(query, (err, res) => {
       if (err) {

@@ -35,20 +35,13 @@ class Client {
     logger.error(`Received error from client: ${msg} (${code})`);
   }
 
-  close_socket(msg, err_info) {
-    if (this.socket.readyState === websocket.OPEN) {
-      if (err_info) {
-        logger.error(`Horizon client request resulted in error: ${err_info}`);
-      }
-      this.socket.close(1002, `${msg}`);
-    }
-  }
-
   error_wrap_socket(cb) {
     try {
       cb();
     } catch (err) {
-      this.close_socket('Unknown error.', err);
+      this.close({ request_id: -1,
+                   error: `Unhandled error: ${err}`,
+                   error_code: 0 });
     }
   }
 
@@ -57,21 +50,23 @@ class Client {
     try {
       request = JSON.parse(data);
     } catch (err) {
-      return this.close_socket('Invalid JSON.', err);
+      return this.close({ request_id: -1,
+                          error: `Invalid JSON: ${err}`,
+                          error_code: 0 });
     }
 
     try {
       return Joi.attempt(request, schema);
     } catch (err) {
-      const req_id = request.request_id === undefined ? null : request.request_id;
-
       const detail = err.details[0];
       const err_str = `Request validation error at "${detail.path}": ${detail.message}`;
-      this.send_response(req_id, { error: err_str, error_code: 0 });
+      const request_id = request.request_id === undefined ? null : request.request_id;
 
       if (request.request_id === undefined) {
         // This is pretty much an unrecoverable protocol error, so close the connection
-        return this.close_socket('Protocol error.', err);
+        this.close({ request_id, error: `Protocol error: ${err}`, error_code: 0 });
+      } else {
+        this.send_response(request_id, { error: err_str, error_code: 0 });
       }
     }
   }
@@ -80,7 +75,7 @@ class Client {
     const request = this.parse_request(data, schemas.handshake);
 
     if (request === undefined) {
-      return this.close_socket('Invalid handshake.');
+      return this.close({ error: 'Invalid handshake.', error_code: 0 });
     }
 
     const success = (user_info, token) => {
@@ -92,14 +87,14 @@ class Client {
 
     const done = (err, token, decoded) => {
       if (err) {
-        this.send_response(request.request_id, { error: `${err}`, error_code: 0 });
-        this.close_socket('Invalid token.', err);
+        this.close({ request_id: request.request_id,
+                     error: `${err}`, error_code: 0 });
       } else if (decoded.user !== null) {
         const metadata = this.parent._reql_conn.metadata();
         metadata.get_user_info(decoded.user, (rdb_err, res) => {
           if (rdb_err) {
-            this.send_response(request.request_id, { error: 'User does not exist.', error_code: 0 });
-            this.socket.close(1002, 'Invalid user.');
+            this.close({ request_id: request.request_id,
+                         error: 'User does not exist.', error_code: 0 });
           } else {
             // TODO: listen on feed
             success(res, token);
@@ -121,7 +116,9 @@ class Client {
       this.parent._auth.generate_unauth_jwt(done);
       break;
     default:
-      this.close_socket('Unknown method.', `Unknown handshake method "${request.method}"`);
+      this.close({ request_id: request.request_id,
+                   error: `Unknown handshake method "${request.method}"`,
+                   error_code: 0 });
       break;
     }
   }
@@ -146,17 +143,22 @@ class Client {
 
         const rules = this.get_matching_rules(request, metadata);
 
-        endpoint.run(request, this.user_info, rules, metadata, (result) => {
-          if (result instanceof Error) {
-            handle_error(result);
-          } else {
-            this.send_response(request.request_id, result);
-          }
-        });
+        if (rules.length === 0) {
+          handle_error(new Error('Operation not permitted.'));
+        } else {
+          endpoint.run(request, this.user_info, rules, metadata, (result) => {
+            if (result instanceof Error) {
+              handle_error(result);
+            } else {
+              this.send_response(request.request_id, result);
+            }
+          });
+        }
       };
 
       handle_error = (err) => {
         logger.debug(`Error on request ${request.request_id}: ${err}`);
+        logger.debug(`Stack: ${err.stack}`);
 
         // Ignore responses for disconnected clients
         if (this.socket.readyState !== websocket.OPEN) {
@@ -169,7 +171,7 @@ class Client {
         } else {
           metadata.handle_error(err, (inner_err) => {
             if (inner_err) {
-              this.client.send_response(request.request_id, { error: inner_err.message });
+              this.send_response(request.request_id, { error: inner_err.message });
             } else {
               setImmediate(run_query);
             }
@@ -192,6 +194,19 @@ class Client {
     }
   }
 
+  close(info) {
+    if (this.socket.readyState === websocket.OPEN) {
+      const close_msg = (info.error && info.error.substr(0, 64)) || 'Unspecified reason.';
+      logger.debug(`Closing client connection with message: ${close_msg}`);
+      if (info.request_id !== undefined) {
+        this.socket.send(JSON.stringify(info),
+                         () => this.socket.close(1002, close_msg));
+      } else {
+        this.socket.close(1002, close_msg);
+      }
+    }
+  }
+
   send_response(request_id, data) {
     // Ignore responses for disconnected clients
     if (this.socket.readyState !== websocket.OPEN) {
@@ -208,17 +223,19 @@ class Client {
   }
 
   get_matching_rules(raw_query, metadata) {
+    logger.debug(`User info: ${JSON.stringify(this.user_info)}`);
     const matching_rules = [ ];
     for (const group_name of this.user_info.groups) {
       const group = metadata.get_group(group_name);
       if (group !== undefined) {
         for (const rule of group.rules) {
-          if (rule.is_match(this.user_info, raw_query)) {
+          if (rule.is_match(raw_query, this.user_info)) {
             matching_rules.push(rule);
           }
         }
       }
     }
+    logger.debug(`Matching rules: ${JSON.stringify(matching_rules)}`);
     return matching_rules;
   }
 }

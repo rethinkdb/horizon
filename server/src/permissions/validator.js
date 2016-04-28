@@ -10,6 +10,8 @@ class Validator {
   }
 
   is_valid() {
+    // TODO: make sure that the function can't do undesirable things,
+    // maybe we need to preserve the context?
     return this._fn(...arguments);
   }
 }
