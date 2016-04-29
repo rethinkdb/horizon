@@ -1,279 +1,93 @@
 'use strict';
 
-const serveCommand = require('../src/serve');
-const assert = require('assert');
-const mock = require('mock-fs');
+const assert = require('chai').assert;
+const mockFs = require('mock-fs');
 const sinon = require('sinon');
-const path = require('path');
+const serveCommand = require('../src/serve');
 
-const opts = {
+
+const globalTestOpts = {
   insecure: true,
   bind: [],
 };
+Object.freeze(globalTestOpts);
 
-describe('Serve Command', () => {
+describe('hz serve', () => {
+  beforeEach(() => {
+    sinon.stub(console, 'error');
+    sinon.stub(process, 'exit');
+  });
   afterEach(() => {
-    mock.restore();
+    mockFs.restore();
+    process.exit.restore();
+    console.error.restore();
   });
-
-  describe('with --project', () => {
-    it('switches to project dir if it has .hz dir', () => {
-      mock({
+  describe('given a project path,', () => {
+    const currentOpts = Object.assign({
+      project_path: 'test-app',
+    }, globalTestOpts);
+    beforeEach(() => {
+      mockFs({
         'test-app': {
-          '.hz': {},
+          '.hz': {
+            'config.toml': 'project_name = "projectName"\n',
+          },
         },
       });
-
-      opts.project = 'test-app';
-
-      serveCommand.runCommand(opts, () => {});
-
-      assert(path.basename(process.cwd()) === 'test-app');
     });
-
-    it('errors if project dir does not contain .hz', () => {
-      mock({ 'test-app': {} });
-      sinon.stub(console, 'error');
-      sinon.stub(process, 'exit');
-
-      opts.project = 'test-app';
-
-      serveCommand.runCommand(opts, () => {});
-
-      assert(console.error.calledTwice);
-      assert(console.error.calledWithMatch(/Project specified but no .hz/));
-      assert(process.exit.calledWith(1));
-
-      console.error.restore();
-      process.exit.restore();
+    it('switches to the path', (done) => {
+      const topDir = process.cwd();
+      serveCommand.runCommand(currentOpts, () => {});
+      const afterDir = process.cwd();
+      assert.equal(`${topDir}/test-app`, afterDir);
+      done();
     });
-  });
-
-  describe('without --project', () => {
-    it('continues if .hz dir is found', () => {
-      mock({
-        'test-app': {
-          '.hz': {},
-        },
+    it("exits if the .hz dir doesn't exist", (done) => {
+      mockFs({
+        'test-app': {},
       });
-
-      process.chdir('test-app');
-
-      opts.project = null;
-
-      assert.doesNotThrow(
-        () => { serveCommand.runCommand(opts, () => {}); }
-      );
+      serveCommand.runCommand(currentOpts, () => {});
+      assert.isTrue(console.error
+                    .calledWithMatch(/doesn't contain an .hz directory/));
+      assert.isTrue(process.exit.calledWith(1));
+      done();
     });
-
-    it('errors if .hz dir is not found', () => {
-      mock();
-      sinon.stub(console, 'error');
-      sinon.stub(process, 'exit');
-
-      opts.project = null;
-
-      serveCommand.runCommand(opts, () => {});
-
-      assert(console.error.calledTwice);
-      assert(console.error.calledWithMatch(/Project not specified or .hz/));
-      assert(process.exit.calledWith(1));
-
-      console.error.restore();
-      process.exit.restore();
+    it('continues if .hz dir does exist', (done) => {
+      serveCommand.runCommand(currentOpts, () => {});
+      assert.isTrue(process.exit.neverCalledWith(1));
+      done();
     });
   });
-
-  describe('Test Optional Arguments', () => {
-
-    it('Binds to localhost:4000', () => {
-      mock({
-        'test-app': {
-          '.hz': {},
+  describe('not given a project path', () => {
+    const currentOpts = Object.assign({
+      project_path: '.',
+    }, globalTestOpts);
+    beforeEach(() => {
+      mockFs({
+        '.hz': {
+          'config.toml': 'project_name = "projectName"\n',
         },
       });
-
-      process.chdir('test-app');
-
-      opts.project = null;
-      opts.bind = 4000
-
-      assert.doesNotThrow(
-        () => { serveCommand.runCommand(opts, () => {}); }
-      );
     });
-
-    it('Binds to localhost:4000, content server on localhost:3000', () => {
-      mock({
-        'test-app': {
-          '.hz': {},
-        },
-      });
-
-      process.chdir('test-app');
-
-      opts.project = null;
-      opts.bind = 4000
-      opts.port = 3000
-
-      assert.doesNotThrow(
-        () => { serveCommand.runCommand(opts, () => {}); }
-      );
+    it("doesn't change directories", (done) => {
+      const beforeDir = process.cwd();
+      serveCommand.runCommand(currentOpts, () => {});
+      const afterDir = process.cwd();
+      assert.equal(beforeDir, afterDir, 'directory changed');
+      done();
     });
-
-    it('Connect command works the same way (PORT 3000/4000)', () => {
-      mock({
-        'test-app': {
-          '.hz': {},
-        },
-      });
-
-      process.chdir('test-app');
-
-      opts.project = null;
-      opts.connect = "3000:4000"
-
-      assert.doesNotThrow(
-        () => { serveCommand.runCommand(opts, () => {}); }
-      );
+    it("exits if the .hz dir doesn't exist", (done) => {
+      mockFs({});
+      serveCommand.runCommand(currentOpts, () => {});
+      assert.isTrue(console.error
+                    .calledWithMatch(/doesn't contain an .hz directory/));
+      assert.isTrue(process.exit.calledWith(1));
+      done();
     });
-
-    it('Allow unauthenticated request works', () => {
-      mock({
-        'test-app': {
-          '.hz': {},
-        },
-      });
-
-      process.chdir('test-app');
-
-      opts.project = null;
-      opts["allow-unauthenticated"] = true
-
-      assert.doesNotThrow(
-        () => { serveCommand.runCommand(opts, () => {}); }
-      );
+    it('continues if .hz dir does exist', (done) => {
+      serveCommand.runCommand(currentOpts, () => {});
+      assert.isTrue(process.exit.neverCalledWith(1));
+      done();
     });
-
-    it('Enable Debugging works', () => {
-      mock({
-        'test-app': {
-          '.hz': {},
-        },
-      });
-
-      process.chdir('test-app');
-
-      opts.project = null;
-      opts["debug"] = true
-
-      assert.doesNotThrow(
-        () => { serveCommand.runCommand(opts, () => {}); }
-      );
-    });
-
-    it('Enable insecure connection', () => {
-      mock({
-        'test-app': {
-          '.hz': {},
-        },
-      });
-
-      process.chdir('test-app');
-
-      opts.project = null;
-      opts["insecure"] = true
-
-      assert.doesNotThrow(
-        () => { serveCommand.runCommand(opts, () => {}); }
-      );
-    });
-
-    it('Start RethinkDB in CWD', () => {
-      mock({
-        'test-app': {
-          '.hz': {},
-        },
-      });
-
-      process.chdir('test-app');
-
-      opts.project = null;
-      opts["start-rethinkdb"] = true
-
-      assert.doesNotThrow(
-        () => { serveCommand.runCommand(opts, () => {}); }
-      );
-    });
-
-    it('Auto create table', () => {
-      mock({
-        'test-app': {
-          '.hz': {},
-        },
-      });
-
-      process.chdir('test-app');
-
-      opts.project = null;
-      opts["auto-create-table"] = true
-
-      assert.doesNotThrow(
-        () => { serveCommand.runCommand(opts, () => {}); }
-      );
-    });
-
-    it('Auto create indexes', () => {
-      mock({
-        'test-app': {
-          '.hz': {},
-        },
-      });
-
-      process.chdir('test-app');
-
-      opts.project = null;
-      opts["auto-create-index"] = true
-
-      assert.doesNotThrow(
-        () => { serveCommand.runCommand(opts, () => {}); }
-      );
-    });
-
-    it('Serves static content to ./foo', () => {
-      mock({
-        'test-app': {
-          '.hz': {},
-        },
-      });
-
-      process.chdir('test-app');
-
-      opts.project = null;
-      opts["server-static"] = "foo"
-
-      assert.doesNotThrow(
-        () => { serveCommand.runCommand(opts, () => {}); }
-      );
-    });
-
-    it('Run in dev mode', () => {
-      mock({
-        'test-app': {
-          '.hz': {},
-        },
-      });
-
-      process.chdir('test-app');
-
-      opts.project = null;
-      opts["dev"] = true
-
-      assert.doesNotThrow(
-        () => { serveCommand.runCommand(opts, () => {}); }
-      );
-    });
-
   });
-
 });

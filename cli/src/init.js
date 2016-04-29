@@ -51,7 +51,7 @@ const makeDefaultConfig = (projectName) => `\
 # 'project' will change to the given directory
 # 'serve_static' will serve files from the given directory over HTTP/HTTPS
 #------------------------------------------------------------------------------
-project = "${projectName}"
+project_name = "${projectName}"
 # serve_static = "dist"
 
 

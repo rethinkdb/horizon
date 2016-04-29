@@ -47,7 +47,7 @@ function assertValidConfig(filepath) {
   // Try parsing it
   const configObject = toml.parse(tomlData);
   // Need an uncommented project name
-  assert.property(configObject, 'project');
+  assert.property(configObject, 'project_name');
   // Need an uncommented token_secret
   assert.property(configObject, 'token_secret');
 }
