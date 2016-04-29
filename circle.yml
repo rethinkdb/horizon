@@ -7,7 +7,7 @@ machine:
   # Set version of node to use
   node:
     version:
-      4.2.2
+      5.7.0
 
   post:
     - source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
