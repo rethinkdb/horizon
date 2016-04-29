@@ -444,11 +444,10 @@ const runCommand = (opts, done) => {
     fs.statSync('.hz');
     // Don't need to change directories as we assume we are in a Horizon app dir
   } catch (e) {
-      console.error('Project not specified or .hz directory not found.\nTry changing to a project' +
-        ' with a .hz directory,\nor specify your project path with the --project option');
-      if (opts.debug == true) console.error(e);
-      process.exit(1);
-    }
+    console.error('Project not specified or .hz directory not found.\nTry changing to a project' +
+      ' with a .hz directory,\nor specify your project path with the --project option');
+    if (opts.debug == true) console.error(e);
+    process.exit(1);
   }
 
   let http_servers, hz_instance;
