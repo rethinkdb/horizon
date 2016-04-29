@@ -3,6 +3,7 @@
 const Joi = require('joi');
 
 const server = Joi.object({
+  project_name: Joi.string(),
   rdb_host: Joi.string().hostname().default('localhost'),
   rdb_port: Joi.number().greater(0).less(65536).default(28015),
 
