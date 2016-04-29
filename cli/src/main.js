@@ -2,10 +2,11 @@
 'use strict';
 
 const argparse = require('argparse');
-const initCommand = require('./init.js');
-const serveCommand = require('./serve.js');
-const versionCommand = require('./version.js');
-const createCertCommand = require('./create-cert.js');
+const initCommand = require('./init');
+const serveCommand = require('./serve');
+const versionCommand = require('./version');
+const createCertCommand = require('./create-cert');
+const getSchemaCommand = require('./get-schema');
 
 const parser = new argparse.ArgumentParser();
 
@@ -34,8 +35,14 @@ const createCertParser = subparsers.addParser('create-cert', {
   help: 'Generate a certificate',
 });
 
+const getSchemaParser = subparsers.addParser('get-schema', {
+  addHelp: true,
+  help: 'Get the schema from a horizon database',
+});
+
 initCommand.addArguments(initParser);
 serveCommand.addArguments(serveParser);
+getSchemaCommand.addArguments(getSchemaParser);
 
 const parsed = parser.parseArgs();
 
@@ -66,6 +73,11 @@ case 'version': {
 }
 case 'create-cert': {
   createCertCommand.runCommand();
+  break;
+}
+case 'get-schema': {
+  const options = getSchemaCommand.processConfig(parsed);
+  getSchemaCommand.runCommand(options, done_cb(options));
   break;
 }
 }

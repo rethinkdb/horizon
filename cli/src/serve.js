@@ -3,6 +3,7 @@
 const horizon_server = require('@horizon/server');
 const interrupt = require('./utils/interrupt');
 
+const argparse = require('argparse');
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
@@ -43,49 +44,51 @@ const addArguments = (parser) => {
       help: 'Key for signing jwts. Default is random on each run' });
 
   parser.addArgument([ '--allow-unauthenticated' ],
-    { action: 'storeTrue',
+    { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
       help: 'Whether to allow unauthenticated Horizon connections.' });
 
   parser.addArgument([ '--allow-anonymous' ],
-    { action: 'storeTrue',
+    { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
       help: 'Whether to allow anonymous Horizon connections.' });
 
   parser.addArgument([ '--debug' ],
-    { action: 'storeTrue',
+    { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
       help: 'Enable debug logging.' });
 
   parser.addArgument([ '--insecure' ],
-    { action: 'storeTrue',
+    { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
       help: 'Serve insecure websockets, ignore --key-file and ' +
       '--cert-file.' });
 
   parser.addArgument([ '--start-rethinkdb' ],
-    { action: 'storeTrue',
+    { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
       help: 'Start up a RethinkDB server in the current directory' });
 
   parser.addArgument([ '--auto-create-table' ],
-    { action: 'storeTrue',
+    { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
       help: 'Create tables used by requests if they do not exist.' });
 
   parser.addArgument([ '--auto-create-index' ],
-    { action: 'storeTrue',
+    { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
       help: 'Create indexes used by requests if they do not exist.' });
 
+  parser.addArgument([ '--permissions' ],
+    { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
+      help: 'Enables or disables checking permissions on requests.' });
+
   parser.addArgument([ '--serve-static' ],
-    { type: 'string',
-      nargs: '?',
-      metavar: 'PATH',
+    { type: 'string', metavar: 'PATH', nargs: '?',
       help: 'Serve static files from a directory, defaults to "./dist".' });
 
   parser.addArgument([ '--dev' ],
     { action: 'storeTrue',
       help: 'Runs the server in development mode, this sets ' +
-      '--insecure, ' +
+      '--insecure=yes, ' +
       '--permissions=no, ' +
-      '--auto-create-table, ' +
-      '--start-rethinkdb, ' +
-      '--serve-static, ' +
-      'and --auto-create-index.' });
+      '--auto-create-table=yes, ' +
+      '--start-rethinkdb=yes, ' +
+      '--serve-static=yes, ' +
+      'and --auto-create-index=yes.' });
 
   parser.addArgument([ '--config' ],
     { type: 'string', metavar: 'PATH',
@@ -98,10 +101,6 @@ const addArguments = (parser) => {
   parser.addArgument([ '--auth-redirect' ],
     { type: 'string', metavar: 'URL',
       help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
-
-  parser.addArgument([ '--permissions' ],
-    { type: 'string', metavar: 'yes | no',
-      help: 'Enables or disables checking permissions on requests.' });
 };
 
 const default_config_file = './.hz/config.toml';
@@ -235,6 +234,28 @@ const createSecureServers = (opts) => {
   return initialize_servers(() => new https.Server({ key, cert }), opts);
 };
 
+const yes_no_options = [ 'debug',
+                         'insecure',
+                         'permissions',
+                         'start_rethinkdb',
+                         'auto_create_index',
+                         'auto_create_table',
+                         'allow_unauthenticated',
+                         'allow_anonymous',
+                         'auth_redirect' ];
+
+const parse_yes_no_option = (value, option_name) => {
+  if (value !== undefined && value !== null) {
+    const lower = value.toLowerCase ? value.toLowerCase() : value;
+    if (value === true || value === 'true' || value === 'yes') {
+      return true;
+    } else if (value === false || value === 'false' || value === 'no') {
+      return false;
+    }
+    throw new Error('Unexpected value "${option_name}=${value}", should be yes or no.');
+  }
+};
+
 const parse_connect = (connect, config) => {
   const host_port = connect.split(':');
   if (host_port.length === 1) {
@@ -270,6 +291,8 @@ const read_config_from_file = (config_file) => {
   for (const field in file_config) {
     if (field === 'connect') {
       parse_connect(file_config.connect, config);
+    } else if (yes_no_options.indexOf(field) !== -1) {
+      config[field] = parse_yes_no_option(file_config[field], field);
     } else if (default_config[field] !== undefined) {
       config[field] = file_config[field];
     } else {
@@ -291,10 +314,6 @@ const read_config_from_env = () => {
       const var_path = dest_var_name.split('_');
       let value = process.env[env_var];
 
-      if ([ 'false', 'true' ].indexOf(value.toLowerCase()) !== -1) {
-        value = (value.toLowerCase() === 'true');
-      }
-
       if (dest_var_name === 'connect') {
         parse_connect(value, config);
       } else if (dest_var_name === 'bind') {
@@ -307,6 +326,8 @@ const read_config_from_env = () => {
         } else if (var_path[2] === 'secret') {
           config.auth[var_path[1]].secret = value;
         }
+      } else if (yes_no_options.indexOf(dest_var_name) !== -1) {
+        config[field] = parse_yes_no_option(value, dest_var_name);
       } else if (default_config[dest_var_name] !== undefined) {
         config[dest_var_name] = value;
       }
@@ -324,7 +345,7 @@ const read_config_from_flags = (parsed) => {
     config.debug = false;
     config.allow_unauthenticated = true;
     config.allow_anonymous = true;
-    config.insecure = true;
+    config.secure = true;
     config.permissions = false;
     config.start_rethinkdb = true;
     config.auto_create_table = true;
@@ -332,55 +353,53 @@ const read_config_from_flags = (parsed) => {
     config.serve_static = 'dist';
   }
 
-  if (parsed.project !== null) {
+  if (parsed.project !== null && parsed.project !== undefined) {
     config.project = parsed.project;
   }
 
-  // Simple boolean flags
-  const bool_flags = [ 'debug',
-                       'insecure',
-                       'permissions',
-                       'start_rethinkdb',
-                       'auto_create_index',
-                       'auto_create_table',
-                       'allow_unauthenticated',
-                       'allow_anonymous',
-                       'auth_redirect' ];
-
-  bool_flags.forEach((key) => {
-    if (parsed[key]) {
-      config[key] = true;
+  // Simple 'yes' or 'no' (or 'true' or 'false') flags
+  yes_no_options.forEach((key) => {
+    const value = parse_yes_no_option(parsed[key], key);
+    if (value !== undefined) {
+      config[key] = value;
     }
   });
 
   // Normalize RethinkDB connection options
-  if (parsed.connect) {
+  if (parsed.connect !== null && parsed.connect !== undefined) {
+    // Disable start_rethinkdb if it was enabled by dev mode
+    if (parsed.dev && parse_yes_no_option(parsed.start_rethinkdb) === undefined) {
+      config.start_rethinkdb = false;
+    }
     parse_connect(parsed.connect, config);
   }
 
-  if (parsed.serve_static !== null) {
+  if (parsed.serve_static !== null && parsed.serve_static !== undefined) {
     config.serve_static = parsed.serve_static;
   }
 
   // Normalize horizon socket options
-  if (parsed.port !== null) {
+  if (parsed.port !== null && parsed.port !== undefined) {
     config.port = parsed.port;
   }
-  if (parsed.bind !== null) {
+  if (parsed.bind !== null && parsed.bind !== undefined) {
     config.bind = parsed.bind;
-  }
-  if (config.bind && config.bind.indexOf('all') !== -1) {
-    config.bind = [ '0.0.0.0' ];
+
+    if (config.bind.indexOf('all') !== -1) {
+      config.bind = [ '0.0.0.0' ];
+    }
   }
 
   // Auth options
-  parsed.auth.forEach((auth_options) => {
-    const params = auth_options.split(',');
-    if (params.length !== 3) {
-      throw new Error(`Expected --auth PROVIDER,ID,SECRET, but found "${auth_options}"`);
-    }
-    config.auth[params[0]] = { id: params[1], secret: params[2] };
-  });
+  if (parsed.auth !== null && parsed.auth !== undefined) {
+    parsed.auth.forEach((auth_options) => {
+      const params = auth_options.split(',');
+      if (params.length !== 3) {
+        throw new Error(`Expected --auth PROVIDER,ID,SECRET, but found "${auth_options}"`);
+      }
+      config.auth[params[0]] = { id: params[1], secret: params[2] };
+    });
+  }
 
   return config;
 };
@@ -393,6 +412,8 @@ const merge_configs = (old_config, new_config) => {
   for (const key in new_config) {
     if (key === 'rdb_host') {
       old_config.start_rethinkdb = false;
+    } else if (key === 'start_rethinkdb') {
+      old_config.rdb_host = 'localhost';
     }
 
     if (key === 'auth') {
@@ -440,18 +461,12 @@ const startHorizonServer = (servers, opts) => {
   });
 };
 
-// Actually serve based on the already validated options
-const runCommand = (opts, done) => {
-  if (opts.debug) {
-    logger.level = 'debug';
-  }
-
-  if (opts.project !== null) {
+const change_to_project_dir = (project_dir) => {
+  // Try to get stats on dir, if it doesn't exist, statSync will throw
+  if (project_dir !== null) {
     try {
-      // Try to get stats on dir, if successful, change directory to project
-      if (fs.statSync(path.join(opts.project, '.hz'))) {
-        process.chdir(opts.project);
-      }
+      fs.statSync(path.join(project_dir, '.hz'));
+      process.chdir(project_dir);
     } catch (e) {
       console.error('Project specified but no .hz directory was found.');
       console.error(e);
@@ -459,16 +474,25 @@ const runCommand = (opts, done) => {
     }
   } else {
     try {
-      // Try to get stats on dir, if it doesn't exist, statSync will throw
       fs.statSync('.hz');
       // Don't need to change directories as we assume we are in a Horizon app dir
     } catch (e) {
-      console.error('Project not specified or .hz directory not found.\nTry changing to a project' +
-        ' with a .hz directory,\nor specify your project path with the --project option');
+      console.error('Project not specified or .hz directory not found.\n' +
+                    'Try changing to a project with a .hz directory,\n' +
+                    'or specify your project path with the --project option');
       console.error(e);
       process.exit(1);
     }
   }
+};
+
+// Actually serve based on the already validated options
+const runCommand = (opts, done) => {
+  if (opts.debug) {
+    logger.level = 'debug';
+  }
+
+  change_to_project_dir(opts.project);
 
   let http_servers, hz_instance;
 
@@ -515,4 +539,10 @@ module.exports = {
   addArguments,
   processConfig,
   runCommand,
+  merge_configs,
+  make_default_config,
+  read_config_from_file,
+  read_config_from_env,
+  read_config_from_flags,
+  change_to_project_dir,
 };

@@ -25,6 +25,7 @@
     "@horizon/server": "^0.0.5-0",
     "argparse": "^1.0.3",
     "hasbin": "^1.2.1",
+    "rethinkdb": "^2.1.1",
     "toml": "^2.3.0"
   },
   "devDependencies": {
