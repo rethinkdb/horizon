@@ -24,8 +24,8 @@ npm install
 
 Until Issue rethinkdb/horizon#255 is resolved. Disable auth by patch auth.js
 ```bash
-vi ./node_modules/@horizon/client/lib/auth.js
-@Line 97 in the first line of the setAuthFromQueryParams function
+vi +97 ./node_modules/@horizon/client/lib/auth.js
+In line 97 add a return false to setAuthFromQueryParams to exit without doing anything
 add a `return false` to disable it
 ```
 
