@@ -142,15 +142,19 @@ const processConfig = (parsed) => parsed;
 
 const runCommand = (parsed) => {
   const runInSubdir = parsed.projectName != null;
-  const subdirExists = fileExists(parsed.projectName);
+  const subdirExists = !runInSubdir || fileExists(parsed.projectName);
   const projectDirName = parsed.projectName ?
           path.join(process.cwd(), parsed.projectName) :
           process.cwd();
   const projectName = parsed.projectName || path.basename(process.cwd());
 
-  if (runInSubdir && !subdirExists) {
-    fs.mkdirSync(projectName);
-    console.info(`Created new project directory ${parsed.projectName}`);
+  if (runInSubdir) {
+    if (!subdirExists) {
+      fs.mkdirSync(projectName);
+      console.info(`Created new project directory ${parsed.projectName}`);
+    } else {
+      console.info(`Initializing in existing directory ${parsed.projectName}`);
+    }
   } else {
     console.info('Creating new project in current directory');
   }
@@ -171,7 +175,11 @@ const runCommand = (parsed) => {
 
   if (!fileExists('.hz')) {
     fs.mkdirSync('.hz');
-    console.info('Created .hz directory');
+    if (runInSubdir) {
+      console.info(`Created ${parsed.projectName}/.hz directory`);
+    } else {
+      console.info('Created .hz directory');
+    }
   }
   if (!fileExists('.hz/config.toml')) {
     fs.appendFileSync('.hz/config.toml', makeDefaultConfig(projectName), {
@@ -179,6 +187,11 @@ const runCommand = (parsed) => {
       mode: 0o600, // Secrets are put in this config, so set it user
                    // read/write only
     });
+    if (runInSubdir) {
+      console.info(`Created ${parsed.projectName}/.hz/config.toml`);
+    } else {
+      console.info('Created .hz/config.toml');
+    }
   } else {
     console.info('.hz/config.toml already exists, not touching it.');
   }
