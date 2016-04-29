@@ -16,7 +16,7 @@ const horizon_server = require('@horizon/server');
 const logger = horizon_server.logger;
 
 const addArguments = (parser) => {
-  parser.addArgument([ 'project-path' ],
+  parser.addArgument([ 'project_path' ],
     { type: 'string', nargs: '?',
       help: 'Change to this directory before serving' });
 
