@@ -1,22 +1,28 @@
 'use strict';
 
-const horizon_server = require('@horizon/server');
-const interrupt = require('./utils/interrupt');
-
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
-const logger = horizon_server.logger;
 const path = require('path');
 const toml = require('toml');
 const url = require('url');
 
 const start_rdb_server = require('./utils/start_rdb_server');
+const interrupt = require('./utils/interrupt');
+const exitWithError = require('./utils/exit_with_error');
+const isDirectory = require('./utils/is_directory');
+
+const horizon_server = require('@horizon/server');
+const logger = horizon_server.logger;
 
 const addArguments = (parser) => {
-  parser.addArgument([ 'project' ],
+  parser.addArgument([ 'project_path' ],
     { type: 'string', nargs: '?',
       help: 'Change to this directory before serving' });
+
+  parser.addArgument([ '--project-name', '-n' ],
+    { type: 'string', action: 'store', metavar: 'NAME',
+      help: 'Name of the Horizon Project server' });
 
   parser.addArgument([ '--bind', '-b' ],
     { type: 'string', action: 'append', metavar: 'HOST',
@@ -104,7 +110,10 @@ const default_config_file = './.hz/config.toml';
 const make_default_config = () => ({
   config: default_config_file,
   debug: false,
-  project: null,
+  // Default to current directory for path
+  project_path: '.',
+  // Default to current directory name for project name
+  project_name: path.basename(process.cwd()),
 
   bind: [ 'localhost' ],
   port: 8181,
@@ -201,16 +210,14 @@ const initialize_servers = (ctor, opts) => {
         }
       });
       srv.on('error', (err) => {
-        logger.error(
-          `HTTP${opts.insecure ? '' : 'S'} server: ${err}`);
-        process.exit(1);
+        exitWithError(`HTTP${opts.insecure ? '' : 'S'} server: ${err}`);
       });
     });
   });
 };
 
 const createInsecureServers = (opts) => {
-  logger.warn('Creating insecure HTTP server.');
+  console.error('Warning: Creating insecure HTTP server.');
   return initialize_servers(() => new http.Server(), opts);
 };
 
@@ -325,8 +332,12 @@ const read_config_from_flags = (parsed) => {
     config.serve_static = 'dist';
   }
 
-  if (parsed.project !== null) {
-    config.project = parsed.project;
+  if (parsed.project_name !== null) {
+    config.project_name = parsed.project_name;
+  }
+
+  if (parsed.project_path) {
+    config.project_path = parsed.project_path;
   }
 
   // Simple boolean flags
@@ -422,6 +433,7 @@ const startHorizonServer = (servers, opts) => {
     auto_create_index: opts.auto_create_index,
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
+    project_name: opts.project_name,
     auth: {
       token_secret: opts.token_secret,
       allow_unauthenticated: opts.allow_unauthenticated,
@@ -438,28 +450,15 @@ const runCommand = (opts, done) => {
     logger.level = 'debug';
   }
 
-  if (opts.project !== null) {
-    try {
-      // Try to get stats on dir, if successful, change directory to project
-      if (fs.statSync(path.join(opts.project, '.hz'))) {
-        process.chdir(opts.project);
-      }
-    } catch (e) {
-      console.error('Project specified but no .hz directory was found.');
-      console.error(e);
-      process.exit(1);
-    }
+  if (isDirectory(opts.project_path)) {
+    process.chdir(opts.project_path);
   } else {
-    try {
-      // Try to get stats on dir, if it doesn't exist, statSync will throw
-      fs.statSync('.hz');
-      // Don't need to change directories as we assume we are in a Horizon app dir
-    } catch (e) {
-      console.error('Project not specified or .hz directory not found.\nTry changing to a project' +
-        ' with a .hz directory,\nor specify your project path with the --project option');
-      console.error(e);
-      process.exit(1);
-    }
+    exitWithError(`${opts.project_path} is not a directory`);
+  }
+  if (!isDirectory('.hz')) {
+    const nicePathName = opts.project_path === '.' ?
+            'this directory' : opts.project_path;
+    exitWithError(`${nicePathName} doesn't contain an .hz directory`);
   }
 
   let http_servers, hz_instance;
