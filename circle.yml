@@ -61,3 +61,6 @@ test:
     - mkdir -p $CIRCLE_TEST_REPORTS/xunit; touch $CIRCLE_TEST_REPORTS/xunit/server-tests.xml; ./node_modules/.bin/mocha --timeout 15000 -R xunit test/test.js test/schema.js > $CIRCLE_TEST_REPORTS/xunit/server-tests.xml:
         pwd: server
         parallel: true
+    - mkdir -p $CIRCLE_TEST_REPORTS/xunit; touch $CIRCLE_TEST_REPORTS/xunit/cli-tests.xml; ./node_modules/.bin/mocha --timeout 15000 -R xunit test > $CIRCLE_TEST_REPORTS/xunit/cli-tests.xml:
+        pwd: cli
+        parallel: true
