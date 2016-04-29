@@ -1,8 +1,14 @@
 # Horizon Chat example using React
 
-This ReactNative Chat is based on the React Chat Example.
-<center>![](https://i.imgur.com/gjQw1JN.png)</center>
+<img src="https://i.imgur.com/gjQw1JN.png" width="248">
+<br>
+React Chat Example in React Native.
 
+## Todo
+- [ ] Auth in horizon needs to be fixed rethinkdb/horizon#255. Works with a disabled auth (see "How to start")
+- [ ] Add Android
+- [ ] Better error handling for more stability
+- [ ] Fix visual gitches
 
 ## How to start
 
@@ -16,11 +22,11 @@ Install local dependencies.
 npm install
 ```
 
-Patch Horizon-Client-Auth
+Until Issue rethinkdb/horizon#255 is resolved. Disable auth by patch auth.js
 ```bash
 vi ./node_modules/@horizon/client/lib/auth.js
-In Line 97 in the first line of the setAuthFromQueryParams fucntion 
-add a `return false` to disable that function
+@Line 97 in the first line of the setAuthFromQueryParams function
+add a `return false` to disable it
 ```
 
 Start your Database
@@ -28,14 +34,8 @@ Start your Database
 $ hz serve --dev .
 ```
 
-Start React Native & Simulator
+Start React Native & iOS Simulator
 ```bash
 $ npm start
 ```
 
-
-## Todo
-- [ ] Auth needs in horizon to be fixed for react native
-- [ ] Implement Android currently iOS only
-- [ ] Fix visual gitches
-- [ ] Better error handling for more stability
