@@ -322,7 +322,6 @@ const read_config_from_flags = (parsed) => {
 
   // Dev mode
   if (parsed.dev) {
-    config.debug = false;
     config.allow_unauthenticated = true;
     config.allow_anonymous = true;
     config.insecure = true;
@@ -448,6 +447,8 @@ const startHorizonServer = (servers, opts) => {
 const runCommand = (opts, done) => {
   if (opts.debug) {
     logger.level = 'debug';
+  } else {
+    logger.level = 'info';
   }
 
   if (isDirectory(opts.project_path)) {
