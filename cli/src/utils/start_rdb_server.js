@@ -103,7 +103,7 @@ module.exports = (raw_options) => {
       if (infoLevelLog(line)) {
         logger.info('RethinkDB', line);
       } else {
-        logger.debug('RethinkDB stdout: ', line);
+        logger.debug('RethinkDB stdout:', line);
       }
       if (driverPort === undefined) {
         const matches = line.match(
