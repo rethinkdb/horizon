@@ -165,9 +165,9 @@ class Metadata {
           .do(() => query));
     }
 
-    logger.info('running metadata sync');
+    logger.debug('running metadata sync');
     this._ready_promise = query.run(this._conn).then((res) => {
-      logger.info('metadata sync complete');
+      logger.debug('metadata sync complete');
       this._tables = new Map();
       res.forEach((table) =>
         this._tables.set(table.name,
