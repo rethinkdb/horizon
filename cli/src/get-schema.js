@@ -5,8 +5,6 @@ const start_rdb_server = require('./utils/start_rdb_server');
 const serve = require('./serve');
 const logger = require('@horizon/server').logger;
 
-logger.remove(logger.transports.Console);
-
 const fs = require('fs');
 const r = require('rethinkdb');
 
@@ -92,6 +90,8 @@ const config_to_toml = (collections, groups) => {
 
 const runCommand = (options, done) => {
   let conn;
+
+  logger.remove(logger.transports.Console);
   interrupt.on_interrupt((done) => {
     if (conn) {
       conn.close();

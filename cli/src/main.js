@@ -7,6 +7,7 @@ const serveCommand = require('./serve');
 const versionCommand = require('./version');
 const createCertCommand = require('./create-cert');
 const getSchemaCommand = require('./get-schema');
+const setSchemaCommand = require('./set-schema');
 
 const parser = new argparse.ArgumentParser();
 
@@ -40,9 +41,15 @@ const getSchemaParser = subparsers.addParser('get-schema', {
   help: 'Get the schema from a horizon database',
 });
 
+const setSchemaParser = subparsers.addParser('set-schema', {
+  addHelp: true,
+  help: 'Set the schema in a horizon database',
+});
+
 initCommand.addArguments(initParser);
 serveCommand.addArguments(serveParser);
 getSchemaCommand.addArguments(getSchemaParser);
+setSchemaCommand.addArguments(setSchemaParser);
 
 const parsed = parser.parseArgs();
 
@@ -78,6 +85,11 @@ case 'create-cert': {
 case 'get-schema': {
   const options = getSchemaCommand.processConfig(parsed);
   getSchemaCommand.runCommand(options, done_cb(options));
+  break;
+}
+case 'set-schema': {
+  const options = setSchemaCommand.processConfig(parsed);
+  setSchemaCommand.runCommand(options, done_cb(options));
   break;
 }
 }
