@@ -20,6 +20,7 @@ class ReqlConnection {
     this._reconnect_delay = 0;
     this._ready_promise = new Promise((resolve) => this._reconnect(resolve));
     this._closed = false;
+    this._hasRetried = false;
   }
 
   _reconnect(resolve) {
@@ -48,10 +49,13 @@ class ReqlConnection {
       }
     };
 
-    logger.info(`Connecting to RethinkDB: ${this._host}:${this._port}`);
+    if (!this._hasRetried) {
+      logger.info(`Connecting to RethinkDB: ${this._host}:${this._port}`);
+      this._hasRetried = true;
+    }
     r.connect({ host: this._host, port: this._port, db: this._db })
      .then((conn) => {
-       logger.info('Connection to RethinkDB established.');
+       logger.debug('Connection to RethinkDB established.');
        conn.once('close', () => {
          retry();
        });
@@ -79,7 +83,7 @@ class ReqlConnection {
        this._ready = true;
        resolve(this);
      }).catch((err) => {
-       logger.error(`Connection to RethinkDB terminated: ${err}`);
+       logger.debug(`Connection to RethinkDB terminated: ${err}`);
        logger.debug(`stack: ${err.stack}`);
        retry();
      });
