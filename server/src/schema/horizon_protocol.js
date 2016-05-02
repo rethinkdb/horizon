@@ -1,12 +1,20 @@
 'use strict';
 
 const Joi = require('joi');
+const constants = require('@horizon/client/lib/constants').auth;
 
 const handshake = Joi.object().keys({
   request_id: Joi.number().required(),
-  method: Joi.only('token', 'anonymous', 'unauthenticated').required(),
+  method: Joi.only(
+    constants.TYPE_TOKEN,
+    constants.TYPE_ANONYMOUS,
+    constants.TYPE_UNAUTHENTICATED
+  ).required(),
   token: Joi.string().required()
-    .when('method', { is: Joi.not('token').required(), then: Joi.forbidden() }),
+    .when('method', {
+      is: Joi.not(constants.TYPE_TOKEN).required(),
+      then: Joi.forbidden(),
+    }),
 }).unknown(false);
 
 const read = Joi.alternatives().try(

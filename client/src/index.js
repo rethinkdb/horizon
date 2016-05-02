@@ -1,9 +1,10 @@
+
 const { Observable } = require('rxjs/Observable')
 import { from } from 'rxjs/observable/from'
 import { _catch } from 'rxjs/operator/catch'
 import { concatMap } from 'rxjs/operator/concatMap'
 import { filter } from 'rxjs/operator/filter'
-
+import constants from './constants'
 const { Collection } = require('./ast.js')
 const HorizonSocket = require('./socket.js')
 const { log, logError, enableLogging } = require('./logging.js')
@@ -19,7 +20,7 @@ function Horizon({
   secure = defaultSecure,
   path = 'horizon',
   lazyWrites = false,
-  authType = 'unauthenticated',
+  authType = constants.auth.TYPE_UNAUTHENTICATED,
 } = {}) {
   // If we're in a redirection from OAuth, store the auth token for
   // this user in localStorage.
@@ -65,19 +66,27 @@ function Horizon({
 
   // Convenience method for finding out when disconnected
   horizon.onDisconnected = subscribeOrObservable(
-    socket.status::filter(x => x.type === 'disconnected'))
+    socket.status::filter(x =>
+      x.type === constants.connection.STATUS_DISCONNECTED.type
+  ))
 
   // Convenience method for finding out when opening
   horizon.onConnected = subscribeOrObservable(
-    socket.status::filter(x => x.type === 'connected'))
+    socket.status::filter(x =>
+      x.type === constants.connection.STATUS_CONNECTED.type
+  ))
 
   // Convenience method for finding out when ready
   horizon.onReady = subscribeOrObservable(
-    socket.status::filter(x => x.type === 'ready'))
+    socket.status::filter(x =>
+      x.type === constants.connection.STATUS_READY.type
+  ))
 
   // Convenience method for finding out when an error occurs
   horizon.onSocketError = subscribeOrObservable(
-    socket.status::filter(x => x.type === 'error'))
+    socket.status::filter(x =>
+      x.type === constants.connection.STATUS_ERROR.type
+  ))
 
   horizon._authMethods = null
   horizon._horizonPath = path
@@ -121,6 +130,7 @@ function subscribeOrObservable(observable) {
 
 Horizon.log = log
 Horizon.logError = logError
+Horizon.constants = constants
 Horizon.enableLogging = enableLogging
 Horizon.Socket = HorizonSocket
 Horizon.clearAuthTokens = clearAuthTokens

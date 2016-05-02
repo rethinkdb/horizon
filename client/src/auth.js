@@ -1,9 +1,8 @@
 import queryParse from './util/query-parse'
+import { auth as constants } from './constants'
 import { Observable } from 'rxjs/Observable'
 import { map } from 'rxjs/operator/map'
 import fetchJSON from './util/fetch.js'
-
-const HORIZON_JWT = 'horizon-jwt'
 
 /** @this Horizon **/
 export function authEndpoint(name) {
@@ -51,21 +50,21 @@ function getStorage() {
 }
 
 export class TokenStorage {
-  constructor(authType = 'unauthenticated') {
+  constructor(authType = constants.TYPE_UNAUTHENTICATED) {
     this._storage = getStorage()
     this._authType = authType
   }
 
   set(jwt) {
-    return this._storage.setItem(HORIZON_JWT, jwt)
+    return this._storage.setItem(constants.HORIZON_JWT, jwt)
   }
 
   get() {
-    return this._storage.getItem(HORIZON_JWT)
+    return this._storage.getItem(constants.HORIZON_JWT)
   }
 
   remove() {
-    return this._storage.removeItem(HORIZON_JWT)
+    return this._storage.removeItem(constants.HORIZON_JWT)
   }
 
   setAuthFromQueryParams() {
@@ -81,8 +80,8 @@ export class TokenStorage {
     // new one
     const token = this.get()
     if (token != null) {
-      return { method: 'token', token }
-    } else if (this._authType === 'token') {
+      return { method: constants.TYPE_TOKEN, token }
+    } else if (this._authType === constants.TYPE_TOKEN) {
       throw new Error(
         'Attempting to authenticate with a token, but no token is present')
     } else {
@@ -97,5 +96,5 @@ export class TokenStorage {
 }
 
 export function clearAuthTokens() {
-  return getStorage().removeItem(HORIZON_JWT)
+  return getStorage().removeItem(constants.HORIZON_JWT)
 }
