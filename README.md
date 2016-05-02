@@ -76,6 +76,8 @@ Also, to stay up-to-date on all Horizon related news and the community you shoul
 definitely [join us on Slack](http://slack.rethinkdb.com), [follow us on Twitter](https://twitter.com/horizonjs),
 and join our Horizon mailing list at [Horizon.io](https://horizon.io).
 
+<img style="width:100%;" src="/assets/Lets-go.png">
+
 ## FAQ
 
 ### How do you start Horizon?
@@ -134,6 +136,8 @@ Refer to the the [CLI README](/cli/README.md) for the most up-to-date public ins
 ### Where do I start?
 
 Check out our [Getting Started guide](/GETTING-STARTED.md). If you have more questions, come [join us on Slack](http://slack.rethinkdb.com) in #horizon or feel free to tweet us at [@horizonjs](https://twitter.com/horizonjs).
+
+<img style="width:100%;" src="/assets/how-is-horizon-different.png">
 
 ### How is Horizon different from Firebase?
 
