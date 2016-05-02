@@ -79,7 +79,7 @@ class HorizonSocket extends Subject {
             handshake.next(x)
             handshake.complete()
 
-            handshake.next(STATUS_READY)
+            statusSubject.next(STATUS_READY)
           },
           err => handshake.error(err),
           () => handshake.complete()
