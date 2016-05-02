@@ -42,8 +42,8 @@ const makeDefaultConfig = (projectName) => `\
 # 'key_file' and 'cert_file' are required for serving HTTPS
 #------------------------------------------------------------------------------
 # insecure = true
-# key_file = "key.pem"
-# cert_file = "cert.pem"
+# key_file = "horizon-key.pem"
+# cert_file = "horizon-cert.pem"
 
 
 ###############################################################################
