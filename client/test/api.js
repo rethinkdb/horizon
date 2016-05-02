@@ -24,7 +24,7 @@ describe('Core API tests', () => {
     Horizon.clearAuthTokens()
     horizon = Horizon({ secure: false, lazyWrites: true })
     horizon.connect(err => done(err))
-    horizon.onConnected(() => {
+    horizon.onReady(() => {
       data = horizon('test_data')
       done()
     })
