@@ -21,13 +21,19 @@ class Admin {
 
   add_request(req, client) {
     if (req.raw.type.startsWith("admin:")) return;
-
+    
+    let uR = client.socket.upgradeReq;
+    
     this._run_query(
       request_table.insert({
         id: [client.id, req.id],
         request: req.id, raw: req.raw,
         time: r.now(), cursors: 0,
-        client: {id: client.id, ip: client.get_address()}
+        client: {
+          id: client.id,
+          ip: uR.connection.remoteAddress,
+          origin: uR.headers.origin
+        }
       }));
   }
 
@@ -50,10 +56,16 @@ class Admin {
   }
 
   add_client(client) {
+    let uR = client.socket.upgradeReq;
+    
     this._run_query(
       client_table.insert({
-         connected: true, id: client.id,
-         time: r.now(), ip: client.get_address()}));
+         connected: true,
+         id: client.id,
+         time: r.now(),
+         ip: uR.connection.remoteAddress,
+         origin: uR.headers.origin
+      }));
   }
 
   remove_client(client) {
