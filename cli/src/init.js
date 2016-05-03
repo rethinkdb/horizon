@@ -167,10 +167,26 @@ const runCommand = (parsed) => {
 
   if (!dirWasPopulated && !fileExists('src')) {
     fs.mkdirSync('src');
+    if (runInSubdir) {
+      console.info(`Created ${parsed.projectName}/src directory`);
+    } else {
+      console.info('Created src directory');
+    }
   }
   if (!dirWasPopulated && !fileExists('dist')) {
     fs.mkdirSync('dist');
+    if (runInSubdir) {
+      console.info(`Created ${parsed.projectName}/dist directory`);
+    } else {
+      console.info('Created dist directory');
+    }
+
     fs.appendFileSync('./dist/index.html', makeIndexHTML(projectName));
+    if (runInSubdir) {
+      console.info(`Created ${parsed.projectName}/dist/index.html example`);
+    } else {
+      console.info('Created dist/index.html example');
+    }
   }
 
   if (!fileExists('.hz')) {
