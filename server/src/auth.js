@@ -36,7 +36,10 @@ class Auth {
     if (options.token_secret != null) {
       this._hmac_secret = new Buffer(options.token_secret, 'base64');
     } else {
-      this._hmac_secret = crypto.randomBytes(64);
+      throw new Error(
+        'No token_secret set! ' +
+        'Try setting it in .hz/config.toml or passing it ' +
+        'to the Server constructor.');
     }
   }
 

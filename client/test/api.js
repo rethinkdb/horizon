@@ -106,4 +106,8 @@ describe('Core API tests', () => {
     describe('Testing `below` subscriptions', belowSubscriptionSuite(getData))
     describe('Testing `order.limit` subscriptions', orderLimitSubSuite(getData))
   }) // Test the subscriptions API
+
+  describe('Unit tests', () => {
+    describe('Auth', authSuite)
+  })
 }) // Core API tests

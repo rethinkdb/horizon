@@ -23,7 +23,7 @@ function Horizon({
 } = {}) {
   // If we're in a redirection from OAuth, store the auth token for
   // this user in localStorage.
-  const tokenStorage = new TokenStorage(authType)
+  const tokenStorage = new TokenStorage({ authType, path })
   tokenStorage.setAuthFromQueryParams()
 
   const socket = new HorizonSocket(
@@ -32,7 +32,13 @@ function Horizon({
   // Store whatever token we get back from the server when we get a
   // handshake response
   socket.handshake.subscribe(
-    handshake => tokenStorage.set(handshake.token)
+    handshake => tokenStorage.set(handshake.token),
+    error => {
+      if (/JsonWebTokenError/.test(error.message)) {
+        console.error('Horizon: clearing token storage since auth failed')
+        tokenStorage.remove()
+      }
+    }
   )
 
   // This is the object returned by the Horizon function. It's a

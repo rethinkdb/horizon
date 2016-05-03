@@ -26,7 +26,7 @@ export function authEndpoint(name) {
 }
 
 // Simple shim to make a Map look like local/session storage
-class FakeStorage {
+export class FakeStorage {
   constructor() { this._storage = new Map() }
   setItem(a, b) { return this._storage.set(a, b) }
   getItem(a) { return this._storage.get(a) }
@@ -38,6 +38,8 @@ function getStorage() {
     if (typeof window !== 'object' || window.localStorage === undefined) {
       return new FakeStorage()
     }
+    // Mobile safari in private browsing has a localStorage, but it
+    // has a size limit of 0
     window.localStorage.setItem('$$fake', 1)
     window.localStorage.removeItem('$$fake')
     return window.localStorage
@@ -51,21 +53,41 @@ function getStorage() {
 }
 
 export class TokenStorage {
-  constructor(authType = 'unauthenticated') {
-    this._storage = getStorage()
+  constructor({ authType = 'token',
+                storage = getStorage(),
+                path = 'horizon' } = {}) {
+    this._storage = storage
     this._authType = authType
+    this._path = path
+  }
+
+  _getHash() {
+    const val = this._storage.getItem(HORIZON_JWT)
+    if (val == null) {
+      return {}
+    } else {
+      return JSON.parse(val)
+    }
+  }
+
+  _setHash(hash) {
+    this._storage.setItem(HORIZON_JWT, JSON.stringify(hash))
   }
 
   set(jwt) {
-    return this._storage.setItem(HORIZON_JWT, jwt)
+    const current = this._getHash()
+    current[this._path] = jwt
+    this._setHash(current)
   }
 
   get() {
-    return this._storage.getItem(HORIZON_JWT)
+    return this._getHash()[this._path]
   }
 
   remove() {
-    return this._storage.removeItem(HORIZON_JWT)
+    const current = this._getHash()
+    delete current[this._path]
+    this._setHash(current)
   }
 
   setAuthFromQueryParams() {

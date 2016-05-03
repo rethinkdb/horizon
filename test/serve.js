@@ -20,6 +20,7 @@ const http = require('http');
 const path = require('path');
 const url = require('url');
 const process = require('process');
+const crypto = require('crypto');
 
 const data_dir = path.resolve(__dirname, 'rethinkdb_data_test');
 const test_dist_dir = path.resolve(__dirname, '../client/dist');
@@ -149,16 +150,16 @@ new Promise((resolve) => {
     console.log(`RethinkDB server listening for HTTP on port ${info.httpPort}.`);
 
     horizon.logger.level = 'debug';
-    const horizon_server = new horizon.Server(http_servers,
-                                            {
-                                              auto_create_table: true,
-                                              auto_create_index: true,
-                                              rdb_port: info.driverPort,
-                                              auth: {
-                                                allow_unauthenticated: true,
-                                                allow_anonymous: true,
-                                              },
-                                            });
+    const horizon_server = new horizon.Server(http_servers, {
+      auto_create_table: true,
+      auto_create_index: true,
+      rdb_port: info.driverPort,
+      auth: {
+        allow_unauthenticated: true,
+        allow_anonymous: true,
+        token_secret: crypto.randomBytes(64).toString('base64'),
+      },
+    });
 
     // Capture requests to `horizon.js` and `horizon.js.map` before the horizon server
     http_servers.forEach((serv, i) => {
