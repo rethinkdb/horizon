@@ -2,12 +2,14 @@
 
 .tile
   display inline-block
-  font-size 62px
+  font-size 24px
   font-weight 100
   color white
+  border-radius 5px
+  min-width 150px
 
   .content
-    padding 15px 25px
+    padding 5px 10px
 
   .inner
     border-left 8px solid rgba(255, 255, 255, 0.5)
@@ -17,8 +19,8 @@
     vertical-align: middle;
 
   .caption
-    padding 10px
-    font-size 18px
+    padding 5px
+    font-size 14px
     font-weight normal
     background rgba(255, 255, 255, 0.2)
     text-align right
@@ -27,12 +29,15 @@
     display inline-block
     color rgba(255, 255, 255, 0.5)
     vertical-align: middle;
-    font-size 72px
-    width 85px
+    font-size 24px
+    width 35px
 
 .epoch
   margin-left -30px
   height 300px
+  
+  canvas
+    height 300px
 
   .category1
     .line {stroke: color-clients}
@@ -48,22 +53,25 @@
 
 .box
   .title
-    padding 10px
+    padding-left 10px
+    padding-bottom 5px
     display flex
+    border-radius 3px
 
-    border-left 8px solid rgba(255, 255, 255, 0.5)
+    border-left 5px solid rgba(255, 255, 255, 0.5)
     color white
 
     h2
       margin 0
       margin-top 5px
+      flex-grow 1
       font-size 18px
       font-weight 100
       letter-spacing 0.8px
-      flex-grow 1
+      vertical-align: middle;
 
     .icon
-      font-size 24px
+      font-size 18px
       vertical-align: middle;
 
 .token
@@ -73,3 +81,31 @@
   color white
 
   i, .text { vertical-align: middle; }
+
+.inline
+  display inline
+  
+.fadeIn
+  animation-name fadeIn
+  animation-duration 1s
+  
+.fadeOut
+  animation-name fadeOut 
+  animation-duration 1s
+  
+@keyframes fadeOut
+  0% {opacity: 1}
+  100% {opacity: 0}
+
+@keyframes fadeIn
+  0% {opacity: 0}
+  100% {opacity: 1}
+
+.animate-text-update
+  animation-name animateTextUpdate 
+  animation-duration 0.3s
+
+@keyframes animateTextUpdate 
+  0% {transform: translate(0, 0)}
+  50% {transform: translate(0, -5px)}
+  100% {transform: translate(0, 0)}

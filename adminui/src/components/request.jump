@@ -1,0 +1,32 @@
+
+<template id="request" type="jumptag">
+  <h3>Request</h3>
+
+  <p>${opts.request}</p>
+
+  <div class="request-editor">
+    <p>${JSON.stringify(opts.request)}</p>
+    <p>${opts.request.id[0]}</p>
+
+    <p><span class="token requests">test</span></p>
+
+    <h4>Raw Request:</h4>
+
+    <textarea class="raw" oninput={editText}>${JSON.stringify(opts.request.raw)}</textarea>
+    <button onclick={sendRawRequest}>Replay</button>
+  </div>
+
+  <script>
+  var currentText = "";
+
+  function editText(ev) {
+    console.log("Edit text:", ev);
+    currentText = ev.target.value;
+  }
+
+  function sendRawRequest(ev) {
+    console.log("This is a test:", ev, currentText);
+  }
+  </script>
+
+</template>

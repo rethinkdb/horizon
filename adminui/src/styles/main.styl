@@ -3,6 +3,11 @@
 @import "components"
 @import "colors"
 
+@media only screen and (max-width: 700px)
+  .tiles
+    .icon
+      display none
+
 html, body
   display flex
   height 100%
@@ -72,3 +77,12 @@ html, body
     span
       margin-right 5px
       margin-left 5px
+
+
+.request-editor
+  textarea.raw
+    box-sizing border-box
+    border 1px solid color-grey-line
+    width 100%
+    height 50px
+    padding 5px

@@ -2,4 +2,3 @@
 <template id="time" type="jumptag">
   <span class="time">${moment(opts.time).format(opts.format)}</span>
 </template>
-

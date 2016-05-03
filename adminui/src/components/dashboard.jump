@@ -31,9 +31,9 @@
 
 <template id="dashboard" type="jumptag">
   <div id="dashboard" class="epoch-theme-default">
-    
+
     <tiles data={opts.data}></tiles>
-    
+
     <div class="graph-container">
       <update check="{!opts.model.graph}">
         <div id="graph" class="epoch"></div>
@@ -43,8 +43,7 @@
 
     <div class="box">
       <div class="title requests">
-        <h2>Recent Requests</h2>
-        <i class="icon ion-ios-pulse"></i>
+        <h2><i class="icon ion-ios-pulse"></i> Recent Requests</h2>
       </div>
 
       <table>
@@ -57,15 +56,15 @@
           <th></th>
           <th>Time</th>
         </tr>
-        <for var="req" in={opts.data.requests}>
-          <tr class="request">
+        <for var="req" in={opts.data.requests.slice(0,5)}>
+          <tr key="{`${req.id[0]}-${req.id[1]}`}" class="request">
             <td class="token requests ${req.raw.type}">
                 <i class="icon ion-ionic icon-${req.raw.type}"></i>
                 <span class="text">${req.raw.type}</span>
               </span>
             </td>
-            <td class="between">performed by</td>
-            <td class="clients token">
+            <td class="between">by</td>
+            <td class="token clients">
               <i class="icon ion-ios-person"></i>
               <span class="text">${req.client.ip}</span>
             </td>
@@ -75,9 +74,9 @@
               <span class="text">${req.raw.options.collection}</span>
             </td>
             <td class="between">at</td>
-            <td class="timestamp token">
-              <i class="icon ion-ios-clock"></i>
+            <td class="token timestamp">
               <span class="text">
+                <i class="icon ion-ios-clock"></i>
                 <time time={req.time} format="MMM D hh:mm a"></time>
               </span>
             </td>
@@ -85,6 +84,40 @@
         </for>
       </table>
       
+      
+      <div class="box">
+      <div class="title clients">
+        <h2><i class="icon ion-ios-person"></i> Recent Clients</h2>
+      </div>
+      
+      <table>
+        <tr>
+          <th>Address</th>
+          <th></th>
+          <th>Origin</th>
+          <th></th>
+          <th>Time</th>
+        </tr>
+        <for var="client" in={opts.data.clients.slice(0,10)}>
+          <tr key="{`${client.id}-recent-client`}" class="request">
+            <td class="token clients">
+              <span class="text">${client.ip}</span>
+            </td>
+            <td class="between">from</td>
+            <td class="between">
+              <span class="text">${client.origin}</span>
+            </td>
+            <td class="between">at</td>
+            <td class="token timestamp">
+              <span class="text">
+                <i class="icon ion-ios-clock"></i>
+                <time time={client.time} format="MMM D hh:mm a"></time>
+              </span>
+            </td>
+          </tr>
+        </for>
+      </table>
+
     </div>
   </div>
 </template>

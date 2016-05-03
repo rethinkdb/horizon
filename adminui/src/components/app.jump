@@ -1,13 +1,25 @@
 
-<link jumptag="dashboard">
+<link jumptag="dashboard, request">
 
 <template id="app" type="jumptag">
   <script>
     let data = model.data();
+    let state = data.state;
   </script>
 
-  <h1>Horizon</h1>
+  <div id="content">
+    <img id="logo" src="images/mark-text.png">
+    
+    <ul id="navigation">
+      <for var="item" in="state.navigation.items">
+        <li class="{state.navigation.selected === item ? 'selected' : ''}">
+          <a href="#" onclick="{ev => model.navigate(item)}">${item}</a>
+        </li>
+      </for>
+    </ul>
+    
+    <dashboard model={model} data={data}></dashboard>
+  </div>
   
-  <dashboard model={model} data={data}></dashboard>
-
+  <div id="footer"></div>
 </template>
