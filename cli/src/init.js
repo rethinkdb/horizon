@@ -12,7 +12,7 @@ const makeIndexHTML = (projectName) => `\
     <script src="/horizon/horizon.js"></script>
     <script>
       var horizon = Horizon();
-      horizon.onConnected(function() {
+      horizon.onReady(function() {
         document.querySelector('h1').innerHTML = '${projectName} works!'
       });
       horizon.connect();
