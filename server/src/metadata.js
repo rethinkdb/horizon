@@ -255,8 +255,12 @@ class Metadata {
     });
   }
 
-  get_user_info(id, done) {
-    r.db('horizon_internal').table('users').get(id).run(this._conn, done);
+  get_user_feed(id, done) {
+    r.db('horizon_internal')
+      .table('users')
+      .get(id)
+      .changes({ includeInitial: true, squash: true })
+      .run(this._conn, done);
   }
 
   get_group(group_name) {

@@ -78,8 +78,19 @@ class Client {
       return this.close({ error: 'Invalid handshake.', error_code: 0 });
     }
 
-    const success = (user_info, token) => {
-      this.user_info = user_info;
+    const success = (user_feed, token) => {
+      this.user_feed = user_feed;
+      if (this.user_feed) {
+        this.user_feed.eachAsync((change) => {
+          this.user_data = change.new_val;
+          if (change.new_val === null) {
+            this.close('User account has been deleted.');
+          }
+        });
+      } else {
+        check(request.method === 'unauthenticated');
+        this.user_info = { id: null, groups: [ 'unauthenticated' ] };
+      }
       this.socket.on('message', (msg) =>
         this.error_wrap_socket(() => this.handle_request(msg)));
       this.send_response(request.request_id, { token });
@@ -91,13 +102,12 @@ class Client {
                      error: `${err}`, error_code: 0 });
       } else if (decoded.user !== null) {
         const metadata = this.parent._reql_conn.metadata();
-        metadata.get_user_info(decoded.user, (rdb_err, res) => {
+        metadata.get_user_feed(decoded.user, (rdb_err, feed) => {
           if (rdb_err) {
             this.close({ request_id: request.request_id,
                          error: 'User does not exist.', error_code: 0 });
           } else {
-            // TODO: listen on feed
-            success(res, token);
+            success(feed, token);
           }
         });
       } else {
@@ -204,6 +214,9 @@ class Client {
       } else {
         this.socket.close(1002, close_msg);
       }
+    }
+    if (this.user_feed) {
+      this.user_feed.close();
     }
   }
 

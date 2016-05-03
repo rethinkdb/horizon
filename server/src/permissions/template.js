@@ -27,10 +27,6 @@ class Any {
 
 class UserId { }
 
-const dummy_send = (type, options) => {
-  template = { request_id: new Any(), type, options };
-};
-
 const wrap_write = (query, docs) => {
   const result = Object.assign({}, query);
   result.data = Array.isArray(docs) ? docs : [ docs ];
@@ -46,47 +42,48 @@ const wrap_remove = (doc) => {
 
 // Monkey-patch the ast functions so we don't clobber certain things
 ast.TermBase.prototype.watch = function () {
-  return dummy_send('subscribe', this._query);
+  return this._sendRequest('subscribe', this._query);
 };
 ast.TermBase.prototype.fetch = function () {
-  return dummy_send('query', this._query);
+  return this._sendRequest('query', this._query);
 };
 ast.Collection.prototype.store = function (docs) {
-  return dummy_send('store', wrap_write(this._query, docs));
+  return this._sendRequest('store', wrap_write(this._query, docs));
 };
 ast.Collection.prototype.upsert = function (docs) {
-  return dummy_send('upsert', wrap_write(this._query, docs));
+  return this._sendRequest('upsert', wrap_write(this._query, docs));
 };
 ast.Collection.prototype.insert = function (docs) {
-  return dummy_send('insert', wrap_write(this._query, docs));
+  return this._sendRequest('insert', wrap_write(this._query, docs));
 };
 ast.Collection.prototype.replace = function (docs) {
-  return dummy_send('replace', wrap_write(this._query, docs));
+  return this._sendRequest('replace', wrap_write(this._query, docs));
 };
 ast.Collection.prototype.update = function (docs) {
-  return dummy_send('update', wrap_write(this._query, docs));
+  return this._sendRequest('update', wrap_write(this._query, docs));
 };
 ast.Collection.prototype.remove = function (doc) {
-  return dummy_send('remove', wrap_write(this._query, wrap_remove(doc)));
+  return this._sendRequest('remove', wrap_write(this._query, wrap_remove(doc)));
 };
 ast.Collection.prototype.removeAll = function (docs) {
-  return dummy_send('remove', wrap_write(this._query,
-                                         docs.map(doc => wrap_remove(doc))));
+  return this._sendRequest('remove', wrap_write(this._query,
+                                                docs.map(doc => wrap_remove(doc))));
 };
 
+let result = null;
+
 const env = {
-  collection: (name) => new ast.Collection(dummy_send, name, false),
+  collection: (name) => new ast.Collection((type, opts) =>
+    ({ request_id: new Any(), type, opts, }), name, false),
   any: function() { return new Any(...arguments); },
   user: {
     id: new UserId(),
   },
-  template: null,
 };
 
 const make_template = (str) => {
   const sandbox = Object.assign({}, env);
-  vm.runInNewContext(str, sandbox);
-  return sandbox.template;
+  return vm.runInNewContext(str, sandbox);
 };
 
 const template_compare = (query, template, context) => {

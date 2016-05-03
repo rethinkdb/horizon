@@ -127,7 +127,7 @@ class Auth {
           return cb(new Error('Anonymous connections are not allowed.'));
         }
       }
-      cb(err, token, decoded);
+      cb(null, token, decoded);
     });
   }
 

@@ -77,7 +77,7 @@ const addArguments = (parser) => {
       help: 'Enables or disables checking permissions on requests.' });
 
   parser.addArgument([ '--serve-static' ],
-    { type: 'string', metavar: 'PATH', nargs: '?',
+    { type: 'string', metavar: 'PATH', nargs: '?', constant: './dist',
       help: 'Serve static files from a directory, defaults to "./dist".' });
 
   parser.addArgument([ '--dev' ],
@@ -87,7 +87,7 @@ const addArguments = (parser) => {
       '--permissions=no, ' +
       '--auto-create-table=yes, ' +
       '--start-rethinkdb=yes, ' +
-      '--serve-static=yes, ' +
+      '--serve-static=./dist, ' +
       'and --auto-create-index=yes.' });
 
   parser.addArgument([ '--config' ],
