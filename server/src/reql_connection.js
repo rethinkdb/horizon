@@ -60,7 +60,7 @@ class ReqlConnection {
          retry();
        });
        conn.on('error', (err) => {
-         logger.error('Error on connection to RethinkDB: ${err}.');
+         logger.error(`Error on connection to RethinkDB: ${err}.`);
          retry();
        });
        return conn.server().then((serv) =>
