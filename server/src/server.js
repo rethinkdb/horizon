@@ -13,7 +13,7 @@ const options_schema = require('./schema/server_options').server;
 // library. Minified, Rx included etc.
 const horizon_client_path = require.resolve('@horizon/client/dist/horizon');
 
-const admin_endpoints = require("./endpoint/admin.js");
+const admin_endpoints = require("./endpoint/admin");
 
 const endpoints = {
   insert: require('./endpoint/insert'),
@@ -88,9 +88,11 @@ class Server {
       this.add_request_handler(key, endpoints[key].make_reql, endpoints[key].handle_response);
     }
 
-    for (let key of Object.keys(admin_endpoints))
+    let _admin_endpoints = admin_endpoints(this);
+
+    for (let key of Object.keys(_admin_endpoints))
       this.add_request_handler(`admin:${key}`,
-                               admin_endpoints[key],
+                               _admin_endpoints[key],
                                endpoints.subscribe.handle_response);
 
     const verify_client = (info, cb) => {

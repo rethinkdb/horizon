@@ -122,10 +122,6 @@ class Client {
       this.error_wrap_socket(() => this.handle_handshake(data)));
   }
 
-  get_address() {
-    return this.socket.upgradeReq.connection.remoteAddress;
-  }
-
   handle_open() {
     logger.debug('Client connection established.');
     this.parent._clients.add(this); // TODO: this is a race condition - the client could miss a reql_connection_lost call
