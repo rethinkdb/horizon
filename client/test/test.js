@@ -112,6 +112,7 @@ require('./orderLimitSub.js')
 
 // Unit tests
 require('./auth.js')
+require('./utilsTest.js')
 
 // Load the suite runner
 require('./api.js')

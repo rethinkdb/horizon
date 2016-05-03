@@ -109,5 +109,6 @@ describe('Core API tests', () => {
 
   describe('Unit tests', () => {
     describe('Auth', authSuite)
+    describe('Utils', utilsSuite)
   })
 }) // Core API tests
