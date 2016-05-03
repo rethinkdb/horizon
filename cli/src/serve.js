@@ -105,7 +105,7 @@ const addArguments = (parser) => {
       help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
 };
 
-const default_config_file = './.hz/config.toml';
+const default_config_file = '.hz/config.toml';
 
 const make_default_config = () => ({
   config: default_config_file,
@@ -251,20 +251,25 @@ const parse_connect = (connect, config) => {
   }
 };
 
-const read_config_from_file = (config_file) => {
+const read_config_from_file = (project_path, config_file) => {
   const config = { auth: { } };
 
-  let file_data;
-  if (config_file) {
-    // Use specified config file - error if it doesn't exist
-    file_data = fs.readFileSync(config_file);
+  let file_data, configFilename;
+
+  if (project_path && config_file) {
+    configFilename = `${project_path}/${config_file}`;
+  } else if (project_path && !config_file) {
+    configFilename = `${project_path}/${default_config_file}`
+  } else if (!project_path && config_file) {
+    configFilename = config_file;
   } else {
-    // Try default config file - ignore if anything goes wrong
-    try {
-      file_data = fs.readFileSync(default_config_file);
-    } catch (err) {
-      return config;
-    }
+    configFilename = default_config_file;
+  }
+
+  try {
+    file_data = fs.readFileSync(configFilename);
+  } catch (err) {
+    return config;
   }
 
   const file_config = toml.parse(file_data);
@@ -408,7 +413,6 @@ const merge_configs = (old_config, new_config) => {
       old_config[key] = new_config[key];
     }
   }
-
   return old_config;
 };
 
@@ -418,7 +422,8 @@ const processConfig = (parsed) => {
   let config;
 
   config = make_default_config();
-  config = merge_configs(config, read_config_from_file(parsed.config));
+  config = merge_configs(config,
+                         read_config_from_file(parsed.project_path, parsed.config));
   config = merge_configs(config, read_config_from_env());
   config = merge_configs(config, read_config_from_flags(parsed));
 
