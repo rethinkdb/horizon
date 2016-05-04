@@ -2,7 +2,7 @@
 
 const Auth = require('./auth').Auth;
 const check = require('./error').check;
-const Client = require('./client').Client;
+const ClientConnection = require('./client').ClientConnection;
 const ReqlConnection = require('./reql_connection').ReqlConnection;
 const logger = require('./logger');
 const horizon_protocol = require('./schema/horizon_protocol');
@@ -27,7 +27,8 @@ const assert = require('assert');
 const fs = require('fs');
 const Joi = require('joi');
 const url = require('url');
-const websocket = require('ws');
+// const websocket = require('ws');
+const engine = require('engine.io');
 
 const protocol_name = 'rethinkdb-horizon-v0';
 
@@ -92,10 +93,14 @@ class Server {
     const ws_options = { handleProtocols: accept_protocol, path: this._path,
                          verifyClient: verify_client };
 
-    const add_websocket = (server) => {
-      this._ws_servers.add(new websocket.Server(Object.assign({}, { server }, ws_options))
+    const add_websocket = (http_server) => {
+      const new_server = engine.Server(ws_options)
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
-        .on('connection', (socket) => new Client(socket, this)));
+        .on('connection', (socket) => new ClientConnection(socket, this));
+      console.log(new_server)
+      this._ws_servers.add(new_server.attach(http_server))
+      // this._ws_servers.add(new websocket.Server(Object.assign({}, { server }, ws_options))
+
     };
 
     const path_replace = new RegExp('^' + this._path + '/');

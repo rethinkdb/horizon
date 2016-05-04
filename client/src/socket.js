@@ -5,8 +5,10 @@ import { Observable } from 'rxjs/Observable'
 import { merge } from 'rxjs/observable/merge'
 import { filter } from 'rxjs/operator/filter'
 import { share } from 'rxjs/operator/share'
-
-import { WebSocket } from './shim.js'
+import { Socket } from 'engine.io-client'
+console.log(Socket)
+window.Socket = Socket
+// import { WebSocket } from './shim.js'
 import { serialize, deserialize } from './serialization.js'
 import { log } from './logging.js'
 
@@ -50,35 +52,42 @@ class HorizonSocket extends Subject {
     const handshake = new AsyncSubject()
     const statusSubject = new BehaviorSubject(STATUS_UNCONNECTED)
 
-    const isOpen = () => Boolean(ws) && ws.readyState === WebSocket.OPEN
+    const isOpen = () => Boolean(ws) && Socket.readyState === 'open'
 
     // Serializes to a string before sending
     function wsSend(msg) {
-      const stringMsg = JSON.stringify(serialize(msg))
-      ws.send(stringMsg)
+      ws.send(JSON.stringify(serialize(msg)))
     }
 
     // This is the observable part of the Subject. It forwards events
     // from the underlying websocket
     const socketObservable = Observable.create(subscriber => {
-      ws = new WebSocket(hostString, PROTOCOL_VERSION)
-      ws.onerror = () => {
+      // console.log(Socket)
+      Socket.protocol = PROTOCOL_VERSION
+      ws = Socket(hostString)
+      ws.on('error', (err) => {
+        if (err) {
+            console.log(err)
+        }
+
         // If the websocket experiences the error, we forward it through
         // to the observable. Unfortunately, the event we receive in
         // this callback doesn't tell us much of anything, so there's no
         // reason to forward it on and we just send a generic error.
         statusSubject.next(STATUS_ERROR)
         const errMsg = `Websocket ${hostString} experienced an error`
+        console.log(errMsg)
         subscriber.error(new Error(errMsg))
-      }
-      ws.onopen = () => {
+      })
+      ws.on('open', () => {
+        console.log("OPEN; SENDING HANDSHAKE")
         // Send the handshake
         statusSubject.next(STATUS_CONNECTED)
         handshakeDisp = this.makeRequest(handshaker()).subscribe(
           x => {
+            console.log("YES")
             handshake.next(x)
             handshake.complete()
-
             statusSubject.next(STATUS_READY)
           },
           err => handshake.error(err),
@@ -90,13 +99,14 @@ class HorizonSocket extends Subject {
           log('Sending buffered:', msg)
           wsSend(msg)
         }
-      }
-      ws.onmessage = event => {
+      })
+      ws.on('message', event => {
+        console.log(ws.readyState)
         const deserialized = deserialize(JSON.parse(event.data))
         log('Received', deserialized)
         subscriber.next(deserialized)
-      }
-      ws.onclose = e => {
+      })
+      ws.on('close', e => {
         // This will happen if the socket is closed by the server If
         // .close is called from the client (see closeSocket), this
         // listener will be removed
@@ -107,7 +117,7 @@ class HorizonSocket extends Subject {
         } else {
           subscriber.complete()
         }
-      }
+      })
       return () => {
         if (handshakeDisp) {
           handshakeDisp.unsubscribe()
@@ -144,6 +154,7 @@ class HorizonSocket extends Subject {
         closeSocket(error.code, error.reason)
       },
       complete() {
+        console.log("COMPLETE")
         // complete for the subscriber here is equivalent to "close
         // this socket successfully (which is what code 1000 is)"
         closeSocket(1000, '')
