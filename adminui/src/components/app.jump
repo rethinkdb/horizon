@@ -1,29 +1,40 @@
 
-<link jumptag="dashboard, request">
+<link jumptag="dashboard, request, Browser">
+
+<template id="Navigation" type="jumptag">
+  <script>
+    let {items, selected} = opts.state;
+    let navigate = item => opts.state.set("selected", item);
+  </script>
+  
+  <nav>
+    <for var="item" in={items}>
+      <div class="{selected === item ? 'selected' : ''}">
+        <a href="#" onclick="{ev => navigate(item)}">${item}</a>
+      </div>
+    </for>
+  </nav>
+</template>
 
 <template id="app" type="jumptag">
-  <style>
-  </style>
-  
   <script>
-    let data = model.data();
-    let {navigation} = data.state;
+    let {state, data} = model.store;
   </script>
 
   <main>
     <header>
       <img id="logo" src="images/mark-text.png">
-      
-      <nav>
-        <for var="item" in="navigation.items">
-          <div class="{navigation.selected === item ? 'selected' : ''}">
-            <a href="#" onclick="{ev => model.navigate(item)}">${item}</a>
-          </div>
-        </for>
-      </nav>
+      <Navigation state={state.navigation}></Navigation>
     </header>
-
-    <dashboard model={model} data={data}></dashboard>
+    
+    <if check="{state.navigation.selected === 'Collections'}">
+      <Browser state={state.browser} data={data.browser}></Browser>
+    </if>
+    
+    <if check="{state.navigation.selected === 'Dashboard'}">
+      <dashboard model={model} data={data.dashboard}></dashboard> 
+    </if>
+    
   </main>
     
   <footer></footer>

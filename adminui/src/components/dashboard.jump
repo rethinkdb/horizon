@@ -34,12 +34,16 @@
 </template>
 
 <template id="dashboard" type="jumptag">
+  <script>
+    let {model: {graph}, data: {clients, requests}} = opts;
+  </script>
+  
   <div id="dashboard" class="epoch-theme-default">
 
     <tiles data={opts.data}></tiles>
 
     <div class="graph-container">
-      <update check="{!opts.model.graph}">
+      <update check="{!graph}">
         <div id="graph" class="epoch"></div>
         <script>opts.model.initializeGraph();</script>
       </update>
@@ -60,7 +64,7 @@
           <th></th>
           <th>Time</th>
         </tr>
-        <for var="req" in={opts.data.requests.slice(0,5)}>
+        <for var="req" in={requests.slice(0,5)}>
           <tr key="{`${req.id[0]}-${req.id[1]}`}" class="item">
             <td class="token requests ${req.raw.type}">
                 <i class="icon ion-ionic icon-${req.raw.type}"></i>
@@ -102,7 +106,7 @@
           <th></th>
           <th>Time</th>
         </tr>
-        <for var="client" in={opts.data.clients.slice(0,10)}>
+        <for var="client" in={clients.slice(0,10)}>
           <tr key="{`${client.id}-recent-client`}" class="item">
             <td class="token clients">
               <i class="icon ion-ios-person"></i>
