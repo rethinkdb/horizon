@@ -6,7 +6,8 @@ const schemas = require('./schema/horizon_protocol');
 
 const Joi = require('joi');
 const r = require('rethinkdb');
-const websocket = require('ws');
+// const websocket = require('ws');
+const engine = require("engine.io");
 
 class Request {
   constructor(client, raw_request) {
@@ -101,7 +102,7 @@ class Request {
   //   probably not
 }
 
-class Client {
+class ClientConnection {
   constructor(socket, parent_server) {
     this.socket = socket;
     this.parent = parent_server;
@@ -130,7 +131,7 @@ class Client {
   }
 
   close_socket(msg, err_info) {
-    if (this.socket.readyState === websocket.OPEN) {
+    if (this.socket.readyState === engine.OPEN) {
       if (err_info) {
         logger.error(`Horizon client request resulted in error: ${err_info}`);
       }
@@ -261,4 +262,4 @@ class Client {
   }
 }
 
-module.exports = { Client };
+module.exports = { ClientConnection };
