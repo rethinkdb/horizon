@@ -247,7 +247,7 @@ chats.fetch().forEach(
 );
 
 // To wait and retrieve all documents as a single array instead of immediately one at a time.
-chats.toArray().fetch().forEach(
+chats.fetch().toArray().forEach(
   (result) => { console.log("A single document =>" + result ) },
   (error) => { console.log ("Danger Will Robinson 🤖! || " + error ) },
   () => { console.log("Read is now complete" ) }
