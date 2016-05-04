@@ -11,20 +11,24 @@
 </template>
 
 <template id="tiles" type="jumptag">
+  <script>
+    let {clients, collections, cursors} = opts.data;
+  </script>
+  
   <div class="tiles">
     <tile caption="Clients" class="clients">
       <i class="icon ion-ios-person"></i>
-      <div class="value">${opts.data.clients.length}</div>
+      <div class="value">${clients.length}</div>
     </tile>
 
     <tile caption="Collections" class="collections">
       <i class="icon ion-ios-copy"></i>
-      <div class="value">${opts.data.collections.length}</div>
+      <div class="value">${collections.length}</div>
     </tile>
 
     <tile caption="Requests" class="requests">
       <i class="icon ion-ios-pulse"></i>
-      <div class="value">${opts.data.cursors.length}</div>
+      <div class="value">${cursors.length}</div>
     </tile>
   </div>
 </template>
@@ -57,7 +61,7 @@
           <th>Time</th>
         </tr>
         <for var="req" in={opts.data.requests.slice(0,5)}>
-          <tr key="{`${req.id[0]}-${req.id[1]}`}" class="request">
+          <tr key="{`${req.id[0]}-${req.id[1]}`}" class="item">
             <td class="token requests ${req.raw.type}">
                 <i class="icon ion-ionic icon-${req.raw.type}"></i>
                 <span class="text">${req.raw.type}</span>
@@ -99,12 +103,13 @@
           <th>Time</th>
         </tr>
         <for var="client" in={opts.data.clients.slice(0,10)}>
-          <tr key="{`${client.id}-recent-client`}" class="request">
+          <tr key="{`${client.id}-recent-client`}" class="item">
             <td class="token clients">
+              <i class="icon ion-ios-person"></i>
               <span class="text">${client.ip}</span>
             </td>
             <td class="between">from</td>
-            <td class="between">
+            <td class="token collections">
               <span class="text">${client.origin}</span>
             </td>
             <td class="between">at</td>

@@ -2,24 +2,29 @@
 <link jumptag="dashboard, request">
 
 <template id="app" type="jumptag">
+  <style>
+  </style>
+  
   <script>
     let data = model.data();
-    let state = data.state;
+    let {navigation} = data.state;
   </script>
 
-  <div id="content">
-    <img id="logo" src="images/mark-text.png">
-    
-    <ul id="navigation">
-      <for var="item" in="state.navigation.items">
-        <li class="{state.navigation.selected === item ? 'selected' : ''}">
-          <a href="#" onclick="{ev => model.navigate(item)}">${item}</a>
-        </li>
-      </for>
-    </ul>
-    
+  <main>
+    <header>
+      <img id="logo" src="images/mark-text.png">
+      
+      <nav>
+        <for var="item" in="navigation.items">
+          <div class="{navigation.selected === item ? 'selected' : ''}">
+            <a href="#" onclick="{ev => model.navigate(item)}">${item}</a>
+          </div>
+        </for>
+      </nav>
+    </header>
+
     <dashboard model={model} data={data}></dashboard>
-  </div>
-  
-  <div id="footer"></div>
+  </main>
+    
+  <footer></footer>
 </template>

@@ -1,50 +1,66 @@
 // out: ../../dist/main.css
 
 @import "components"
+@import "graph"
 @import "colors"
 
-@media only screen and (max-width: 700px)
-  .tiles
-    .icon
-      display none
-
-html, body
-  display flex
-  height 100%
-  width 100%
+body
   margin 0
-
   font-family "Source Sans Pro"
-  background #F2F3F5
   font-size 14px
+  background white
 
 #app
+  display flex
+  flex-direction column
+  min-height 100vh
+  
+main
+  margin auto
   flex-grow 1
-  overflow scroll
-  background: white
-  margin 0 auto
+  width 100%
   max-width 900px
-  padding 0 50px 50px
 
-  border-left 1px solid color-grey-line
-  border-right 1px solid color-grey-line
-
-  h1
-    padding-top 10px
-    font-size 60px
-    font-weight 100
-    margin 0
+footer
+  height 216px
+  opacity 0.3
+  background url('/images/fg-mountains.png') center 
+  
+header
+  display flex
+  
+  nav
+    display flex
+    flex-grow 1 
+    justify-content flex-end
+    align-items center
+    
+    div
+      display inline-block
+      margin-left 20px
+      font-size 18px
+      padding-bottom 5px
+      border-bottom 2px solid white
+      
+      a
+        color color-grey-text
+        text-decoration none
+        
+      &.selected
+        border-bottom 2px solid color-requests 
+        a {color: darken(color-grey-text, 30)}
+      
 
 #dashboard
+  margin-top 15px
+  
   .tiles
     display flex
-    flex-grow: 1
-    margin-top: 25px
-
+    justify-content flex-end 
+    
     .tile
-      flex-grow 1
       &:not(:first-child)
-        margin-left 35px
+        margin-left 15px
 
   .graph-container
     margin-top 35px
@@ -66,7 +82,7 @@ html, body
     .between
       color darken(color-grey-text, 10)
 
-  .request
+  .item
     font-size 14px
 
     .token
@@ -77,12 +93,3 @@ html, body
     span
       margin-right 5px
       margin-left 5px
-
-
-.request-editor
-  textarea.raw
-    box-sizing border-box
-    border 1px solid color-grey-line
-    width 100%
-    height 50px
-    padding 5px

@@ -2,11 +2,11 @@
 
 .tile
   display inline-block
-  font-size 24px
-  font-weight 100
   color white
   border-radius 5px
   min-width 150px
+  font-size 24px
+  font-weight 100
 
   .content
     padding 5px 10px
@@ -32,47 +32,21 @@
     font-size 24px
     width 35px
 
-.epoch
-  margin-left -30px
-  height 300px
-  
-  canvas
-    height 300px
-
-  .category1
-    .line {stroke: color-clients}
-
-  .category2
-    .line {stroke: color-requests}
-
-  .axis
-    font-weight 100
-    stroke: color-grey
-    line {display: none}
-    path {display: none}
-
 .box
   .title
-    padding-left 10px
-    padding-bottom 5px
-    display flex
+    padding 6px 
     border-radius 3px
-
     border-left 5px solid rgba(255, 255, 255, 0.5)
     color white
 
     h2
-      margin 0
-      margin-top 5px
-      flex-grow 1
+      margin 0 5px
       font-size 18px
       font-weight 100
       letter-spacing 0.8px
-      vertical-align: middle;
 
     .icon
       font-size 18px
-      vertical-align: middle;
 
 .token
   padding 7px 12px
@@ -84,28 +58,3 @@
 
 .inline
   display inline
-  
-.fadeIn
-  animation-name fadeIn
-  animation-duration 1s
-  
-.fadeOut
-  animation-name fadeOut 
-  animation-duration 1s
-  
-@keyframes fadeOut
-  0% {opacity: 1}
-  100% {opacity: 0}
-
-@keyframes fadeIn
-  0% {opacity: 0}
-  100% {opacity: 1}
-
-.animate-text-update
-  animation-name animateTextUpdate 
-  animation-duration 0.3s
-
-@keyframes animateTextUpdate 
-  0% {transform: translate(0, 0)}
-  50% {transform: translate(0, -5px)}
-  100% {transform: translate(0, 0)}
