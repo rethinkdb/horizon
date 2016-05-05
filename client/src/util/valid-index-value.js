@@ -7,12 +7,18 @@ export default function validIndexValue(val) {
   if ([ 'boolean', 'number', 'string' ].indexOf(typeof val) !== -1) {
     return true
   }
+  if (val instanceof ArrayBuffer) {
+    return true
+  }
+  if (val instanceof Date) {
+    return true
+  }
   if (Array.isArray(val)) {
-    let containsBad = false
+    let isValid = true
     val.forEach(v => {
-      containsBad = containsBad || validIndexValue(v)
+      isValid = isValid && validIndexValue(v)
     })
-    return containsBad
+    return isValid
   }
   return false
 }
