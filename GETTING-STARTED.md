@@ -259,7 +259,7 @@ To store documents into the collection, we use [`.store`][store].
 // Object being stored
 let message = {
   text: "What a beautiful horizon 🌄!",
-  datetime: new Date()
+  datetime: new Date(),
   author: "@dalanmiller"
 }
 
