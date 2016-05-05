@@ -10,7 +10,7 @@ Object.entries = object =>
 const typeDisplay = {
   string: 'AZ', number: "01", boolean: "==",
   object: "{ }", array: "[ ]", 
-  null: "X",
+  null: "0",
 };
 
 const adminQueries = {
@@ -27,7 +27,7 @@ const initialState = {
       collection: null,
     },
     navigation: {
-      selected: "Collections",
+      selected: "Dashboard",
       items: [
         "Dashboard",
         "Users",
@@ -50,6 +50,7 @@ class Model {
   constructor() {
     this.horizon = Horizon();
     this.freezer = new Freezer(initialState);
+    this.expandState = new Map();
     
     for (let [target, [command, opts]] of Object.entries(adminQueries))
       this.horizon.send(`admin:${command}`, opts)
@@ -66,7 +67,7 @@ class Model {
       this.graph.option("width", graphEl.getBoundingClientRect().width);
     });
     
-    this.store.state.browser.set("collection", "reddit");
+    this.store.state.browser.set("collection", "quakes");
   }
   
   subscribe(fn) {

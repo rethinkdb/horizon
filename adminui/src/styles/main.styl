@@ -97,50 +97,85 @@ header
 
 
 // Browser
-.records
-  .document
-    margin-bottom 15px
-    border 1px solid color-grey-line
-    border-radius 3px
+#browser
+  h1
+    color color-grey-text
+    font-weight normal 
+    font-size 22px
+    margin 35px 0
     
-  .item
-    margin 10px 
-    margin-left 25px
-    white-space nowrap
-    overflow hidden
-    text-overflow ellipsis
-    
-    &.collapsed
-      .children
-        display inline-block
-        vertical-align bottom
+    text-transform uppercase
+    letter-spacing 1px
       
-      .item
-        display inline-block
-        vertical-align bottom
-        max-width 150px 
-        margin 0
-        
-        .expander
+    .current
+      color lighten(color-red-highlight, 10)
+      
+    i
+      margin 0 10px
+
+
+  .records
+    .box
+      margin-bottom 20px
+      
+      &.collapsed
+        .document
           display none
+    
+    .title
+      border-radius 0
   
-  .type
-    padding 5px
-    border-radius 5px
-    color white
-    font-size 10px
-    margin-right 5px
-    min-width 15px
-    display inline-block
-    text-align center
-    letter-spacing 0.5px
+    .document
+      padding 10px 
+      margin-bottom 15px
+      border 1px solid color-grey-line
     
-  .name
-    margin-right 5px
+    .line
+      margin 5px
+      display inline-block
+      
+    .children
+      .item
+        margin-left 25px
+      
+    .item
+      white-space nowrap
+      overflow hidden
+      text-overflow ellipsis
+      
+      &.collapsed
+        .children
+          display inline-block
+          vertical-align bottom
+        
+        .item
+          display inline-block
+          vertical-align bottom
+          max-width 150px 
+          margin 0
+          
+          .expander
+            display none
     
-  .expander
-    vertical-align middle 
-    margin-right 10px
-    
-  .invisible
-    visibility hidden 
+    .type
+      padding 5px
+      border-radius 5px
+      color white
+      font-size 10px
+      margin-right 5px
+      min-width 15px
+      display inline-block
+      text-align center
+      letter-spacing 0.5px
+      
+    .name
+      margin-right 5px
+      
+    .expander
+      display inline-block
+      vertical-align middle 
+      margin-right 10px
+      width 12px
+      
+    .invisible
+      visibility hidden 

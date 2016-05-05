@@ -28,6 +28,7 @@
     </header>
     
     <if check="{state.navigation.selected === 'Collections'}">
+      <script>model.graph = null;</script>
       <Browser state={state.browser} data={data.browser}></Browser>
     </if>
     
