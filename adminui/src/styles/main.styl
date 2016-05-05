@@ -93,3 +93,54 @@ header
     span
       margin-right 5px
       margin-left 5px
+
+
+
+// Browser
+.records
+  .document
+    margin-bottom 15px
+    border 1px solid color-grey-line
+    border-radius 3px
+    
+  .item
+    margin 10px 
+    margin-left 25px
+    white-space nowrap
+    overflow hidden
+    text-overflow ellipsis
+    
+    &.collapsed
+      .children
+        display inline-block
+        vertical-align bottom
+      
+      .item
+        display inline-block
+        vertical-align bottom
+        max-width 150px 
+        margin 0
+        
+        .expander
+          display none
+  
+  .type
+    padding 5px
+    border-radius 5px
+    color white
+    font-size 10px
+    margin-right 5px
+    min-width 15px
+    display inline-block
+    text-align center
+    letter-spacing 0.5px
+    
+  .name
+    margin-right 5px
+    
+  .expander
+    vertical-align middle 
+    margin-right 10px
+    
+  .invisible
+    visibility hidden 

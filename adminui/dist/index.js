@@ -1,9 +1,17 @@
-function timestamp() { return (new Date).getTime() / 1000; }
+let timestamp = () => (new Date).getTime() / 1000;
+
+let findRecord = (data, id) => data.findIndex(item => id === item.id);
 
 Object.entries = object =>
   Object.keys(object)
         .filter(key => object.hasOwnProperty(key))
         .map(key => [key, object[key]]);
+
+const typeDisplay = {
+  string: 'AZ', number: "01", boolean: "==",
+  object: "{ }", array: "[ ]", 
+  null: "X",
+};
 
 const adminQueries = {
   "clients": ["clients", {}],
@@ -19,7 +27,7 @@ const initialState = {
       collection: null,
     },
     navigation: {
-      selected: "Dashboard",
+      selected: "Collections",
       items: [
         "Dashboard",
         "Users",
@@ -36,18 +44,19 @@ const initialState = {
   }
 };
 
+let expandState = new Map();
+
 class Model {
   constructor() {
     this.horizon = Horizon();
     this.freezer = new Freezer(initialState);
     
-    for (let [set, [command, opts]] of Object.entries(adminQueries))
+    for (let [target, [command, opts]] of Object.entries(adminQueries))
       this.horizon.send(`admin:${command}`, opts)
-                  .forEach(item => this.update(set, item));
+                  .forEach(item => this.onDashboardUpdate(target, item));
     
     this.store.state.browser.getListener()
         .on("update", ch => this.onBrowserStateChange(ch));
-        
         
     setInterval(() => this.updateGraph(), 1000);
 
@@ -56,6 +65,8 @@ class Model {
       let graphEl = document.getElementById("graph").parentNode;
       this.graph.option("width", graphEl.getBoundingClientRect().width);
     });
+    
+    this.store.state.browser.set("collection", "reddit");
   }
   
   subscribe(fn) {
@@ -66,15 +77,19 @@ class Model {
     return this.freezer.get();
   }
   
-  update(set, {old_val, new_val, type, state}) {
-    let data = this.store.data.dashboard[set];
-
+  update(data, {old_val, new_val, type, state}) {
     if (type === "initial")
       data.push(new_val);
     else if (type === "add")
       data.unshift(new_val);
-    else if (type === "remove")
-      data.splice(data.indexOf(old_val), 1);
+    else if (type === "remove") {
+      let target = findRecord(data, old_val.id);
+      if (target > -1) data.splice(target, 1);
+    }
+    else if (type === "change") {
+      let target = findRecord(data, old_val.id);
+      if (target > -1) data[target].reset(new_val);
+    }
   }
   
   updateGraph() {
@@ -99,11 +114,15 @@ class Model {
     });
   }
   
+  onDashboardUpdate(target, change) {
+    this.update(this.store.data.dashboard[target], change);
+  }
+  
   onBrowserStateChange({maxrows, collection}) {
     if (this.browserWatch) this.browserWatch.dispose();
     
     this.browserWatch = Horizon()(collection)
-                        .order("id").limit(20).watch()
-                        .forEach(x => this.store.data.browser.reset(x));
+                        .order("id").limit(20).watch({rawChanges: true})
+                        .forEach(x => this.update(this.store.data.browser, x));
   }
 }

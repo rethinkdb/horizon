@@ -1,59 +1,67 @@
 // main: main.styl
 
+
+// Base colors
 color-bg = white
-
-/* My original colors
-color-collections = #FA7252
-color-requests =  #58AFC0
-color-clients = #756BB1
-color-time = #61B2A7
-*/
-
-// Annie's updated colors
-color-collections = #F7AB84
-color-requests = #EC6E7E //#60B2C3
-color-clients = #60B2C3 //#9AA8D3
-color-time = #61B2A7
-
 color-grey = #BCBCBC
 color-grey-line = #DCDCDC
 color-grey-text = #B2B2B2
 color-red-highlight = #EC6E7E
+
+
+// Dashboard colors
+color-collections = #F7AB84
+color-requests = #EC6E7E //#60B2C3
+color-clients = #60B2C3 //#9AA8D3
+color-time = #61B2A7
 
 .collections {background: color-collections}
 .requests {background: color-requests}
 .clients {background: color-clients}
 .timestamp {background: color-time}
 
-.collections-fg {color: color-collections}
-.requests-fg {color: color-requests}
-.clients-fg {color: color-clients}
-
-// Annie's udpated colors
+// Request type colors 
 color-store = #60B2C3
 color-subscribe = #A8DEE1
 color-remove = #EC6E7E
 color-query = #9AA8D3
-
-/* My original colors
-color-store = #1f8267
-color-subscribe = #2690A0
-color-remove = #96283a
-color-query = #536878
-*/
-
-/* My alternate colors
-color-subscribe = #2690A0
-color-store = #31A354
-color-query = #3182BD
-color-remove = #c52115
-*/
 
 .query {background: color-query}
 .subscribe {background: color-subscribe}
 .store {background: color-store}
 .remove {background: color-remove}
 
+// Object type colors
+color-value = #3182BD
+color-string = #038103
+color-number = #1212FF
+color-bool = #F026FF
+color-array = #31A354
+color-object = #756BB1
+color-null = #E6550D
+color-ref = #E6550D
+
+.type-string {background: color-string}
+.type-integer {background: color-number}
+.type-number {background: color-number}
+.type-boolean {background: color-bool}
+.type-array  {background: color-array}
+.type-object {background: color-object}
+.type-null {background: color-null}
+.type-ref {background: color-ref}
+
+
+.type-string-fg {color: color-string}
+.type-integer-fg {color: color-number}
+.type-number-fg {color: color-number}
+.type-boolean-fg {color: color-bool}
+.type-array-fg {color: color-array}
+.type-object-fg {color: color-object}
+.type-null-fg {color: color-null}
+.type-ref-fg {color: color-ref}
+
+
+// Icons
 .icon-query
   &:before {content: "\f260"}
 
