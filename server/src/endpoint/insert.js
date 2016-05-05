@@ -1,24 +1,23 @@
 'use strict';
 
 const insert = require('../schema/horizon_protocol').insert;
-const validate = require('../permissions/rule').validate;
 const writes = require('./writes');
 
 const Joi = require('joi');
 const r = require('rethinkdb');
 
-const run = (raw_request, context, rules, metadata, send_cb) => {
+const run = (raw_request, context, ruleset, metadata, send, done) => {
   const parsed = Joi.validate(raw_request.options, insert);
-  if (parsed.error !== null) { send_cb(new Error(parsed.error.details[0].message)); }
+  if (parsed.error !== null) { done(new Error(parsed.error.details[0].message)); }
 
   const table = metadata.get_table(parsed.value.collection);
-  const conn = metadata.get_connection();
+  const conn = metadata.connection();
 
   // TODO: shortcut if validation isn't needed (for all write request types)
   const response_data = [ ];
   const valid_rows = [ ];
   for (let i = 0; i < parsed.value.data.length; ++i) {
-    if (validate(rules, context, null, parsed.value.data[i])) {
+    if (ruleset.validate(context, null, parsed.value.data[i])) {
       valid_rows.push(parsed.value.data[i]);
       response_data.push(null);
     } else {
@@ -31,8 +30,8 @@ const run = (raw_request, context, rules, metadata, send_cb) => {
     .insert(valid_rows.map((row) => writes.add_new_version(row)), { conflict: 'error' })
     .run(conn)
     .then((insert_results) => {
-      send_cb(writes.make_write_response(response_data, insert_results));
-    }).catch(send_cb);
+      done(writes.make_write_response(response_data, insert_results));
+    }).catch(done);
 };
 
 module.exports = { run };

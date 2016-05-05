@@ -30,20 +30,33 @@ class Rule {
   }
 }
 
-// Helper function to check that a query passes at least one rule in a set
-// Returns the matching rule or undefined if no rules match
-// Variadic - extra arguments are passed down to the validators
-const validate = function() {
-  const args = Array.from(arguments);
-  const rules = args.shift();
+class Ruleset {
+  constructor() {
+    this.clear();
+  }
 
-  console.log(`Evaluating rules: ${JSON.stringify(rules)}`);
-  for (const rule of rules) {
-    console.log(`Evaluating rule: ${JSON.stringify(rule)}`);
-    if (rule.is_valid(...args)) {
-      return rule;
+  clear() {
+    this._rules = [ ];
+  }
+
+  empty() {
+    return this._rules.length === 0;
+  }
+
+  update(rules) {
+    this._rules = rules;
+  }
+
+  // Check that a query passes at least one rule in a set
+  // Returns the matching rule or undefined if no rules match
+  // Variadic - extra arguments are passed down to the validators
+  validate() {
+    for (const rule of this._rules) {
+      if (rule.is_valid(...arguments)) {
+        return rule;
+      }
     }
   }
-};
+}
 
-module.exports = { Rule, validate };
+module.exports = { Rule, Ruleset };

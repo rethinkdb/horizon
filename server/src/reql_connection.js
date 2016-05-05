@@ -7,13 +7,13 @@ const r = require('rethinkdb');
 const utils = require('./utils');
 
 class ReqlConnection {
-  constructor(host, port, db, auto_create_table, auto_create_index, clients) {
+  constructor(host, port, db, auto_create_table, auto_create_index) {
     this._host = host;
     this._port = port;
     this._db = db;
     this._auto_create_table = auto_create_table;
     this._auto_create_index = auto_create_index;
-    this._clients = clients;
+    this._clients = new Set();
     this._connection = undefined;
     this._metadata = undefined;
     this._ready = false;

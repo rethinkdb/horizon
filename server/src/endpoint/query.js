@@ -2,7 +2,6 @@
 
 const query = require('../schema/horizon_protocol').query;
 const check = require('../error.js').check;
-const validate = require('../permissions/rule').validate;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
@@ -84,38 +83,42 @@ const make_reql = (raw_request, metadata) => {
   return reql;
 };
 
-const run = (raw_request, context, rules, metadata, send_cb) => {
-  let errored = false;
+const run = (raw_request, context, ruleset, metadata, send, done) => {
+  let cursor;
   const reql = make_reql(raw_request, metadata);
 
-  reql.run(metadata.get_connection()).then((res) => {
+  reql.run(metadata.connection()).then((res) => {
     if (res !== null && res.constructor.name === 'Cursor') {
-      return res.eachAsync((item) => {
-        if (!validate(rules, context, item)) {
-          errored = true;
-          send_cb(new Error('Operation not permitted.'));
-          res.close();
+      cursor = res;
+      return cursor.eachAsync((item) => {
+        if (!ruleset.validate(context, item)) {
+          done(new Error('Operation not permitted.'));
+          cursor.close();
         } else {
-          send_cb({ data: [ item ] });
+          send({ data: [ item ] });
         }
       }).then(() => {
-        if (!errored) {
-          send_cb({ data: [ ], state: 'complete' });
-        }
+        done({ data: [ ], state: 'complete' });
       });
     } else if (res !== null && res.constructor.name === 'Array') {
       for (const item of res) {
-        if (!validate(rules, context, item)) {
-          return send_cb(new Error('Operation not permitted.'));
+        if (!ruleset.validate(context, item)) {
+          return done(new Error('Operation not permitted.'));
         }
       }
-      send_cb({ data: res, state: 'complete' });
-    } else if (!validate(rules, context, res)) {
-      send_cb(new Error('Operation not permitted.'));
+      done({ data: res, state: 'complete' });
+    } else if (!ruleset.validate(context, res)) {
+      done(new Error('Operation not permitted.'));
     } else {
-      send_cb({ data: [ res ], state: 'complete' });
+      done({ data: [ res ], state: 'complete' });
     }
-  }).catch(send_cb);
+  }).catch(done);
+
+  return () => {
+    if (cursor) {
+      cursor.close();
+    }
+  };
 };
 
 module.exports = { make_reql, run };

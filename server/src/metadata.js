@@ -267,7 +267,7 @@ class Metadata {
     return this._groups.get(group_name);
   }
 
-  get_connection() {
+  connection() {
     return this._conn;
   }
 }

@@ -1,11 +1,9 @@
 'use strict';
 
 const Auth = require('./auth').Auth;
-const check = require('./error').check;
 const Client = require('./client').Client;
 const ReqlConnection = require('./reql_connection').ReqlConnection;
 const logger = require('./logger');
-const horizon_protocol = require('./schema/horizon_protocol');
 const options_schema = require('./schema/server_options').server;
 
 // TODO: dynamically serve different versions of the horizon
@@ -32,7 +30,6 @@ const websocket = require('ws');
 const protocol_name = 'rethinkdb-horizon-v0';
 
 const accept_protocol = (protocols, cb) => {
-  logger.debug('accept_protocol');
   if (protocols.findIndex((x) => x === protocol_name) !== -1) {
     cb(true, protocol_name);
   } else {
@@ -69,20 +66,17 @@ class Server {
     this._request_handlers = new Map();
     this._http_handlers = new Map();
     this._ws_servers = new Set();
-    this._clients = new Set();
     this._reql_conn = new ReqlConnection(opts.rdb_host,
                                          opts.rdb_port,
                                          opts.db,
                                          opts.auto_create_table,
-                                         opts.auto_create_index,
-                                         this._clients);
+                                         opts.auto_create_index);
     this._auth = new Auth(this, opts.auth);
     for (const key in endpoints) {
       this.add_request_handler(key, endpoints[key]);
     }
 
     const verify_client = (info, cb) => {
-      logger.debug('verify_client');
       // Reject connections if we aren't synced with the database
       if (!this._reql_conn.is_ready()) {
         cb(false, 503, 'Connection to the database is down.');
@@ -154,12 +148,7 @@ class Server {
   }
 
   get_request_handler(request) {
-    const parsed = Joi.validate(request, horizon_protocol.request);
-    if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
-
-    const handler = this._request_handlers.get(parsed.value.type);
-    check(handler !== undefined, `"${parsed.value.type}" is not a registered request type.`);
-    return handler;
+    return this._request_handlers.get(request.type);
   }
 
   remove_request_handler(request_name) {

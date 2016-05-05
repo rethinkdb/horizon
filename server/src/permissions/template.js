@@ -3,7 +3,10 @@
 const check = require('../error').check;
 
 const ast = require('@horizon/client/lib/ast');
+const validIndexValue = require('@horizon/client/lib/util/valid-index-value');
 const vm = require('vm');
+
+let template_compare;
 
 class Any {
   constructor() {
@@ -41,40 +44,38 @@ const wrap_remove = (doc) => {
 };
 
 // Monkey-patch the ast functions so we don't clobber certain things
-ast.TermBase.prototype.watch = function () {
+ast.TermBase.prototype.watch = function() {
   return this._sendRequest('subscribe', this._query);
 };
-ast.TermBase.prototype.fetch = function () {
+ast.TermBase.prototype.fetch = function() {
   return this._sendRequest('query', this._query);
 };
-ast.Collection.prototype.store = function (docs) {
+ast.Collection.prototype.store = function(docs) {
   return this._sendRequest('store', wrap_write(this._query, docs));
 };
-ast.Collection.prototype.upsert = function (docs) {
+ast.Collection.prototype.upsert = function(docs) {
   return this._sendRequest('upsert', wrap_write(this._query, docs));
 };
-ast.Collection.prototype.insert = function (docs) {
+ast.Collection.prototype.insert = function(docs) {
   return this._sendRequest('insert', wrap_write(this._query, docs));
 };
-ast.Collection.prototype.replace = function (docs) {
+ast.Collection.prototype.replace = function(docs) {
   return this._sendRequest('replace', wrap_write(this._query, docs));
 };
-ast.Collection.prototype.update = function (docs) {
+ast.Collection.prototype.update = function(docs) {
   return this._sendRequest('update', wrap_write(this._query, docs));
 };
-ast.Collection.prototype.remove = function (doc) {
+ast.Collection.prototype.remove = function(doc) {
   return this._sendRequest('remove', wrap_write(this._query, wrap_remove(doc)));
 };
-ast.Collection.prototype.removeAll = function (docs) {
+ast.Collection.prototype.removeAll = function(docs) {
   return this._sendRequest('remove', wrap_write(this._query,
-                                                docs.map(doc => wrap_remove(doc))));
+                                                docs.map((doc) => wrap_remove(doc))));
 };
-
-let result = null;
 
 const env = {
   collection: (name) => new ast.Collection((type, opts) =>
-    ({ request_id: new Any(), type, opts, }), name, false),
+    ({ request_id: new Any(), type, opts }), name, false),
   any: function() { return new Any(...arguments); },
   user: {
     id: new UserId(),
@@ -86,7 +87,7 @@ const make_template = (str) => {
   return vm.runInNewContext(str, sandbox);
 };
 
-const template_compare = (query, template, context) => {
+template_compare = (query, template, context) => {
   console.log(`Comparing query (${JSON.stringify(query)}) and template (${JSON.stringify(template)})`);
   for (const key in query) {
     const query_value = query[key];

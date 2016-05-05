@@ -1,35 +1,39 @@
 'use strict';
 
 const make_reql = require('./query').make_reql;
-const validate = require('../permissions/rule').validate;
 
-const run = (raw_request, context, rules, metadata, send_cb) => {
-  let errored = false;
+const run = (raw_request, context, ruleset, metadata, send, done) => {
+  let feed;
   const reql = make_reql(raw_request, metadata);
 
   reql.changes({ include_initial: true,
                  include_states: true,
                  include_types: true,
                  include_offsets: Boolean(raw_request.options.order) })
-    .run(metadata.get_connection())
-    .then((feed) =>
+    .run(metadata.connection())
+    .then((res) => {
+      feed = res;
       feed.eachAsync((item) => {
         if (item.state === 'initializing') {
           // Do nothing - we don't care
         } else if (item.state === 'ready') {
-          send_cb({ state: 'synced' });
-        } else if (!validate(rules, context, item)) {
-          errored = true;
-          send_cb(new Error('Operation not permitted.'));
+          send({ state: 'synced' });
+        } else if (!ruleset.validate(context, item)) {
+          done(new Error('Operation not permitted.'));
+          feed.close();
         } else {
-          send_cb({ data: [ item ] });
+          send({ data: [ item ] });
         }
       }).then(() => {
-        if (!errored) {
-          send_cb({ state: 'complete' });
-        }
-      }))
-    .catch(send_cb);
+        done({ state: 'complete' });
+      });
+    }).catch(done);
+
+  return () => {
+    if (feed) {
+      feed.close();
+    }
+  };
 };
 
 module.exports = { run };

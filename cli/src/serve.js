@@ -55,10 +55,10 @@ const addArguments = (parser) => {
     { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
       help: 'Enable debug logging.' });
 
-  parser.addArgument([ '--insecure' ],
+  parser.addArgument([ '--secure' ],
     { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-      help: 'Serve insecure websockets, ignore --key-file and ' +
-      '--cert-file.' });
+      help: 'Serve secure websockets, requires --key-file and ' +
+      '--cert-file if true, on by default.' });
 
   parser.addArgument([ '--start-rethinkdb' ],
     { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
@@ -83,12 +83,14 @@ const addArguments = (parser) => {
   parser.addArgument([ '--dev' ],
     { action: 'storeTrue',
       help: 'Runs the server in development mode, this sets ' +
-      '--insecure=yes, ' +
+      '--secure=no, ' +
       '--permissions=no, ' +
       '--auto-create-table=yes, ' +
+      '--auto-create-index=yes, ' +
       '--start-rethinkdb=yes, ' +
-      '--serve-static=./dist, ' +
-      'and --auto-create-index=yes.' });
+      '--allow-unauthenticated=yes, ' +
+      '--allow-anonymous=yes, ' +
+      'and --serve-static=./dist.'});
 
   parser.addArgument([ '--config' ],
     { type: 'string', metavar: 'PATH',
@@ -116,7 +118,7 @@ const make_default_config = () => ({
   start_rethinkdb: false,
   serve_static: null,
 
-  insecure: false,
+  secure: true,
   permissions: true,
   key_file: './key.pem',
   cert_file: './cert.pem',
@@ -207,7 +209,7 @@ const initialize_servers = (ctor, opts) => {
       });
       srv.on('error', (err) => {
         logger.error(
-          `HTTP${opts.insecure ? '' : 'S'} server: ${err}`);
+          `HTTP${opts.secure ? 'S' : ''} server: ${err}`);
         process.exit(1);
       });
     });
@@ -235,7 +237,7 @@ const createSecureServers = (opts) => {
 };
 
 const yes_no_options = [ 'debug',
-                         'insecure',
+                         'secure',
                          'permissions',
                          'start_rethinkdb',
                          'auto_create_index',
@@ -342,10 +344,9 @@ const read_config_from_flags = (parsed) => {
 
   // Dev mode
   if (parsed.dev) {
-    config.debug = false;
     config.allow_unauthenticated = true;
     config.allow_anonymous = true;
-    config.secure = true;
+    config.secure = false;
     config.permissions = false;
     config.start_rethinkdb = true;
     config.auto_create_table = true;
@@ -509,8 +510,8 @@ const runCommand = (opts, done) => {
   });
 
   return (
-    opts.insecure ?
-      createInsecureServers(opts) : createSecureServers(opts)
+    opts.secure ?
+      createSecureServers(opts) : createInsecureServers(opts)
   ).then((servers) => {
     http_servers = servers;
     if (opts.start_rethinkdb) {

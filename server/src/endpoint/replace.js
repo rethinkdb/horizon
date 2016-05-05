@@ -2,18 +2,17 @@
 
 const check = require('../error').check;
 const replace = require('../schema/horizon_protocol').replace;
-const validate = require('../permissions/rule').validate;
 const writes = require('./writes');
 
 const Joi = require('joi');
 const r = require('rethinkdb');
 
-const run = (raw_request, context, rules, metadata, send_cb) => {
+const run = (raw_request, context, ruleset, metadata, send, done) => {
   const parsed = Joi.validate(raw_request.options, replace);
   if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
 
   const table = metadata.get_table(parsed.value.collection);
-  const conn = metadata.get_connection();
+  const conn = metadata.connection();
 
   const response_data = [ ];
 
@@ -26,7 +25,7 @@ const run = (raw_request, context, rules, metadata, send_cb) => {
       for (let i = 0; i < old_rows.length; ++i) {
         if (old_rows[i] === null) {
           response_data.push(new Error(writes.missing_error));
-        } else if (validate(rules, context, old_rows[i], parsed.value.data[i])) {
+        } else if (ruleset.validate(context, old_rows[i], parsed.value.data[i])) {
           response_data.push(null);
           valid_rows.push(parsed.value.data[i]);
         } else {
@@ -44,8 +43,8 @@ const run = (raw_request, context, rules, metadata, send_cb) => {
           { returnChanges: 'always' }))
         .run(conn);
     }).then((replace_results) => {
-      send_cb(writes.make_write_response(response_data, replace_results));
-    }).catch(send_cb);
+      done(writes.make_write_response(response_data, replace_results));
+    }).catch(done);
 };
 
 module.exports = { run };
