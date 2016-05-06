@@ -1,0 +1,109 @@
+
+<script id="elsif" type="jumptag">
+  else if (${opts.check}) { ${content} }
+</script>
+
+<template id="BrowserTreeItem" type="jumptag">
+  <script>
+    let {name, value, parent} = opts;
+    let type = value === null ? "null" :
+               Array.isArray(value) ? "array" : typeof(value);
+    
+    let {isExpanded = true} = {isExpanded: expandState.get(value)};
+    let hasExpander = value && (type === "array" || type === "object");
+    
+    let onExpand = ev => {
+      expandState.set(value, !isExpanded);
+      update();
+    }
+  </script>
+  
+  <div class="item ${!isExpanded ? 'collapsed' : ''}">
+    
+    <div class="line">
+      <a class="expander ${!hasExpander ? 'invisible' : ''}" onclick={onExpand}>
+        <i class="icon ion-chevron-${isExpanded ? 'down' : 'right'}"></i>
+      </a>
+      
+      <span class="type type-${type}">${typeDisplay[type]}</span>
+      <span class="name">${name}:</span>
+      
+      <if check={!hasExpander}>
+        <span class="value type-${type}-fg">${value}</span>
+      </if>
+    </div>
+     
+    <if check="{value && type === 'array'}">
+      <div class="children">
+        <for var="v" in={value}>
+          <BrowserTreeItem name={index} value={v}></BrowserTreeItem> 
+        </for>
+      </div>
+    </if>
+    
+    <if check="{value && type === 'object'}">
+      <div class="children">
+        <for var="[name, v]" in={Object.entries(value)}>
+          <BrowserTreeItem name={name} value={v}></BrowserTreeItem> 
+        </for>
+      </div>
+    </if>
+
+  </div>
+</template>
+
+<template id="BrowserTreeView" type="jumptag">
+  <script>
+    let {value} = opts;
+    let {isExpanded = true} = {isExpanded: expandState.get(value.id)};
+    
+    let onExpand = ev => {
+      expandState.set(value.id, !isExpanded);
+      update();
+    }
+  </script>
+  
+  
+  <div class="box ${!isExpanded ? 'collapsed' : ''}">
+    <div class="title clients">
+      <h2>
+        <a class="expander" onclick={onExpand}>
+          <if check="{isExpanded}">
+            <i class="icon ion-chevron-down"></i>
+          </if>
+          <else>
+            <i class="icon ion-chevron-right"></i>
+          </else>
+        </a>
+        <span class="id">${value.id}</span>
+      </h2>
+    </div>
+    
+    <div class="document">
+      <for var="[k, v]" in={Object.entries(value)}>
+        <BrowserTreeItem name={k} value={v}></BrowserTreeItem>
+      </for>
+    </div>
+  </div>
+</template>
+
+
+<template id="Browser" type="jumptag">
+  <script>
+    let {data, state: {collection}} = opts;
+  </script>
+  
+  <div id="browser">
+    <h1>
+      <span class="base">Collections</span>
+      <i class="icon ion-chevron-right"></i>
+      <span class="current">${collection}</span>
+    </h1>
+    
+    <div class="records">
+      <for var="doc" in={data}>
+        <BrowserTreeView value={doc}></BrowserItem>
+      </for>
+    </div>
+  </div>
+</template>

@@ -1,7 +1,7 @@
 
-<link jumptag="time">
+<link jumptag="Time">
 
-<template id="tile" type="jumptag">
+<template id="Tile" type="jumptag">
   <div class="tile ${opts.class}">
     <div class="inner">
       <div class="content"><expand /></div>
@@ -10,43 +10,47 @@
   </div>
 </template>
 
-<template id="tiles" type="jumptag">
+<template id="Tiles" type="jumptag">
   <script>
     let {clients, collections, cursors} = opts.data;
   </script>
   
   <div class="tiles">
-    <tile caption="Clients" class="clients">
+    <Tile caption="Clients" class="clients">
       <i class="icon ion-ios-person"></i>
       <div class="value">${clients.length}</div>
-    </tile>
+    </Tile>
 
-    <tile caption="Collections" class="collections">
+    <Tile caption="Collections" class="collections">
       <i class="icon ion-ios-copy"></i>
       <div class="value">${collections.length}</div>
-    </tile>
+    </Tile>
 
-    <tile caption="Requests" class="requests">
+    <Tile caption="Requests" class="requests">
       <i class="icon ion-ios-pulse"></i>
       <div class="value">${cursors.length}</div>
-    </tile>
+    </Tile>
   </div>
 </template>
 
-<template id="dashboard" type="jumptag">
+<template id="Dashboard" type="jumptag">
   <script>
     let {model: {graph}, data: {clients, requests}} = opts;
   </script>
   
   <div id="dashboard" class="epoch-theme-default">
 
-    <tiles data={opts.data}></tiles>
+    <Tiles data={opts.data}></Tiles>
 
-    <div class="graph-container">
-      <update check="{!graph}">
-        <div id="graph" class="epoch"></div>
-        <script>opts.model.initializeGraph();</script>
-      </update>
+    <div id="graph-container" class="graph-container">
+      <div class="epoch" id="epoch">
+        <script>IncrementalDOM.skip();</script>
+      </div>
+      
+      <script>
+        if (!document.getElementById("epoch").children.length)
+          model.graph.attach(); 
+      </script>
     </div>
 
     <div class="box">
@@ -85,13 +89,12 @@
             <td class="token timestamp">
               <span class="text">
                 <i class="icon ion-ios-clock"></i>
-                <time time={req.time} format="MMM D hh:mm a"></time>
+                <Time time={req.time} format="MMM D hh:mm a"></Time>
               </span>
             </td>
           </tr>
         </for>
       </table>
-      
       
       <div class="box">
       <div class="title clients">
@@ -120,7 +123,7 @@
             <td class="token timestamp">
               <span class="text">
                 <i class="icon ion-ios-clock"></i>
-                <time time={client.time} format="MMM D hh:mm a"></time>
+                <Time time={client.time} format="MMM D hh:mm a"></Time>
               </span>
             </td>
           </tr>

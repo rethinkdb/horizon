@@ -1,5 +1,5 @@
 
-<link jumptag="dashboard, request, Browser">
+<link jumptag="Dashboard, request, Browser">
 
 <template id="Navigation" type="jumptag">
   <script>
@@ -28,12 +28,11 @@
     </header>
     
     <if check="{state.navigation.selected === 'Collections'}">
-      <script>model.graph = null;</script>
       <Browser state={state.browser} data={data.browser}></Browser>
     </if>
     
     <if check="{state.navigation.selected === 'Dashboard'}">
-      <dashboard model={model} data={data.dashboard}></dashboard> 
+      <Dashboard model={model} data={data.dashboard}></Dashboard> 
     </if>
     
   </main>

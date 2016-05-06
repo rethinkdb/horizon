@@ -123,12 +123,17 @@ header
           display none
     
     .title
-      border-radius 0
+      border-radius 5px 5px 0 0 
   
     .document
       padding 10px 
       margin-bottom 15px
       border 1px solid color-grey-line
+      border-top 0
+      border-radius 0 0 5px 5px
+      
+      .expander
+        color darken(color-grey-text, 15)
     
     .line
       margin 5px
@@ -142,6 +147,9 @@ header
       white-space nowrap
       overflow hidden
       text-overflow ellipsis
+      
+      .name
+        color darken(color-grey-text, 30)
       
       &.collapsed
         .children
@@ -176,6 +184,7 @@ header
       vertical-align middle 
       margin-right 10px
       width 12px
+      
       
     .invisible
       visibility hidden 
