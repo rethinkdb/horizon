@@ -31,7 +31,7 @@ function checkIfLegalToChain(key) {
 }
 
 // Abstract base class for terms
-class TermBase {
+export class TermBase {
   constructor(sendRequest, query, legalMethods) {
     this._sendRequest = sendRequest
     this._query = query
@@ -131,7 +131,7 @@ function makePresentable(observable, query) {
   }
 }
 
-function applyChange(arr, change) {
+export function applyChange(arr, change) {
   switch (change.type) {
   case 'remove':
   case 'uninitial': {
@@ -210,7 +210,7 @@ function writeOp(name, args, documents) {
   return observable
 }
 
-class Collection extends TermBase {
+export class Collection extends TermBase {
   constructor(sendRequest, collectionName, lazyWrites) {
     const query = { collection: collectionName }
     const legalMethods = [
@@ -253,7 +253,7 @@ class Collection extends TermBase {
   }
 }
 
-class Find extends TermBase {
+export class Find extends TermBase {
   constructor(sendRequest, previousQuery, idOrObject) {
     const findObject = validIndexValue(idOrObject) ?
           { id: idOrObject } : idOrObject
@@ -262,7 +262,7 @@ class Find extends TermBase {
   }
 }
 
-class FindAll extends TermBase {
+export class FindAll extends TermBase {
   constructor(sendRequest, previousQuery, fieldValues) {
     const wrappedFields = fieldValues
           .map(item => validIndexValue(item) ? { id: item } : item)
@@ -279,7 +279,7 @@ class FindAll extends TermBase {
   }
 }
 
-class Above extends TermBase {
+export class Above extends TermBase {
   constructor(sendRequest, previousQuery, aboveSpec, bound) {
     const option = { above: [ aboveSpec, bound ] }
     const query = Object.assign({}, previousQuery, option)
@@ -288,7 +288,7 @@ class Above extends TermBase {
   }
 }
 
-class Below extends TermBase {
+export class Below extends TermBase {
   constructor(sendRequest, previousQuery, belowSpec, bound) {
     const options = { below: [ belowSpec, bound ] }
     const query = Object.assign({}, previousQuery, options)
@@ -297,7 +297,7 @@ class Below extends TermBase {
   }
 }
 
-class Order extends TermBase {
+export class Order extends TermBase {
   constructor(sendRequest, previousQuery, fields, direction) {
     const wrappedFields = Array.isArray(fields) ? fields : [ fields ]
     const options = { order: [ wrappedFields, direction ] }
@@ -307,21 +307,10 @@ class Order extends TermBase {
   }
 }
 
-class Limit extends TermBase {
+export class Limit extends TermBase {
   constructor(sendRequest, previousQuery, size) {
     const query = Object.assign({}, previousQuery, { limit: size })
     // Nothing is legal to chain after .limit
     super(sendRequest, query, [])
   }
-}
-
-module.exports = {
-  TermBase,
-  Collection,
-  FindAll,
-  Find,
-  Above,
-  Below,
-  Order,
-  Limit,
 }
