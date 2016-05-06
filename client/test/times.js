@@ -1,13 +1,19 @@
 import { _do as tap } from 'rxjs/operator/do'
 import { toArray } from 'rxjs/operator/toArray'
 
-import { assertCompletes, compareWithoutVersion } from './utils'
+import { assertCompletes,
+         compareWithoutVersion,
+         removeAllData } from './utils'
 
 const timesSuite = global.timesSuite = getData => () => {
   let data
 
   before(() => {
     data = getData()
+  })
+
+  after(done => {
+    removeAllData(data, done)
   })
 
   let range = count => Array.from(Array(count).keys())
