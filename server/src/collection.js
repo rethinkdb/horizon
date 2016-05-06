@@ -1,7 +1,7 @@
 'use strict';
 
 const error = require('./error');
-const Index = require('./index');
+const Index = require('./index').Index;
 
 const r = require('rethinkdb');
 
@@ -11,9 +11,7 @@ class Collection {
     this.table = data.table;
     this.indexes = new Map();
 
-    // Initialize the primary index, which won't show up in the changefeed
-    const primary_index_name = Index.fields_to_name([ 'id' ]);
-    this.indexes.set(primary_index_name, new Index(primary_index_name, conn));
+    this.update_indexes([ ]);
 
     this.promise =
       r.table(this.table)
@@ -29,7 +27,16 @@ class Collection {
   }
 
   update_indexes(indexes, conn) {
+    // Clear all indexes, then re-add the latest set
+    // This will cause new requests to wait until we have confirmation that the
+    // indexes are ready, but it saves us from needing more-complicated machinery
+    // to ensure we don't miss changes to the set of indexes. (i.e. if an index is
+    // deleted then immediately recreated, or replaced by a post-constructing index)
+    this.indexes.clear();
 
+    // Initialize the primary index, which won't show up in the changefeed
+    indexes.push(Index.fields_to_name([ 'id' ]));
+    indexes.map((name) => this.indexes.set(name, new Index(name, this.table, conn)));
   }
 
   create_index(fields, conn, done) {

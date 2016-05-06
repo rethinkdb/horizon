@@ -1,10 +1,66 @@
 'use strict';
 
+const check = require('./error').check;
+
+const r = require('rethinkdb');
+
+// Index names are of the format "field1_field2_field3", where the fields
+// are given in order of use in a compound index.  If the field names contain
+// the characters '\' or '_', they will be escaped with a '\'.
+
+const name_to_fields = (name) => {
+  let escaped = false;
+  let field = '';
+  const fields = [ ];
+  for (const c of name) {
+    if (escaped) {
+      check(c === '\\' || c === '_', `Unexpected index name: "${name}"`);
+      escaped = false;
+      field += c;
+    } else if (c === '\\') {
+      escaped = true;
+    } else if (c === '_') {
+      fields.push(field);
+      field = '';
+    } else {
+      field += c;
+    }
+  }
+  check(!escaped, `Unexpected index name: "${name}"`);
+  fields.push(field);
+  return fields;
+};
+
+const fields_to_name = (fields) => {
+  let res = '';
+  for (const field of fields) {
+    for (const c of field) {
+      if (c === '\\' || c === '_') {
+        res += '\\';
+      }
+      res += c;
+    }
+    res += '_';
+  }
+};
+
+const primary_index_name = fields_to_name([ 'id' ]);
+
 class Index {
-  constructor(name, promise) {
+  constructor(name, table, conn) {
     this.name = name;
     this.fields = Index.name_to_fields(name);
-    this.promise = promise;
+    if (name !== primary_index_name) {
+      this.promise =
+        r.table(table)
+          .indexWait(name)
+          .run(conn)
+          .then(() => {
+            this.promise = null;
+          });
+    } else {
+      this.promise = null;
+    }
   }
 
   on_ready(done) {
@@ -35,12 +91,7 @@ class Index {
   }
 }
 
-Index.name_to_fields = (name) => {
+Index.name_to_fields = name_to_fields;
+Index.fields_to_name = fields_to_name;
 
-};
-
-Index.fields_to_name = (fields) => {
-
-};
-
-module.exports = Index;
+module.exports = { Index };

@@ -34,7 +34,7 @@ class Metadata {
                      includeTypes: true })
           .run(this._conn).then((res) => {
             this._group_feed = res;
-            this._group_feed.asyncEach((change) => {
+            this._group_feed.eachAsync((change) => {
               if (change.type === 'state') {
                 if (change.state === 'ready') {
                   logger.info('Groups metadata synced.');
@@ -65,7 +65,7 @@ class Metadata {
                      includeTypes: true })
           .run(this._conn).then((res) => {
             this._collection_feed = res;
-            this._collection_feed.asyncEach((change) => {
+            this._collection_feed.eachAsync((change) => {
               if (change.type === 'state') {
                 if (change.state === 'ready') {
                   logger.info('Collections metadata synced.');
@@ -90,11 +90,11 @@ class Metadata {
           .pluck('name', 'indexes')
           .changes({ squash: true,
                      includeInitial: true,
-                     includeState: true,
+                     includeStates: true,
                      includeTypes: true })
           .run(this._conn).then((res) => {
             this._index_feed = res;
-            this._index_feed.asyncEach((change) => {
+            this._index_feed.eachAsync((change) => {
               if (change.type === 'state') {
                 if (change.state === 'ready') {
                   logger.info('Index metadata synced.');
@@ -113,7 +113,7 @@ class Metadata {
             });
           }).catch(reject);
       });
-      return Promise.all(groups_ready, collections_ready, indexes_ready).then(() => {
+      return Promise.all([ groups_ready, collections_ready, indexes_ready ]).then(() => {
         logger.info('metadata sync complete');
         return this;
       });

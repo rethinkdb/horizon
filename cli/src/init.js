@@ -61,10 +61,10 @@ project = "${projectName}"
 # service.  Tables and indexes are not lightweight objects, and allowing them
 # to be created like this could open the service up to denial-of-service
 # attacks.
-# 'auto_create_table' creates a table when one is needed but does not exist
+# 'auto_create_collection' creates a collection when one is needed but does not exist
 # 'auto_create_index' creates an index when one is needed but does not exist
 #------------------------------------------------------------------------------
-# auto_create_table = true
+# auto_create_collection = true
 # auto_create_index = true
 
 

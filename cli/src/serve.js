@@ -64,9 +64,9 @@ const addArguments = (parser) => {
     { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
       help: 'Start up a RethinkDB server in the current directory' });
 
-  parser.addArgument([ '--auto-create-table' ],
+  parser.addArgument([ '--auto-create-collection' ],
     { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-      help: 'Create tables used by requests if they do not exist.' });
+      help: 'Create collections used by requests if they do not exist.' });
 
   parser.addArgument([ '--auto-create-index' ],
     { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
@@ -85,7 +85,7 @@ const addArguments = (parser) => {
       help: 'Runs the server in development mode, this sets ' +
       '--secure=no, ' +
       '--permissions=no, ' +
-      '--auto-create-table=yes, ' +
+      '--auto-create-collection=yes, ' +
       '--auto-create-index=yes, ' +
       '--start-rethinkdb=yes, ' +
       '--allow-unauthenticated=yes, ' +
@@ -123,7 +123,7 @@ const make_default_config = () => ({
   key_file: './key.pem',
   cert_file: './cert.pem',
 
-  auto_create_table: false,
+  auto_create_collection: false,
   auto_create_index: false,
 
   rdb_host: 'localhost',
@@ -241,7 +241,7 @@ const yes_no_options = [ 'debug',
                          'permissions',
                          'start_rethinkdb',
                          'auto_create_index',
-                         'auto_create_table',
+                         'auto_create_collection',
                          'allow_unauthenticated',
                          'allow_anonymous',
                          'auth_redirect' ];
@@ -349,7 +349,7 @@ const read_config_from_flags = (parsed) => {
     config.secure = false;
     config.permissions = false;
     config.start_rethinkdb = true;
-    config.auto_create_table = true;
+    config.auto_create_collection = true;
     config.auto_create_index = true;
     config.serve_static = 'dist';
   }
@@ -448,7 +448,7 @@ const processConfig = (parsed) => {
 const startHorizonServer = (servers, opts) => {
   logger.info('Starting Horizon...');
   return new horizon_server.Server(servers, {
-    auto_create_table: opts.auto_create_table,
+    auto_create_collection: opts.auto_create_collection,
     auto_create_index: opts.auto_create_index,
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
