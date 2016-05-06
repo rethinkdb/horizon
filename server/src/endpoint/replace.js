@@ -11,13 +11,13 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   const parsed = Joi.validate(raw_request.options, replace);
   if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
 
-  const table = metadata.get_table(parsed.value.collection);
+  const collection = metadata.get_collection(parsed.value.collection);
   const conn = metadata.connection();
 
   const response_data = [ ];
 
   r.expr(parsed.value.data.map((row) => row.id))
-    .map((id) => r.table(table.name).get(id))
+    .map((id) => r.table(collection.table).get(id))
     .run(conn)
     .then((old_rows) => {
       check(old_rows.length === parsed.value.data.length);
@@ -34,7 +34,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
       }
 
       return r.expr(valid_rows).forEach((new_row) =>
-        r.table(table.name).get(new_row('id')).replace((old_row) =>
+        r.table(collection.table).get(new_row('id')).replace((old_row) =>
           r.branch(old_row.eq(null),
                    r.error(writes.missing_error),
                    old_row(writes.version_field).ne(new_row(writes.version_field)),

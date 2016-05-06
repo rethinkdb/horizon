@@ -69,7 +69,7 @@ class Server {
     this._reql_conn = new ReqlConnection(opts.rdb_host,
                                          opts.rdb_port,
                                          opts.db,
-                                         opts.auto_create_table,
+                                         opts.auto_create_collection,
                                          opts.auto_create_index);
     this._auth = new Auth(this, opts.auth);
     for (const key in endpoints) {

@@ -7,11 +7,11 @@ const r = require('rethinkdb');
 const utils = require('./utils');
 
 class ReqlConnection {
-  constructor(host, port, db, auto_create_table, auto_create_index) {
+  constructor(host, port, db, auto_create_collection, auto_create_index) {
     this._host = host;
     this._port = port;
     this._db = db;
-    this._auto_create_table = auto_create_table;
+    this._auto_create_collection = auto_create_collection;
     this._auto_create_index = auto_create_index;
     this._clients = new Set();
     this._connection = undefined;
@@ -70,7 +70,8 @@ class ReqlConnection {
      }).then((conn) => {
        this._connection = conn;
        this._metadata = new Metadata(this._connection,
-                                     this._auto_create_table,
+                                     this._clients,
+                                     this._auto_create_collection,
                                      this._auto_create_index);
        return this._metadata.ready();
      }).then(() => {

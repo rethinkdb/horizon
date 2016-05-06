@@ -158,8 +158,7 @@ const runCommand = (options, done) => {
     // Clear the metadata, if requested
     if (options.clear) {
       // TODO: warn about tables that will no longer exist after this step
-      return r.expr([ r.table('collections').delete(),
-                      r.table('groups').delete() ]).run(conn);
+      return;
     }
   }).then(() => {
     // Write the metadata

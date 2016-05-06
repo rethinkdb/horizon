@@ -10,7 +10,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   const parsed = Joi.validate(raw_request.options, insert);
   if (parsed.error !== null) { done(new Error(parsed.error.details[0].message)); }
 
-  const table = metadata.get_table(parsed.value.collection);
+  const collection = metadata.get_collection(parsed.value.collection);
   const conn = metadata.connection();
 
   // TODO: shortcut if validation isn't needed (for all write request types)
@@ -26,7 +26,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   }
 
   // TODO: shortcut if valid rows is empty (for all write request types)
-  r.table(table.name)
+  r.table(collection.table)
     .insert(valid_rows.map((row) => writes.add_new_version(row)), { conflict: 'error' })
     .run(conn)
     .then((insert_results) => {

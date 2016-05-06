@@ -86,6 +86,12 @@ class Client {
     }
   }
 
+  group_changed(group_name) {
+    if (this.user_info.groups.indexOf(group_name) !== -1) {
+      this._requests.forEach((req) => req.evaluate_rules());
+    }
+  }
+
   handle_handshake(data) {
     const request = this.parse_request(data, schemas.handshake);
 
@@ -98,9 +104,11 @@ class Client {
 
       if (this.user_feed) {
         this.user_feed.eachAsync((change) => {
-          this.user_data = change.new_val;
-          if (change.new_val === null) {
+          if (!change.new_val) {
             this.close('User account has been deleted.');
+          } else {
+            this.user_data = change.new_val;
+            this._requests.forEach((req) => req.evaluate_rules());
           }
         });
       } else {

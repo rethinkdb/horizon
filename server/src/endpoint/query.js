@@ -12,8 +12,8 @@ const make_reql = (raw_request, metadata) => {
   if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
   const options = parsed.value;
 
-  const table = metadata.get_table(parsed.value.collection);
-  let reql = r.table(table.name);
+  const collection = metadata.get_collection(parsed.value.collection);
+  let reql = r.table(collection.table);
 
   const ordered_between = (obj) => {
     const order_keys = (options.order && options.order[0]) ||
@@ -33,7 +33,7 @@ const make_reql = (raw_request, metadata) => {
             `"${k}" cannot be used in "order", "above", or "below" when finding by that field.`);
     });
 
-    const index = table.get_matching_index(Object.keys(obj), order_keys);
+    const index = collection.get_matching_index(Object.keys(obj), order_keys);
 
     const get_bound = (name) => {
       const eval_key = (key) => {
