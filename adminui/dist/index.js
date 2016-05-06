@@ -1,7 +1,7 @@
 
 const typeDisplay = {
   string: 'AZ', number: "01", boolean: "==",
-  object: "{ }", array: "[ ]",  null: "0"
+  object: "{ }", array: "[ ]", null: "0"
 };
 
 const dashQueries = {

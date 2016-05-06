@@ -1,29 +1,30 @@
 
-<script id="elsif" type="jumptag">
-  else if (${opts.check}) { ${content} }
-</script>
-
-<template id="BrowserTreeItem" type="jumptag">
+<template id="BrowserTreeExpander" type="jumptag">
   <script>
-    let {name, value, parent} = opts;
-    let type = value === null ? "null" :
-               Array.isArray(value) ? "array" : typeof(value);
-    
-    let {isExpanded = true} = {isExpanded: expandState.get(value)};
-    let hasExpander = value && (type === "array" || type === "object");
-    
-    let onExpand = ev => {
-      expandState.set(value, !isExpanded);
+    function onExpand(ev) {
+      expandState.set(opts.data, !opts.state);
       update();
     }
   </script>
   
-  <div class="item ${!isExpanded ? 'collapsed' : ''}">
-    
+  <a class="expander ${opts.class}" onclick={onExpand}>
+    <i class="icon ion-chevron-${opts.state ? 'down' : 'right'}"></i>
+  </a>
+</template>
+
+<template id="BrowserTreeItem" type="jumptag">
+  <script>
+    let {name, value, parent} = opts;
+    let type = getType(value);
+    let {isExpanded = true} = {isExpanded: expandState.get(value)};
+    let hasExpander = value && (type === "array" || type === "object");
+  </script>
+  
+  <div class="item ${css({collapsed: !isExpanded})}">
     <div class="line">
-      <a class="expander ${!hasExpander ? 'invisible' : ''}" onclick={onExpand}>
-        <i class="icon ion-chevron-${isExpanded ? 'down' : 'right'}"></i>
-      </a>
+      <BrowserTreeExpander class="{css({invisible: !hasExpander})}"
+                           state={isExpanded} data={value}>
+      </BrowserTreeExpander>
       
       <span class="type type-${type}">${typeDisplay[type]}</span>
       <span class="name">${name}:</span>
@@ -56,25 +57,13 @@
   <script>
     let {value} = opts;
     let {isExpanded = true} = {isExpanded: expandState.get(value.id)};
-    
-    let onExpand = ev => {
-      expandState.set(value.id, !isExpanded);
-      update();
-    }
   </script>
   
-  
-  <div class="box ${!isExpanded ? 'collapsed' : ''}">
+  <div class="box ${css({collapsed: !isExpanded})}">
     <div class="title clients">
       <h2>
-        <a class="expander" onclick={onExpand}>
-          <if check="{isExpanded}">
-            <i class="icon ion-chevron-down"></i>
-          </if>
-          <else>
-            <i class="icon ion-chevron-right"></i>
-          </else>
-        </a>
+        <BrowserTreeExpander state={isExpanded} data={value.id}>
+        </BrowserTreeExpander>
         <span class="id">${value.id}</span>
       </h2>
     </div>
@@ -86,7 +75,6 @@
     </div>
   </div>
 </template>
-
 
 <template id="Browser" type="jumptag">
   <script>

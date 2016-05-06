@@ -1,16 +1,18 @@
 
+let getType = value =>
+  value === null ? "null" :
+  Array.isArray(value) ? "array" :
+  typeof(value);
+
+let css = obj =>
+  Object.entries(obj).filter(([k, v]) => v).map(([k, v]) => k).join(" ");
+
 Object.entries = object =>
   Object.keys(object)
         .filter(key => object.hasOwnProperty(key))
         .map(key => [key, object[key]]);
 
-function runQuery(query, target) {
-  let t = Array.isArray(target) ? (() => target) : target;
-  return query.watch({rawChanges: true}).forEach(c => applyChange(t(), c));
-} 
-
 // From the Horizon client library
-
 function applyChange(arr, change) {
   switch (change.type) {
   case 'remove':

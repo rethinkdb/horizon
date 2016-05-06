@@ -9,7 +9,7 @@
   
   <nav>
     <for var="item" in={items}>
-      <div class="{selected === item ? 'selected' : ''}">
+      <div class="{css({selected: selected == item})}">
         <a href="#" onclick="{ev => navigate(item)}">${item}</a>
       </div>
     </for>
@@ -32,7 +32,7 @@
     </if>
     
     <if check="{state.navigation.selected === 'Dashboard'}">
-      <Dashboard model={model} data={data.dashboard}></Dashboard> 
+      <Dashboard data={data.dashboard}></Dashboard> 
     </if>
     
   </main>
