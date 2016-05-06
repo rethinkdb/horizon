@@ -1,16 +1,9 @@
-import 'rxjs/add/observable/of'
-import 'rxjs/add/observable/from'
-import 'rxjs/add/operator/catch'
-import 'rxjs/add/operator/concatMap'
-import 'rxjs/add/operator/map'
-import 'rxjs/add/operator/filter'
-
 import * as Rx from 'rxjs'
 import { Collection, UserDataTerm } from './ast'
 import { HorizonSocket } from './socket'
 import { log, logError, enableLogging } from './logging'
 import { authEndpoint, TokenStorage, clearAuthTokens } from './auth'
-
+import { aggregate, model } from './model'
 
 const defaultHost = typeof window !== 'undefined' && window.location &&
         `${window.location.host}` || 'localhost:8181'
@@ -110,6 +103,8 @@ function Horizon({
   horizon._horizonPath = `http${(secure) ? 's' : ''}://${host}/${path}`
   horizon.authEndpoint = authEndpoint
   horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
+  horizon.aggregate = aggregate
+  horizon.model = model
 
   return horizon
 

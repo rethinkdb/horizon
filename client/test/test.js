@@ -52,7 +52,7 @@ describe('Waiting until server ready...', function() {
         done()
       })
       horizon.connect(() => {
-        // Clients dispose by themselves on failure
+        // Clients disconnect by themselves on failure
       })
     }
     const connectInterval = setInterval(tryConnecting, 5000)
@@ -102,6 +102,10 @@ require('./orderLimitSub.js')
 // Unit tests
 require('./unit/auth.js')
 require('./unit/utilsTest.js')
+
+// Model tests
+require('./aggregate.js')
+require('./aggregateSub.js')
 
 // Load the suite runner
 require('./api.js')
