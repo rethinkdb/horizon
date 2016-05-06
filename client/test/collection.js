@@ -1,6 +1,8 @@
 import { _do as tap } from 'rxjs/operator/do'
 import { toArray } from 'rxjs/operator/toArray'
 
+import { assertCompletes, removeAllData } from './utils'
+
 const collectionSuite = window.collectionSuite = (getHorizon, getData, getTestData) => () => {
   let horizon, data, testData, empty_collection
 

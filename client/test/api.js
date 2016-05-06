@@ -2,6 +2,9 @@ import { ignoreElements } from 'rxjs/operator/ignoreElements'
 import { concat } from 'rxjs/operator/concat'
 import { _do as tap } from 'rxjs/operator/do'
 import { toArray } from 'rxjs/operator/toArray'
+
+import { assertCompletes, removeAllData } from './utils'
+
 // This test suite covers various edge cases in the Horizon client library API.
 // It does not cover correctness of the full system in various circumstances.
 // The purpose of the API test suite is to act as a runnable, checkable spec for
@@ -46,12 +49,11 @@ describe('Core API tests', () => {
     describe('Testing `upsert`', upsertSuite(getData))
     describe('Testing `update`', updateSuite(getData))
     describe('Testing `replace`', replaceSuite(getData))
-    describe('Testing `times`', timesSuite(getData))
   }) // Storage API
-
   describe('Testing `remove`', removeSuite(getData))
   describe('Testing `removeAll`', removeAllSuite(getData))
 
+  describe('Testing `times`', timesSuite(getData))
   // Test the lookup API
   describe('Lookup API', () => {
     const testData = [

@@ -7,14 +7,17 @@ import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
 import { take } from 'rxjs/operator/take'
 import { ignoreElements } from 'rxjs/operator/ignoreElements'
 
-window.removeAllData = function removeAllData(collection, done) {
+export function removeAllDataObs(collection) {
   // Read all elements from the collection
-  collection.fetch()
-    ::tap() // not sure why this needs to be here
+  return collection.fetch() // all documents in the collection
+    ::tap()
     ::mergeMap(docs => collection.removeAll(docs))
     ::mergeMapTo(collection.fetch())
     ::tap(remaining => assert.deepEqual([], remaining))
-    .subscribe(doneObserver(done))
+}
+
+export function removeAllData(collection, done) {
+  removeAllDataObs(collection).subscribe(doneObserver(done))
 }
 
 // Used to subscribe to observables and call done appropriately
@@ -37,11 +40,11 @@ function doneErrorObserver(done) {
 
 // Used to check for stuff that should throw an exception, rather than
 // erroring the observable stream
-window.assertThrows = function assertThrows(message, callback) {
+export function assertThrows(message, callback) {
   const f = done => {
     try {
       callback()
-      done(new Error(`Didn't throw an exception`))
+      done(new Error("Didn't throw an exception"))
     } catch (err) {
       if (err.message === message) {
         done()
@@ -55,13 +58,13 @@ window.assertThrows = function assertThrows(message, callback) {
   return f
 }
 
-window.assertCompletes = function assertCompletes(observable) {
+export function assertCompletes(observable) {
   const f = done => observable().subscribe(doneObserver(done))
   f.toString = () => `assertCompletes(\n(${observable}\n)`
   return f
 }
 
-window.assertErrors = function assertErrors(observable) {
+export function assertErrors(observable) {
   const f = done => observable().subscribe(doneErrorObserver(done))
   f.toString = () => observable.toString()
   return f
@@ -76,7 +79,7 @@ window.assertErrors = function assertErrors(observable) {
 // changefeed is automatically limited to the length of the expected
 // array. Accepts a `debug` argument that receives every element in
 // the changefeed
-window.observableInterleave = function observableInterleave(options) {
+export function observableInterleave(options) {
   const query = options.query
   const operations = options.operations
   const expected = options.expected
