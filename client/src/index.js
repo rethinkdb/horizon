@@ -48,7 +48,7 @@ function Horizon({
     return new Collection(sendRequest, name, lazyWrites)
   }
 
-  horizon.dispose = () => {
+  horizon.disconnect = () => {
     socket.complete()
   }
 

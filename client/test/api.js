@@ -35,7 +35,7 @@ describe('Core API tests', () => {
 
   // Kill the horizon connection after running these tests.
   after(done => {
-    horizon.dispose()
+    horizon.disconnect()
     horizon.onDisconnected(() => done())
   })
 
