@@ -4,6 +4,7 @@ import { publishReplay } from 'rxjs/operator/publishReplay'
 import { scan } from 'rxjs/operator/scan'
 import { filter } from 'rxjs/operator/filter'
 import { map } from 'rxjs/operator/map'
+import { toArray } from 'rxjs/operator/toArray'
 
 import snakeCase from 'snake-case'
 
@@ -53,7 +54,12 @@ class TermBase {
   // array with all results. An observable is returned which will
   // lazily emit the query when subscribed to
   fetch() {
-    return this._sendRequest('query', this._query)
+    const raw = this._sendRequest('query', this._query)
+    if (this._query.find) {
+      return raw
+    } else {
+      return raw::toArray()
+    }
   }
   findAll(...fieldValues) {
     this::checkIfLegalToChain('findAll')

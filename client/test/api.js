@@ -76,7 +76,7 @@ describe('Core API tests', () => {
     before(assertCompletes(() =>
       data.store(testData)
        ::ignoreElements()
-       ::concat(data.fetch()::toArray())
+       ::concat(data.fetch())
        ::tap(res => assert.sameDeepMembers(res, testData))
     ))
 
