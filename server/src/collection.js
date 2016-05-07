@@ -68,7 +68,7 @@ class Collection {
     let match = undefined;
     for (const index of this.indexes.values()) {
       if (index.is_match(fuzzy_fields, ordered_fields)) {
-        if (index.promise === undefined) {
+        if (!index.promise) {
           return index;
         } else if (match === undefined) {
           match = index;

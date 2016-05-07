@@ -9,6 +9,8 @@ const server = Joi.object({
   auto_create_collection: Joi.boolean().default(false),
   auto_create_index: Joi.boolean().default(false),
 
+  permissions: Joi.boolean().default(true),
+
   path: Joi.string().default('/horizon'),
 
   db: Joi.string().token().default('horizon'),

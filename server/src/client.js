@@ -13,6 +13,7 @@ class Client {
     this._socket = socket;
     this._server = server;
     this._auth = this._server._auth;
+    this._permissions_enabled = this._server._permissions_enabled;
     this._metadata = this._server._reql_conn.metadata();
     this._requests = new Map();
     this.user_info = { };
@@ -28,11 +29,11 @@ class Client {
       this.error_wrap_socket(() => this.handle_handshake(data)));
 
     if (!this._metadata.is_ready()) {
-      this.close('No connection to the database.');
+      this.close({ error: 'No connection to the database.' });
     }
 
     this._metadata.connection().on('close', () =>
-      this.close('Connection to the database was lost.'));
+      this.close({ error: 'Connection to the database was lost.' }));
   }
 
   handle_websocket_close() {
@@ -105,7 +106,7 @@ class Client {
       if (this.user_feed) {
         this.user_feed.eachAsync((change) => {
           if (!change.new_val) {
-            this.close('User account has been deleted.');
+            this.close({ error: 'User account has been deleted.' });
           } else {
             this.user_data = change.new_val;
             this._requests.forEach((req) => req.evaluate_rules());
@@ -192,7 +193,7 @@ class Client {
   close(info) {
     if (this.is_open()) {
       const close_msg = (info.error && info.error.substr(0, 64)) || 'Unspecified reason.';
-      logger.debug(`Closing client connection with message: ${close_msg}`);
+      logger.debug(`Closing client connection with message: ${info.error || 'Unspecified reason.'}`);
       if (info.request_id !== undefined) {
         this._socket.send(JSON.stringify(info),
                          () => this._socket.close(1002, close_msg));
@@ -212,6 +213,9 @@ class Client {
   }
 
   send_error(request, err, code) {
+    logger.debug(`Sending error result for request ${request.request_id}: ${err}`);
+    logger.debug(`Stack: ${err.stack}`);
+
     const error = err instanceof Error ? err.message : err;
     const error_code = code === undefined ? -1 : code;
     this.send_response(request, { error, error_code });

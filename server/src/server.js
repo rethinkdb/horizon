@@ -62,6 +62,7 @@ class Server {
     const opts = Joi.attempt(user_opts || { }, options_schema);
     this._path = opts.path;
     this._name = opts.db;
+    this._permissions_enabled = opts.permissions;
     this._auth_methods = { };
     this._request_handlers = new Map();
     this._http_handlers = new Map();

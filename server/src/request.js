@@ -1,32 +1,36 @@
 'use strict';
 
 const logger = require('./logger');
-const Ruleset = require('./permissions/rule').Ruleset;
+const rule = require('./permissions/rule');
 
 class Request {
   constructor(raw_request, endpoint, client) {
     this._raw_request = raw_request;
-    this._ruleset = new Ruleset();
+    this._ruleset = new rule.Ruleset();
     this._endpoint = endpoint;
     this._client = client;
     this.evaluate_rules();
   }
 
   evaluate_rules() {
-    const metadata = this._client._metadata;
-    const user_info = this._client.user_info;
-    const matching_rules = [ ];
-    for (const group_name of user_info.groups) {
-      const group = metadata.get_group(group_name);
-      if (group !== undefined) {
-        for (const rule of group.rules) {
-          if (rule.is_match(this._raw_request, user_info)) {
-            matching_rules.push(rule);
+    if (this._client._permissions_enabled) {
+      const metadata = this._client._metadata;
+      const user_info = this._client.user_info;
+      const matching_rules = [ ];
+      for (const group_name of user_info.groups) {
+        const group = metadata.get_group(group_name);
+        if (group !== undefined) {
+          for (const rule of group.rules) {
+            if (rule.is_match(this._raw_request, user_info)) {
+              matching_rules.push(rule);
+            }
           }
         }
       }
+      this._ruleset.update(matching_rules);
+    } else {
+      this._ruleset.update(rule.any_rule);
     }
-    this._ruleset.update(matching_rules);
   }
 
   run() {
@@ -80,7 +84,7 @@ class Request {
         if (inner_err) {
           this._client.send_error(this._raw_request, inner_err);
         } else {
-          setImmediate(this.run);
+          setImmediate(() => this.run());
         }
       });
     }

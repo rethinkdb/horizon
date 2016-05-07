@@ -7,6 +7,7 @@ const r = require('rethinkdb');
 // Index names are of the format "field1_field2_field3", where the fields
 // are given in order of use in a compound index.  If the field names contain
 // the characters '\' or '_', they will be escaped with a '\'.
+// TODO: what about empty field names?
 
 const name_to_fields = (name) => {
   let escaped = false;
@@ -34,14 +35,17 @@ const name_to_fields = (name) => {
 const fields_to_name = (fields) => {
   let res = '';
   for (const field of fields) {
+    if (res.length > 0) {
+      res += '_';
+    }
     for (const c of field) {
       if (c === '\\' || c === '_') {
         res += '\\';
       }
       res += c;
     }
-    res += '_';
   }
+  return res;
 };
 
 const primary_index_name = fields_to_name([ 'id' ]);

@@ -23,6 +23,12 @@ class ReqlConnection {
   }
 
   _reconnect(resolve) {
+    if (this._connection) {
+      this._connection.close();
+    }
+    if (this._metadata) {
+      this._metadata.close();
+    }
     this._connection = undefined;
     this._metadata = undefined;
     this._ready = false;
@@ -69,7 +75,8 @@ class ReqlConnection {
           }));
      }).then((conn) => {
        this._connection = conn;
-       this._metadata = new Metadata(this._connection,
+       this._metadata = new Metadata(this._db,
+                                     this._connection,
                                      this._clients,
                                      this._auto_create_collection,
                                      this._auto_create_index);
@@ -105,9 +112,12 @@ class ReqlConnection {
   }
 
   close() {
+    this._closed = true;
     if (this._connection) {
-      this._closed = true;
       this._connection.close();
+    }
+    if (this._metadata) {
+      this._metadata.close();
     }
   }
 }

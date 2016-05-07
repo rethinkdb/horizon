@@ -450,6 +450,7 @@ const startHorizonServer = (servers, opts) => {
   return new horizon_server.Server(servers, {
     auto_create_collection: opts.auto_create_collection,
     auto_create_index: opts.auto_create_index,
+    permissions: opts.permissions,
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
     auth: {
