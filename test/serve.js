@@ -7,6 +7,7 @@ const horizon = require('../server');
 const each_line_in_pipe = require('../cli/src/utils/each_line_in_pipe');
 const start_rdb_server = require('../cli/src/utils/start_rdb_server');
 const rm_sync_recursive = require('../cli/src/utils/rm_sync_recursive');
+const parse_yes_no_option = require('../cli/src/utils/parse_yes_no_option');
 
 // We could make this a module, but we already require the server to be configured,
 // so reuse its argparse module
@@ -38,6 +39,10 @@ parser.addArgument([ '--bind', '-b' ],
 parser.addArgument([ '--keep', '-k' ],
   { defaultValue: false, action: 'storeTrue',
     help: 'Keep the existing "rethinkdb_data_test" directory.' });
+
+parser.addArgument([ '--permissions' ],
+  { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
+    help: 'Enables or disables checking permissions on requests.' });
 
 const options = parser.parseArgs();
 
@@ -144,38 +149,46 @@ new Promise((resolve) => {
     rm_sync_recursive(data_dir);
   }
 
-  start_rdb_server({ bind: local_addresses, dataDir: data_dir }).then((info) => {
-    assert.notStrictEqual(info.driverPort, undefined);
-    console.log(`RethinkDB server listening for clients on port ${info.driverPort}.`);
-    console.log(`RethinkDB server listening for HTTP on port ${info.httpPort}.`);
+  console.log('starting rethinkdb');
 
-    horizon.logger.level = 'debug';
-    const horizon_server = new horizon.Server(http_servers, {
-      auto_create_table: true,
-      auto_create_index: true,
-      rdb_port: info.driverPort,
-      auth: {
-        allow_unauthenticated: true,
-        allow_anonymous: true,
-        token_secret: crypto.randomBytes(64).toString('base64'),
-      },
-    });
+  return start_rdb_server({ bind: local_addresses, dataDir: data_dir });
+}).then((info) => {
+  assert.notStrictEqual(info.driverPort, undefined);
+  console.log(`RethinkDB server listening for clients on port ${info.driverPort}.`);
+  console.log(`RethinkDB server listening for HTTP on port ${info.httpPort}.`);
+  console.log('starting horizon');
 
-    // Capture requests to `horizon.js` and `horizon.js.map` before the horizon server
-    http_servers.forEach((serv, i) => {
-      const extant_listeners = serv.listeners('request').slice(0);
-      serv.removeAllListeners('request');
-      serv.on('request', (req, res) => {
-        const req_path = url.parse(req.url).pathname;
-        if (req_path === '/horizon/horizon.js' || req_path === '/horizon/horizon.js.map') {
-          serve_file(path.resolve(test_dist_dir, req_path.replace('/horizon/', '')), res);
-        } else {
-          extant_listeners.forEach((l) => l.call(serv, req, res));
-        }
-      });
-
-      serv.listen(options.port, options.bind[i],
-        () => console.log(`HTTP server listening on ${options.bind[i]}:${options.port}.`));
-    });
+  horizon.logger.level = 'debug';
+  const horizon_server = new horizon.Server(http_servers, {
+    auto_create_collection: true,
+    auto_create_index: true,
+    rdb_port: info.driverPort,
+    permissions: parse_yes_no_option(options.permissions),
+    auth: {
+      allow_unauthenticated: true,
+      allow_anonymous: true,
+      token_secret: crypto.randomBytes(64).toString('base64'),
+    },
   });
+  console.log('starting http servers');
+
+  // Capture requests to `horizon.js` and `horizon.js.map` before the horizon server
+  http_servers.forEach((serv, i) => {
+    const extant_listeners = serv.listeners('request').slice(0);
+    serv.removeAllListeners('request');
+    serv.on('request', (req, res) => {
+      const req_path = url.parse(req.url).pathname;
+      if (req_path === '/horizon/horizon.js' || req_path === '/horizon/horizon.js.map') {
+        serve_file(path.resolve(test_dist_dir, req_path.replace('/horizon/', '')), res);
+      } else {
+        extant_listeners.forEach((l) => l.call(serv, req, res));
+      }
+    });
+
+    serv.listen(options.port, options.bind[i],
+      () => console.log(`HTTP server listening on ${options.bind[i]}:${options.port}.`));
+  });
+}).catch((err) => {
+  console.log(`Error when starting server:\n${err.stack}`);
+  process.exit(1);
 });

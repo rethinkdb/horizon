@@ -29,7 +29,7 @@ class Request {
       }
       this._ruleset.update(matching_rules);
     } else {
-      this._ruleset.update(rule.any_rule);
+      this._ruleset.update([ rule.any_rule ]);
     }
   }
 
