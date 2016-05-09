@@ -1,23 +1,28 @@
 'use strict';
 
-const horizon_server = require('@horizon/server');
-const interrupt = require('./utils/interrupt');
-
-const argparse = require('argparse');
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
-const logger = horizon_server.logger;
 const path = require('path');
 const toml = require('toml');
 const url = require('url');
 
 const start_rdb_server = require('./utils/start_rdb_server');
+const interrupt = require('./utils/interrupt');
+const exitWithError = require('./utils/exit_with_error');
+const isDirectory = require('./utils/is_directory');
+
+const horizon_server = require('@horizon/server');
+const logger = horizon_server.logger;
 
 const addArguments = (parser) => {
-  parser.addArgument([ 'project' ],
+  parser.addArgument([ 'project_path' ],
     { type: 'string', nargs: '?',
       help: 'Change to this directory before serving' });
+
+  parser.addArgument([ '--project-name', '-n' ],
+    { type: 'string', action: 'store', metavar: 'NAME',
+      help: 'Name of the Horizon Project server' });
 
   parser.addArgument([ '--bind', '-b' ],
     { type: 'string', action: 'append', metavar: 'HOST',
@@ -105,12 +110,15 @@ const addArguments = (parser) => {
       help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
 };
 
-const default_config_file = './.hz/config.toml';
+const default_config_file = '.hz/config.toml';
 
 const make_default_config = () => ({
   config: default_config_file,
   debug: false,
-  project: null,
+  // Default to current directory for path
+  project_path: '.',
+  // Default to current directory name for project name
+  project_name: path.basename(process.cwd()),
 
   bind: [ 'localhost' ],
   port: 8181,
@@ -208,16 +216,14 @@ const initialize_servers = (ctor, opts) => {
         }
       });
       srv.on('error', (err) => {
-        logger.error(
-          `HTTP${opts.secure ? 'S' : ''} server: ${err}`);
-        process.exit(1);
+        exitWithError(`HTTP${opts.secure ? 'S' : ''} server: ${err}`);
       });
     });
   });
 };
 
 const createInsecureServers = (opts) => {
-  logger.warn('Creating insecure HTTP server.');
+  console.error('Warning: Creating insecure HTTP server.');
   return initialize_servers(() => new http.Server(), opts);
 };
 
@@ -273,20 +279,25 @@ const parse_connect = (connect, config) => {
   }
 };
 
-const read_config_from_file = (config_file) => {
+const read_config_from_file = (project_path, config_file) => {
   const config = { auth: { } };
 
-  let file_data;
-  if (config_file) {
-    // Use specified config file - error if it doesn't exist
-    file_data = fs.readFileSync(config_file);
+  let file_data, configFilename;
+
+  if (project_path && config_file) {
+    configFilename = `${project_path}/${config_file}`;
+  } else if (project_path && !config_file) {
+    configFilename = `${project_path}/${default_config_file}`
+  } else if (!project_path && config_file) {
+    configFilename = config_file;
   } else {
-    // Try default config file - ignore if anything goes wrong
-    try {
-      file_data = fs.readFileSync(default_config_file);
-    } catch (err) {
-      return config;
-    }
+    configFilename = default_config_file;
+  }
+
+  try {
+    file_data = fs.readFileSync(configFilename);
+  } catch (err) {
+    return config;
   }
 
   const file_config = toml.parse(file_data);
@@ -354,8 +365,12 @@ const read_config_from_flags = (parsed) => {
     config.serve_static = 'dist';
   }
 
-  if (parsed.project !== null && parsed.project !== undefined) {
-    config.project = parsed.project;
+  if (parsed.project_name !== null && parsed.project_name !== undefined) {
+    config.project_name = parsed.project_name;
+  }
+
+  if (parsed.project_path !== null && parsed.project_path !== undefined) {
+    config.project_path = parsed.project_path;
   }
 
   // Simple 'yes' or 'no' (or 'true' or 'false') flags
@@ -428,7 +443,6 @@ const merge_configs = (old_config, new_config) => {
       old_config[key] = new_config[key];
     }
   }
-
   return old_config;
 };
 
@@ -438,7 +452,8 @@ const processConfig = (parsed) => {
   let config;
 
   config = make_default_config();
-  config = merge_configs(config, read_config_from_file(parsed.config));
+  config = merge_configs(config,
+                         read_config_from_file(parsed.project_path, parsed.config));
   config = merge_configs(config, read_config_from_env());
   config = merge_configs(config, read_config_from_flags(parsed));
 
@@ -453,6 +468,7 @@ const startHorizonServer = (servers, opts) => {
     permissions: opts.permissions,
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
+    project_name: opts.project_name,
     auth: {
       token_secret: opts.token_secret,
       allow_unauthenticated: opts.allow_unauthenticated,
@@ -463,28 +479,16 @@ const startHorizonServer = (servers, opts) => {
   });
 };
 
-const change_to_project_dir = (project_dir) => {
-  // Try to get stats on dir, if it doesn't exist, statSync will throw
-  if (project_dir !== null) {
-    try {
-      fs.statSync(path.join(project_dir, '.hz'));
-      process.chdir(project_dir);
-    } catch (e) {
-      console.error('Project specified but no .hz directory was found.');
-      console.error(e);
-      process.exit(1);
-    }
+const change_to_project_dir = (project_path) => {
+  if (isDirectory(project_path)) {
+    process.chdir(project_path);
   } else {
-    try {
-      fs.statSync('.hz');
-      // Don't need to change directories as we assume we are in a Horizon app dir
-    } catch (e) {
-      console.error('Project not specified or .hz directory not found.\n' +
-                    'Try changing to a project with a .hz directory,\n' +
-                    'or specify your project path with the --project option');
-      console.error(e);
-      process.exit(1);
-    }
+    exitWithError(`${project_path} is not a directory`);
+  }
+  if (!isDirectory('.hz')) {
+    const nicePathName = project_path === '.' ?
+            'this directory' : project_path;
+    exitWithError(`${nicePathName} doesn't contain an .hz directory`);
   }
 };
 
@@ -492,6 +496,8 @@ const change_to_project_dir = (project_dir) => {
 const runCommand = (opts, done) => {
   if (opts.debug) {
     logger.level = 'debug';
+  } else {
+    logger.level = 'info';
   }
 
   change_to_project_dir(opts.project);

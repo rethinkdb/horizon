@@ -175,31 +175,15 @@ the query request.
 
 ```js
 
-// Returns the entire contents of the collection
+// Returns the entire contents of the collection as an array
 horizon('chats').fetch().forEach(
-  result => console.log('Result:', result),
+  results => console.log('Results:', results),
   err => console.error(err),
   () => console.log('Results fetched, query done!')
 )
 
 // Sample output
-// Result: { id: 1, chat: 'Hey there' }
-// Result: { id: 2, chat: 'Ho there' }
-// Results fetched, query done!
-```
-
-If you would rather get the results all at once as an array, you can
-chain `.toArray()` to the call:
-
-```js
-horizon('chats').fetch().toArray().forEach(
-  results => console.log('All results: ', results),
-  err => console.error(err),
-  () => console.log('Results fetched, query done!')
-)
-
-// Sample output
-// All results: [ { id: 1, chat: 'Hey there' }, { id: 2, chat: 'Ho there' } ]
+// Results: [{ id: 1, chat: 'Hey there' }, { id: 2, chat: 'Ho there' }]
 // Results fetched, query done!
 ```
 
@@ -239,16 +223,9 @@ Means of providing handlers to a query on a Horizon collection.
 When `.forEach` is chained off of a read operation it accepts three functions as parameters. A results handler, a error handler, and a result completion handler.
 
 ```js
-// Documents are returned one at a time.
+// Documents are returned as an array
 chats.fetch().forEach(
-  (result) => { console.log("A single document =>" + result ) },
-  (error) => { console.log ("Danger Will Robinson 🤖! || " + error ) },
-  () => { console.log("Read is now complete" ) }
-);
-
-// To wait and retrieve all documents as a single array instead of immediately one at a time.
-chats.toArray().fetch().forEach(
-  (result) => { console.log("A single document =>" + result ) },
+  (result) => { console.log("All documents =>" + result ) },
   (error) => { console.log ("Danger Will Robinson 🤖! || " + error ) },
   () => { console.log("Read is now complete" ) }
 );

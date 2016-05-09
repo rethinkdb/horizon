@@ -3,7 +3,6 @@
 const logger = require('./logger');
 const options_schema = require('./schema/server_options').auth;
 
-const crypto = require('crypto');
 const Joi = require('joi');
 const jwt = require('jsonwebtoken');
 const r = require('rethinkdb');
@@ -35,7 +34,10 @@ class Auth {
     if (options.token_secret != null) {
       this._hmac_secret = new Buffer(options.token_secret, 'base64');
     } else {
-      this._hmac_secret = crypto.randomBytes(64);
+      throw new Error(
+        'No token_secret set! ' +
+        'Try setting it in .hz/config.toml or passing it ' +
+        'to the Server constructor.');
     }
   }
 

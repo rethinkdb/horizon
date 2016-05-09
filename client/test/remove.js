@@ -2,7 +2,7 @@ import { _do as tap } from 'rxjs/operator/do'
 import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
 import { toArray } from 'rxjs/operator/toArray'
 import { concat } from 'rxjs/operator/concat'
-import { pluck } from 'rxjs/operator/pluck'
+import { map } from 'rxjs/operator/map'
 import { ignoreElements } from 'rxjs/operator/ignoreElements'
 
 const removeSuite = window.removeSuite = getData => () => {
@@ -27,7 +27,7 @@ const removeSuite = window.removeSuite = getData => () => {
   // Insert the test data and make sure it's in
   before(assertCompletes(() =>
     data.store(testData)::ignoreElements()
-      ::concat(data.fetch()::toArray())
+      ::concat(data.fetch())
       // Make sure it's there
       ::tap(res => assert.sameDeepMembers(res, testData))
   ))
@@ -74,8 +74,7 @@ const removeSuite = window.removeSuite = getData => () => {
   // Check that the remaining documents are there
   it(`doesn't remove documents we didn't ask it to`, assertCompletes(() =>
     data.fetch()
-      ::pluck('id')
-      ::toArray()
+      ::map(docs => docs.map(x => x.id))
       ::tap(res => assert.includeMembers(
         res, [ 'do_not_remove_1', 'do_not_remove_2' ]))
   ))

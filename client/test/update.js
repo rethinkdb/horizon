@@ -67,7 +67,7 @@ const updateSuite = window.updateSuite = getData => () => {
       // should return an array with an ID of the inserted document.
       ::tap(res => assert.deepEqual([ 1, 2 ], res))
       // Let's make sure we get back the documents that we put in.
-      ::mergeMapTo(data.findAll(1, 2).fetch()::toArray())
+      ::mergeMapTo(data.findAll(1, 2).fetch())
       // Check that we get back what we put in.
       ::tap(res => assert.sameDeepMembers(res, [
         { id: 1, a: { b: 1, c: 1 }, d: 1 },
@@ -79,7 +79,7 @@ const updateSuite = window.updateSuite = getData => () => {
       // We should have gotten the ID back again
       ::tap(res => assert.deepEqual(res, [ 1, 2 ]))
       // Make sure `update` updated the documents properly
-      ::mergeMapTo(data.findAll(1, 2).fetch()::toArray())
+      ::mergeMapTo(data.findAll(1, 2).fetch())
       // Check that we get back what we put in.
       ::tap(res => assert.sameDeepMembers(res, [
         { id: 1, a: { b: 1, c: 2 }, d: 1 },

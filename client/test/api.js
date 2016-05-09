@@ -24,7 +24,7 @@ describe('Core API tests', () => {
     Horizon.clearAuthTokens()
     horizon = Horizon({ secure: false, lazyWrites: true })
     horizon.connect(err => done(err))
-    horizon.onConnected(() => {
+    horizon.onReady(() => {
       data = horizon('test_data')
       done()
     })
@@ -76,7 +76,7 @@ describe('Core API tests', () => {
     before(assertCompletes(() =>
       data.store(testData)
        ::ignoreElements()
-       ::concat(data.fetch()::toArray())
+       ::concat(data.fetch())
        ::tap(res => assert.sameDeepMembers(res, testData))
     ))
 
@@ -106,4 +106,9 @@ describe('Core API tests', () => {
     describe('Testing `below` subscriptions', belowSubscriptionSuite(getData))
     describe('Testing `order.limit` subscriptions', orderLimitSubSuite(getData))
   }) // Test the subscriptions API
+
+  describe('Unit tests', () => {
+    describe('Auth', authSuite)
+    describe('Utils', utilsSuite)
+  })
 }) // Core API tests

@@ -8,8 +8,12 @@ const Collection = require('./collection').Collection;
 const r = require('rethinkdb');
 
 class Metadata {
-  constructor(db, conn, clients, auto_create_collection, auto_create_index) {
-    this._db = db;
+  constructor(project_name,
+              conn,
+              clients,
+              auto_create_collection,
+              auto_create_index) {
+    this._db = project_name;
     this._internal_db = this._db + '_internal';
     this._conn = conn;
     this._clients = clients;
@@ -24,7 +28,7 @@ class Metadata {
     this._index_feed = null;
 
     const make_feeds = () => {
-      logger.info('running metadata sync');
+      logger.debug('running metadata sync');
       const groups_ready = new Promise((resolve, reject) => {
         r.db(this._internal_db)
           .table('groups')
@@ -123,7 +127,7 @@ class Metadata {
           }).catch(reject);
       });
       return Promise.all([ groups_ready, collections_ready, indexes_ready ]).then(() => {
-        logger.info('metadata sync complete');
+        logger.debug('metadata sync complete');
         this._ready = true;
         return this;
       });

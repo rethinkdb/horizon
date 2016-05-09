@@ -259,7 +259,7 @@ To store documents into the collection, we use [`.store`][store].
 // Object being stored
 let message = {
   text: "What a beautiful horizon 🌄!",
-  datetime: new Date()
+  datetime: new Date(),
   author: "@dalanmiller"
 }
 
@@ -275,10 +275,12 @@ To retrieve messages from the collection we use [`.fetch`][fetch]. In this case,
 
 ```js
 chat.fetch().forEach(
-  // Each result from the chat collection
-  //  will pass through this function
-  (item) => {
-    console.log(item);
+  (items) => {
+    items.forEach((item) => {
+      // Each result from the chat collection
+      //  will pass through this function
+      console.log(item);
+    })
   },
   // If an error occurs, this function
   //  will execute with the `err` message
@@ -286,13 +288,6 @@ chat.fetch().forEach(
     console.log(err);
   })
 ```
-
-Each document of the result `.forEach` will pass individually through the result handler as the results are emitted from the server. If you'd rather handle the entire results array at once, you can add [`.toArray()`][toArray] after [`.fetch()`][fetch] like so:
-
-```js
-chat.fetch().toArray().forEach((completeArrayOfResults) => {})
-```
-
 
 ### Removing documents
 
@@ -378,8 +373,8 @@ let chats = [];
 // Retrieve all messages from the server
 const retrieveMessages = () => {
   chat.order('datetime')
-  // fetch all results as an array, rather than one at a time
-  .fetch().toArray()
+  // fetch all results as an array
+  .fetch()
   // Retrieval successful, update our model
   .forEach((newChats) => {
       chats = chats.concat(newChats);

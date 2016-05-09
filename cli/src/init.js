@@ -12,7 +12,7 @@ const makeIndexHTML = (projectName) => `\
     <script src="/horizon/horizon.js"></script>
     <script>
       var horizon = Horizon();
-      horizon.onConnected(function() {
+      horizon.onReady(function() {
         document.querySelector('h1').innerHTML = '${projectName} works!'
       });
       horizon.connect();
@@ -42,8 +42,8 @@ const makeDefaultConfig = (projectName) => `\
 # 'key_file' and 'cert_file' are required for serving HTTPS
 #------------------------------------------------------------------------------
 # insecure = true
-# key_file = "key.pem"
-# cert_file = "cert.pem"
+# key_file = "horizon-key.pem"
+# cert_file = "horizon-cert.pem"
 
 
 ###############################################################################
@@ -51,7 +51,7 @@ const makeDefaultConfig = (projectName) => `\
 # 'project' will change to the given directory
 # 'serve_static' will serve files from the given directory over HTTP/HTTPS
 #------------------------------------------------------------------------------
-project = "${projectName}"
+project_name = "${projectName}"
 # serve_static = "dist"
 
 
@@ -142,15 +142,19 @@ const processConfig = (parsed) => parsed;
 
 const runCommand = (parsed) => {
   const runInSubdir = parsed.projectName != null;
-  const subdirExists = fileExists(parsed.projectName);
+  const subdirExists = !runInSubdir || fileExists(parsed.projectName);
   const projectDirName = parsed.projectName ?
           path.join(process.cwd(), parsed.projectName) :
           process.cwd();
   const projectName = parsed.projectName || path.basename(process.cwd());
 
-  if (runInSubdir && !subdirExists) {
-    fs.mkdirSync(projectName);
-    console.info(`Created new project directory ${parsed.projectName}`);
+  if (runInSubdir) {
+    if (!subdirExists) {
+      fs.mkdirSync(projectName);
+      console.info(`Created new project directory ${parsed.projectName}`);
+    } else {
+      console.info(`Initializing in existing directory ${parsed.projectName}`);
+    }
   } else {
     console.info('Creating new project in current directory');
   }
@@ -163,15 +167,35 @@ const runCommand = (parsed) => {
 
   if (!dirWasPopulated && !fileExists('src')) {
     fs.mkdirSync('src');
+    if (runInSubdir) {
+      console.info(`Created ${parsed.projectName}/src directory`);
+    } else {
+      console.info('Created src directory');
+    }
   }
   if (!dirWasPopulated && !fileExists('dist')) {
     fs.mkdirSync('dist');
+    if (runInSubdir) {
+      console.info(`Created ${parsed.projectName}/dist directory`);
+    } else {
+      console.info('Created dist directory');
+    }
+
     fs.appendFileSync('./dist/index.html', makeIndexHTML(projectName));
+    if (runInSubdir) {
+      console.info(`Created ${parsed.projectName}/dist/index.html example`);
+    } else {
+      console.info('Created dist/index.html example');
+    }
   }
 
   if (!fileExists('.hz')) {
     fs.mkdirSync('.hz');
-    console.info('Created .hz directory');
+    if (runInSubdir) {
+      console.info(`Created ${parsed.projectName}/.hz directory`);
+    } else {
+      console.info('Created .hz directory');
+    }
   }
   if (!fileExists('.hz/config.toml')) {
     fs.appendFileSync('.hz/config.toml', makeDefaultConfig(projectName), {
@@ -179,6 +203,11 @@ const runCommand = (parsed) => {
       mode: 0o600, // Secrets are put in this config, so set it user
                    // read/write only
     });
+    if (runInSubdir) {
+      console.info(`Created ${parsed.projectName}/.hz/config.toml`);
+    } else {
+      console.info('Created .hz/config.toml');
+    }
   } else {
     console.info('.hz/config.toml already exists, not touching it.');
   }

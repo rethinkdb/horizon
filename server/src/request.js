@@ -20,8 +20,8 @@ class Request {
       for (const group_name of user_info.groups) {
         const group = metadata.get_group(group_name);
         if (group !== undefined) {
-          for (const rule of group.rules) {
-            if (rule.is_match(this._raw_request, user_info)) {
+          for (const r of group.rules) {
+            if (r.is_match(this._raw_request, user_info)) {
               matching_rules.push(rule);
             }
           }

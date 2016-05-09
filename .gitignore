@@ -8,3 +8,5 @@ rethinkdb_data/
 **/*-cert.pem
 node_modules/
 **/.DS_Store
+.hz/
+config.toml
