@@ -14,7 +14,7 @@ const chainingSuite = window.chainingSuite = getData => () => {
       .order('id')
       .above({ id: 2 })
       .below({ id: 4 })
-      .fetch()::toArray()
+      .fetch()
       ::tap(res => assert.deepEqual(res, [
         { id: 2, a: 20, b: 1 },
         { id: 3, a: 20, b: 2 },
@@ -27,7 +27,7 @@ const chainingSuite = window.chainingSuite = getData => () => {
       .below({ id: 4 })
       .above({ id: 2 })
       .order('id', 'descending')
-      .fetch()::toArray()
+      .fetch()
       ::tap(res => assert.deepEqual(res, [
         { id: 3, a: 20, b: 2 },
         { id: 2, a: 20, b: 1 },
@@ -39,7 +39,7 @@ const chainingSuite = window.chainingSuite = getData => () => {
     data.findAll({ a: 20 })
       .above({ id: 2 })
       .order('id').below({ id: 4 }).limit(1)
-      .fetch()::toArray()
+      .fetch()
       ::tap(res => assert.deepEqual(res, [ { id: 2, a: 20, b: 1 } ]))
   ))
 
@@ -49,7 +49,7 @@ const chainingSuite = window.chainingSuite = getData => () => {
       .order('id')
       .above({ id: 2 })
       .limit(1)
-      .fetch()::toArray()
+      .fetch()
       ::tap(res => assert.deepEqual(res, [ { id: 2, a: 20, b: 1 } ]))
   ))
 
@@ -60,7 +60,7 @@ const chainingSuite = window.chainingSuite = getData => () => {
       .above({ id: 2 })
       .below({ id: 4 }, 'closed')
       .limit(2)
-      .fetch()::toArray()
+      .fetch()
       ::tap(res => assert.deepEqual(res, [
         { id: 2, a: 20, b: 1 },
         { id: 3, a: 20, b: 2 },

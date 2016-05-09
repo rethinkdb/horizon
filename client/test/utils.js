@@ -9,10 +9,10 @@ import { ignoreElements } from 'rxjs/operator/ignoreElements'
 
 window.removeAllData = function removeAllData(collection, done) {
   // Read all elements from the collection
-  collection.fetch()::toArray() // all documents in the collection
+  collection.fetch()
+    ::tap() // not sure why this needs to be here
     ::mergeMap(docs => collection.removeAll(docs))
     ::mergeMapTo(collection.fetch())
-    ::toArray()
     ::tap(remaining => assert.deepEqual([], remaining))
     .subscribe(doneObserver(done))
 }

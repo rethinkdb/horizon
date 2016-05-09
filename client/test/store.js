@@ -98,7 +98,7 @@ const storeSuite = window.storeSuite = getData => () => {
       })
       // Make sure we get what we put in.
       ::mergeMap(() => data.findAll(new_id_0, new_id_1, 1)
-               .fetch()::toArray())
+               .fetch())
       // We're supposed to get an array of documents we put in
       ::tap(res => assert.sameDeepMembers(res, [
         { id: new_id_0 },

@@ -44,7 +44,7 @@ const timesSuite = window.timesSuite = getData => () => {
   ))
 
   it('finds all documents by a field with a time value', assertCompletes(() =>
-    data.findAll({ time: new Date(2) }).fetch()::toArray()
+    data.findAll({ time: new Date(2) }).fetch()
       ::tap(res => assert.deepEqual(res, range(4).map(i => ({
         id: i + 8,
         value: i,
@@ -53,7 +53,7 @@ const timesSuite = window.timesSuite = getData => () => {
   ))
 
   it('finds all documents by a time field and another field', assertCompletes(() =>
-    data.findAll({ value: 2, time: new Date(3) }).fetch()::toArray()
+    data.findAll({ value: 2, time: new Date(3) }).fetch()
       ::tap(res => assert.deepEqual(res, [ {
         id: 14,
         value: 2,
@@ -64,7 +64,7 @@ const timesSuite = window.timesSuite = getData => () => {
   it('finds all documents bounded above by a time', assertCompletes(() =>
     data.findAll({ value: 3 })
       .above({ time: new Date(1) })
-      .fetch()::toArray()
+      .fetch()
       ::tap(res => assert.deepEqual(res, range(3).map(i => ({
         id: 3 + (i + 1) * 4,
         value: 3,
@@ -76,7 +76,7 @@ const timesSuite = window.timesSuite = getData => () => {
     data.findAll({ value: 2 })
       .above({ time: new Date(1) })
       .below({ time: new Date(3) })
-      .fetch()::toArray()
+      .fetch()
       ::tap(res => assert.deepEqual(res, [
         { id: 6, value: 2, time: new Date(1) },
         { id: 10, value: 2, time: new Date(2) },
