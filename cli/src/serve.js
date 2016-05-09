@@ -203,8 +203,8 @@ const initialize_servers = (ctor, opts) => {
         srv.on('request', fileServer(opts.serve_static));
       }
       srv.on('listening', () => {
-        logger.info(`Listening on ${srv.address().address}:` +
-                    `${srv.address().port}.`);
+        logger.info(`Listening on http://${srv.address().address}:` +
+                    `${srv.address().port}`);
         if (++numReady === servers.size) {
           resolve(servers);
         }
