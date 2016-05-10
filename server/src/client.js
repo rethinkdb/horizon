@@ -173,14 +173,14 @@ class Client {
       return this.send_error(raw_request, `Request ${raw_request.request_id} already exists for this client.`);
     }
 
-    console.log(`Starting request with: ${JSON.stringify(raw_request)}`);
     const request = new Request(raw_request, endpoint, this);
     this._requests.set(raw_request.request_id, request);
     request.run();
   }
 
   remove_request(raw_request) {
-    const request = this._requests.delete(raw_request.request_id);
+    const request = this._requests.get(raw_request.request_id);
+    this._requests.delete(raw_request.request_id);
     if (request) {
       request.close();
     }
@@ -213,8 +213,7 @@ class Client {
   }
 
   send_error(request, err, code) {
-    logger.debug(`Sending error result for request ${request.request_id}: ${err}`);
-    logger.debug(`Stack: ${err.stack}`);
+    logger.debug(`Sending error result for request ${request.request_id}:\n${err.stack}`);
 
     const error = err instanceof Error ? err.message : err;
     const error_code = code === undefined ? -1 : code;

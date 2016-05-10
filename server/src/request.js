@@ -75,8 +75,7 @@ class Request {
   }
 
   handle_error(err) {
-    logger.debug(`Error on request ${this._raw_request.request_id}: ${err}`);
-    logger.debug(`Stack: ${err.stack}`);
+    logger.debug(`Error on request ${this._raw_request.request_id}:\n${err.stack}`);
 
     // Ignore errors for disconnected clients
     if (this._client.is_open()) {

@@ -19,13 +19,13 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
     .map((id) => r.branch(id.eq(null), null, r.table(collection.table).get(id)))
     .run(conn)
     .then((old_rows) => {
-      check(old_rows.length === parsed.value.data.length);
+      check(old_rows.length === parsed.value.data.length, 'Unexpected ReQL response size.');
       const valid_rows = [ ];
       for (let i = 0; i < old_rows.length; ++i) {
         if (ruleset.validate(context, old_rows[i], parsed.value.data[i])) {
           if (old_rows[i] === null) {
             // This will tell the ReQL query that the row should not exist
-            parsed.value.data[i][writes.version_field] = undefined;
+            delete parsed.value.data[i][writes.version_field];
           }
           response_data.push(null);
           valid_rows.push(parsed.value.data[i]);
@@ -36,23 +36,24 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
 
       return r.expr(valid_rows)
                .forEach((new_row) =>
-                 r.branch(new_row.hasFields('id'),
-                          r.table(collection.table)
-                            .get(new_row('id'))
-                            .replace((old_row) =>
-                              r.branch(r.and(old_row.eq(null),
-                                             new_row.hasFields(writes.version_field)),
-                                       r.error(writes.missing_error),
-                                       r.or(r.and(new_row.hasFields(writes.version_field),
-                                                  old_row(writes.version_field).ne(new_row(writes.version_field))),
-                                            r.and(new_row.hasFields(writes.version_field).not(),
-                                                  old_row.ne(null))),
-                                       r.error(writes.invalidated_error),
-                                       writes.add_new_version(new_row)),
-                              { returnChanges: 'always' }),
-                          r.table(collection.table)
-                            .insert(writes.add_new_version(new_row),
-                                    { returnChanges: 'always' })))
+                 r.uuid().do((new_version) =>
+                   r.branch(new_row.hasFields('id'),
+                            r.table(collection.table)
+                              .get(new_row('id'))
+                              .replace((old_row) =>
+                                r.branch(r.and(old_row.eq(null),
+                                               new_row.hasFields(writes.version_field)),
+                                         r.error(writes.missing_error),
+                                         r.or(r.and(new_row.hasFields(writes.version_field),
+                                                    old_row(writes.version_field).ne(new_row(writes.version_field))),
+                                              r.and(new_row.hasFields(writes.version_field).not(),
+                                                    old_row.ne(null))),
+                                         r.error(writes.invalidated_error),
+                                         writes.apply_version(new_row, new_version)),
+                                { returnChanges: 'always' }),
+                            r.table(collection.table)
+                              .insert(writes.apply_version(new_row, new_version),
+                                      { returnChanges: 'always' }))))
                .run(conn);
     }).then((store_results) => {
       done(writes.make_write_response(response_data, store_results));

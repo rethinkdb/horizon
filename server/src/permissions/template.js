@@ -88,7 +88,6 @@ const make_template = (str) => {
 };
 
 template_compare = (query, template, context) => {
-  console.log(`Comparing query (${JSON.stringify(query)}) and template (${JSON.stringify(template)})`);
   for (const key in query) {
     const query_value = query[key];
     const template_value = template[key];

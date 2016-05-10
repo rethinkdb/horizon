@@ -20,27 +20,31 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
     .map((id) => r.table(collection.table).get(id))
     .run(conn)
     .then((old_rows) => {
-      check(old_rows.length === parsed.value.data.length);
+      check(old_rows.length === parsed.value.data.length, 'Unexpected ReQL response size.');
       const valid_rows = [ ];
       for (let i = 0; i < old_rows.length; ++i) {
         if (old_rows[i] === null) {
           response_data.push(new Error(writes.missing_error));
-        } else if (ruleset.validate(context, old_rows[i], parsed.value.data[i])) {
+        } else if (!ruleset.validate(context, old_rows[i], parsed.value.data[i])) {
+          response_data.push(new Error(writes.unauthorized_error));
+        } else {
           response_data.push(null);
           valid_rows.push(parsed.value.data[i]);
-        } else {
-          response_data.push(new Error(writes.unauthorized_error));
         }
       }
 
-      return r.expr(valid_rows).forEach((new_row) =>
-        r.table(collection.table).get(new_row('id')).replace((old_row) =>
-          r.branch(old_row.eq(null),
-                   r.error(writes.missing_error),
-                   old_row(writes.version_field).ne(new_row(writes.version_field)),
-                   r.error(writes.invalidated_error),
-                   writes.add_new_version(new_row)),
-          { returnChanges: 'always' }))
+      return r.expr(valid_rows)
+          .forEach((new_row) =>
+            r.uuid().do((new_version) =>
+              r.table(collection.table)
+                .get(new_row('id'))
+                .replace((old_row) =>
+                  r.branch(old_row.eq(null),
+                           r.error(writes.missing_error),
+                           old_row(writes.version_field).ne(new_row(writes.version_field)),
+                           r.error(writes.invalidated_error),
+                           writes.apply_version(new_row, new_version)),
+                  { returnChanges: 'always' })))
         .run(conn);
     }).then((replace_results) => {
       done(writes.make_write_response(response_data, replace_results));

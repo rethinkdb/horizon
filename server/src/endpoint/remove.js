@@ -15,26 +15,28 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   const conn = metadata.connection();
   const response_data = [ ];
 
-  r.table(collection.table)
-    .getAll(r.args(parsed.value.data.map((row) => row.id)), { index: 'id' })
+  r.expr(parsed.value.data.map((row) => row.id))
+    .map((id) => r.table(collection.table).get(id))
     .run(conn)
     .then((old_rows) => {
-      check(old_rows.length === parsed.value.data.length);
+      check(old_rows.length === parsed.value.data.length, 'Unexpected ReQL response size.');
       const valid_info = [ ];
       for (let i = 0; i < old_rows.length; ++i) {
-        if (ruleset.validate(context, old_rows[i], null)) {
+        if (old_rows[i] === null) {
+          response_data.push(new Error(writes.missing_error));
+        } else if (!ruleset.validate(context, old_rows[i], null)) {
+          response_data.push(new Error('Operation not permitted.'));
+        } else {
           const info = { id: old_rows[i].id };
           info[writes.version_field] = old_rows[i][writes.version_field];
           valid_info.push(info);
           response_data.push(null);
-        } else {
-          response_data.push(new Error('Operation not permitted.'));
         }
       }
 
       return r.expr(valid_info).forEach((info) =>
                r.table(collection.table)
-                 .get(info.id).replace((row) =>
+                 .get(info('id')).replace((row) =>
                    r.branch(row.eq(null),
                             r.error(writes.missing_error),
                             row(writes.version_field).ne(info(writes.version_field)),

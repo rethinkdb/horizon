@@ -11,8 +11,7 @@ const missing_error = 'The document was missing.';
 const unauthorized_error = 'Operation not permitted.';
 
 const version_field = '$hz_v$';
-const new_version = r.object(version_field, r.uuid());
-const add_new_version = (row) => row.merge(new_version);
+const apply_version = (row, new_version) => row.merge(r.object(version_field, new_version));
 
 const make_write_response = (data, results) => {
   let results_index = 0;
@@ -41,5 +40,5 @@ module.exports = {
   unauthorized_error,
   make_write_response,
   version_field,
-  add_new_version,
+  apply_version,
 };

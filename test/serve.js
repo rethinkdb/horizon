@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict'
 
+Error.stackTraceLimit = Infinity;
+
 const horizon = require('../server');
 
 // Utilities provided by the CLI library

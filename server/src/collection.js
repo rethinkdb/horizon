@@ -43,7 +43,7 @@ class Collection {
     const index_name = Index.fields_to_name(fields);
 
     const success = () => {
-      const index = new Index(index_name, conn);
+      const index = new Index(index_name, this.table, conn);
       this.indexes.set(index_name, index);
       return index.promise.then(() => done());
     };
@@ -53,7 +53,7 @@ class Collection {
       .run(conn)
       .then(success)
       .catch((err) => {
-        if (err instanceof r.ReqlError &&
+        if (err instanceof r.Error.ReqlError &&
             err.msg.indexOf('already exists') !== -1) {
           success();
         } else {

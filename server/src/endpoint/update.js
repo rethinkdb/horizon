@@ -19,32 +19,38 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
     .map((new_row) =>
       r.table(collection.table)
         .get(new_row('id'))
-        .do((old_row) => [ old_row, old_row.merge(new_row) ]))
+        .do((old_row) =>
+          r.branch(old_row.eq(null),
+                   null,
+                   [ old_row, old_row.merge(new_row) ])))
     .run(conn)
     .then((changes) => {
-      check(changes.length === parsed.value.data.length);
+      check(changes.length === parsed.value.data.length, 'Unexpected ReQL response size.');
       const valid_rows = [ ];
       for (let i = 0; i < changes.length; ++i) {
-        if (ruleset.validate(context, changes[i][0], changes[i][1])) {
+        if (changes[i] === null) {
+          response_data.push(new Error(writes.missing_error));
+        } else if (!ruleset.validate(context, changes[i][0], changes[i][1])) {
+          response_data.push(new Error(writes.unauthorized_error));
+        } else {
           valid_rows.push(parsed.value.data[i]);
           response_data.push(null);
-        } else {
-          response_data.push(new Error(writes.unauthorized_error));
         }
       }
 
       return r.expr(valid_rows)
-               .forEach((new_row) =>
-                 r.table(collection.table)
-                   .get(new_row('id'))
-                   .replace((old_row) =>
-                     r.branch(old_row.eq(null),
-                              r.error(writes.missing_error),
-                              old_row(writes.version_field).ne(new_row(writes.version_field)),
-                              r.error(writes.invalidated_error),
-                              writes.add_new_version(old_row.merge(new_row))),
-                     { returnChanges: 'always' }))
-               .run(conn);
+          .forEach((new_row) =>
+            r.uuid().do((new_version) =>
+              r.table(collection.table)
+                .get(new_row('id'))
+                .replace((old_row) =>
+                  r.branch(old_row.eq(null),
+                           r.error(writes.missing_error),
+                           old_row(writes.version_field).ne(new_row(writes.version_field)),
+                           r.error(writes.invalidated_error),
+                           writes.apply_version(old_row.merge(new_row), new_version)),
+                  { returnChanges: 'always' })))
+          .run(conn);
     }).then((update_results) => {
       done(writes.make_write_response(response_data, update_results));
     }).catch(done);

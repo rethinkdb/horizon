@@ -27,7 +27,8 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
 
   // TODO: shortcut if valid rows is empty (for all write request types)
   r.table(collection.table)
-    .insert(valid_rows.map((row) => writes.add_new_version(row)), { conflict: 'error' })
+    .insert(valid_rows.map((row) => writes.apply_version(r.expr(row), r.uuid())),
+            { conflict: 'error', returnChanges: 'always' })
     .run(conn)
     .then((insert_results) => {
       done(writes.make_write_response(response_data, insert_results));

@@ -16,18 +16,24 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   const response_data = [ ];
 
   r.expr(parsed.value.data)
-    .map((new_row) => r.branch(new_row('id').eq(null), [ null, new_row ],
-                               r.table(collection.table)
-                                 .get(new_row('id'))
-                                 .do((old_row) => [ old_row, old_row.merge(new_row) ])))
+    .map((new_row) =>
+      r.branch(new_row.hasFields('id'),
+               r.table(collection.table)
+                 .get(new_row('id'))
+                 .do((old_row) =>
+                   r.branch(old_row.eq(null),
+                            [ null, new_row ],
+                            [ old_row, old_row.merge(new_row) ])),
+               [ null, new_row ]))
     .run(conn)
     .then((changes) => {
-      check(changes.length === parsed.value.data.length);
+      check(changes.length === parsed.value.data.length, 'Unexpected ReQL response size.');
       const valid_rows = [ ];
       for (let i = 0; i < changes.length; ++i) {
         if (ruleset.validate(context, changes[i][0], changes[i][1])) {
           if (changes[i][0] === null) {
-            parsed.value.data[i][writes.version_field] = undefined;
+            // This tells the ReQL query that the row should not exist
+            delete parsed.value.data[i][writes.version_field];
           }
           response_data.push(null);
           valid_rows.push(parsed.value.data[i]);
@@ -38,23 +44,26 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
 
       return r.expr(valid_rows)
                .forEach((new_row) =>
-                 r.branch(new_row.hasFields('id'),
-                          r.table(collection.table)
-                            .get(new_row('id'))
-                            .replace((old_row) =>
-                              r.branch(r.and(old_row.eq(null),
-                                             new_row.hasFields(writes.version_field)),
-                                       r.error(writes.missing_error),
-                                       r.or(r.and(new_row.hasFields(writes.version_field),
-                                                  old_row(writes.version_field).ne(new_row(writes.version_field))),
-                                            r.and(new_row.hasFields(writes.version_field).not(),
-                                                  old_row.ne(null))),
-                                       r.error(writes.invalidated_error),
-                                       writes.add_new_version(old_row.merge(new_row))),
-                              { returnChanges: 'always' }),
-                           r.table(collection.table)
-                             .insert(writes.add_new_version(new_row),
-                                     { returnChanges: 'always' })))
+                 r.uuid().do((new_version) =>
+                   r.branch(new_row.hasFields('id'),
+                            r.table(collection.table)
+                              .get(new_row('id'))
+                              .replace((old_row) =>
+                                r.branch(r.and(old_row.eq(null),
+                                               new_row.hasFields(writes.version_field)),
+                                         r.error(writes.missing_error),
+                                         r.or(r.and(new_row.hasFields(writes.version_field),
+                                                    old_row(writes.version_field).ne(new_row(writes.version_field))),
+                                              r.and(new_row.hasFields(writes.version_field).not(),
+                                                    old_row.ne(null))),
+                                         r.error(writes.invalidated_error),
+                                         old_row.eq(null),
+                                         writes.apply_version(new_row, new_version),
+                                         writes.apply_version(old_row.merge(new_row), new_version)),
+                                { returnChanges: 'always' }),
+                             r.table(collection.table)
+                               .insert(writes.apply_version(new_row, new_version),
+                                       { returnChanges: 'always' }))))
                .run(conn);
     }).then((upsert_results) => {
       done(writes.make_write_response(response_data, upsert_results));
