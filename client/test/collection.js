@@ -29,4 +29,18 @@ const collectionSuite = window.collectionSuite = (getHorizon, getData, getTestDa
     empty_collection.fetch()
       ::tap(res => assert.sameDeepMembers(res, []))
   ))
+
+  // Test forEach for promise behavior
+  it('Allows iterating over the entire collection', done => {
+    let didSomething = false
+    data.fetch().forEach(results => {
+      didSomething = true
+    }).then(() => {
+      if (didSomething) {
+        done()
+      } else {
+        done(new Error("Didn't do anything"))
+      }
+    }).catch(err => done(err))
+  })
 } // Testing full collection reads
