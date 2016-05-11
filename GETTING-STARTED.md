@@ -267,16 +267,16 @@ let message = {
 chat.store(message);
 ```
 
-If we wanted, we could also add `.forEach` at the end of [`.store`][store] and handle the document `id`s created by the server as well as any errors that occur with storing. Check out [`.store`](https://github.com/rethinkdb/horizon/tree/next/client#store-------) in the [Horizon Client docs](https://github.com/rethinkdb/horizon/tree/next/client) ➡️.
+If we wanted, we could also add `.subscribe` at the end of [`.store`][store] and handle the document `id`s created by the server as well as any errors that occur with storing. Check out [`.store`](https://github.com/rethinkdb/horizon/tree/next/client#store-------) in the [Horizon Client docs](https://github.com/rethinkdb/horizon/tree/next/client) ➡️.
 
 ### Retrieving documents
 
-To retrieve messages from the collection we use [`.fetch`][fetch]. In this case, `.forEach` takes a result and error handler function.
+To retrieve messages from the collection we use [`.fetch`][fetch]. In this case, `.subscribe` takes a result and error handler function.
 
 ```js
-chat.fetch().forEach(
+chat.fetch().subscribe(
   (items) => {
-    items.forEach((item) => {
+    items.subscribe((item) => {
       // Each result from the chat collection
       //  will pass through this function
       console.log(item);
@@ -295,8 +295,8 @@ To remove documents from a collection, you can use either [`.remove`][remove] or
 
 ```js
 // These two queries are equivalent and will remove the document with id: 1.
-chat.remove(1).forEach((id) => { console.log(id) })
-chat.remove({id: 1}).forEach((id) => {console.log(id)})
+chat.remove(1).subscribe((id) => { console.log(id) })
+chat.remove({id: 1}).subscribe((id) => {console.log(id)})
 ```
 
 Or, if you have a set of documents that you'd like to remove you can pass them in as an array to [`.removeAll`][removeAll].
@@ -306,7 +306,7 @@ Or, if you have a set of documents that you'd like to remove you can pass them i
 // Will remove documents with ids 1, 2, and 3 from the collection.
 chat.removeAll([1, 2, 3])
 ```
-As with the other functions, you can chain `.forEach` onto the remove functions and provide response and error handlers.
+As with the other functions, you can chain `.subscribe` onto the remove functions and provide response and error handlers.
 
 ### Watching for changes
 
@@ -316,17 +316,17 @@ in the database. Here are a few variations of how you can use [`.watch`][watch]:
 
 ```js
 // Watch all documents, if any of them change, call the handler function.
-chat.watch().forEach((docs) => { console.log(docs)  })
+chat.watch().subscribe((docs) => { console.log(docs)  })
 
 // Query all documents and sort them in ascending order by datetime,
 //  then if any of them change, the handler function is called.
-chat.order("datetime").watch().forEach((docs) => { console.log(docs)  })
+chat.order("datetime").watch().subscribe((docs) => { console.log(docs)  })
 
 // Find a single document in the collection, if it changes, call the handler function
-chat.find({author: "@dalanmiller"}).watch().forEach((doc) => { console.log(doc) })
+chat.find({author: "@dalanmiller"}).watch().subscribe((doc) => { console.log(doc) })
 ```
 
-By default, the handler you pass to `.forEach` chained on [`.watch`][watch] will receive
+By default, the handler you pass to `.subscribe` chained on [`.watch`][watch] will receive
 the entire collection of documents when one of them changes. This makes it easy when
 using frameworks such as [Vue](https://vuejs.org/) or [React](https://facebook.github.io/react/)
 allowing you to replace the current state with the new array given to you by Horizon.
@@ -338,7 +338,7 @@ let chats = [];
 
 // Query chats with `.order` which by default
 //  is in ascending order.
-chat.order("datetime").watch().forEach(
+chat.order("datetime").watch().subscribe(
 
   // Returns the entire array
   (newChats) => {
@@ -376,7 +376,7 @@ const retrieveMessages = () => {
   // fetch all results as an array
   .fetch()
   // Retrieval successful, update our model
-  .forEach((newChats) => {
+  .subscribe((newChats) => {
       chats = chats.concat(newChats);
     },
     // Error handler
@@ -390,7 +390,7 @@ const retrieveMessages = () => {
 const retrieveMessage = id => {
   chat.find(id).fetch()
     // Retrieval successful
-    .forEach(result => {
+    .subscribe(result => {
       chats.push(result);
     },
     // Error occurred
@@ -400,11 +400,13 @@ const retrieveMessage = id => {
 // Store new item
 const storeMessage = (message) => {
    chat.store(message)
-    .forEach( // forEach is an alias of .subscribe
+    .subscribe(
       // Returns id of saved objects
       result => console.log(result),
       // Returns server error message
       error => console.log(error)
+      // called when store is complete
+      () => console.log('completed store')
     )
 };
 
@@ -425,7 +427,7 @@ And lastly, the [`.watch`][watch] method basically creates a listener on the cha
 
 ```js
 
-chat.watch().forEach(chats => {
+chat.watch().subscribe(chats => {
   // Each time through it will returns all results of your query
     renderChats(allChats)
   },
@@ -439,10 +441,10 @@ You can also get notifications when the client connects and disconnects from the
 
 ``` js
   // Triggers when client successfully connects to server
-  horizon.onConnected().forEach(() => console.log("Connected to Horizon Server"))
+  horizon.onConnected().subscribe(() => console.log("Connected to Horizon Server"))
 
   // Triggers when disconnected from server
-  horizon.onDisconnected().forEach(() => console.log("Disconnected from Horizon Server"))
+  horizon.onDisconnected().subscribe(() => console.log("Disconnected from Horizon Server"))
 ```
 
 From here, you could take any framework and add these functions to create a realtime chat application
