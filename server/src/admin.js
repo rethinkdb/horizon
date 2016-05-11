@@ -63,7 +63,7 @@ class Admin {
          connected: true,
          id: client.id,
          time: r.now(),
-         ip: uR.connection.remoteAddress,
+         ip: uR.connection.remoteAddress || null,
          origin: uR.headers.origin
       }));
   }

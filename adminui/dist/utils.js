@@ -39,18 +39,25 @@ function applyChange(arr, change) {
   }
   case 'change': {
     // Modify in place if a change is happening
-    if (change.old_offset != null) {
-      // Remove the old document from the results
-      arr.splice(change.old_offset, 1)
+    if (change.old_offset != null && change.new_offset != null) {
+        arr.splice(change.old_offset, 1)
+           .splice(change.new_offset, 0, change.new_val);
     }
-    if (change.new_offset != null) {
-      // Splice in the new val if we have an offset
-      arr.splice(change.new_offset, 0, change.new_val)
-    } else {
-      // If we don't have an offset, find the old val and
-      // replace it with the new val
-      const index = arr.findIndex(x => x.id === change.old_val.id)
-      arr[index] = change.new_val
+    else {
+      if (change.old_offset != null) {
+        // Remove the old document from the results
+        arr.splice(change.old_offset, 1)
+      }
+      
+      if (change.new_offset != null) {
+        // Splice in the new val if we have an offset
+        arr.splice(change.new_offset, 0, change.new_val)
+      } else {
+        // If we don't have an offset, find the old val and
+        // replace it with the new val
+        const index = arr.findIndex(x => x.id === change.old_val.id)
+        arr[index] = change.new_val
+      }
     }
     break
   }

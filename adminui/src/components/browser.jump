@@ -53,7 +53,7 @@
   </div>
 </template>
 
-<template id="BrowserTreeView" type="jumptag">
+<template id="BrowserTreeDoc" type="jumptag">
   <script>
     let {value} = opts;
     let {isExpanded = true} = {isExpanded: expandState.get(value.id)};
@@ -76,9 +76,15 @@
   </div>
 </template>
 
+<template id="BrowserTree" type="jumptag">
+  <for var="doc" in={opts.data}>
+    <BrowserTreeDoc value={doc}></BrowserTreeDoc>
+  </for>
+</template>
+
 <template id="Browser" type="jumptag">
   <script>
-    let {data, state: {collection}} = opts;
+    let {data, state: {collection, lastId}} = opts;
   </script>
   
   <div id="browser">
@@ -88,10 +94,18 @@
       <span class="current">${collection}</span>
     </h1>
     
+    <div class="paging">
+      <a href="#" onclick="{ev => model.browserPrev()}">
+        <i class="icon ion-arrow-left-c"></i> Previous
+      </a>
+      <span class="spacer"></span>
+      <a href="#" onclick="{ev => model.browserNext()}">
+        Next <i class="icon ion-arrow-right-c"></i>
+      </a>
+    </div>
+      
     <div class="records">
-      <for var="doc" in={data}>
-        <BrowserTreeView value={doc}></BrowserItem>
-      </for>
+      <BrowserTree data={data}></BrowserTree>
     </div>
   </div>
 </template>

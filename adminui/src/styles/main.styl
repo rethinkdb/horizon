@@ -102,17 +102,27 @@ header
     color color-grey-text
     font-weight normal 
     font-size 22px
-    margin 35px 0
+    margin 35px 0 
     
     text-transform uppercase
     letter-spacing 1px
       
-    .current
-      color lighten(color-red-highlight, 10)
+    .current {color: lighten(color-red-highlight, 10)}
+    i {margin: 0 10px}
+    
+  .paging
+    display flex
+    margin-bottom 20px
+    
+    .spacer {flex-grow: 1}
       
-    i
-      margin 0 10px
-
+    a
+      letter-spacing 0.8px
+      text-transform uppercase
+      text-decoration none
+      font-size 14px
+      font-weight normal 
+      color color-grey-text
 
   .records
     .box
