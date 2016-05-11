@@ -122,8 +122,8 @@ const make_default_config = () => ({
   serve_static: null,
 
   insecure: false,
-  key_file: './key.pem',
-  cert_file: './cert.pem',
+  key_file: './horizon-key.pem',
+  cert_file: './horizon-cert.pem',
 
   auto_create_table: false,
   auto_create_index: false,
