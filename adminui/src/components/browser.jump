@@ -84,28 +84,47 @@
 
 <template id="Browser" type="jumptag">
   <script>
-    let {data, state: {collection, lastId}} = opts;
+    let {data, state: {query}} = opts;
+    let {collections} = model.store.data.dashboard;
   </script>
   
-  <div id="browser">
-    <h1>
-      <span class="base">Collections</span>
-      <i class="icon ion-chevron-right"></i>
-      <span class="current">${collection}</span>
-    </h1>
+    <if check={query.collection}>
+      <div id="browser">
+        <h1>
+          <span class="base">
+            <a onclick="{ev => model.browserClear()}">Collections</a>
+          </span>
+          <i class="icon ion-chevron-right"></i>
+          <span class="current">${query.collection}</span>
+        </h1>
+        
+        <div class="paging">
+          <if check={query.above}>
+            <a href="#" onclick="{ev => model.browserPrev()}">
+              <i class="icon ion-arrow-left-c"></i> Previous
+            </a>
+          </if>
+          <span class="spacer"></span>
+          <a href="#" onclick="{ev => model.browserNext()}">
+            Next <i class="icon ion-arrow-right-c"></i>
+          </a>
+        </div>
+          
+        <div class="records">
+          <BrowserTree data={data}></BrowserTree>
+        </div>
+      </div>
+    </if>
     
-    <div class="paging">
-      <a href="#" onclick="{ev => model.browserPrev()}">
-        <i class="icon ion-arrow-left-c"></i> Previous
-      </a>
-      <span class="spacer"></span>
-      <a href="#" onclick="{ev => model.browserNext()}">
-        Next <i class="icon ion-arrow-right-c"></i>
-      </a>
-    </div>
-      
-    <div class="records">
-      <BrowserTree data={data}></BrowserTree>
-    </div>
-  </div>
+    <if check={!query.collection}>
+      <ul>
+        <for var="collection" in={collections}>
+          <li>
+            <a onclick="{ev => model.browserSelect(collection['id'])}">
+              ${collection["id"]}
+            </a>
+          </li>
+        </for>
+      </ul>
+    </if>
 </template>

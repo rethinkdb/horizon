@@ -55,7 +55,7 @@ class Model {
     this.store.state.browser.getListener()
         .on("update", (ch, old) => this.onBrowserStateChange(ch, old));
         
-    this.store.state.browser.query.set("collection", "test");
+    //this.store.state.browser.query.set("collection", "test");
     setInterval(() => this.onGraphUpdateTick(), 1000);
   }
   
@@ -95,6 +95,15 @@ class Model {
     query.set({above: [{[orderIndex]: value}, "open"]});
   }
   
+  browserSelect(collection) {
+    this.browserClear();
+    this.store.state.browser.query.set("collection", collection);
+  }
+  
+  browserClear() {
+    this.store.state.browser.query.reset(initialState.state.browser.query);
+  }
+  
   onGraphUpdateTick() {
     let {clients, cursors} = this.store.data.dashboard;
     this.graph.update([clients.length, cursors.length]);
@@ -109,11 +118,9 @@ class Model {
     
     if (this.browserWatch)
       this.browserWatch.dispose();
-    
-    if (change.query.collection !== old.query.collection) {
-      let initial = initialState.state.browser.query;
-      change.query.remove("above").set("order", initial.order);
-    }
+      
+    if (change.query.collection === null)
+      return;
     
     this.horizon.send("subscribe", change.query.toJS())
       .forEach(c => applyChange(this.store.data.browser, c));
