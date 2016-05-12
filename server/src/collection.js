@@ -65,6 +65,10 @@ class Collection {
   // Returns a matching (possibly compound) index for the given fields
   // fuzzy_fields and ordered_fields should both be arrays
   get_matching_index(fuzzy_fields, ordered_fields) {
+    if (fuzzy_fields.length === 0 && ordered_fields.length === 0) {
+      return this.indexes.get(Index.fields_to_name([ 'id' ]));
+    }
+
     let match = undefined;
     for (const index of this.indexes.values()) {
       if (index.is_match(fuzzy_fields, ordered_fields)) {

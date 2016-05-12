@@ -77,7 +77,7 @@ describe('Core API tests', () => {
       data.store(testData)
        ::ignoreElements()
        ::concat(data.fetch())
-       ::tap(res => assert.sameDeepMembers(res, testData))
+       ::tap(res => compareSetsWithoutVersion(res, testData))
     ))
 
     describe('Testing full collection read',

@@ -2,6 +2,7 @@
 
 const check = require('../error').check;
 const replace = require('../schema/horizon_protocol').replace;
+const reql_options = require('./common').reql_options;
 const writes = require('./writes');
 
 const Joi = require('joi');
@@ -18,7 +19,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
 
   r.expr(parsed.value.data.map((row) => row.id))
     .map((id) => r.table(collection.table).get(id))
-    .run(conn)
+    .run(conn, reql_options)
     .then((old_rows) => {
       check(old_rows.length === parsed.value.data.length, 'Unexpected ReQL response size.');
       const valid_rows = [ ];
@@ -29,6 +30,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           response_data.push(new Error(writes.unauthorized_error));
         } else {
           response_data.push(null);
+          parsed.value.data[i][writes.version_field] = old_rows[i][writes.version_field];
           valid_rows.push(parsed.value.data[i]);
         }
       }
@@ -45,7 +47,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                            r.error(writes.invalidated_error),
                            writes.apply_version(new_row, new_version)),
                   { returnChanges: 'always' })))
-        .run(conn);
+        .run(conn, reql_options);
     }).then((replace_results) => {
       done(writes.make_write_response(response_data, replace_results));
     }).catch(done);

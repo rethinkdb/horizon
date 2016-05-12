@@ -2,6 +2,7 @@
 
 const insert = require('../schema/horizon_protocol').insert;
 const writes = require('./writes');
+const reql_options = require('./common').reql_options;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
@@ -29,7 +30,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   r.table(collection.table)
     .insert(valid_rows.map((row) => writes.apply_version(r.expr(row), r.uuid())),
             { conflict: 'error', returnChanges: 'always' })
-    .run(conn)
+    .run(conn, reql_options)
     .then((insert_results) => {
       done(writes.make_write_response(response_data, insert_results));
     }).catch(done);

@@ -30,14 +30,14 @@ const removeAllSuite = window.removeAllSuite = getData => () => {
     data.store(testData)::ignoreElements()
      ::concat(data.fetch())
      // Make sure it's there
-     ::tap(res => assert.sameDeepMembers(res, testData))
+     ::tap(res => compareSetsWithoutVersion(res, testData))
   ))
 
   // All right, let's remove a document. The promise resolves with no
   // arguments.
   it('removes documents when an array of ids is passed', assertCompletes(() =>
     data.removeAll([ 1 ])
-      ::tap(res => assert.equal(res, 1))
+      ::tap(res => compareWithoutVersion(res, { id: 1 }))
       // Let's make sure the removed document isn't there
       ::mergeMapTo(data.find(1).fetch())
       // Let's make sure the removed document isn't there
@@ -47,7 +47,7 @@ const removeAllSuite = window.removeAllSuite = getData => () => {
   // Passing an array of objects to `removeAll` is also ok.
   it('removes documents when array elements are objects', assertCompletes(() =>
     data.removeAll([ { id: 2 } ])
-      ::tap(res => assert.equal(res, 2))
+      ::tap(res => compareWithoutVersion(res, { id: 2 }))
       // Let's make sure the removed document isn't there
       ::mergeMapTo(data.find(2).fetch())
       // Let's make sure the removed document isn't there
@@ -57,7 +57,7 @@ const removeAllSuite = window.removeAllSuite = getData => () => {
   // We can also remove multiple documents
   it('removes multiple documents by id or as objects', assertCompletes(() =>
     data.removeAll([ 3, 50, { id: 4 } ])::toArray()
-      ::tap(res => assert.deepEqual(res, [ 3, 50, 4 ]))
+      ::tap(res => compareWithoutVersion(res, [ { id: 3 }, { id: 50 }, { id: 4 } ]))
       // Let's make sure the removed document isn't there
       ::mergeMapTo(data.findAll(3, 50, 4).fetch())
       // Let's make sure the removed document isn't there
@@ -67,7 +67,8 @@ const removeAllSuite = window.removeAllSuite = getData => () => {
   // Removing a missing document shouldn't generate an error.
   it('removes a non-existent document without error', assertCompletes(() =>
     data.removeAll([ 'abracadabra' ])
-      ::tap(res => assert.equal(res, 'abracadabra'))
+      ::tap(res => assert.equal(res, 'abracadabra')),
+    /document was missing/
   ))
 
   // Calling `removeAll` with an empty array is also ok.
@@ -78,12 +79,8 @@ const removeAllSuite = window.removeAllSuite = getData => () => {
 
   // But an array with a `null` is an error.
   it('errors when a null in an array is passed', assertErrors(() =>
-    data.removeAll([ null ])
-  ))
-
-  // If one thing fails, everything is reported as a failure.
-  it('reports failure if anything in a batch fails', assertErrors(() =>
-    data.removeAll([ 3, null, { id: 4 } ])
+    data.removeAll([ null ]),
+    /must be an object/
   ))
 
   // Calling `removeAll` with anything but a single array is an error.

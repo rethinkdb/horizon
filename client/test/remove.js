@@ -29,12 +29,12 @@ const removeSuite = window.removeSuite = getData => () => {
     data.store(testData)::ignoreElements()
       ::concat(data.fetch())
       // Make sure it's there
-      ::tap(res => assert.sameDeepMembers(res, testData))
+      ::tap(res => compareSetsWithoutVersion(res, testData))
   ))
 
   it('removes a document when passed an id', assertCompletes(() =>
     data.remove(1)
-      ::tap(res => assert.equal(res, 1))
+      ::tap(res => compareWithoutVersion(res, { id: 1 }))
       // Let's make sure the removed document isn't there
       ::mergeMapTo(data.find(1).fetch())
       // Let's make sure the removed document isn't there
@@ -43,15 +43,16 @@ const removeSuite = window.removeSuite = getData => () => {
 
   it('removes a document with an id field', assertCompletes(() =>
     data.remove({ id: 2 })
-      ::tap(res => assert.equal(res, 2))
+      ::tap(res => compareWithoutVersion(res, { id: 2 }))
       // Let's make sure the removed document isn't there
       ::mergeMapTo(data.find(2).fetch())
       // Let's make sure the removed document isn't there
       ::tap(res => assert.isNull(res))
   ))
 
-  it(`removing a document that doesn't exist doesn't error`, assertCompletes(() =>
-    data.remove('abracadabra')::tap(res => assert.equal(res, 'abracadabra'))
+  it(`removing a document that doesn't exist doesn't error`, assertErrors(() =>
+    data.remove('abracadabra')::tap(res => assert.equal(res, 'abracadabra')),
+    /document was missing/
   ))
 
   it('fails when called with no arguments', assertThrows(

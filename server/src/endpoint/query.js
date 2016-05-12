@@ -2,6 +2,7 @@
 
 const query = require('../schema/horizon_protocol').query;
 const check = require('../error.js').check;
+const reql_options = require('./common').reql_options;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
@@ -87,7 +88,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   let cursor;
   const reql = make_reql(raw_request, metadata);
 
-  reql.run(metadata.connection()).then((res) => {
+  reql.run(metadata.connection(), reql_options).then((res) => {
     if (res !== null && res.constructor.name === 'Cursor') {
       cursor = res;
       return cursor.eachAsync((item) => {

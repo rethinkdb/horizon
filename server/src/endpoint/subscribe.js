@@ -1,6 +1,7 @@
 'use strict';
 
 const make_reql = require('./query').make_reql;
+const reql_options = require('./common').reql_options;
 
 const run = (raw_request, context, ruleset, metadata, send, done) => {
   let feed;
@@ -10,7 +11,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                  include_states: true,
                  include_types: true,
                  include_offsets: Boolean(raw_request.options.order) })
-    .run(metadata.connection())
+    .run(metadata.connection(), reql_options)
     .then((res) => {
       feed = res;
       feed.eachAsync((item) => {

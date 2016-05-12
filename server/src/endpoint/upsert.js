@@ -2,6 +2,7 @@
 
 const check = require('../error').check;
 const upsert = require('../schema/horizon_protocol').upsert;
+const reql_options = require('./common').reql_options;
 const writes = require('./writes');
 
 const Joi = require('joi');
@@ -25,7 +26,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                             [ null, new_row ],
                             [ old_row, old_row.merge(new_row) ])),
                [ null, new_row ]))
-    .run(conn)
+    .run(conn, reql_options)
     .then((changes) => {
       check(changes.length === parsed.value.data.length, 'Unexpected ReQL response size.');
       const valid_rows = [ ];
@@ -34,6 +35,8 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           if (changes[i][0] === null) {
             // This tells the ReQL query that the row should not exist
             delete parsed.value.data[i][writes.version_field];
+          } else if (parsed.value.data[i][writes.version_field] === undefined) {
+            parsed.value.data[i][writes.version_field] = changes[i][0][writes.version_field];
           }
           response_data.push(null);
           valid_rows.push(parsed.value.data[i]);
@@ -61,10 +64,10 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                                          writes.apply_version(new_row, new_version),
                                          writes.apply_version(old_row.merge(new_row), new_version)),
                                 { returnChanges: 'always' }),
-                             r.table(collection.table)
-                               .insert(writes.apply_version(new_row, new_version),
-                                       { returnChanges: 'always' }))))
-               .run(conn);
+                            r.table(collection.table)
+                              .insert(writes.apply_version(new_row, new_version),
+                                      { returnChanges: 'always' }))))
+               .run(conn, reql_options);
     }).then((upsert_results) => {
       done(writes.make_write_response(response_data, upsert_results));
     }).catch(done);

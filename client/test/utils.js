@@ -27,11 +27,22 @@ function doneObserver(done) {
 }
 
 // Used to subscribe to observables when an error is expected
-function doneErrorObserver(done) {
+function doneErrorObserver(done, regex) {
   return {
     next() {},
-    error() { done() },
-    complete() { done(new Error('Unexpectedly completed')) },
+    error(err) {
+      this.finished = true;
+      if (regex && regex.test(err.message)) {
+        done()
+      } else {
+        done(err)
+      }
+    },
+    complete() {
+      if (!this.finished) {
+        done(new Error('Unexpectedly completed'))
+      }
+    },
   }
 }
 
@@ -61,8 +72,8 @@ window.assertCompletes = function assertCompletes(observable) {
   return f
 }
 
-window.assertErrors = function assertErrors(observable) {
-  const f = done => observable().subscribe(doneErrorObserver(done))
+window.assertErrors = function assertErrors(observable, regex) {
+  const f = done => observable().subscribe(doneErrorObserver(done, regex))
   f.toString = () => observable.toString()
   return f
 }
@@ -80,7 +91,7 @@ window.observableInterleave = function observableInterleave(options) {
   const query = options.query
   const operations = options.operations
   const expected = options.expected
-  const equality = options.equality || assert.deepEqual
+  const equality = options.equality || compareWithoutVersion
   const debug = options.debug || (() => {})
   const values = []
   return query
@@ -95,4 +106,33 @@ window.observableInterleave = function observableInterleave(options) {
       }
     })
     ::tap({ complete() { equality(expected, values) } })
+}
+
+const withoutVersion = function withoutVersion(value) {
+  if (Array.isArray(value)) {
+    const modified = [ ]
+    for (const item of value) {
+      modified.push(withoutVersion(item))
+    }
+    return modified
+  } else if (typeof value === 'object') {
+    const modified = Object.assign({ }, value)
+    delete modified['$hz_v$']
+    return modified
+  } else {
+    return value
+  }
+}
+
+// Compare write results - ignoring the new version field ($hz_v$)
+window.compareWithoutVersion = function compareWithoutVersion(actual, expected, message) {
+  return assert.deepEqual(withoutVersion(actual),
+                          withoutVersion(expected),
+                          message)
+}
+
+window.compareSetsWithoutVersion = function compareSetsWithoutVersion(actual, expected, message) {
+  return assert.sameDeepMembers(withoutVersion(actual),
+                                withoutVersion(expected),
+                                message)
 }

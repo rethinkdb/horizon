@@ -23,11 +23,12 @@ const make_write_response = (data, results) => {
       const res = results.changes[results_index++];
       if (res.error !== undefined) {
         data[i] = { error: res.error };
-      } else if (res.new_val !== null) {
+      } else if (res.new_val === null) {
+        data[i] = { id: res.old_val.id };
+        data[i][version_field] = res.old_val[version_field];
+      } else {
         data[i] = { id: res.new_val.id };
         data[i][version_field] = res.new_val[version_field];
-      } else {
-        data[i] = null;
       }
     }
   }

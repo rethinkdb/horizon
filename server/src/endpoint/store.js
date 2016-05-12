@@ -2,6 +2,7 @@
 
 const check = require('../error').check;
 const store = require('../schema/horizon_protocol').store;
+const reql_options = require('./common').reql_options;
 const writes = require('./writes');
 
 const Joi = require('joi');
@@ -17,7 +18,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
 
   r.expr(parsed.value.data.map((row) => (row.id || null)))
     .map((id) => r.branch(id.eq(null), null, r.table(collection.table).get(id)))
-    .run(conn)
+    .run(conn, reql_options)
     .then((old_rows) => {
       check(old_rows.length === parsed.value.data.length, 'Unexpected ReQL response size.');
       const valid_rows = [ ];
@@ -26,6 +27,10 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           if (old_rows[i] === null) {
             // This will tell the ReQL query that the row should not exist
             delete parsed.value.data[i][writes.version_field];
+          } else {
+            // No need to fail if the client has an outdated version - the write is still
+            // allowed
+            parsed.value.data[i][writes.version_field] = old_rows[i][writes.version_field];
           }
           response_data.push(null);
           valid_rows.push(parsed.value.data[i]);
@@ -54,7 +59,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                             r.table(collection.table)
                               .insert(writes.apply_version(new_row, new_version),
                                       { returnChanges: 'always' }))))
-               .run(conn);
+               .run(conn, reql_options);
     }).then((store_results) => {
       done(writes.make_write_response(response_data, store_results));
     }).catch(done);
