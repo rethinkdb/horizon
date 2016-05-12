@@ -6,6 +6,7 @@ const https = require('https');
 const path = require('path');
 const toml = require('toml');
 const url = require('url');
+const chalk = require('chalk');
 
 const start_rdb_server = require('./utils/start_rdb_server');
 const interrupt = require('./utils/interrupt');
@@ -14,6 +15,8 @@ const isDirectory = require('./utils/is_directory');
 
 const horizon_server = require('@horizon/server');
 const logger = horizon_server.logger;
+
+const TIMEOUT_30_SECONDS = 30 * 1000;
 
 const addArguments = (parser) => {
   parser.addArgument([ 'project_path' ],
@@ -199,11 +202,18 @@ const initialize_servers = (ctor, opts) => {
       const srv = ctor().listen(opts.port, host);
       servers.add(srv);
       if (opts.serve_static) {
-        logger.info(`Serving static files from ${opts.serve_static}`);
+        if (opts.serve_static === 'dist') {
+          // do nothing, this is the default
+        } else if (opts.project_path !== '.') {
+          let pth = path.join(opts.project_path, opts.serve_static)
+          console.info(`Static files being served from ${pth}`)
+        } else {
+          console.info(`Static files being served from ${opts.serve_static}`);
+        }
         srv.on('request', fileServer(opts.serve_static));
       }
       srv.on('listening', () => {
-        logger.info(`Listening on http://${srv.address().address}:` +
+        console.info(`App available at http://${srv.address().address}:` +
                     `${srv.address().port}`);
         if (++numReady === servers.size) {
           resolve(servers);
@@ -217,7 +227,9 @@ const initialize_servers = (ctor, opts) => {
 };
 
 const createInsecureServers = (opts) => {
-  console.error('Warning: Creating insecure HTTP server.');
+  if (!opts._dev_flag_used) {
+    console.error(chalk.red.bold('WARNING: Serving app insecurely.'));
+  }
   return initialize_servers(() => new http.Server(), opts);
 };
 
@@ -334,6 +346,7 @@ const read_config_from_flags = (parsed) => {
     config.auto_create_table = true;
     config.auto_create_index = true;
     config.serve_static = 'dist';
+    config._dev_flag_used = true
   }
 
   if (parsed.project_name !== null) {
@@ -431,8 +444,8 @@ const processConfig = (parsed) => {
 };
 
 const startHorizonServer = (servers, opts) => {
-  logger.info('Starting Horizon...');
-  return new horizon_server.Server(servers, {
+  console.log('Starting Horizon...');
+  let hzServer = new horizon_server.Server(servers, {
     auto_create_table: opts.auto_create_table,
     auto_create_index: opts.auto_create_index,
     rdb_host: opts.rdb_host,
@@ -446,6 +459,16 @@ const startHorizonServer = (servers, opts) => {
       failure_redirect: opts.auth_redirect,
     },
   });
+  const timeoutObject = setTimeout(() => {
+    console.log(chalk.red.bold('Horizon failed to start after 30 seconds'))
+    console.log(chalk.red.bold('Try running hz serve again with the --debug flag'))
+    process.exit(1);
+  }, TIMEOUT_30_SECONDS);
+  hzServer.ready().then(() => {
+    clearTimeout(timeoutObject);
+    console.log(chalk.green.bold('Horizon ready for connections 🌄'))
+  })
+  return hzServer
 };
 
 // Actually serve based on the already validated options
@@ -453,7 +476,7 @@ const runCommand = (opts, done) => {
   if (opts.debug) {
     logger.level = 'debug';
   } else {
-    logger.level = 'info';
+    logger.level = 'warning';
   }
 
   if (isDirectory(opts.project_path)) {
@@ -490,6 +513,9 @@ const runCommand = (opts, done) => {
       return start_rdb_server().then((rdbOpts) => {
         // Don't need to check for host, always localhost.
         opts.rdb_port = rdbOpts.driverPort;
+        console.log('RethinkDB')
+        console.log(`   ├── Admin interface: http://localhost:${rdbOpts.httpPort}`)
+        console.log(`   └── Drivers can connect to port ${rdbOpts.driverPort}`)
       });
     }
   }).then(() => {
