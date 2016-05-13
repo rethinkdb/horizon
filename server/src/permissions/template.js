@@ -77,9 +77,7 @@ const env = {
   collection: (name) => new ast.Collection((type, opts) =>
     ({ request_id: new Any(), type, opts }), name, false),
   any: function() { return new Any(...arguments); },
-  user: {
-    id: new UserId(),
-  },
+  userId: function() { return new UserId(); },
 };
 
 const make_template = (str) => {
