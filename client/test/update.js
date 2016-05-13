@@ -3,7 +3,11 @@ import { _do as tap } from 'rxjs/operator/do'
 import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
 import { toArray } from 'rxjs/operator/toArray'
 
-import { assertCompletes, assertThrows, assertErrors } from './utils'
+import { assertCompletes,
+         assertThrows,
+         assertErrors,
+         compareWithoutVersion,
+         compareSetsWithoutVersion } from './utils'
 
 const updateSuite = window.updateSuite = getData => () => {
   let data

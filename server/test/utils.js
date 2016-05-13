@@ -104,7 +104,7 @@ const start_horizon_server = (done) => {
     horizon_server = new horizon.Server(http_server,
       { rdb_port,
         db,
-        auto_create_table: true,
+        auto_create_collection: true,
         auto_create_index: true,
         auth: {
           allow_unauthenticated: true,
@@ -191,6 +191,7 @@ const horizon_default_auth = (done) => {
 // TODO: this doesn't allow for dealing with multiple states (like 'synced').
 const stream_test = (req, cb) => {
   assert(horizon_conn && horizon_conn.readyState === websocket.OPEN);
+  const results = [];
 
   add_horizon_listener(req.request_id, (msg) => {
     if (msg.data !== undefined) {
@@ -206,7 +207,6 @@ const stream_test = (req, cb) => {
   });
 
   horizon_conn.send(JSON.stringify(req));
-  const results = [];
 };
 
 const check_error = (err, msg) => {

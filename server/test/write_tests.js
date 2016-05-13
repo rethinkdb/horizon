@@ -27,16 +27,14 @@ const all_tests = (table) => {
     return { id, new_field: 'a', old_field: [ ] };
   };
 
-  const make_request = (type, ids) => {
-    return {
-      request_id: crypto.randomBytes(4).readUInt32BE(),
-      type: type,
-      options: {
-        collection: table,
-        data: ids.map(new_row_from_id),
-      },
-    };
-  };
+  const make_request = (type, ids) => ({
+    request_id: crypto.randomBytes(4).readUInt32BE(),
+    type: type,
+    options: {
+      collection: table,
+      data: ids.map(new_row_from_id),
+    },
+  });
 
   const check_table = (expected, done) => {
     r.table(table).orderBy({ index: 'id' }).coerceTo('array')

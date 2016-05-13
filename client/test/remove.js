@@ -5,7 +5,12 @@ import { concat } from 'rxjs/operator/concat'
 import { map } from 'rxjs/operator/map'
 import { ignoreElements } from 'rxjs/operator/ignoreElements'
 
-import { assertCompletes, assertThrows, removeAllData } from './utils'
+import { assertCompletes,
+         assertThrows,
+         assertErrors,
+         removeAllData,
+         compareWithoutVersion,
+         compareSetsWithoutVersion } from './utils'
 
 const removeSuite = window.removeSuite = getData => () => {
   let data

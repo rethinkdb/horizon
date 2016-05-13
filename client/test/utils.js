@@ -128,13 +128,13 @@ const withoutVersion = function withoutVersion(value) {
 }
 
 // Compare write results - ignoring the new version field ($hz_v$)
-window.compareWithoutVersion = function compareWithoutVersion(actual, expected, message) {
+export function compareWithoutVersion(actual, expected, message) {
   return assert.deepEqual(withoutVersion(actual),
                           withoutVersion(expected),
                           message)
 }
 
-window.compareSetsWithoutVersion = function compareSetsWithoutVersion(actual, expected, message) {
+export function compareSetsWithoutVersion(actual, expected, message) {
   return assert.sameDeepMembers(withoutVersion(actual),
                                 withoutVersion(expected),
                                 message)

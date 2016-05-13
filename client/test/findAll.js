@@ -1,7 +1,10 @@
 import { _do as tap } from 'rxjs/operator/do'
 import { toArray } from 'rxjs/operator/toArray'
 
-import { assertCompletes, assertThrows, assertErrors } from './utils'
+import { assertCompletes,
+         assertThrows,
+         assertErrors,
+         compareSetsWithoutVersion } from './utils'
 
 const findAllSuite = window.findAllSuite = getData => () => {
   let data

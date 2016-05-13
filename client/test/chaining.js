@@ -1,7 +1,7 @@
 import { _do as tap } from 'rxjs/operator/do'
 import { toArray } from 'rxjs/operator/toArray'
 
-import { assertCompletes, assertThrows } from './utils'
+import { assertCompletes, assertThrows, compareWithoutVersion } from './utils'
 
 const chainingSuite = window.chainingSuite = getData => () => {
   let data
