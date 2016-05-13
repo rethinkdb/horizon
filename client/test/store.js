@@ -2,6 +2,7 @@ import { _do as tap } from 'rxjs/operator/do'
 import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
 import { mergeMap } from 'rxjs/operator/mergeMap'
 import { toArray } from 'rxjs/operator/toArray'
+import { assertCompletes, assertThrows, assertErrors } from './utils'
 
 const storeSuite = window.storeSuite = getData => () => {
   let data

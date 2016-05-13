@@ -1,6 +1,8 @@
 import { _do as tap } from 'rxjs/operator/do'
 import { toArray } from 'rxjs/operator/toArray'
 
+import { assertCompletes, removeAllData } from './utils'
+
 const collectionSuite = window.collectionSuite = (getHorizon, getData, getTestData) => () => {
   let horizon, data, testData, empty_collection
 
@@ -27,4 +29,18 @@ const collectionSuite = window.collectionSuite = (getHorizon, getData, getTestDa
     empty_collection.fetch()
       ::tap(res => compareSetsWithoutVersion(res, []))
   ))
+
+  // Test forEach for promise behavior
+  it('Allows iterating over the entire collection', done => {
+    let didSomething = false
+    data.fetch().forEach(results => {
+      didSomething = true
+    }).then(() => {
+      if (didSomething) {
+        done()
+      } else {
+        done(new Error("Didn't do anything"))
+      }
+    }).catch(err => done(err))
+  })
 } // Testing full collection reads

@@ -3,6 +3,8 @@ import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
 import { mergeMap } from 'rxjs/operator/mergeMap'
 import { toArray } from 'rxjs/operator/toArray'
 
+import { assertCompletes, assertThrows, assertErrors } from './utils'
+
 const upsertSuite = window.upsertSuite = getData => () => {
   let data
 

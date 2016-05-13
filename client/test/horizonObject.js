@@ -1,6 +1,6 @@
 'use strict'
 
-// Test object creation, the `dispose` method, and `connected/disconnected`
+// Test object creation, the `disconnect` method, and `connected/disconnected`
 // events.
 
 var horizonObjectSuite = window.horizonObjectSuite = () => {
@@ -15,7 +15,7 @@ var horizonObjectSuite = window.horizonObjectSuite = () => {
           case 'unconnected':
             break
           case 'connected':
-            horizon.dispose()
+            horizon.disconnect()
             break
           case 'error':
             done(new Error('Got an error in socket status'))
