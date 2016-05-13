@@ -94,9 +94,10 @@ class HorizonSocket extends Subject {
           // .close is called from the client (see closeSocket), this
           // listener will be removed
           statusSubject.next(STATUS_DISCONNECTED)
-          if (e.code !== 1000 || !e.wasClean) {
+          if (e !== 'forced close') {
             subscriber.error(
-              new Error(`Socket closed unexpectedly with code: ${e.code}`), e)
+              new Error(`Socket closed unexpectedly with code: ${e}`)
+            )
           } else {
             subscriber.complete()
           }
