@@ -24,7 +24,8 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
       const valid_info = [ ];
       for (let i = 0; i < old_rows.length; ++i) {
         if (old_rows[i] === null) {
-          response_data.push(new Error(writes.missing_error));
+          // Just pretend we deleted it
+          response_data.push({ id: parsed.value.data[i].id });
         } else if (!ruleset.validate(context, old_rows[i], null)) {
           response_data.push(new Error('Operation not permitted.'));
         } else {
@@ -35,15 +36,24 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
         }
       }
 
-      return r.expr(valid_info).forEach((info) =>
-               r.table(collection.table)
-                 .get(info('id')).replace((row) =>
-                   r.branch(row.eq(null),
-                            r.error(writes.missing_error),
-                            row(writes.version_field).ne(info(writes.version_field)),
-                            r.error(writes.invalidated_error),
-                            null),
-                   { returnChanges: 'always' }))
+      return r.expr(valid_info).do((rows) =>
+               rows.forEach((info) =>
+                 r.table(collection.table)
+                   .get(info('id')).replace((row) =>
+                     r.branch(row.eq(null),
+                              null,
+                              row(writes.version_field).ne(info(writes.version_field)),
+                              r.error(writes.invalidated_error),
+                              null),
+                     { returnChanges: 'always' }))
+                 // Pretend like we deleted rows that didn't exist
+                 .do((res) =>
+                   res.merge({ changes:
+                     r.range(rows.count()).map((index) =>
+                       r.branch(res('changes')(index)('old_val').eq(null),
+                                res('changes')(index).merge({ old_val: rows(index) }),
+                                res('changes')(index))).coerceTo('array')
+                   })))
                .run(conn, reql_options);
     }).then((remove_results) => {
       done(writes.make_write_response(response_data, remove_results));

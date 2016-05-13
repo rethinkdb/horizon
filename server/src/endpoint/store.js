@@ -41,24 +41,25 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
 
       return r.expr(valid_rows)
                .forEach((new_row) =>
-                 r.uuid().do((new_version) =>
-                   r.branch(new_row.hasFields('id'),
-                            r.table(collection.table)
-                              .get(new_row('id'))
-                              .replace((old_row) =>
-                                r.branch(r.and(old_row.eq(null),
-                                               new_row.hasFields(writes.version_field)),
-                                         r.error(writes.missing_error),
-                                         r.or(r.and(new_row.hasFields(writes.version_field),
-                                                    old_row(writes.version_field).ne(new_row(writes.version_field))),
-                                              r.and(new_row.hasFields(writes.version_field).not(),
-                                                    old_row.ne(null))),
-                                         r.error(writes.invalidated_error),
-                                         writes.apply_version(new_row, new_version)),
-                                { returnChanges: 'always' }),
-                            r.table(collection.table)
-                              .insert(writes.apply_version(new_row, new_version),
-                                      { returnChanges: 'always' }))))
+                 r.branch(new_row.hasFields('id'),
+                          r.table(collection.table)
+                            .get(new_row('id'))
+                            .replace((old_row) =>
+                              r.branch(r.and(old_row.eq(null),
+                                             new_row.hasFields(writes.version_field)),
+                                       r.error(writes.missing_error),
+                                       r.or(r.and(new_row.hasFields(writes.version_field),
+                                                  old_row(writes.version_field).ne(new_row(writes.version_field))),
+                                            r.and(new_row.hasFields(writes.version_field).not(),
+                                                  old_row.ne(null))),
+                                       r.error(writes.invalidated_error),
+                                       old_row.eq(null),
+                                       writes.apply_version(new_row, 0),
+                                       writes.apply_version(new_row, old_row(writes.version_field).add(1))),
+                              { returnChanges: 'always' }),
+                          r.table(collection.table)
+                            .insert(writes.apply_version(new_row, 0),
+                                    { returnChanges: 'always' })))
                .run(conn, reql_options);
     }).then((store_results) => {
       done(writes.make_write_response(response_data, store_results));
