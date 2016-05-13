@@ -75,7 +75,7 @@ By default, horizon creates a basic `index.html` to serve so you can verify ever
     <script src="/horizon/horizon.js"></script>
     <script>
       var horizon = Horizon();
-      horizon.onConnected(function() {
+      horizon.onReady(function() {
         document.querySelector('h1').innerHTML = 'It works!'
       });
       horizon.connect();
@@ -441,7 +441,7 @@ You can also get notifications when the client connects and disconnects from the
 
 ``` js
   // Triggers when client successfully connects to server
-  horizon.onConnected().subscribe(() => console.log("Connected to Horizon Server"))
+  horizon.onReady().subscribe(() => console.log("Connected to Horizon Server"))
 
   // Triggers when disconnected from server
   horizon.onDisconnected().subscribe(() => console.log("Disconnected from Horizon Server"))

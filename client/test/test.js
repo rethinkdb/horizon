@@ -61,7 +61,7 @@ describe('Waiting until server ready...', function() {
   it('connected', done => {
     const tryConnecting = () => {
       const horizon = Horizon()
-      horizon.onConnected(() => {
+      horizon.onReady(() => {
         clearInterval(connectInterval)
         horizon.disconnect()
         done()

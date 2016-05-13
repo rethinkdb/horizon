@@ -73,10 +73,6 @@ function Horizon({
   horizon.onDisconnected = subscribeOrObservable(
     socket.status::filter(x => x.type === 'disconnected'))
 
-  // Convenience method for finding out when opening
-  horizon.onConnected = subscribeOrObservable(
-    socket.status::filter(x => x.type === 'connected'))
-
   // Convenience method for finding out when ready
   horizon.onReady = subscribeOrObservable(
     socket.status::filter(x => x.type === 'ready'))
