@@ -57,9 +57,8 @@ const removeSuite = window.removeSuite = getData => () => {
       ::tap(res => assert.isNull(res))
   ))
 
-  it(`removing a document that doesn't exist doesn't error`, assertErrors(() =>
-    data.remove('abracadabra')::tap(res => assert.equal(res, 'abracadabra')),
-    /document was missing/
+  it(`removing a document that doesn't exist doesn't error`, assertCompletes(() =>
+    data.remove('abracadabra')::tap(res => assert.deepEqual(res, { id: 'abracadabra' }))
   ))
 
   it('fails when called with no arguments', assertThrows(

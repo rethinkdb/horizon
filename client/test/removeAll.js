@@ -74,7 +74,7 @@ const removeAllSuite = window.removeAllSuite = getData => () => {
   // Removing a missing document shouldn't generate an error.
   it('removes a non-existent document without error', assertCompletes(() =>
     data.removeAll([ 'abracadabra' ])
-      ::tap(res => assert.equal(res, 'abracadabra')),
+      ::tap(res => assert.deepEqual(res, { id: 'abracadabra' })),
     /document was missing/
   ))
 
