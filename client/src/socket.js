@@ -6,9 +6,6 @@ import { merge } from 'rxjs/observable/merge'
 import { filter } from 'rxjs/operator/filter'
 import { share } from 'rxjs/operator/share'
 import { Socket } from 'engine.io-client'
-console.log(Socket)
-window.Socket = Socket
-// import { WebSocket } from './shim.js'
 import { serialize, deserialize } from './serialization.js'
 import { log } from './logging.js'
 
@@ -44,30 +41,33 @@ class ProtocolError extends Error {
 // observable is closed.
 class HorizonSocket extends Subject {
   constructor(host, secure, path, handshaker) {
-    const hostString = `ws${secure ? 's' : ''}://${host}/${path}`
+    const hostString = `ws${secure ? 's' : ''}://${host}`
     const msgBuffer = []
-    let ws, handshakeDisp
+    let eio, handshakeDisp
     // Handshake is an asyncsubject because we want it to always cache
     // the last value it received, like a promise
     const handshake = new AsyncSubject()
     const statusSubject = new BehaviorSubject(STATUS_UNCONNECTED)
 
-    const isOpen = () => Boolean(ws) && Socket.readyState === 'open'
+    const isOpen = () => Boolean(eio) && Socket.readyState === 'open'
 
     // Serializes to a string before sending
-    function wsSend(msg) {
-      ws.send(JSON.stringify(serialize(msg)))
+    function eioSend(msg) {
+      console.log('Sending to the server', msg)
+      eio.send(JSON.stringify(serialize(msg)))
     }
 
     // This is the observable part of the Subject. It forwards events
     // from the underlying websocket
     const socketObservable = Observable.create(subscriber => {
-      // console.log(Socket)
       Socket.protocol = PROTOCOL_VERSION
-      ws = Socket(hostString)
-      ws.on('error', (err) => {
+      console.log('hostString', hostString)
+      eio = Socket(hostString, {
+        path: '/' + path,
+      })
+      eio.on('error', (err) => {
         if (err) {
-            console.log(err)
+            console.log(err) // RSI
         }
 
         // If the websocket experiences the error, we forward it through
@@ -79,41 +79,46 @@ class HorizonSocket extends Subject {
         console.log(errMsg)
         subscriber.error(new Error(errMsg))
       })
-      ws.on('open', () => {
-        console.log("OPEN; SENDING HANDSHAKE")
+      eio.on('open', () => {
+        console.log("OPEN; SENDING HANDSHAKE") // RSI
         // Send the handshake
         statusSubject.next(STATUS_CONNECTED)
-        handshakeDisp = this.makeRequest(handshaker()).subscribe(
-          x => {
-            console.log("YES")
+        handshakeDisp = this.makeRequest(handshaker()).subscribe({
+          next(x) {
+            console.group('starting next with', x) // RSI
             handshake.next(x)
             handshake.complete()
             statusSubject.next(STATUS_READY)
+            console.groupEnd() // RSI
           },
-          err => handshake.error(err),
-          () => handshake.complete()
-        )
+          error(err) {
+            console.log('Got an error', err)
+            handshake.error(err)
+          },
+          complete() { handshake.complete() },
+        })
         // Send any messages that have been buffered
         while (msgBuffer.length > 0) {
           const msg = msgBuffer.shift()
           log('Sending buffered:', msg)
-          wsSend(msg)
+          eioSend(msg)
         }
       })
-      ws.on('message', event => {
-        console.log(ws.readyState)
-        const deserialized = deserialize(JSON.parse(event.data))
+      eio.on('message', event => {
+        console.log(event) // RSI
+        const deserialized = deserialize(JSON.parse(event))
+        console.log('Received', deserialized)
         log('Received', deserialized)
         subscriber.next(deserialized)
       })
-      ws.on('close', e => {
+      eio.on('close', e => {
         // This will happen if the socket is closed by the server If
         // .close is called from the client (see closeSocket), this
         // listener will be removed
+        console.log('I got closed!', e)
         statusSubject.next(STATUS_DISCONNECTED)
-        if (e.code !== 1000 || !e.wasClean) {
-          subscriber.error(
-            new Error(`Socket closed unexpectedly with code: ${e.code}`))
+        if (e !== 'forced close') {
+          subscriber.error(new Error(`Socket closed unexpectedly: ${e}`))
         } else {
           subscriber.complete()
         }
@@ -138,7 +143,7 @@ class HorizonSocket extends Subject {
         // Note: If we aren't ready, the message is silently dropped
         if (isOpen()) {
           log('Sending', messageToSend)
-          wsSend(messageToSend) // wsSend serializes to a string
+          eioSend(messageToSend) // eioSend serializes to a string
         } else {
           log('Buffering', messageToSend)
           msgBuffer.push(messageToSend)
@@ -154,7 +159,7 @@ class HorizonSocket extends Subject {
         closeSocket(error.code, error.reason)
       },
       complete() {
-        console.log("COMPLETE")
+        console.log("COMPLETE") // RSI
         // complete for the subscriber here is equivalent to "close
         // this socket successfully (which is what code 1000 is)"
         closeSocket(1000, '')
@@ -164,13 +169,13 @@ class HorizonSocket extends Subject {
     function closeSocket(code, reason) {
       statusSubject.next(STATUS_DISCONNECTED)
       if (!code) {
-        ws.close() // successful close
+        eio.close() // successful close
       } else {
-        ws.close(code, reason)
+        eio.close(reason)
       }
-      ws.onopen = undefined
-      ws.onclose = undefined
-      ws.onmessage = undefined
+      eio.off('open')
+      eio.off('close')
+      eio.off('message')
     }
 
     super(socketSubscriber, socketObservable)

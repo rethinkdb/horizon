@@ -31,15 +31,18 @@ function Horizon({
 
   // Store whatever token we get back from the server when we get a
   // handshake response
-  socket.handshake.subscribe(
-    handshake => tokenStorage.set(handshake.token),
-    error => {
-      if (/JsonWebTokenError/.test(error.message)) {
+  socket.handshake.subscribe({
+    next(handshake) {
+      console.log('Handshake received', handshake)
+      tokenStorage.set(handshake.token)
+    },
+    error(err) {
+      if (/JsonWebTokenError/.test(err.message)) {
         console.error('Horizon: clearing token storage since auth failed')
         tokenStorage.remove()
       }
     }
-  )
+  })
 
   // This is the object returned by the Horizon function. It's a
   // function so we can construct a collection simply by calling it

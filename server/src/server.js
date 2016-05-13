@@ -27,7 +27,6 @@ const assert = require('assert');
 const fs = require('fs');
 const Joi = require('joi');
 const url = require('url');
-// const websocket = require('ws');
 const engine = require('engine.io');
 
 const protocol_name = 'rethinkdb-horizon-v0';
@@ -98,9 +97,9 @@ class Server {
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
         .on('connection', (socket) => new ClientConnection(socket, this));
       console.log(new_server)
-      this._ws_servers.add(new_server.attach(http_server))
-      // this._ws_servers.add(new websocket.Server(Object.assign({}, { server }, ws_options))
-
+      this._ws_servers.add(new_server.attach(http_server, {
+          path: '/horizon',
+      }))
     };
 
     const path_replace = new RegExp('^' + this._path + '/');

@@ -6,7 +6,6 @@ const schemas = require('./schema/horizon_protocol');
 
 const Joi = require('joi');
 const r = require('rethinkdb');
-// const websocket = require('ws');
 const engine = require("engine.io");
 
 class Request {
@@ -244,7 +243,7 @@ class ClientConnection {
 
   send_response(request_id, data) {
     // Ignore responses for disconnected clients
-    if (this.socket.readyState !== websocket.OPEN) {
+    if (this.socket.readyState !== 'open') {
       logger.debug(`Attempted to send a response to a disconnected client: ${JSON.stringify(data)}.`);
     } else {
       data.request_id = request_id;
