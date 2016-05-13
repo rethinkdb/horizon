@@ -12,12 +12,17 @@ const r = require('rethinkdb');
 const url = require('url');
 
 // Can't use objects in primary keys, so convert those to JSON in the db (deterministically)
-const auth_key = (provider, info) => {
-  if (info === null || Array.isArray(info) || typeof info !== 'object') {
-    return [ provider, info ];
-  } else {
-    return [ provider, r.expr(info).toJSON() ];
-  }
+const user_key = (provider, user_id) => {
+  return r.expr(user_id).do(id => [
+    provider,
+    id.typeOf().eq('OBJECT').branch(id.toJSON(), id)
+  ]);
+};
+
+const user_defaults = (provider, user_id) => {
+  return user_key(provider, user_id).do(id => {
+    return { id, provider: id(0), user_id: id(1) }
+  });
 };
 
 class Auth {
@@ -44,7 +49,7 @@ class Auth {
         if (!this._allow_unauthenticated) {
           throw new Error('Unauthenticated connections are not allowed.');
         }
-        return this._jwt.verify(this._jwt.sign(request.method));
+        return this._jwt.verify(this._jwt.sign({ provider: request.method }).token);
       case 'anonymous':
         if (!this._allow_anonymous) {
           throw new Error('Anonymous connections are not allowed.');
@@ -56,27 +61,18 @@ class Auth {
   }
 
   // TODO: maybe we should write something into the user data to track open sessions/tokens
-  generate(provider, id) {
-    const key = auth_key(provider, id);
-    const auth_table = r.db('horizon_internal').table('users_auth');
+  generate(provider, user_id) {
     const users_table = r.db('horizon_internal').table('users');
 
-    function insert(table, row) {
-      return table
-        .insert(row, { conflict: 'error', returnChanges: 'always' })
-        .bracket('changes')(0)('new_val');
-    }
+    const defaults = user_defaults(provider, user_id)
+      .merge({ groups: [ this._new_user_group ] });
 
-    let query = auth_table.get(key);
+    let query = users_table.get(defaults('id'))
+                          .default(r.error('User not found and new user creation is disabled.'));
 
     if (this._create_new_users) {
-      query = insert(auth_table, { id: key, user_id: r.uuid() })
-        .do(auth =>
-          insert(users_table, { id: auth('user_id'), groups: [ this._new_user_group ] })
-        );
-    }
-    else {
-      query = query.default(r.error('User not found and new user creation is disabled.'));
+      query = users_table.insert(defaults, { conflict: 'error', returnChanges: 'always' })
+                        .bracket('changes')(0)('new_val');
     }
 
     return this.reql_call(query)
@@ -86,12 +82,7 @@ class Auth {
       logger.debug(`Failed user lookup or creation: ${err}`);
       throw new Error('User lookup or creation in database failed.');
     })
-    .then(user => {
-      this._jwt.sign(provider, user.id).then(token => {
-        token.user = user;
-        return token;
-      })
-    });
+    .then(user => this._jwt.sign(user));
   }
 
   reql_call(query) {
@@ -118,20 +109,19 @@ class JWT {
 
   // A generated token contains the data:
   // { user: <uuid>, provider: <string> }
-  sign(provider, user) {
-    return jwt.sign(
-      { user, provider },
+  sign(payload) {
+    const token = jwt.sign(
+      payload,
       this.secret,
       { algorithm: this.algorithm, expiresIn: this.duration }
     );
+
+    return { token, payload };
   }
 
   verify(token) {
     return jwt.verifyAsync(token, this.secret, { algorithms: [ this.algorithm ] })
-    .then(decoded => {
-      decoded.token = token;
-      return decoded;
-    });
+    .then(payload => { return { token, payload } });
   }
 }
 

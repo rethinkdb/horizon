@@ -178,7 +178,7 @@ class Client {
 
     this.parent._auth.handshake(request)
     .then(token => {
-      this.user_info = token.user;
+      this.user_info = token.payload;
       this.send_response(request.request_id, token);
       this.socket.on('message', (data) =>
         this.error_wrap_socket(() => this.handle_request(data)));
