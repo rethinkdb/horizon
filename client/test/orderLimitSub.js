@@ -2,7 +2,7 @@ import { concat } from 'rxjs/operator/concat'
 
 import { assertCompletes, observableInterleave } from './utils'
 
-const orderLimitSubSuite = window.orderLimitSubSuite = getData => () => {
+const orderLimitSubSuite = global.orderLimitSubSuite = getData => () => {
   let data
 
   before(() => {

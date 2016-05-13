@@ -3,7 +3,7 @@ import { toArray } from 'rxjs/operator/toArray'
 
 import { assertCompletes, removeAllData } from './utils'
 
-const collectionSuite = window.collectionSuite = (getHorizon, getData, getTestData) => () => {
+const collectionSuite = global.collectionSuite = (getHorizon, getData, getTestData) => () => {
   let horizon, data, testData, empty_collection
 
   before(() => {

@@ -91,7 +91,8 @@ export class TokenStorage {
   }
 
   setAuthFromQueryParams() {
-    const parsed = queryParse(window.location.search)
+    const parsed = typeof window !== 'undefined' ? queryParse(window.location.search) : {}
+
     if (parsed.horizon_auth != null) {
       this.set(parsed.horizon_auth)
     }

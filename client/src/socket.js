@@ -6,16 +6,20 @@ import { merge } from 'rxjs/observable/merge'
 import { filter } from 'rxjs/operator/filter'
 import { share } from 'rxjs/operator/share'
 
-import { WebSocket } from './shim.js'
 import { serialize, deserialize } from './serialization.js'
 import { log } from './logging.js'
+import socket from 'engine.io-client'
+
+let transports
+
+if (typeof window === 'undefined') {
+  transports = [ 'websocket' ]
+}
 
 const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
 
 // Before connecting the first time
 const STATUS_UNCONNECTED = { type: 'unconnected' }
-// After the websocket is opened, but before handshake
-const STATUS_CONNECTED = { type: 'connected' }
 // After the websocket is opened and handshake is completed
 const STATUS_READY = { type: 'ready' }
 // After unconnected, maybe before or after connected. Any socket level error
@@ -42,7 +46,7 @@ class ProtocolError extends Error {
 // observable is closed.
 class HorizonSocket extends Subject {
   constructor(host, secure, path, handshaker) {
-    const hostString = `ws${secure ? 's' : ''}://${host}/${path}`
+    const hostString = `ws${secure ? 's' : ''}://${host}`
     const msgBuffer = []
     let ws, handshakeDisp
     // Handshake is an asyncsubject because we want it to always cache
@@ -50,19 +54,25 @@ class HorizonSocket extends Subject {
     const handshake = new AsyncSubject()
     const statusSubject = new BehaviorSubject(STATUS_UNCONNECTED)
 
-    const isOpen = () => Boolean(ws) && ws.readyState === WebSocket.OPEN
+    const isOpen = () => Boolean(ws) && ws.readyState === 'open'
 
     // Serializes to a string before sending
     function wsSend(msg) {
       const stringMsg = JSON.stringify(serialize(msg))
+
       ws.send(stringMsg)
     }
 
     // This is the observable part of the Subject. It forwards events
     // from the underlying websocket
     const socketObservable = Observable.create(subscriber => {
-      ws = new WebSocket(hostString, PROTOCOL_VERSION)
-      ws.onerror = () => {
+      ws = socket(hostString, {
+        protocol: PROTOCOL_VERSION,
+        path: `/${path}`,
+        transports
+      })
+
+      ws.on('error', () => {
         // If the websocket experiences the error, we forward it through
         // to the observable. Unfortunately, the event we receive in
         // this callback doesn't tell us much of anything, so there's no
@@ -70,15 +80,34 @@ class HorizonSocket extends Subject {
         statusSubject.next(STATUS_ERROR)
         const errMsg = `Websocket ${hostString} experienced an error`
         subscriber.error(new Error(errMsg))
-      }
-      ws.onopen = () => {
+      })
+
+      ws.on('open', () => {
+        ws.on('message', data => {
+          const deserialized = deserialize(JSON.parse(data))
+          log('Received', deserialized)
+          subscriber.next(deserialized)
+        })
+
+        ws.on('close', e => {
+          // This will happen if the socket is closed by the server If
+          // .close is called from the client (see closeSocket), this
+          // listener will be removed
+          statusSubject.next(STATUS_DISCONNECTED)
+          if (e !== 'forced close') {
+            subscriber.error(
+              new Error(`Socket closed unexpectedly with code: ${e}`)
+            )
+          } else {
+            subscriber.complete()
+          }
+        })
+
         // Send the handshake
-        statusSubject.next(STATUS_CONNECTED)
         handshakeDisp = this.makeRequest(handshaker()).subscribe(
           x => {
             handshake.next(x)
             handshake.complete()
-
             statusSubject.next(STATUS_READY)
           },
           err => handshake.error(err),
@@ -90,24 +119,7 @@ class HorizonSocket extends Subject {
           log('Sending buffered:', msg)
           wsSend(msg)
         }
-      }
-      ws.onmessage = event => {
-        const deserialized = deserialize(JSON.parse(event.data))
-        log('Received', deserialized)
-        subscriber.next(deserialized)
-      }
-      ws.onclose = e => {
-        // This will happen if the socket is closed by the server If
-        // .close is called from the client (see closeSocket), this
-        // listener will be removed
-        statusSubject.next(STATUS_DISCONNECTED)
-        if (e.code !== 1000 || !e.wasClean) {
-          subscriber.error(
-            new Error(`Socket closed unexpectedly with code: ${e.code}`))
-        } else {
-          subscriber.complete()
-        }
-      }
+      })
       return () => {
         if (handshakeDisp) {
           handshakeDisp.unsubscribe()
@@ -157,9 +169,6 @@ class HorizonSocket extends Subject {
       } else {
         ws.close(code, reason)
       }
-      ws.onopen = undefined
-      ws.onclose = undefined
-      ws.onmessage = undefined
     }
 
     super(socketSubscriber, socketObservable)

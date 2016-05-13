@@ -3,7 +3,7 @@ import { toArray } from 'rxjs/operator/toArray'
 
 import { assertCompletes, assertThrows, assertErrors } from './utils'
 
-const limitSuite = window.limitSuite = getData => () => {
+const limitSuite = global.limitSuite = getData => () => {
   let data
 
   before(() => {

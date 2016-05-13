@@ -3,7 +3,7 @@ import { toArray } from 'rxjs/operator/toArray'
 
 import { assertCompletes, assertThrows, assertErrors } from './utils'
 
-const aboveSuite = window.aboveSuite = (getData) => () => {
+const aboveSuite = global.aboveSuite = (getData) => () => {
   let data
 
   before(() => {
