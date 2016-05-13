@@ -7,7 +7,7 @@ import { ignoreElements } from 'rxjs/operator/ignoreElements'
 
 import { assertCompletes, assertThrows, assertErrors, removeAllData } from './utils'
 
-const removeAllSuite = window.removeAllSuite = getData => () => {
+const removeAllSuite = global.removeAllSuite = getData => () => {
   let data
   const testData = [
     { id: 1, a: 1 },

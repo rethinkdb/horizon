@@ -4,7 +4,7 @@ import { mergeMap } from 'rxjs/operator/mergeMap'
 import { toArray } from 'rxjs/operator/toArray'
 
 import { assertCompletes, assertThrows, assertErrors } from './utils'
-const insertSuite = window.insertSuite = getData => () => {
+const insertSuite = global.insertSuite = getData => () => {
   let data
 
   before(() => {

@@ -3,7 +3,7 @@ import { toArray } from 'rxjs/operator/toArray'
 
 import { assertCompletes, assertThrows } from './utils'
 
-const chainingSuite = window.chainingSuite = getData => () => {
+const chainingSuite = global.chainingSuite = getData => () => {
   let data
 
   before(() => {

@@ -2,7 +2,7 @@ import { concat } from 'rxjs/operator/concat'
 
 import { assertCompletes, observableInterleave } from './utils'
 
-const belowSubscriptionSuite = window.belowSubscriptionSuite = getData => () => {
+const belowSubscriptionSuite = global.belowSubscriptionSuite = getData => () => {
   let data
 
   before(() => {

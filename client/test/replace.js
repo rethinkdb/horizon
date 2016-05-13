@@ -4,7 +4,7 @@ import { toArray } from 'rxjs/operator/toArray'
 
 import { assertCompletes, assertThrows, assertErrors } from './utils'
 
-const replaceSuite = window.replaceSuite = getData => () => {
+const replaceSuite = global.replaceSuite = getData => () => {
   let data
 
   before(() => {
