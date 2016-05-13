@@ -33,7 +33,8 @@ class ReqlConnection {
     this._connection = undefined;
     this._metadata = undefined;
     this._ready = false;
-    this._clients.forEach((client) => client.reql_connection_lost());
+    this._clients.forEach((client) =>
+      client.close({ error: 'Connection to the database was lost.' }));
     this._clients.clear();
 
     if (!this._closed) {

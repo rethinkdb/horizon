@@ -18,6 +18,8 @@ class Client {
     this._requests = new Map();
     this.user_info = { };
 
+    this._server._reql_conn._clients.add(this);
+
     this._socket.on('close', (code, msg) =>
       this.handle_websocket_close(code, msg));
 
@@ -31,9 +33,6 @@ class Client {
     if (!this._metadata.is_ready()) {
       this.close({ error: 'No connection to the database.' });
     }
-
-    this._metadata.connection().on('close', () =>
-      this.close({ error: 'Connection to the database was lost.' }));
   }
 
   handle_websocket_close() {
@@ -45,6 +44,7 @@ class Client {
       request.close();
     });
     this._requests.clear();
+    this._server._reql_conn._clients.delete(this);
   }
 
   handle_websocket_error(code, msg) {
