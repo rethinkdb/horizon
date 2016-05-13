@@ -81,6 +81,12 @@ function Horizon({
   horizon.onSocketError = subscribeOrObservable(
     socket.status::filter(x => x.type === 'error'))
 
+  horizon.utensils = {
+    sendRequest,
+    tokenStorage,
+  }
+  Object.freeze(horizon.utensils)
+
   horizon._authMethods = null
   horizon._horizonPath = path
   horizon.authEndpoint = authEndpoint
