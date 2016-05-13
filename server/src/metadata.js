@@ -159,7 +159,7 @@ class Metadata {
       query = r.expr([ 'horizon', 'horizon_internal' ])
        .forEach((db) => r.branch(r.dbList().contains(db), [], r.dbCreate(db)))
        .do(() =>
-         r.expr([ 'collections', 'users_auth', 'users' ])
+         r.expr([ 'collections', 'users' ])
           .forEach((table) => r.branch(r.db('horizon_internal').tableList().contains(table),
                                        [], r.db('horizon_internal').tableCreate(table)))
           .do(() => query));
@@ -250,8 +250,8 @@ class Metadata {
     });
   }
 
-  get_user_info(id, done) {
-    r.db('horizon_internal').table('users').get(id).run(this._conn, done);
+  get_user_info(id) {
+    return r.db('horizon_internal').table('users').get(id).run(this._conn);
   }
 }
 

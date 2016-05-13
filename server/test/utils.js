@@ -55,7 +55,9 @@ const create_table = (table, done) => {
       conn.send(JSON.stringify({ request_id: 123, method: 'unauthenticated' }));
       conn.once('message', (data) => {
         const response = JSON.parse(data);
-        assert.deepStrictEqual(response, { request_id: 123, token: response.token });
+        assert.equal(response.request_id, 123);
+        assert.equal(response.payload.provider, 'unauthenticated');
+        assert(response.token);
 
         // This query should auto-create the table if it's missing
         conn.send(JSON.stringify({
@@ -179,7 +181,9 @@ const horizon_auth = (req, cb) => {
 
 const horizon_default_auth = (done) => {
   horizon_auth({ request_id: -1, method: 'unauthenticated' }, (res) => {
-    assert.deepStrictEqual(res, { request_id: -1, token: res.token });
+    assert.equal(res.request_id, -1);
+    assert.equal(res.payload.provider, 'unauthenticated');
+    assert(res.token);
     done();
   });
 };

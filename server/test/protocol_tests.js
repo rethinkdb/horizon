@@ -25,7 +25,7 @@ const all_tests = (table) => {
     conn.send('{ }');
     conn.once('close', (code, msg) => {
       assert.strictEqual(code, 1002);
-      assert.strictEqual(msg, 'Invalid request.');
+      assert.strictEqual(msg, 'Protocol error.');
       done();
     });
   });

@@ -157,16 +157,14 @@ class Client {
     try {
       return Joi.attempt(request, schema);
     } catch (err) {
-      const req_id = request.request_id === undefined ? null : request.request_id;
-
-      const detail = err.details[0];
-      const err_str = `Request validation error at "${detail.path}": ${detail.message}`;
-      this.send_response(req_id, { error: err_str, error_code: 0 });
-
       if (request.request_id === undefined) {
         // This is pretty much an unrecoverable protocol error, so close the connection
         return this.close_socket('Protocol error.', err);
       }
+
+      const detail = err.details[0];
+      const err_str = `Request validation error at "${detail.path}": ${detail.message}`;
+      this.send_response(request.request_id, { error: err_str, error_code: 0 });
     }
   }
 
@@ -174,50 +172,21 @@ class Client {
     const request = this.parse_request(data, schemas.handshake);
 
     if (request === undefined) {
-      return this.close_socket('Invalid handshake.');
+      this.close_socket('Invalid handshake.');
+      return;
     }
 
-    const success = (user_info, token) => {
-      this.user_info = user_info;
+    this.parent._auth.handshake(request)
+    .then(token => {
+      this.user_info = token.payload;
+      this.send_response(request.request_id, token);
       this.socket.on('message', (data) =>
         this.error_wrap_socket(() => this.handle_request(data)));
-      this.send_response(request.request_id, { token });
-    };
-
-    const done = (err, token, decoded) => {
-      if (err) {
-        this.send_response(request.request_id, { error: `${err}`, error_code: 0 });
-        this.close_socket('Invalid token.', err);
-      } else if (decoded.user !== null) {
-        const metadata = this.parent._reql_conn.metadata();
-        metadata.get_user_info(decoded.user, (rdb_err, res) => {
-          if (rdb_err) {
-            this.send_response(request.request_id, { error: 'User does not exist.', error_code: 0 });
-            this.socket.close(1002, `Invalid user.`);
-          } else {
-            // TODO: listen on feed
-            success(res, token);
-          }
-        });
-      } else {
-        success(null, token);
-      }
-    };
-
-    switch (request.method) {
-    case 'token':
-      this.parent._auth.verify_jwt(request.token, done);
-      break;
-    case 'anonymous':
-      this.parent._auth.generate_anon_jwt(done);
-      break;
-    case 'unauthenticated':
-      this.parent._auth.generate_unauth_jwt(done);
-      break;
-    default:
-      this.close_socket('Unknown method.', `Unknown handshake method "${request.method}"`);
-      break;
-    }
+    })
+    .catch(err => {
+      this.send_response(request.request_id, { error: `${err}`, error_code: 0 });
+      this.close_socket('Invalid token.', err);
+    });
   }
 
   handle_request(data) {
