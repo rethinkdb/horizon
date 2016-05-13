@@ -4,9 +4,8 @@ const utils = require('./utils');
 
 const assert = require('assert');
 const crypto = require('crypto');
-const r = require('rethinkdb');
 
-// Before each test, ids [0, 4) will be present in the table
+// Before each test, ids [0, 4) will be present in the collection
 const original_data = [
   { id: 0, old_field: [ ] },
   { id: 1, old_field: [ ] },
@@ -20,7 +19,7 @@ const new_ids = [ 4, 5, 6 ];
 const conflict_ids = [ 2, 3, 4 ];
 
 // TODO: verify through reql that rows have been inserted/removed
-const all_tests = (table) => {
+const all_tests = (collection) => {
   const new_row_from_id = (id) => ({ id, new_field: 'a' });
   const merged_row_from_id = (id) => {
     if (id >= 4) { return new_row_from_id(id); }
@@ -31,13 +30,13 @@ const all_tests = (table) => {
     request_id: crypto.randomBytes(4).readUInt32BE(),
     type: type,
     options: {
-      collection: table,
+      collection,
       data: ids.map(new_row_from_id),
     },
   });
 
-  const check_table = (expected, done) => {
-    r.table(table).orderBy({ index: 'id' }).coerceTo('array')
+  const check_collection = (expected, done) => {
+    utils.table(collection).orderBy({ index: 'id' }).coerceTo('array')
      .run(utils.rdb_conn()).then((res) => {
        assert.strictEqual(JSON.stringify(res), JSON.stringify(expected));
        done();
@@ -65,8 +64,8 @@ const all_tests = (table) => {
     combine_sort_data(old_data, new_data,
       () => null, (row, map) => map.set(row.id, row));
 
-  beforeEach('Clear table', (done) => utils.clear_table(table, done));
-  beforeEach('Populate table', (done) => utils.populate_table(table, original_data, done));
+  beforeEach('Clear collection', (done) => utils.clear_collection(collection, done));
+  beforeEach('Populate collection', (done) => utils.populate_collection(collection, original_data, done));
   beforeEach('Authenticate', (done) => utils.horizon_default_auth(done));
 
   describe('Store', () => {
@@ -75,7 +74,7 @@ const all_tests = (table) => {
         assert.ifError(err);
         assert.deepStrictEqual(res, ids);
         const new_data = ids.map(new_row_from_id);
-        check_table(union_sort_data(original_data, new_data), done);
+        check_collection(union_sort_data(original_data, new_data), done);
       });
     };
 
@@ -97,7 +96,7 @@ const all_tests = (table) => {
           assert.deepStrictEqual(res, [ ]);
         }
         const new_data = ids.map(new_row_from_id);
-        check_table(replace_sort_data(original_data, new_data), done);
+        check_collection(replace_sort_data(original_data, new_data), done);
       });
     };
 
@@ -113,7 +112,7 @@ const all_tests = (table) => {
         assert.ifError(err);
         assert.deepStrictEqual(res, ids);
         const new_data = ids.map(merged_row_from_id);
-        check_table(union_sort_data(original_data, new_data), done);
+        check_collection(union_sort_data(original_data, new_data), done);
       });
     };
 
@@ -135,7 +134,7 @@ const all_tests = (table) => {
           assert.deepStrictEqual(res, [ ]);
         }
         const new_data = ids.map(merged_row_from_id);
-        check_table(replace_sort_data(original_data, new_data), done);
+        check_collection(replace_sort_data(original_data, new_data), done);
       });
     };
 
@@ -161,7 +160,7 @@ const all_tests = (table) => {
           assert.deepStrictEqual(res, [ ]);
         }
         const new_data = ids.map(new_row_from_id);
-        check_table(add_sort_data(original_data, new_data), done);
+        check_collection(add_sort_data(original_data, new_data), done);
       });
     };
 
@@ -183,7 +182,7 @@ const all_tests = (table) => {
         assert.ifError(err);
         assert.deepStrictEqual(res, ids);
         const deleted_data = ids.map(new_row_from_id);
-        check_table(remove_sort_data(original_data, deleted_data), done);
+        check_collection(remove_sort_data(original_data, deleted_data), done);
       });
     };
 
@@ -194,6 +193,6 @@ const all_tests = (table) => {
   });
 };
 
-const suite = (table) => describe('Write', () => all_tests(table));
+const suite = (collection) => describe('Write', () => all_tests(collection));
 
 module.exports = { suite };

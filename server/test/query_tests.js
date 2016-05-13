@@ -5,21 +5,19 @@ const utils = require('./utils');
 const assert = require('assert');
 
 // TODO: ensure each row is present in the results
-const all_tests = (table) => {
+const all_tests = (collection) => {
   const num_rows = 10;
 
-  before('Clear table', (done) => utils.clear_table(table, done));
-  before('Populate table', (done) => utils.populate_table(table, num_rows, done));
+  before('Clear collection', (done) => utils.clear_collection(collection, done));
+  before('Populate collection', (done) => utils.populate_collection(collection, num_rows, done));
   beforeEach('Authenticate client', utils.horizon_default_auth);
 
-  it('table scan.', (done) => {
+  it('collection scan.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         type: 'query',
-        options: {
-          collection: table,
-        },
+        options: { collection },
       },
       (err, res) => {
         assert.ifError(err);
@@ -28,13 +26,13 @@ const all_tests = (table) => {
       });
   });
 
-  it('table scan order.', (done) => {
+  it('collection scan order.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           order: [ [ 'id' ], 'ascending' ],
         },
       },
@@ -45,13 +43,13 @@ const all_tests = (table) => {
       });
   });
 
-  it('table scan limit.', (done) => {
+  it('collection scan limit.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           limit: 2,
         },
       },
@@ -62,13 +60,13 @@ const all_tests = (table) => {
       });
   });
 
-  it('table scan order limit.', (done) => {
+  it('collection scan order limit.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           order: [ [ 'id' ], 'descending' ],
           limit: 4,
         },
@@ -80,13 +78,13 @@ const all_tests = (table) => {
       });
   });
 
-  it('table scan above.', (done) => {
+  it('collection scan above.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           above: [ { id: 5 }, 'closed' ],
         },
       },
@@ -97,13 +95,13 @@ const all_tests = (table) => {
       });
   });
 
-  it('table scan below.', (done) => {
+  it('collection scan below.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           below: [ { id: 5 }, 'closed' ],
         },
       },
@@ -114,13 +112,13 @@ const all_tests = (table) => {
       });
   });
 
-  it('table scan above below.', (done) => {
+  it('collection scan above below.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           above: [ { id: 5 }, 'open' ],
           below: [ { id: 7 }, 'open' ],
         },
@@ -138,7 +136,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find: { id: 4 },
         },
       },
@@ -155,7 +153,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find: { id: 14 },
         },
       },
@@ -172,7 +170,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { id: 4 }, { id: 6 }, { id: 9 } ],
         },
       },
@@ -189,7 +187,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { id: 1 } ],
           order: [ [ 'value' ], 'descending' ],
         },
@@ -207,7 +205,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { id: 4 }, { id: 8 }, { id: 2 }, { id: 1 } ],
           limit: 3,
         },
@@ -225,7 +223,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { id: 4 } ],
           order: [ [ 'value' ], 'descending' ],
           limit: 3,
@@ -244,7 +242,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { value: 1 } ],
           above: [ { id: 3 }, 'open' ],
         },
@@ -262,7 +260,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { value: 1 } ],
           below: [ { id: 5 }, 'open' ],
         },
@@ -280,7 +278,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { value: 1 } ],
           above: [ { id: 1 }, 'closed' ],
           below: [ { id: 9 }, 'open' ],
@@ -299,7 +297,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { value: 1 } ],
           order: [ [ 'id' ], 'ascending' ],
           above: [ { id: 7 }, 'open' ],
@@ -318,7 +316,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { value: 0 } ],
           order: [ [ 'id' ], 'descending' ],
           below: [ { id: 8 }, 'open' ],
@@ -337,7 +335,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { value: 0 } ],
           order: [ [ 'id' ], 'descending' ],
           above: [ { id: 3 }, 'closed' ],
@@ -359,7 +357,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { value: 0 } ],
           order: [ [ 'value', 'a' ], 'descending' ],
           above: [ { b: 4 }, 'closed' ],
@@ -377,7 +375,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { value: 0 } ],
           order: [ [ 'value', 'a' ], 'descending' ],
           above: [ { a: 4 }, 'closed' ],
@@ -395,7 +393,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { value: 0 } ],
           order: [ [ 'value', 'a' ], 'descending' ],
           below: [ { b: 4 }, 'closed' ],
@@ -413,7 +411,7 @@ const all_tests = (table) => {
         request_id: 0,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           find_all: [ { value: 0 } ],
           order: [ [ 'value', 'a' ], 'descending' ],
           below: [ { a: 4 }, 'closed' ],
@@ -426,6 +424,6 @@ const all_tests = (table) => {
   });
 };
 
-const suite = (table) => describe('Query', () => all_tests(table));
+const suite = (collection) => describe('Query', () => all_tests(collection));
 
 module.exports = { suite };

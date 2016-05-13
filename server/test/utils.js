@@ -44,8 +44,19 @@ const test_db_server = (done) => {
   });
 };
 
-// Creates a table, no-op if it already exists, uses horizon server prereqs
-const create_table = (table, done) => {
+// Used to prefix reql queries with the underlying table of a given collection
+const table = (collection) =>
+  r.table(
+    r.db('horizon_internal')
+      .table('collections')
+      .get(collection)
+      .do((row) =>
+        r.branch(row.eq(null),
+                 r.error('Collection does not exist.'),
+                 row('table'))));
+
+// Creates a collection, no-op if it already exists, uses horizon server prereqs
+const create_collection = (collection, done) => {
   assert.notStrictEqual(horizon_server, undefined);
   assert.notStrictEqual(horizon_port, undefined);
   const conn = new websocket(`ws://localhost:${horizon_port}/horizon`,
@@ -57,11 +68,11 @@ const create_table = (table, done) => {
         const response = JSON.parse(data);
         assert.deepStrictEqual(response, { request_id: 123, token: response.token });
 
-        // This query should auto-create the table if it's missing
+        // This query should auto-create the collection if it's missing
         conn.send(JSON.stringify({
           request_id: 0,
           type: 'query',
-          options: { collection: table, limit: 0 },
+          options: { collection, limit: 0 },
         }));
 
         conn.once('message', () => {
@@ -72,24 +83,24 @@ const create_table = (table, done) => {
     });
 };
 
-// Removes all data from a table - does not remove indexes
-const clear_table = (table, done) => {
+// Removes all data from a collection - does not remove indexes
+const clear_collection = (collection, done) => {
   assert.notStrictEqual(rdb_conn, undefined);
-  r.table(table).delete().run(rdb_conn).then(() => done());
+  table(collection).delete().run(rdb_conn).then(() => done());
 };
 
-// Populates a table with the given rows
+// Populates a collection with the given rows
 // If `rows` is a number, fill in data using all keys in [0, rows)
-const populate_table = (table, rows, done) => {
+const populate_collection = (collection, rows, done) => {
   assert.notStrictEqual(rdb_conn, undefined);
 
   if (rows.constructor.name !== 'Array') {
-    r.table(table).insert(
+    table(collection).insert(
       r.range(rows).map(
         (i) => ({ id: i, value: i.mod(4) })
       )).run(rdb_conn).then(() => done());
   } else {
-    r.table(table).insert(rows).run(rdb_conn).then(() => done());
+    table(collection).insert(rows).run(rdb_conn).then(() => done());
   }
 };
 
@@ -106,7 +117,9 @@ const start_horizon_server = (done) => {
         db,
         auto_create_collection: true,
         auto_create_index: true,
+        permissions: false,
         auth: {
+          token_secret: 'hunter2',
           allow_unauthenticated: true,
         },
       });
@@ -223,7 +236,9 @@ module.exports = {
   horizon_listeners: () => horizon_listeners,
 
   test_db_server,
-  create_table, populate_table, clear_table,
+  create_collection,
+  populate_collection,
+  clear_collection,
 
   start_horizon_server, close_horizon_server,
   open_horizon_conn, close_horizon_conn,
@@ -233,4 +248,5 @@ module.exports = {
   stream_test,
   check_error,
   each_line_in_pipe,
+  table,
 };

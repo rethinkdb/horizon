@@ -50,7 +50,7 @@ const all_tests = () => {
                                                four_o_four);
         }
 
-        horizon(http_server);
+        horizon(http_server, { auth: { token_secret: 'hunter2' } });
 
         http_server.listen(0, done);
       });
@@ -75,6 +75,6 @@ const all_tests = () => {
   });
 };
 
-const suite = (table) => describe('Webserver', () => all_tests(table));
+const suite = (collection) => describe('Webserver', () => all_tests(collection));
 
 module.exports = { suite };
