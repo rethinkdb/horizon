@@ -176,31 +176,7 @@ class Client {
       return;
     }
 
-    const verify_or_generate = () => {
-      switch (request.method) {
-      case 'token':
-        return this.parent._auth.verify_jwt(request.token);
-      case 'anonymous':
-        return this.parent._auth.generate_anon_jwt();
-      case 'unauthenticated':
-        return this.parent._auth.generate_unauth_jwt();
-      default:
-        return Promise.reject(`Unknown handshake method "${request.method}"`);
-      }
-    }
-
-    verify_or_generate()
-    .then(token => {
-      if (token.user === null) return token;
-
-      const metadata = this.parent._reql_conn.metadata();
-      return metadata.get_user_info(token.user)
-      .then(user => {
-        token.user = user;
-        return token;
-      })
-      .catch(err => throw new Error('User does not exist.'));
-    })
+    this.parent._auth.handshake(request)
     .then(token => {
       this.user_info = token.user;
       this.send_response(request.request_id, token);
@@ -210,7 +186,7 @@ class Client {
     .catch(err => {
       this.send_response(request.request_id, { error: `${err}`, error_code: 0 });
       this.close_socket('Invalid token.', err);
-    })
+    });
   }
 
   handle_request(data) {
