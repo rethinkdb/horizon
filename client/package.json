@@ -36,6 +36,8 @@
     "chai": "^3.5.0",
     "copy-webpack-plugin": "^1.1.1",
     "eslint": "2.2.x",
+    "exports-loader": "^0.6.3",
+    "imports-loader": "^0.6.5",
     "istanbul": "^0.4.2",
     "lodash": "^4.6.1",
     "mocha": "2.3.4",
