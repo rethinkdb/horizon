@@ -38,7 +38,8 @@ const updateSuite = window.updateSuite = getData => () => {
   // The `update` command updates documents already in the database. It
   // errors if the document doesn't exist.
   it(`fails if document doesn't exist`, assertErrors(() =>
-    data.update({ id: 1, a: 1, b: 1 })
+    data.update({ id: 1, a: 1, b: 1 }),
+    /The document was missing/
   ))
 
   // It means you can't update a document without providing an id.

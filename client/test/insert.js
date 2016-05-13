@@ -52,7 +52,8 @@ const insertSuite = window.insertSuite = getData => () => {
       ::tap(res => compareWithoutVersion({ id: new_id, a: 1, b: 1 }, res))
       // Let's attempt to overwrite the document now
       ::mergeMap(() => data.insert({ id: new_id, c: 1 }))
-  }))
+    }, /Duplicate primary key `id`/
+  ))
 
   it('fails if null is passed', assertThrows(
     'The argument to insert must be non-null',
@@ -104,7 +105,7 @@ const insertSuite = window.insertSuite = getData => () => {
 
   // If any operation in a batch insert fails, everything is reported as a
   // failure.
-  it('fails if any operation in a batch fails', assertErrors(() =>
+  it('gets an Error object if an operation in a batch fails', assertCompletes(() =>
     // Lets insert a document that will trigger a duplicate error when we
     // attempt to reinsert it
     data.insert({ id: 2, a: 2 })
@@ -120,6 +121,12 @@ const insertSuite = window.insertSuite = getData => () => {
         { id: 2, a: 2 },
         { id: 3, a: 3 },
       ]))
+      ::toArray()
+      ::tap(results => {
+        assert.equal(results[0].id, 1)
+        assert.instanceOf(results[1], Error)
+        assert.equal(results[2].id, 3)
+      })
   ))
 
   // Let's trigger a failure in an insert batch again, this time by making
