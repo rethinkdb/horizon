@@ -6,7 +6,8 @@ const options_schema = require('./schema/server_options').auth;
 const assert = require('assert');
 const crypto = require('crypto');
 const Joi = require('joi');
-const jwt = require('jsonwebtoken');
+const Promise = require('bluebird');
+const jwt = Promise.promisifyAll(require('jsonwebtoken'));
 const r = require('rethinkdb');
 const url = require('url');
 
@@ -46,14 +47,16 @@ class Auth {
   // A generated token contains the data:
   // { user: <uuid>, provider: <string> }
   _jwt_from_user(user, provider) {
-    return jwt.sign({ user, provider },
-                    this._hmac_secret,
-                    { expiresIn: this._duration,
-                      algorithm: 'HS512' });
+    return jwt.sign(
+      { user, provider },
+      this._hmac_secret,
+      { expiresIn: this._duration,
+        algorithm: 'HS512' }
+    );
   }
 
   // TODO: maybe we should write something into the user data to track open sessions/tokens
-  generate_jwt(provider, info, cb) {
+  generate_jwt(provider, info) {
     const key = auth_key(provider, info);
     let query = r.db('horizon_internal').table('users_auth').get(key);
 
@@ -78,71 +81,62 @@ class Auth {
       query = query.default(r.error('User not found and new user creation is disabled.'));
     }
 
-    this.reql_call(query, (err, res) => {
-      if (err) {
-        // TODO: if we got a `Duplicate primary key` error, it was likely a race condition
-        // and we should succeed if we try again.
-        logger.debug('Failed user lookup or creation: ${err}');
-        cb(new Error('User lookup or creation in database failed.'));
-      } else {
-        cb(null, this._jwt_from_user(res.user_id, provider));
-      }
+    return this.reql_call(query)
+    .catch(err => {
+      // TODO: if we got a `Duplicate primary key` error, it was likely a race condition
+      // and we should succeed if we try again.
+      logger.debug(`Failed user lookup or creation: ${err}`);
+      throw new Error('User lookup or creation in database failed.');
+    })
+    .then(res => {
+      return this._jwt_from_user(res.user_id, provider);
     });
   }
 
-  generate_anon_jwt(cb) {
-    if (!this._allow_anonymous) {
-      cb(new Error('Anonymous connections are not allowed.'));
-    }
-
+  generate_anon_jwt() {
     const query = r.db('horizon_internal').table('users')
                    .insert({ group: this._new_user_group });
 
-    this.reql_call(query, (err, res) => {
-      if (err) {
-        logger.error('Failed anonymous user creation: ${err}');
-        cb(new Error('Anonymous user creation in database failed.'));
-      } else {
-        this.verify_jwt(this._jwt_from_user(res.generated_keys[0], null), cb);
-      }
+    return this.reql_call(query)
+    .catch(err => {
+      logger.debug(`Failed anonymous user creation: ${err}`);
+      throw new Error('Anonymous user creation in database failed.');
+    })
+    .then(res => {
+      return this.verify_jwt(this._jwt_from_user(res.generated_keys[0], null));
     });
   }
 
-  generate_unauth_jwt(cb) {
-    if (!this._allow_unauthenticated) {
-      cb(new Error('Unauthenticated connections are not allowed.'));
-    } else {
-      this.verify_jwt(this._jwt_from_user(null, null), cb);
-    }
+  generate_unauth_jwt() {
+    return this.verify_jwt(this._jwt_from_user(null, null));
   }
 
-  verify_jwt(token, cb) {
-    jwt.verify(token, this._hmac_secret,
-               { algorithms: [ 'HS512' ] },
-               (err, decoded) => {
-      if (err) {
-        return cb(err);
-      } else if (decoded.user === undefined || decoded.provider === undefined) {
-        return cb(new Error('Invalid token data, "user" and "provider" must be specified.'));
-      } else if (decoded.provider === null) {
+  verify_jwt(token) {
+    return jwt.verifyAsync(token, this._hmac_secret, { algorithms: [ 'HS512' ] })
+    .then(decoded => {
+      if (decoded.user === undefined || decoded.provider === undefined) {
+        throw new Error('Invalid token data, "user" and "provider" must be specified.');
+      }
+      if (decoded.provider === null) {
         if (decoded.user === null) {
           if (!this._allow_unauthenticated) {
-            return cb(new Error('Unauthenticated connections are not allowed.'));
+            throw new Error('Unauthenticated connections are not allowed.');
           }
         } else if (!this._allow_anonymous) {
-          return cb(new Error('Anonymous connections are not allowed.'));
+          throw new Error('Anonymous connections are not allowed.');
         }
       }
-      cb(err, token, decoded);
+
+      decoded.token = token;
+      return decoded;
     });
   }
 
-  reql_call(query, cb) {
+  reql_call(query) {
     if (!this._parent._reql_conn.ready()) {
-      cb(new Error('Connection to database is down, cannot perform authentication.'));
-    } else {
-      query.run(this._parent._reql_conn.connection(), cb);
+      return Promise.reject('Connection to database is down, cannot perform authentication.');
     }
+    return query.run(this._parent._reql_conn.connection());
   }
 }
 
