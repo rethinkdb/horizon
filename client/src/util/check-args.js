@@ -1,10 +1,10 @@
-const ordinal = require('./ordinal.js')
+import ordinal from './ordinal.js'
 
 // Validation helper
-module.exports = (name, args, {
+export default function checkArgs(name, args, {
                     nullable: nullable = false,
                     minArgs: minArgs = 1,
-                    maxArgs: maxArgs = 1 } = {}) => {
+                    maxArgs: maxArgs = 1 } = {}) {
   if (minArgs === maxArgs && args.length !== minArgs) {
     const plural = minArgs === 1 ? '' : 's'
     throw new Error(`${name} must receive exactly ${minArgs} argument${plural}`)

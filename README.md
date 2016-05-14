@@ -1,6 +1,8 @@
 <img style="width:100%;" src="/github-banner.png">
 
-# What is Horizon?
+# [Horizon](https://horizon.io)
+
+## What is Horizon?
 
 Horizon is an open-source developer platform for building sophisticated realtime
 apps. It provides a complete backend that makes it dramatically simpler to
@@ -65,17 +67,29 @@ complex to need custom business logic on the backend, developers can
 incrementally add backend code at any time in the development cycle of
 their app.
 
+## Get Involved
+
+We'd love for you to help us build Horizon. If you'd like to be a contributor,
+check out our [Contributing guide](/CONTRIBUTING.md).
+
+Also, to stay up-to-date on all Horizon related news and the community you should
+definitely [join us on Slack](http://slack.rethinkdb.com), [follow us on Twitter](https://twitter.com/horizonjs),
+and join our Horizon mailing list at [Horizon.io](https://horizon.io).
+
+![](/assets/Lets-go.png)
+
 ## FAQ
 
 ### How do you start Horizon?
 
-This first step is to install the Horizon command line tool. 
+This first step is to install the Horizon command line tool.
 
 ```sh
 $ npm install -g horizon
 ```
 
-You can then create the boilerplate with `hz init` and then launch Horizon Server and an instance of RethinkDB with `hz serve --dev`.
+You can then create the boilerplate with `hz init` and then launch Horizon Server
+and an instance of RethinkDB with `hz serve --dev`.  *[RethinkDB](https://www.rethinkdb.com/docs/install/) needs to be installed and accessible from the Path.*
 
 ```sh
 $ hz init myapp
@@ -85,7 +99,7 @@ $ hz serve myapp --dev
 # The horizon client library is served from localhost:8181/horizon/horizon.js
 ```
 
-There is a much more thorough getting started example and a list of argument flags in the [horizon/cli](/cli) directory.
+Check out the [Getting Started](/GETTING-STARTED.md) guide for a complete walkthrough.
 
 ### What does the code look like?
 
@@ -119,6 +133,12 @@ You have two options:
 
 Refer to the the [CLI README](/cli/README.md) for the most up-to-date public install instructions.
 
+### Where do I start?
+
+Check out our [Getting Started guide](/GETTING-STARTED.md). If you have more questions, come [join us on Slack](http://slack.rethinkdb.com) in #horizon or feel free to tweet us at [@horizonjs](https://twitter.com/horizonjs).
+
+![](/assets/how-is-horizon-different.png)
+
 ### How is Horizon different from Firebase?
 
 There are a few major differences:
@@ -149,7 +169,7 @@ backend framework (e.g. Rails, Express, Koa, etc.)
 
 By contrast, Meteor is a much more prescriptive framework. Horizon is a
 reasonably small component that has a very clean separation with the
-database and the frontend, while Meteor is a much more monolithic
+database and the front-end, while Meteor is a much more monolithic
 experience.
 
 Another major difference is architectural -- Meteor uses a LiveQuery

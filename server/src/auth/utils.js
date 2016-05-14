@@ -4,7 +4,6 @@ const logger = require('../logger');
 
 const cookie = require('cookie');
 const crypto = require('crypto');
-const extend = require('util')._extend;
 const Joi = require('joi');
 const url = require('url');
 
@@ -15,12 +14,12 @@ const do_redirect = (res, redirect_url) => {
 };
 
 const extend_url_query = (path, query) => {
-  const path_copy = extend({ }, path);
+  const path_copy = Object.assign({}, path);
   if (path_copy.query === null) {
     path_copy.query = query;
   } else {
-    path_copy.query = extend({ }, path_copy.query);
-    path_copy.query = extend(path_copy.query, query);
+    path_copy.query = Object.assign({}, path_copy.query);
+    path_copy.query = Object.assign({}, path_copy.query, query);
   }
   return path_copy;
 };

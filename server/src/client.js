@@ -6,7 +6,6 @@ const schemas = require('./schema/horizon_protocol');
 
 const Joi = require('joi');
 const r = require('rethinkdb');
-const websocket = require('ws');
 const uuid = require("uuid");
 
 class Request {
@@ -64,7 +63,7 @@ class Request {
     logger.debug(`Error on request ${this.id}: ${err}`);
 
     // Ignore responses for disconnected clients
-    if (this.client.socket.readyState !== websocket.OPEN) {
+    if (this.client.socket.readyState !== 'open') {
       return logger.debug(`Disconnected client got an error: ${JSON.stringify(err)}.`);
     }
 
@@ -140,7 +139,7 @@ class Client {
   }
 
   close_socket(msg, err_info) {
-    if (this.socket.readyState === websocket.OPEN) {
+    if (this.socket.readyState === 'open') {
       if (err_info) {
         logger.error(`Horizon client request resulted in error: ${err_info}`);
       }
@@ -203,7 +202,7 @@ class Client {
         metadata.get_user_info(decoded.user, (rdb_err, res) => {
           if (rdb_err) {
             this.send_response(request.request_id, { error: 'User does not exist.', error_code: 0 });
-            this.socket.close(1002, `Invalid user.`);
+            this.socket.close(1002, 'Invalid user.');
           } else {
             // TODO: listen on feed
             success(res, token);
@@ -256,7 +255,7 @@ class Client {
 
   send_response(request_id, data) {
     // Ignore responses for disconnected clients
-    if (this.socket.readyState !== websocket.OPEN) {
+    if (this.socket.readyState !== 'open') {
       logger.debug(`Attempted to send a response to a disconnected client: ${JSON.stringify(data)}.`);
     } else {
       data.request_id = request_id;

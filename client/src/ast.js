@@ -1,9 +1,16 @@
-const snakeCase = require('snake-case')
+import { Observable } from 'rxjs/Observable'
+import { empty } from 'rxjs/observable/empty'
+import { publishReplay } from 'rxjs/operator/publishReplay'
+import { scan } from 'rxjs/operator/scan'
+import { filter } from 'rxjs/operator/filter'
+import { map } from 'rxjs/operator/map'
+import { toArray } from 'rxjs/operator/toArray'
 
-const Rx = require('rx')
-const checkArgs = require('./util/check-args')
-const validIndexValue = require('./util/valid-index-value.js')
-const { serialize } = require('./serialization.js')
+import snakeCase from 'snake-case'
+
+import checkArgs from './util/check-args'
+import validIndexValue from './util/valid-index-value.js'
+import { serialize } from './serialization.js'
 
 
 /**
@@ -12,9 +19,7 @@ const { serialize } = require('./serialization.js')
  Validation check to throw an exception if a method is chained onto a
  query that already has it. It belongs to TermBase, but we don't want
  to pollute the objects with it (since it isn't useful to api users),
- so it's dynamically bound with .call inside methods that use it. Once
- ES7 is relatively stable, it'd be nice to use the (::) syntax for
- this kind of call
+ so it's dynamically bound with :: inside methods that use it.
 */
 function checkIfLegalToChain(key) {
   if (this._legalMethods.indexOf(key) === -1) {
@@ -26,7 +31,7 @@ function checkIfLegalToChain(key) {
 }
 
 // Abstract base class for terms
-class TermBase {
+export class TermBase {
   constructor(sendRequest, query, legalMethods) {
     this._sendRequest = sendRequest
     this._query = query
@@ -49,35 +54,40 @@ class TermBase {
   // array with all results. An observable is returned which will
   // lazily emit the query when subscribed to
   fetch() {
-    return this._sendRequest('query', this._query)
+    const raw = this._sendRequest('query', this._query)
+    if (this._query.find) {
+      return raw
+    } else {
+      return raw::toArray()
+    }
   }
   findAll(...fieldValues) {
-    checkIfLegalToChain.call(this, 'findAll')
+    this::checkIfLegalToChain('findAll')
     checkArgs('findAll', arguments, { maxArgs: 100 })
     return new FindAll(this._sendRequest, this._query, fieldValues)
   }
   find(idOrObject) {
-    checkIfLegalToChain.call(this, 'find')
+    this::checkIfLegalToChain('find')
     checkArgs('find', arguments)
     return new Find(this._sendRequest, this._query, idOrObject)
   }
   order(fields, direction = 'ascending') {
-    checkIfLegalToChain.call(this, 'order')
+    this::checkIfLegalToChain('order')
     checkArgs('order', arguments, { minArgs: 1, maxArgs: 2 })
     return new Order(this._sendRequest, this._query, fields, direction)
   }
   above(aboveSpec, bound = 'closed') {
-    checkIfLegalToChain.call(this, 'above')
+    this::checkIfLegalToChain('above')
     checkArgs('above', arguments, { minArgs: 1, maxArgs: 2 })
     return new Above(this._sendRequest, this._query, aboveSpec, bound)
   }
   below(belowSpec, bound = 'open') {
-    checkIfLegalToChain.call(this, 'below')
+    this::checkIfLegalToChain('below')
     checkArgs('below', arguments, { minArgs: 1, maxArgs: 2 })
     return new Below(this._sendRequest, this._query, belowSpec, bound)
   }
   limit(size) {
-    checkIfLegalToChain.call(this, 'limit')
+    this::checkIfLegalToChain('limit')
     checkArgs('limit', arguments)
     return new Limit(this._sendRequest, this._query, size)
   }
@@ -91,16 +101,14 @@ class TermBase {
 function makePresentable(observable, query) {
   // Whether the entire data structure is in each change
   const pointQuery = Boolean(query.find)
-  // Whether the result set must be sorted before emitting it
-  const orderedQuery = Boolean(query.order)
 
   if (pointQuery) {
     let hasEmitted = false
     const seedVal = null
     // Simplest case: just pass through new_val
     return observable
-      .filter(change => !hasEmitted || change.type !== 'state')
-      .scan((previous, change) => {
+      ::filter(change => !hasEmitted || change.type !== 'state')
+      ::scan((previous, change) => {
         hasEmitted = true
         if (change.state === 'synced') {
           return previous
@@ -109,72 +117,72 @@ function makePresentable(observable, query) {
         }
       }, seedVal)
   } else {
-    // Need to track whether anything has been emitted yet, so we can
-    // emit an empty array upon receiving a 'synced' state
-    // change. Otherwise, we don't want state changes to re-emit the
-    // current array.
-    let hasEmitted = false
-    const seedVal = []
-    // Need to incrementally add to and remove from an array
+    const seedVal = { emitted: false, val: [] }
     return observable
-      // Filter out state changes since they shouldn't cause us to re-emit
-      .filter(change => !hasEmitted || change.type !== 'state')
-      .scan((previous, change) => {
-        const arr = previous.slice()
-        switch (change.type) {
-        case 'remove':
-        case 'uninitial': {
-          // Remove old values from the array
-          if (change.old_offset != null) {
-            arr.splice(change.old_offset, 1)
-          } else {
-            const index = arr.findIndex(x => x.id === change.old_val.id)
-            arr.splice(index, 1)
-          }
-          break
+      ::scan((state, change) => {
+        if (change.state === 'synced') {
+          state.emitted = true
         }
-        case 'add':
-        case 'initial': {
-          // Add new values to the array
-          if (change.new_offset != null) {
-            // If we have an offset, put it in the correct location
-            arr.splice(change.new_offset, 0, change.new_val)
-          } else {
-            // otherwise for unordered results, push it on the end
-            arr.push(change.new_val)
-          }
-          break
-        }
-        case 'change': {
-          // Modify in place if a change is happening
-          if (change.old_offset != null) {
-            // Remove the old document from the results
-            arr.splice(change.old_offset, 1)
-          }
-          if (change.new_offset != null) {
-            // Splice in the new val if we have an offset
-            arr.splice(change.new_offset, 0, change.new_val)
-          } else {
-            // If we don't have an offset, find the old val and
-            // replace it with the new val
-            const index = arr.findIndex(x => x.id === change.old_val.id)
-            arr[index] = change.new_val
-          }
-          break
-        }
-        case 'state': {
-          // This gets hit if we have not emitted yet, and should
-          // result in an empty array being output.
-          break
-        }
-        default:
-          throw new Error(
-            `unrecognized 'type' field from server ${JSON.stringify(change)}`)
-        }
-        hasEmitted = true
-        return arr
+        state.val = applyChange(state.val.slice(), change)
+        return state
       }, seedVal)
+      ::filter(state => state.emitted)
+      ::map(x => x.val)
   }
+}
+
+export function applyChange(arr, change) {
+  switch (change.type) {
+  case 'remove':
+  case 'uninitial': {
+    // Remove old values from the array
+    if (change.old_offset != null) {
+      arr.splice(change.old_offset, 1)
+    } else {
+      const index = arr.findIndex(x => x.id === change.old_val.id)
+      arr.splice(index, 1)
+    }
+    break
+  }
+  case 'add':
+  case 'initial': {
+    // Add new values to the array
+    if (change.new_offset != null) {
+      // If we have an offset, put it in the correct location
+      arr.splice(change.new_offset, 0, change.new_val)
+    } else {
+      // otherwise for unordered results, push it on the end
+      arr.push(change.new_val)
+    }
+    break
+  }
+  case 'change': {
+    // Modify in place if a change is happening
+    if (change.old_offset != null) {
+      // Remove the old document from the results
+      arr.splice(change.old_offset, 1)
+    }
+    if (change.new_offset != null) {
+      // Splice in the new val if we have an offset
+      arr.splice(change.new_offset, 0, change.new_val)
+    } else {
+      // If we don't have an offset, find the old val and
+      // replace it with the new val
+      const index = arr.findIndex(x => x.id === change.old_val.id)
+      arr[index] = change.new_val
+    }
+    break
+  }
+  case 'state': {
+    // This gets hit if we have not emitted yet, and should
+    // result in an empty array being output.
+    break
+  }
+  default:
+    throw new Error(
+      `unrecognized 'type' field from server ${JSON.stringify(change)}`)
+  }
+  return arr
 }
 
 /** @this Collection
@@ -188,7 +196,7 @@ function writeOp(name, args, documents) {
     wrappedDocs = [ documents ]
   } else if (documents.length === 0) {
     // Don't bother sending no-ops to the server
-    return Rx.Observable.empty()
+    return Observable::empty()
   }
   const options = Object.assign(
     {}, this._query, { data: serialize(wrappedDocs) })
@@ -196,13 +204,13 @@ function writeOp(name, args, documents) {
   if (!this._lazyWrites) {
     // Need to buffer response since this becomes a hot observable and
     // when we subscribe matters
-    observable = observable.shareReplay()
+    observable = observable::publishReplay().refCount()
     observable.subscribe()
   }
   return observable
 }
 
-class Collection extends TermBase {
+export class Collection extends TermBase {
   constructor(sendRequest, collectionName, lazyWrites) {
     const query = { collection: collectionName }
     const legalMethods = [
@@ -211,24 +219,24 @@ class Collection extends TermBase {
     this._lazyWrites = lazyWrites
   }
   store(documents) {
-    return writeOp.call(this, 'store', arguments, documents)
+    return this::writeOp('store', arguments, documents)
   }
   upsert(documents) {
-    return writeOp.call(this, 'upsert', arguments, documents)
+    return this::writeOp('upsert', arguments, documents)
   }
   insert(documents) {
-    return writeOp.call(this, 'insert', arguments, documents)
+    return this::writeOp('insert', arguments, documents)
   }
   replace(documents) {
-    return writeOp.call(this, 'replace', arguments, documents)
+    return this::writeOp('replace', arguments, documents)
   }
   update(documents) {
-    return writeOp.call(this, 'update', arguments, documents)
+    return this::writeOp('update', arguments, documents)
   }
   remove(documentOrId) {
     const wrapped = validIndexValue(documentOrId) ?
           { id: documentOrId } : documentOrId
-    return writeOp.call(this, 'remove', arguments, wrapped)
+    return this::writeOp('remove', arguments, wrapped)
   }
   removeAll(documentsOrIds) {
     if (!Array.isArray(documentsOrIds)) {
@@ -241,11 +249,11 @@ class Collection extends TermBase {
         return item
       }
     })
-    return writeOp.call(this, 'removeAll', arguments, wrapped)
+    return this::writeOp('removeAll', arguments, wrapped)
   }
 }
 
-class Find extends TermBase {
+export class Find extends TermBase {
   constructor(sendRequest, previousQuery, idOrObject) {
     const findObject = validIndexValue(idOrObject) ?
           { id: idOrObject } : idOrObject
@@ -254,7 +262,7 @@ class Find extends TermBase {
   }
 }
 
-class FindAll extends TermBase {
+export class FindAll extends TermBase {
   constructor(sendRequest, previousQuery, fieldValues) {
     const wrappedFields = fieldValues
           .map(item => validIndexValue(item) ? { id: item } : item)
@@ -271,7 +279,7 @@ class FindAll extends TermBase {
   }
 }
 
-class Above extends TermBase {
+export class Above extends TermBase {
   constructor(sendRequest, previousQuery, aboveSpec, bound) {
     const option = { above: [ aboveSpec, bound ] }
     const query = Object.assign({}, previousQuery, option)
@@ -280,7 +288,7 @@ class Above extends TermBase {
   }
 }
 
-class Below extends TermBase {
+export class Below extends TermBase {
   constructor(sendRequest, previousQuery, belowSpec, bound) {
     const options = { below: [ belowSpec, bound ] }
     const query = Object.assign({}, previousQuery, options)
@@ -289,7 +297,7 @@ class Below extends TermBase {
   }
 }
 
-class Order extends TermBase {
+export class Order extends TermBase {
   constructor(sendRequest, previousQuery, fields, direction) {
     const wrappedFields = Array.isArray(fields) ? fields : [ fields ]
     const options = { order: [ wrappedFields, direction ] }
@@ -299,21 +307,10 @@ class Order extends TermBase {
   }
 }
 
-class Limit extends TermBase {
+export class Limit extends TermBase {
   constructor(sendRequest, previousQuery, size) {
     const query = Object.assign({}, previousQuery, { limit: size })
     // Nothing is legal to chain after .limit
     super(sendRequest, query, [])
   }
-}
-
-module.exports = {
-  TermBase,
-  Collection,
-  FindAll,
-  Find,
-  Above,
-  Below,
-  Order,
-  Limit,
 }

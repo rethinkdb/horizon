@@ -3,7 +3,7 @@
 const package_json = require('../package.json');
 
 const runCommand = () => {
-  console.log(package_json.version);
+  console.info(package_json.version);
 };
 
 module.exports = {

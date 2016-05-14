@@ -38,29 +38,31 @@ module.exports = function(buildTarget) {
         } :
       null,
     },
-    externals: function(context, request, callback) {
+    externals: [
+      function(context, request, callback) {
       // Selected modules are not packaged into horizon.js. Webpack
       // allows them to be required natively at runtime, either from
       // filesystem (node) or window global.
-      if (!POLYFILL && request === 'rx') {
-        callback(null, {
+        if (!POLYFILL && /^rxjs\/?/.test(request)) {
+          callback(null, {
           // If loaded via script tag, has to be at window.Rx when
           // library loads
           root: 'Rx',
           // Otherwise imported via `require('rx')`
-          commonjs: 'rx',
-          commonjs2: 'rx',
-          amd: 'rx',
+          commonjs: 'rxjs',
+          commonjs2: 'rxjs',
+          amd: 'rxjs'
         })
-      } else {
-        callback()
-      }
-    },
+        } else {
+          callback()
+        }
+      },
+      { ws: 'commonjs ws' }
+    ],
     debug: DEV_BUILD,
     devtool: SOURCEMAPS ? (DEV_BUILD ? 'source-map' : 'source-map') : false,
     module: {
       noParse: [
-        /rx\/dist\/rx\.all\.js/,
       ],
       preLoaders: [],
       loaders: [

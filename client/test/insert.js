@@ -1,24 +1,29 @@
-'use strict'
-const insertSuite = window.insertSuite = getData => () => {
+import { _do as tap } from 'rxjs/operator/do'
+import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
+import { mergeMap } from 'rxjs/operator/mergeMap'
+import { toArray } from 'rxjs/operator/toArray'
+
+import { assertCompletes, assertThrows, assertErrors } from './utils'
+const insertSuite = global.insertSuite = getData => () => {
   let data
 
   before(() => {
-    data = getData();
+    data = getData()
   })
 
   // The `insert` command stores documents in the database, and errors if
   // the documents already exist.
   it('stores documents in db, errors if documents already exist', assertErrors(() =>
-    data.insert({ id: 1, a: 1, b: 1 }).toArray()
+    data.insert({ id: 1, a: 1, b: 1 })::toArray()
       // Should return an array with an ID of the inserted
       // document.
-      .do(res => assert.deepEqual([1], res))
+      ::tap(res => assert.deepEqual([ 1 ], res))
       // Let's make sure we get back the document that we put in.
-      .flatMap(data.find(1).fetch())
+      ::mergeMapTo(data.find(1).fetch())
       // Check that we get back what we put in.
-      .do(res => assert.deepEqual({ id: 1, a: 1, b: 1 }, res))
+      ::tap(res => assert.deepEqual({ id: 1, a: 1, b: 1 }, res))
       // Let's attempt to overwrite the document now. This should error.
-      .flatMap(data.insert({ id: 1, c: 1 }))
+      ::mergeMapTo(data.insert({ id: 1, c: 1 }))
   ))
 
   // If we insert a document without an ID, the ID is generated for us.
@@ -27,20 +32,20 @@ const insertSuite = window.insertSuite = getData => () => {
   it(`generates ids if documents don't already have one`, assertErrors(() => {
     let new_id
 
-    return data.insert({ a: 1, b: 1 }).toArray()
+    return data.insert({ a: 1, b: 1 })::toArray()
       // should return an array with an ID of the inserted document.
-      .do(res => {
+      ::tap(res => {
         assert.isArray(res)
         assert.lengthOf(res, 1)
         assert.isString(res[0])
         new_id = res[0]
       })
       // Let's make sure we get back the document that we put in.
-      .flatMap(() => data.find(new_id).fetch())
+      ::mergeMap(() => data.find(new_id).fetch())
       // Check that we get back what we put in.
-      .do(res => assert.deepEqual({ id: new_id, a: 1, b: 1 }, res))
+      ::tap(res => assert.deepEqual({ id: new_id, a: 1, b: 1 }, res))
       // Let's attempt to overwrite the document now
-      .flatMap(() => data.insert({ id: new_id, c: 1 }))
+      ::mergeMap(() => data.insert({ id: new_id, c: 1 }))
   }))
 
   it('fails if null is passed', assertThrows(
@@ -67,8 +72,8 @@ const insertSuite = window.insertSuite = getData => () => {
         {},
         { a: 1 },
         { id: 1, a: 1 },
-    ]).toArray()
-      .do(res => {
+    ])::toArray()
+      ::tap(res => {
         // should return an array with the IDs of the documents in
         // order, including the generated IDS.
         assert.isArray(res)
@@ -81,10 +86,10 @@ const insertSuite = window.insertSuite = getData => () => {
         new_id_1 = res[1]
       })
       // Make sure we get what we put in.
-      .flatMap(() =>
-               data.findAll(new_id_0, new_id_1, 1).fetch().toArray())
+      ::mergeMap(() =>
+               data.findAll(new_id_0, new_id_1, 1).fetch())
       // We're supposed to get an array of documents we put in
-      .do(res => assert.sameDeepMembers(res, [
+      ::tap(res => assert.sameDeepMembers(res, [
         { id: new_id_0 },
         { id: new_id_1, a: 1 },
         { id: 1, a: 1 },
@@ -98,13 +103,13 @@ const insertSuite = window.insertSuite = getData => () => {
     // attempt to reinsert it
     data.insert({ id: 2, a: 2 })
       // should return an array with an ID of the inserted document.
-      .do(res => assert.deepEqual(res, [ 2 ]))
+      ::tap(res => assert.deepEqual(res, [ 2 ]))
       // Let's make sure we get back the document that we put in.
-      .flatMap(data.find(2).fetch())
+      ::mergeMap(() => data.find(2).fetch())
       // Check that we get back what we put in.
-      .do(res => assert.deepEqual(res, { id: 2, a: 2 }))
+      ::tap(res => assert.deepEqual(res, { id: 2, a: 2 }))
       // One of the documents in the batch already exists
-      .flatMap(data.insert([
+      ::mergeMap(() => data.insert([
         { id: 1, a: 1 },
         { id: 2, a: 2 },
         { id: 3, a: 3 },
@@ -121,7 +126,7 @@ const insertSuite = window.insertSuite = getData => () => {
   // array.
   it('can store empty batches', assertCompletes(() =>
     data.insert([])
-      .do(res => {
+      ::tap(res => {
         // should return an array with the IDs of the documents
         // in order, including the generated IDS.
         assert.isArray(res)

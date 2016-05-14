@@ -5,6 +5,7 @@ const argparse = require('argparse');
 const initCommand = require('./init.js');
 const serveCommand = require('./serve.js');
 const versionCommand = require('./version.js');
+const createCertCommand = require('./create-cert.js');
 
 const parser = new argparse.ArgumentParser();
 
@@ -26,6 +27,11 @@ const serveParser = subparsers.addParser('serve', {
 const versionParser = subparsers.addParser('version', {
   addHelp: true,
   help: 'Print the verison number of horizon',
+});
+
+const createCertParser = subparsers.addParser('create-cert', {
+  addHelp: true,
+  help: 'Generate a certificate',
 });
 
 initCommand.addArguments(initParser);
@@ -56,6 +62,10 @@ case 'serve': {
 }
 case 'version': {
   versionCommand.runCommand();
+  break;
+}
+case 'create-cert': {
+  createCertCommand.runCommand();
   break;
 }
 }

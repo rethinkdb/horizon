@@ -1,6 +1,9 @@
-'use strict'
+import { _do as tap } from 'rxjs/operator/do'
+import { toArray } from 'rxjs/operator/toArray'
 
-const orderSuite = window.orderSuite = (getData, getTestData) => () => {
+import { assertCompletes, assertThrows, assertErrors } from './utils'
+
+const orderSuite = global.orderSuite = (getData, getTestData) => () => {
   let data, testData
 
   before(() => {
@@ -10,26 +13,26 @@ const orderSuite = window.orderSuite = (getData, getTestData) => () => {
 
   // We can order by a field (default order is ascending)
   it('orders results by a field', assertCompletes(() =>
-    data.order('id').fetch().toArray()
-      .do(res => assert.deepEqual(res, testData))
+    data.order('id').fetch()
+      ::tap(res => assert.deepEqual(res, testData))
   ))
 
   // That's the same as passing `ascending` explicitly
   it('orders results ascending implicitly', assertCompletes(() =>
-    data.order('id', 'ascending').fetch().toArray()
-      .do(res => assert.deepEqual(res, testData))
+    data.order('id', 'ascending').fetch()
+      ::tap(res => assert.deepEqual(res, testData))
   ))
 
   // We can also sort in descending order
   it('can order results in descending order', assertCompletes(() =>
-    data.order('id', 'descending').fetch().toArray()
-      .do(res => assert.deepEqual(res, _.cloneDeep(testData).reverse()))
+    data.order('id', 'descending').fetch()
+      ::tap(res => assert.deepEqual(res, _.cloneDeep(testData).reverse()))
   ))
 
   // Let's try ordering by a different field.
   it('can order results by a field other than id', assertCompletes(() =>
-    data.order('b').fetch().toArray()
-      .do(res => assert.deepEqual(res.slice(0, 3), [
+    data.order('b').fetch()
+      ::tap(res => assert.deepEqual(res.slice(0, 3), [
         { id: 2, a: 20, b: 1 },
         { id: 3, a: 20, b: 2 },
         { id: 4, a: 20, b: 3 },
@@ -38,8 +41,8 @@ const orderSuite = window.orderSuite = (getData, getTestData) => () => {
 
   // Let's try ordering by a different field descneding.
   it('can order results by another field in descending order', assertCompletes(() =>
-    data.order('b', 'descending').fetch().toArray()
-      .do(res => assert.deepEqual(res.slice(0, 3), [
+    data.order('b', 'descending').fetch()
+      ::tap(res => assert.deepEqual(res.slice(0, 3), [
         { id: 4, a: 20, b: 3 },
         { id: 3, a: 20, b: 2 },
         { id: 2, a: 20, b: 1 },
@@ -48,21 +51,21 @@ const orderSuite = window.orderSuite = (getData, getTestData) => () => {
 
   // Let's try to order by a missing field
   it('returns no documents if a bad field is given', assertCompletes(() =>
-    data.order('abracadabra').fetch().toArray()
-      .do(res => assert.sameDeepMembers(res, []))
+    data.order('abracadabra').fetch()
+      ::tap(res => assert.sameDeepMembers(res, []))
   ))
 
   // We can pass multiple fields to `order` to disambiguate.
   it('can order by multiple fields', assertCompletes(() =>
-    data.order(['a', 'id']).fetch().toArray()
-      .do(res => assert.deepEqual(res, _.sortBy(testData, [ 'a', 'id' ])))
+    data.order([ 'a', 'id' ]).fetch()
+      ::tap(res => assert.deepEqual(res, _.sortBy(testData, [ 'a', 'id' ])))
   ))
 
   // We can pass multiple fields to `order` to disambiguate. Let's do it in
   // descending order.
   it('can order by multiple fields descending', assertCompletes(() =>
-    data.order(['a', 'id'], 'descending').fetch().toArray()
-      .do(res => assert.deepEqual(res, _.sortBy(testData, ['a', 'id']).reverse()))
+    data.order([ 'a', 'id' ], 'descending').fetch()
+      ::tap(res => assert.deepEqual(res, _.sortBy(testData, ['a', 'id']).reverse()))
   ))
 
   // `order` cannot accept any keys that are present in `findAll`

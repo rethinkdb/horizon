@@ -1,11 +1,12 @@
 {
   "name": "@horizon/server",
-  "version": "0.0.5-1",
+  "version": "0.1.1-1",
   "description": "Server for RethinkDB Horizon, an open-source developer platform for building realtime, scalable web apps.",
   "main": "src/horizon.js",
   "scripts": {
     "lint": "eslint src test",
-    "test": "mocha test/test.js test/schema.js --timeout 10000"
+    "test": "mocha test/test.js test/schema.js --timeout 10000",
+    "coverage": "istanbul cover _mocha test/test.js"
   },
   "repository": {
     "type": "git",
@@ -21,8 +22,9 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "@horizon/client": "",
+    "@horizon/client": "0.1.1-0",
     "cookie": "^0.2.3",
+    "engine.io": "^1.6.9",
     "joi": "^8.0.4",
     "jsonwebtoken": "^5.5.4",
     "oauth": "^0.9.14",
@@ -30,10 +32,11 @@
     "rethinkdb": "^2.1.1",
     "uuid": "^2.0.1",
     "winston": "^2.1.0",
-    "ws": "^1.0.1"
+    "ws": "1.0.1"
   },
   "devDependencies": {
     "eslint": "^2.3.0",
+    "istanbul": "^0.4.3",
     "mocha": "^2.3.3",
     "nodemon": "^1.8.1"
   }

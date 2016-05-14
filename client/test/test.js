@@ -1,11 +1,14 @@
 const BROWSER = (typeof window !== 'undefined')
 const path = require('path')
+const glob = require('../src/util/glob')
+
+const global = glob()
 
 if (BROWSER) {
   // Use source maps in mocha errors (ordinarily source maps
   // only work inside Developer Tools)
   require('source-map-support/browser-source-map-support.js')
-  window.sourceMapSupport.install()
+  global.sourceMapSupport.install()
 } else {
   // In node, require source-map-support directly. It is listed
   // as an external dependency in webpack config, so that it is
@@ -14,49 +17,26 @@ if (BROWSER) {
 }
 
 if (BROWSER) {
-  // Expose window.mocha and window.Mocha
+  // Expose global.mocha and global.Mocha
   require('mocha/mocha.js')
   // Expose globals such as describe()
-  window.mocha.setup('bdd')
-  window.mocha.timeout(10000)
+  global.mocha.setup('bdd')
+  global.mocha.timeout(10000)
 } else {
-  // Emulate window globals in node for now
-  global.window = global
-
-  // In node, polyfill WebSocket. It is listed as an external dependency
-  // in webpack config, so that it is not bundled here.
-  window.WebSocket = require('ws')
-
-  // Polyfill window.location
-  window.location = {
-    host: 'localhost:8181',
-    protocol: 'http:',
-    hostname: 'localhost',
-    port: 8181,
-  }
-
-  // In node, require 'dist/horizon.js' at runtime, so that
-  // we test the actual packaged module. It is listed as an external
-  // in webpack config, so that it is not bundled here to avoid
-  // race conditions when packaging.
-
   if (__dirname.split(path.sep).pop(-1) === 'test') {
-    window.Horizon = require('../lib/index.js')
+    global.Horizon = require('../lib/index.js')
   } else {
-    window.Horizon = require("./horizon.js")
+    global.Horizon = require('./horizon.js')
   }
 }
 
-window.chai = require('chai/chai.js')
-window.chai.config.showDiff = true
-window.chai.config.truncateThreshold = 0
-window.expect = window.chai.expect
-window.assert = window.chai.assert
+global.chai = require('chai/chai.js')
+global.chai.config.showDiff = true
+global.chai.config.truncateThreshold = 0
+global.expect = global.chai.expect
+global.assert = global.chai.assert
 
-window._ = require('lodash/lodash.js')
-
-window.Rx = require('rx/dist/rx.all.js')
-window.Rx.config.longStackSupport = true
+global._ = require('lodash/lodash.js')
 
 // Wait until server is ready before proceeding to tests
 describe('Waiting until server ready...', function() {
@@ -64,16 +44,16 @@ describe('Waiting until server ready...', function() {
   it('connected', done => {
     const tryConnecting = () => {
       const horizon = Horizon()
-      horizon.onConnected(() => {
+      horizon.onReady(() => {
         clearInterval(connectInterval)
-        horizon.dispose()
+        horizon.disconnect()
         done()
       })
       horizon.connect(() => {
         // Clients dispose by themselves on failure
       })
     }
-    const connectInterval = setInterval(tryConnecting, 1000)
+    const connectInterval = setInterval(tryConnecting, 5000)
     tryConnecting()
   })
 })
@@ -112,6 +92,10 @@ require('./findAllSub.js')
 require('./aboveSub.js')
 require('./belowSub.js')
 require('./orderLimitSub.js')
+
+// Unit tests
+require('./auth.js')
+require('./utilsTest.js')
 
 // Load the suite runner
 require('./api.js')
