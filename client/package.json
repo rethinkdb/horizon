@@ -8,7 +8,7 @@
     "devtest": "nodemon --watch dist --exec 'npm test -- --reporter dot && npm run lint -s'",
     "builddebug": "webpack --progress --colors --display-modules --display-reasons",
     "build": "cross-env NODE_ENV=production webpack --progress --colors",
-    "compile": "node ./compile.js",
+    "compile": "node ./scripts/compile.js",
     "lint": "eslint src",
     "test": "mocha dist/test.js --inline-diffs --timeout 10000",
     "prepublish": "npm run compile && npm run build"
