@@ -7,7 +7,7 @@
     "dev": "webpack --watch --progress --colors",
     "devtest": "nodemon --watch dist --exec 'npm test -- --reporter dot && npm run lint -s'",
     "builddebug": "webpack --progress --colors --display-modules --display-reasons",
-    "build": "NODE_ENV=production webpack --progress --colors",
+    "build": "cross-env NODE_ENV=production webpack --progress --colors",
     "compile": "rm -f lib/**/* && babel src --out-dir lib --extends src/.babelrc --source-maps true",
     "lint": "eslint src",
     "test": "mocha dist/test.js --inline-diffs --timeout 10000",
@@ -16,6 +16,7 @@
   "dependencies": {
     "babel-runtime": "^6.6.1",
     "core-js": "^2.1.0",
+    "cross-env": "^1.0.7",
     "engine.io-client": "^1.6.9",
     "engine.io-parser": "socketio/engine.io-parser#748144b50a1d10e8c7c9b8100f2e21f8ac424c7a",
     "isomorphic-fetch": "^2.2.1",
