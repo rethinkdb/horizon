@@ -111,7 +111,7 @@ class Client {
             this.user_data = change.new_val;
             this._requests.forEach((req) => req.evaluate_rules());
           }
-        });
+        }, () => this.close({ error: 'User account feed has been lost.' }));
       } else {
         this.user_info = { id: null, groups: [ 'unauthenticated' ] };
       }

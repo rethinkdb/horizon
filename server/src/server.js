@@ -61,7 +61,7 @@ class Server {
   constructor(http_servers, user_opts) {
     const opts = Joi.attempt(user_opts || { }, options_schema);
     this._path = opts.path;
-    this._name = opts.db;
+    this._name = opts.project_name;
     this._permissions_enabled = opts.permissions;
     this._auth_methods = { };
     this._request_handlers = new Map();
@@ -69,7 +69,7 @@ class Server {
     this._ws_servers = new Set();
     this._reql_conn = new ReqlConnection(opts.rdb_host,
                                          opts.rdb_port,
-                                         opts.db,
+                                         opts.project_name,
                                          opts.auto_create_collection,
                                          opts.auto_create_index);
     this._auth = new Auth(this, opts.auth);

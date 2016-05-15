@@ -3,7 +3,7 @@
 const Joi = require('joi');
 
 const server = Joi.object({
-  project_name: Joi.string(),
+  project_name: Joi.string().default('horizon'),
   rdb_host: Joi.string().hostname().default('localhost'),
   rdb_port: Joi.number().greater(0).less(65536).default(28015),
 
@@ -13,8 +13,6 @@ const server = Joi.object({
   permissions: Joi.boolean().default(true),
 
   path: Joi.string().default('/horizon'),
-
-  db: Joi.string().token().default('horizon'),
 
   auth: Joi.object().default({ }),
 }).unknown(false);

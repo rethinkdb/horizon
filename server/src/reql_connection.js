@@ -7,10 +7,10 @@ const r = require('rethinkdb');
 const utils = require('./utils');
 
 class ReqlConnection {
-  constructor(host, port, db, auto_create_collection, auto_create_index) {
+  constructor(host, port, project_name, auto_create_collection, auto_create_index) {
     this._host = host;
     this._port = port;
-    this._db = db;
+    this._project_name = project_name;
     this._auto_create_collection = auto_create_collection;
     this._auto_create_index = auto_create_index;
     this._clients = new Set();
@@ -60,7 +60,7 @@ class ReqlConnection {
       logger.info(`Connecting to RethinkDB: ${this._host}:${this._port}`);
       this._hasRetried = true;
     }
-    r.connect({ host: this._host, port: this._port, db: this._db })
+    r.connect({ host: this._host, port: this._port, db: this._project_name })
      .then((conn) => {
        logger.debug('Connection to RethinkDB established.');
        conn.once('close', () => {
@@ -80,7 +80,7 @@ class ReqlConnection {
           }));
      }).then((conn) => {
        this._connection = conn;
-       this._metadata = new Metadata(this._db,
+       this._metadata = new Metadata(this._project_name,
                                      this._connection,
                                      this._clients,
                                      this._auto_create_collection,

@@ -3,12 +3,12 @@
 function parse_yes_no_option(value, option_name) {
   if (value !== undefined && value !== null) {
     const lower = value.toLowerCase ? value.toLowerCase() : value;
-    if (value === true || value === 'true' || value === 'yes') {
+    if (lower === true || lower === 'true' || lower === 'yes') {
       return true;
-    } else if (value === false || value === 'false' || value === 'no') {
+    } else if (lower === false || lower === 'false' || lower === 'no') {
       return false;
     }
-    throw new Error('Unexpected value "${option_name}=${value}", should be yes or no.');
+    throw new Error(`Unexpected value "${option_name}=${value}", should be yes or no.`);
   }
 }
 

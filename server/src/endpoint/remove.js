@@ -52,7 +52,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                      r.range(rows.count()).map((index) =>
                        r.branch(res('changes')(index)('old_val').eq(null),
                                 res('changes')(index).merge({ old_val: rows(index) }),
-                                res('changes')(index))).coerceTo('array')
+                                res('changes')(index))).coerceTo('array'),
                    })))
                .run(conn, reql_options);
     }).then((remove_results) => {

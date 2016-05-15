@@ -6,12 +6,17 @@ const serve = require('./serve');
 const logger = require('@horizon/server').logger;
 
 const fs = require('fs');
+const path = require('path');
 const r = require('rethinkdb');
 
 const addArguments = (parser) => {
-  parser.addArgument([ '--project' ],
-    { type: 'string',
+  parser.addArgument([ 'project_path' ],
+    { type: 'string', nargs: '?',
       help: 'Change to this directory before serving' });
+
+  parser.addArgument([ '--project-name', '-n' ],
+    { type: 'string', action: 'store', metavar: 'NAME',
+      help: 'Name of the Horizon Project server' });
 
   parser.addArgument([ '--connect', '-c' ],
     { type: 'string', metavar: 'HOST:PORT',
@@ -25,35 +30,42 @@ const addArguments = (parser) => {
     { type: 'string', metavar: 'PATH',
       help: 'Path to the config file to use, defaults to ".hz/config.toml".' });
 
-  parser.addArgument([ '--out-file', '-o' ],
-    { type: 'string', metavar: 'PATH', defaultValue: '-',
-      help: 'File to write the horizon schema to, defaults to stdout.' });
-
   parser.addArgument([ '--debug' ],
     { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
       help: 'Enable debug logging.' });
+
+  parser.addArgument([ '--out-file', '-o' ],
+    { type: 'string', metavar: 'PATH', defaultValue: '-',
+      help: 'File to write the horizon schema to, defaults to stdout.' });
 };
 
 const processConfig = (parsed) => {
-  let config;
-  
+  let config, out_file;
+
   config = serve.make_default_config();
-  config = serve.merge_configs(config, serve.read_config_from_file(parsed.config));
+  config.start_rethinkdb = true;
+
+  config = serve.merge_configs(config, serve.read_config_from_file(parsed.project_path,
+                                                                   parsed.config));
   config = serve.merge_configs(config, serve.read_config_from_env());
   config = serve.merge_configs(config, serve.read_config_from_flags(parsed));
 
-  let out_file;
   if (parsed.out_file === '-') {
     out_file = process.stdout;
   } else {
     out_file = fs.createWriteStream(null, { fd: fs.openSync(parsed.out_file, 'w') });
   }
 
+  if (config.project_name === null) {
+    config.project_name = path.basename(path.resolve(config.project_path));
+  }
+
   return {
     start_rethinkdb: config.start_rethinkdb,
     rdb_host: config.rdb_host,
     rdb_port: config.rdb_port,
-    project: config.project,
+    project_name: config.project_name,
+    project_path: config.project_path,
     debug: config.debug,
     out_file,
   };
@@ -64,10 +76,9 @@ const config_to_toml = (collections, groups) => {
 
   for (const c of collections) {
     res.push('');
-    res.push(`[collections.${c.id}.indexes]`);
-
-    for (const index_name in c.indexes) {
-      res.push(`${index_name} = ${JSON.stringify(c.indexes[index_name])}`);
+    res.push(`[collections.${c.id}]`);
+    if (c.indexes.length > 0) {
+      res.push(`indexes = [ "${c.indexes.join('", "')}" ]`);
     }
   }
 
@@ -89,37 +100,44 @@ const config_to_toml = (collections, groups) => {
 };
 
 const runCommand = (options, done) => {
+  const db = options.project_name;
+  const internal_db = `${db}_internal`;
   let conn;
 
   logger.remove(logger.transports.Console);
-  interrupt.on_interrupt((done) => {
+  interrupt.on_interrupt((done2) => {
     if (conn) {
       conn.close();
     }
-    done();
+    done2();
   });
 
-  serve.change_to_project_dir(options.project);
+  if (options.start_rethinkdb) {
+    serve.change_to_project_dir(options.project_path);
+  }
 
   return new Promise((resolve) => {
     resolve(options.start_rethinkdb &&
             start_rdb_server().then((rdbOpts) => {
+              options.rdb_host = 'localhost';
               options.rdb_port = rdbOpts.driverPort;
             }));
-  }).then(() => {
-    return r.connect({ host: options.rdb_host,
-                       port: options.rdb_port,
-                       db: 'horizon_internal' });
-  }).then((rdb_conn) => {
+  }).then(() =>
+    r.connect({ host: options.rdb_host,
+                port: options.rdb_port })
+  ).then((rdb_conn) => {
     conn = rdb_conn;
-    return r.db('horizon_internal')
-            .wait({ waitFor: 'ready_for_reads', timeout: 30 })
-            .run(conn);
-  }).then(() => {
-    return r.object('collections', r.table('collections').coerceTo('array'),
-                    'groups', r.table('groups').coerceTo('array'))
-            .run(conn);
-  }).then((res) => {
+    return r.db(internal_db)
+      .wait({ waitFor: 'ready_for_reads', timeout: 30 })
+      .run(conn);
+  }).then(() =>
+    r.object('collections',
+             r.db(internal_db).table('collections').coerceTo('array')
+               .map((row) =>
+                 row.merge({ indexes: r.db(db).table(row('table')).indexList() })),
+             'groups', r.db(internal_db).table('groups').coerceTo('array'))
+      .run(conn)
+  ).then((res) => {
     conn.close();
     const toml_str = config_to_toml(res.collections, res.groups);
     options.out_file.write(toml_str);

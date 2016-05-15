@@ -26,12 +26,12 @@ const serveParser = subparsers.addParser('serve', {
   help: 'Serve a horizon app',
 });
 
-const versionParser = subparsers.addParser('version', {
+const versionParser = subparsers.addParser('version', { // eslint-disable-line no-unused-vars
   addHelp: true,
   help: 'Print the verison number of horizon',
 });
 
-const createCertParser = subparsers.addParser('create-cert', {
+const createCertParser = subparsers.addParser('create-cert', { // eslint-disable-line no-unused-vars
   addHelp: true,
   help: 'Generate a certificate',
 });

@@ -1,6 +1,6 @@
 'use strict';
 
-let handlers = [ ];
+const handlers = [ ];
 
 const on_interrupt = (cb) => {
   handlers.push(cb);

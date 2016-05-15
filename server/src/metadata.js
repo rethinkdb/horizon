@@ -7,6 +7,32 @@ const Collection = require('./collection').Collection;
 
 const r = require('rethinkdb');
 
+// This is exported for use by the CLI
+const create_collection_reql = (internal_db, user_db, collection) => {
+  const do_create = (table) =>
+    r.db(user_db).tableCreate(table).do(() =>
+      r.db(internal_db)
+        .table('collections')
+        .get(collection)
+        .replace((old_row) =>
+          r.branch(old_row.eq(null),
+                   { id: collection, table },
+                   old_row),
+          { returnChanges: 'always' })('changes')(0)
+        .do((res) =>
+          r.branch(r.or(res.hasFields('error'),
+                        res('new_val')('table').ne(table)),
+                   r.db(user_db).tableDrop(table).do(() => res),
+                   res)));
+
+  return r.uuid().split('-')(-1)
+           .do((id) => r.expr(collection).add('_').add(id)).do((table) =>
+             r.db(internal_db).table('collections').get(collection).do((row) =>
+               r.branch(row.eq(null),
+                        do_create(table),
+                        { old_val: row, new_val: row })));
+};
+
 class Metadata {
   constructor(project_name,
               conn,
@@ -14,7 +40,7 @@ class Metadata {
               auto_create_collection,
               auto_create_index) {
     this._db = project_name;
-    this._internal_db = this._db + '_internal';
+    this._internal_db = `${this._db}_internal`;
     this._conn = conn;
     this._clients = clients;
     this._auto_create_collection = auto_create_collection;
@@ -29,7 +55,7 @@ class Metadata {
 
     const make_feeds = () => {
       logger.debug('running metadata sync');
-      const groups_ready = new Promise((resolve, reject) => {
+      const groups_ready =
         r.db(this._internal_db)
           .table('groups')
           .changes({ squash: true,
@@ -38,32 +64,34 @@ class Metadata {
                      includeTypes: true })
           .run(this._conn).then((res) => {
             if (this._closed) {
-              return res.close();
+              res.close();
+              throw new Error('This metadata instance has been closed.');
             }
-            this._group_feed = res;
-            this._group_feed.eachAsync((change) => {
-              if (change.type === 'state') {
-                if (change.state === 'ready') {
-                  logger.info('Groups metadata synced.');
-                  resolve();
-                }
-              } else if (change.type === 'initial' ||
-                         change.type === 'add' ||
-                         change.type === 'change') {
-                const group = new Group(change.new_val);
-                this._groups.set(group.name, group);
-                this._clients.forEach((c) => c.group_changed(group.name));
-              } else if (change.type === 'uninitial' ||
-                         change.type === 'remove') {
-                const group = this._groups.delete(change.old_val.id);
-                if (group) {
+            return new Promise((resolve, reject) => {
+              this._group_feed = res;
+              this._group_feed.eachAsync((change) => {
+                if (change.type === 'state') {
+                  if (change.state === 'ready') {
+                    logger.info('Groups metadata synced.');
+                    resolve();
+                  }
+                } else if (change.type === 'initial' ||
+                           change.type === 'add' ||
+                           change.type === 'change') {
+                  const group = new Group(change.new_val);
+                  this._groups.set(group.name, group);
                   this._clients.forEach((c) => c.group_changed(group.name));
+                } else if (change.type === 'uninitial' ||
+                           change.type === 'remove') {
+                  const group = this._groups.delete(change.old_val.id);
+                  if (group) {
+                    this._clients.forEach((c) => c.group_changed(group.name));
+                  }
                 }
-              }
+              }).catch(reject);
             });
-          }).catch(reject);
-      });
-      const collections_ready = new Promise((resolve, reject) => {
+          });
+      const collections_ready =
         r.db(this._internal_db)
           .table('collections')
           .changes({ squash: true,
@@ -72,28 +100,30 @@ class Metadata {
                      includeTypes: true })
           .run(this._conn).then((res) => {
             if (this._closed) {
-              return res.close();
+              res.close();
+              throw new Error('This metadata instance has been closed.');
             }
-            this._collection_feed = res;
-            this._collection_feed.eachAsync((change) => {
-              if (change.type === 'state') {
-                if (change.state === 'ready') {
-                  logger.info('Collections metadata synced.');
-                  resolve();
+            return new Promise((resolve, reject) => {
+              this._collection_feed = res;
+              this._collection_feed.eachAsync((change) => {
+                if (change.type === 'state') {
+                  if (change.state === 'ready') {
+                    logger.info('Collections metadata synced.');
+                    resolve();
+                  }
+                } else if (change.type === 'initial' ||
+                           change.type === 'add' ||
+                           change.type === 'change') {
+                  const collection = new Collection(change.new_val, this._conn);
+                  this._collections.set(collection.name, collection);
+                } else if (change.type === 'uninitial' ||
+                           change.type === 'remove') {
+                  this._collections.delete(change.old_val.id);
                 }
-              } else if (change.type === 'initial' ||
-                         change.type === 'add' ||
-                         change.type === 'change') {
-                const collection = new Collection(change.new_val, this._conn);
-                this._collections.set(collection.name, collection);
-              } else if (change.type === 'uninitial' ||
-                         change.type === 'remove') {
-                this._collections.delete(change.old_val.id);
-              }
+              }).catch(reject);
             });
-          }).catch(reject);
-      });
-      const indexes_ready = new Promise((resolve, reject) => {
+          });
+      const indexes_ready =
         r.db('rethinkdb')
           .table('table_config')
           .filter({ db: this._db })
@@ -104,28 +134,30 @@ class Metadata {
                      includeTypes: true })
           .run(this._conn).then((res) => {
             if (this._closed) {
-              return res.close();
+              res.close();
+              throw new Error('This metadata instance has been closed.');
             }
-            this._index_feed = res;
-            this._index_feed.eachAsync((change) => {
-              if (change.type === 'state') {
-                if (change.state === 'ready') {
-                  logger.info('Index metadata synced.');
-                  resolve();
-                }
-              } else if (change.type === 'initial' ||
-                         change.type === 'add' ||
-                         change.type === 'change') {
-                const table = change.new_val.name;
-                this._collections.forEach((c) => {
-                  if (c.table === table) {
-                    c.update_indexes(change.new_val.indexes, this._conn);
+            return new Promise((resolve, reject) => {
+              this._index_feed = res;
+              this._index_feed.eachAsync((change) => {
+                if (change.type === 'state') {
+                  if (change.state === 'ready') {
+                    logger.info('Index metadata synced.');
+                    resolve();
                   }
-                });
-              }
+                } else if (change.type === 'initial' ||
+                           change.type === 'add' ||
+                           change.type === 'change') {
+                  const table = change.new_val.name;
+                  this._collections.forEach((c) => {
+                    if (c.table === table) {
+                      c.update_indexes(change.new_val.indexes, this._conn);
+                    }
+                  });
+                }
+              }).catch(reject);
             });
-          }).catch(reject);
-      });
+          });
       return Promise.all([ groups_ready, collections_ready, indexes_ready ]).then(() => {
         logger.debug('metadata sync complete');
         this._ready = true;
@@ -145,6 +177,9 @@ class Metadata {
     } else {
       this._ready_promise = make_feeds();
     }
+    this._ready_promise.catch(() => {
+      this.close();
+    });
   }
 
   close() {
@@ -207,30 +242,12 @@ class Metadata {
     error.check(this._collections.get(name) === undefined,
                 `Collection "${name}" already exists.`);
 
-    const do_create = (table) =>
-      r.db(this._db).tableCreate(table).do(() =>
-        r.db(this._internal_db)
-          .table('collections')
-          .get(name)
-          .replace((old_row) =>
-            r.branch(old_row.eq(null),
-                     { id: name, table },
-                     old_row),
-            { returnChanges: 'always' })('changes')(0)('new_val').do((res) =>
-            r.branch(res('table').ne(table),
-                     r.db(this._db).tableDrop(table).do(() => res),
-                     res)));
-
-    r.uuid().split('-')(-1)
-      .do((id) => r.expr(name).add('_').add(id)).do((table) =>
-        r.db(this._internal_db).table('collections').get(name).do((row) =>
-          r.branch(row.eq(null),
-                   do_create(table),
-                   row)))
+    create_collection_reql(this._internal_db, this._db, name)
       .run(this._conn)
       .then((res) => {
+        error.check(!res.error, `Collection creation failed (dev mode): "${name}", ${res.error}`);
         logger.warn(`Collection created (dev mode): "${name}"`);
-        this._collections.set(name, new Collection(res, this._conn));
+        this._collections.set(name, new Collection(res.new_val, this._conn));
         done();
       }).catch(done);
   }
@@ -252,4 +269,4 @@ class Metadata {
   }
 }
 
-module.exports = { Metadata };
+module.exports = { Metadata, create_collection_reql };

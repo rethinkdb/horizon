@@ -99,7 +99,7 @@ const addArguments = (parser) => {
       '--start-rethinkdb=yes, ' +
       '--allow-unauthenticated=yes, ' +
       '--allow-anonymous=yes, ' +
-      'and --serve-static=./dist.'});
+      'and --serve-static=./dist.' });
 
   parser.addArgument([ '--config' ],
     { type: 'string', metavar: 'PATH',
@@ -122,7 +122,7 @@ const make_default_config = () => ({
   // Default to current directory for path
   project_path: '.',
   // Default to current directory name for project name
-  project_name: path.basename(process.cwd()),
+  project_name: null,
 
   bind: [ 'localhost' ],
   port: 8181,
@@ -165,10 +165,10 @@ const serve_file = (file_path, res) => {
           res.writeHead(500, { 'Content-Type': 'text/plain' });
           res.end(`${err}\n`);
         } else if (stats.isFile()) {
-          fs.readFile(file_path, 'binary', (err, file) => {
-            if (err) {
+          fs.readFile(file_path, 'binary', (err2, file) => {
+            if (err2) {
               res.writeHead(500, { 'Content-Type': 'text/plain' });
-              res.end(`${err}\n`);
+              res.end(`${err2}\n`);
             } else {
               if (file_path.endsWith('.js')) {
                 res.writeHead(200, {
@@ -212,8 +212,8 @@ const initialize_servers = (ctor, opts) => {
         if (opts.serve_static === 'dist') {
           // do nothing, this is the default
         } else if (opts.project_path !== '.') {
-          let pth = path.join(opts.project_path, opts.serve_static)
-          console.info(`Static files being served from ${pth}`)
+          const pth = path.join(opts.project_path, opts.serve_static);
+          console.info(`Static files being served from ${pth}`);
         } else {
           console.info(`Static files being served from ${opts.serve_static}`);
         }
@@ -288,7 +288,7 @@ const read_config_from_file = (project_path, config_file) => {
   if (project_path && config_file) {
     configFilename = `${project_path}/${config_file}`;
   } else if (project_path && !config_file) {
-    configFilename = `${project_path}/${default_config_file}`
+    configFilename = `${project_path}/${default_config_file}`;
   } else if (!project_path && config_file) {
     configFilename = config_file;
   } else {
@@ -326,7 +326,7 @@ const read_config_from_env = () => {
     if (matches && matches[1]) {
       const dest_var_name = matches[1].toLowerCase();
       const var_path = dest_var_name.split('_');
-      let value = process.env[env_var];
+      const value = process.env[env_var];
 
       if (dest_var_name === 'connect') {
         parse_connect(value, config);
@@ -341,7 +341,7 @@ const read_config_from_env = () => {
           config.auth[var_path[1]].secret = value;
         }
       } else if (yes_no_options.indexOf(dest_var_name) !== -1) {
-        config[field] = parse_yes_no_option(value, dest_var_name);
+        config[dest_var_name] = parse_yes_no_option(value, dest_var_name);
       } else if (default_config[dest_var_name] !== undefined) {
         config[dest_var_name] = value;
       }
@@ -364,7 +364,7 @@ const read_config_from_flags = (parsed) => {
     config.auto_create_collection = true;
     config.auto_create_index = true;
     config.serve_static = 'dist';
-    config._dev_flag_used = true
+    config._dev_flag_used = true;
   }
 
   if (parsed.project_name !== null && parsed.project_name !== undefined) {
@@ -445,6 +445,7 @@ const merge_configs = (old_config, new_config) => {
       old_config[key] = new_config[key];
     }
   }
+
   return old_config;
 };
 
@@ -459,12 +460,16 @@ const processConfig = (parsed) => {
   config = merge_configs(config, read_config_from_env());
   config = merge_configs(config, read_config_from_flags(parsed));
 
+  if (config.project_name === null) {
+    config.project_name = path.basename(path.resolve(config.project_path));
+  }
+
   return config;
 };
 
 const startHorizonServer = (servers, opts) => {
   console.log('Starting Horizon...');
-  let hzServer = new horizon_server.Server(servers, {
+  const hzServer = new horizon_server.Server(servers, {
     auto_create_collection: opts.auto_create_collection,
     auto_create_index: opts.auto_create_index,
     permissions: opts.permissions,
@@ -480,15 +485,15 @@ const startHorizonServer = (servers, opts) => {
     },
   });
   const timeoutObject = setTimeout(() => {
-    console.log(chalk.red.bold('Horizon failed to start after 30 seconds'))
-    console.log(chalk.red.bold('Try running hz serve again with the --debug flag'))
+    console.log(chalk.red.bold('Horizon failed to start after 30 seconds'));
+    console.log(chalk.red.bold('Try running hz serve again with the --debug flag'));
     process.exit(1);
   }, TIMEOUT_30_SECONDS);
   hzServer.ready().then(() => {
     clearTimeout(timeoutObject);
-    console.log(chalk.green.bold('Horizon ready for connections 🌄'))
-  })
-  return hzServer
+    console.log(chalk.green.bold('Horizon ready for connections 🌄'));
+  });
+  return hzServer;
 };
 
 const change_to_project_dir = (project_path) => {
@@ -512,11 +517,11 @@ const runCommand = (opts, done) => {
     logger.level = 'warning';
   }
 
-  change_to_project_dir(opts.project);
+  change_to_project_dir(opts.project_path);
 
   let http_servers, hz_instance;
 
-  interrupt.on_interrupt((done) => {
+  interrupt.on_interrupt((done2) => {
     if (hz_instance) {
       hz_instance.close();
     }
@@ -525,7 +530,7 @@ const runCommand = (opts, done) => {
         serv.close();
       });
     }
-    done();
+    done2();
   });
 
   return (
@@ -537,9 +542,9 @@ const runCommand = (opts, done) => {
       return start_rdb_server().then((rdbOpts) => {
         // Don't need to check for host, always localhost.
         opts.rdb_port = rdbOpts.driverPort;
-        console.log('RethinkDB')
-        console.log(`   ├── Admin interface: http://localhost:${rdbOpts.httpPort}`)
-        console.log(`   └── Drivers can connect to port ${rdbOpts.driverPort}`)
+        console.log('RethinkDB');
+        console.log(`   ├── Admin interface: http://localhost:${rdbOpts.httpPort}`);
+        console.log(`   └── Drivers can connect to port ${rdbOpts.driverPort}`);
       });
     }
   }).then(() => {
