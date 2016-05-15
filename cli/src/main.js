@@ -55,10 +55,7 @@ const parsed = parser.parseArgs();
 
 const done_cb = (options) => (err) => {
   if (err) {
-    console.log(`${parsed.command_name} failed with ${err}`);
-    if (options.debug) {
-      console.log(err.stack);
-    }
+    console.log(`${parsed.command_name} failed with ${options.debug ? err.stack : err}`);
     process.exit(1);
   }
 };

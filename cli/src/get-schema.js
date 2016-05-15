@@ -78,7 +78,7 @@ const config_to_toml = (collections, groups) => {
     res.push('');
     res.push(`[collections.${c.id}]`);
     if (c.indexes.length > 0) {
-      res.push(`indexes = [ "${c.indexes.join('", "')}" ]`);
+      res.push(`indexes = ${JSON.stringify(c.indexes)}`);
     }
   }
 
@@ -88,10 +88,7 @@ const config_to_toml = (collections, groups) => {
     for (const rule of g.rules) {
       res.push(`[groups.${g.id}.rules.${rule.name}]`);
       res.push(`template = ${JSON.stringify(rule.template)}`);
-      res.push(`[groups.${g.id}.rules.${rule.name}.validators]`);
-      for (const validator_name in rule.validators) {
-        res.push(`${validator_name} = ${JSON.stringify(rule.validators[validator_name])}`);
-      }
+      res.push(`validator = ${JSON.stringify(rule.validator)}`);
     }
   }
 

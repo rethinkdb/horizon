@@ -7,28 +7,29 @@ const Collection = require('./collection').Collection;
 
 const r = require('rethinkdb');
 
-// This is exported for use by the CLI
-const create_collection_reql = (internal_db, user_db, collection) => {
+// This is exported for use by the CLI. This accepts 'R' as a parameter because of
+// https://github.com/rethinkdb/rethinkdb/issues/3263
+const create_collection_reql = (R, internal_db, user_db, collection) => {
   const do_create = (table) =>
-    r.db(user_db).tableCreate(table).do(() =>
-      r.db(internal_db)
+    R.db(user_db).tableCreate(table).do(() =>
+      R.db(internal_db)
         .table('collections')
         .get(collection)
         .replace((old_row) =>
-          r.branch(old_row.eq(null),
+          R.branch(old_row.eq(null),
                    { id: collection, table },
                    old_row),
           { returnChanges: 'always' })('changes')(0)
         .do((res) =>
-          r.branch(r.or(res.hasFields('error'),
+          R.branch(R.or(res.hasFields('error'),
                         res('new_val')('table').ne(table)),
-                   r.db(user_db).tableDrop(table).do(() => res),
+                   R.db(user_db).tableDrop(table).do(() => res),
                    res)));
 
-  return r.uuid().split('-')(-1)
-           .do((id) => r.expr(collection).add('_').add(id)).do((table) =>
-             r.db(internal_db).table('collections').get(collection).do((row) =>
-               r.branch(row.eq(null),
+  return R.uuid().split('-')(-1)
+           .do((id) => R.expr(collection).add('_').add(id)).do((table) =>
+             R.db(internal_db).table('collections').get(collection).do((row) =>
+               R.branch(row.eq(null),
                         do_create(table),
                         { old_val: row, new_val: row })));
 };
@@ -242,7 +243,7 @@ class Metadata {
     error.check(this._collections.get(name) === undefined,
                 `Collection "${name}" already exists.`);
 
-    create_collection_reql(this._internal_db, this._db, name)
+    create_collection_reql(r, this._internal_db, this._db, name)
       .run(this._conn)
       .then((res) => {
         error.check(!res.error, `Collection creation failed (dev mode): "${name}", ${res.error}`);

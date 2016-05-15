@@ -6,7 +6,7 @@ const start_rdb_server = require('./utils/start_rdb_server');
 const serve = require('./serve');
 const logger = require('@horizon/server').logger;
 const create_collection_reql = require('@horizon/server/src/metadata').create_collection_reql;
-const name_to_fields = require('@horizon/server/src/index').name_to_fields;
+const name_to_fields = require('@horizon/server/src/index').Index.name_to_fields;
 
 const fs = require('fs');
 const Joi = require('joi');
@@ -89,9 +89,7 @@ const processConfig = (parsed) => {
 const schema_schema = Joi.object().unknown(false).keys({
   collections: Joi.object().unknown(true).pattern(/.*/,
     Joi.object().unknown(false).keys({
-      indexes: Joi.object().unknown(true).pattern(/.*/,
-        Joi.array().min(1).items(Joi.string().min(1))
-      ).optional().default([ ]),
+      indexes: Joi.array().items(Joi.string().min(1)).default([ ]),
     })
   ).optional(),
   groups: Joi.object().unknown(true).pattern(/.*/,
@@ -135,6 +133,9 @@ const runCommand = (options, done) => {
   let schema, conn;
   let obsolete_collections = [ ];
 
+  const db = options.project_name;
+  const internal_db = `${db}_internal`;
+
   logger.remove(logger.transports.Console);
   interrupt.on_interrupt((done2) => {
     if (conn) {
@@ -161,18 +162,17 @@ const runCommand = (options, done) => {
   }).then(() =>
     // Connect to the database
     r.connect({ host: options.rdb_host,
-                       port: options.rdb_port,
-                       db: 'horizon_internal' })
+                port: options.rdb_port })
   ).then((rdb_conn) => {
     // Wait for metadata tables to be writable
     conn = rdb_conn;
-    return r.db('horizon_internal')
+    return r.db(internal_db)
             .wait({ waitFor: 'ready_for_writes', timeout: 30 })
             .run(conn);
   }).then(() => {
     // Error if any collections will be removed
     if (!options.update) {
-      return r.db('horizon_internal').table('collections')('id')
+      return r.db(internal_db).table('collections')('id')
         .coerceTo('array')
         .setDifference(schema.collections.map((c) => c.id))
         .run(conn)
@@ -195,7 +195,7 @@ const runCommand = (options, done) => {
       }
       return r.expr(schema.groups)
         .forEach((group) =>
-          r.db('horizon_internal').table('groups')
+          r.db(internal_db).table('groups')
             .get(group.id)
             .update(group))
         .run(conn);
@@ -204,7 +204,7 @@ const runCommand = (options, done) => {
       schema.groups.forEach((g) => { groups_obj[g.id] = g; });
 
       return r.expr(groups_obj).do((groups) =>
-        r.db('horizon_internal').table('groups')
+        r.db(internal_db).table('groups')
           .replace((old_row) =>
             r.branch(groups.hasFields(old_row('id')),
                      groups(old_row('id')),
@@ -221,7 +221,7 @@ const runCommand = (options, done) => {
     const promises = [ ];
     for (const c of schema.collections) {
       promises.push(
-        create_collection_reql('horizon_internal', 'horizon', c.id)
+        create_collection_reql(r, internal_db, db, c.id)
           .run(conn).then((res) => {
             if (res.error) {
               throw new Error(res.error);
@@ -231,7 +231,7 @@ const runCommand = (options, done) => {
 
     for (const c of obsolete_collections) {
       promises.push(
-        r.db('horizon_internal')
+        r.db(internal_db)
           .table('collections')
           .get(c)
           .delete({ returnChanges: 'always' })('changes')(0)
@@ -240,7 +240,7 @@ const runCommand = (options, done) => {
                      res,
                      res('old_val').eq(null),
                      res,
-                     r.db('horizon').tableDrop(res('old_val')('table')).do(() => res)))
+                     r.db(db).tableDrop(res('old_val')('table')).do(() => res)))
           .run(conn).then((res) => {
             if (res.error) {
               throw new Error(res.error);
@@ -264,14 +264,14 @@ const runCommand = (options, done) => {
     promises.push(
       r.expr(schema.collections)
         .forEach((c) =>
-          r.db('horizon_internal').table('collections')
+          r.db(internal_db).table('collections')
             .get(c('id'))
-            .do((table) =>
+            .do((row) =>
               c('indexes')
-                .setDifference(r.db('horizon').table(table).indexList())
+                .setDifference(r.db(db).table(row('table')).indexList())
                 .forEach((index) =>
                   c('index_fields')(index).do((fields) =>
-                    r.db('horizon').table(table).indexCreate((row) =>
+                    r.db(db).table(row('table')).indexCreate((row) =>
                       fields.map((key) => row(key)))))))
         .run(conn)
         .then((res) => {
@@ -285,13 +285,13 @@ const runCommand = (options, done) => {
       promises.push(
         r.expr(schema.collections)
           .forEach((c) =>
-            r.db('horizon_internal').table('collections')
+            r.db(internal_db).table('collections')
               .get(c('id'))
-              .do((table) =>
-                r.db('horizon').table(table).indexList()
+              .do((row) =>
+                r.db(db).table(row('table')).indexList()
                   .setDifference(c('indexes'))
                   .forEach((index) =>
-                    r.db('horizon').table(table).indexDrop(index))))
+                    r.db(db).table(row('table')).indexDrop(index))))
         .run(conn)
         .then((res) => {
           if (res.errors) {
