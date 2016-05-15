@@ -1,6 +1,6 @@
 import { TokenStorage, FakeStorage } from '../src/auth'
 
-const authSuite = window.authSuite = () => {
+const authSuite = global.authSuite = () => {
   describe('TokenStorage', () => {
     let fakeStorage
     let tokenStore

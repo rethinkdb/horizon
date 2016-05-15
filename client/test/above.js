@@ -6,7 +6,7 @@ import { assertCompletes,
          assertErrors,
          compareWithoutVersion } from './utils'
 
-const aboveSuite = window.aboveSuite = (getData) => () => {
+const aboveSuite = global.aboveSuite = (getData) => () => {
   let data
 
   before(() => {

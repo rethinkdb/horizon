@@ -73,10 +73,6 @@ function Horizon({
   horizon.onDisconnected = subscribeOrObservable(
     socket.status::filter(x => x.type === 'disconnected'))
 
-  // Convenience method for finding out when opening
-  horizon.onConnected = subscribeOrObservable(
-    socket.status::filter(x => x.type === 'connected'))
-
   // Convenience method for finding out when ready
   horizon.onReady = subscribeOrObservable(
     socket.status::filter(x => x.type === 'ready'))
@@ -84,6 +80,12 @@ function Horizon({
   // Convenience method for finding out when an error occurs
   horizon.onSocketError = subscribeOrObservable(
     socket.status::filter(x => x.type === 'error'))
+
+  horizon.utensils = {
+    sendRequest,
+    tokenStorage,
+  }
+  Object.freeze(horizon.utensils)
 
   horizon._authMethods = null
   horizon._horizonPath = path

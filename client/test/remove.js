@@ -12,7 +12,7 @@ import { assertCompletes,
          compareWithoutVersion,
          compareSetsWithoutVersion } from './utils'
 
-const removeSuite = window.removeSuite = getData => () => {
+const removeSuite = global.removeSuite = getData => () => {
   let data
   const testData = [
     { id: 1, a: 1 },

@@ -8,7 +8,7 @@ import { assertCompletes,
          compareWithoutVersion,
          compareSetsWithoutVersion } from './utils'
 
-const replaceSuite = window.replaceSuite = getData => () => {
+const replaceSuite = global.replaceSuite = getData => () => {
   let data
 
   before(() => {

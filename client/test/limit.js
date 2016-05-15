@@ -6,7 +6,7 @@ import { assertCompletes,
          assertErrors,
          compareWithoutVersion } from './utils'
 
-const limitSuite = window.limitSuite = getData => () => {
+const limitSuite = global.limitSuite = getData => () => {
   let data
 
   before(() => {

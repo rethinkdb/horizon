@@ -6,7 +6,7 @@ import { assertCompletes,
          assertErrors,
          compareWithoutVersion } from './utils'
 
-const findSuite = window.findSuite = getData => () => {
+const findSuite = global.findSuite = getData => () => {
   let data
 
   before(() => {

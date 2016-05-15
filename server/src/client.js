@@ -5,7 +5,6 @@ const schemas = require('./schema/horizon_protocol');
 const Request = require('./request').Request;
 
 const Joi = require('joi');
-const websocket = require('ws');
 
 class Client {
   constructor(socket, server) {
@@ -187,7 +186,7 @@ class Client {
   }
 
   is_open() {
-    return this._socket.readyState === websocket.OPEN;
+    return this._socket.readyState === 'open';
   }
 
   close(info) {

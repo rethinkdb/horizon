@@ -9,7 +9,7 @@ import { assertCompletes,
          compareWithoutVersion,
          compareSetsWithoutVersion } from './utils'
 
-const updateSuite = window.updateSuite = getData => () => {
+const updateSuite = global.updateSuite = getData => () => {
   let data
 
   before(() => {
