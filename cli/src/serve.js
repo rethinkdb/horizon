@@ -42,11 +42,11 @@ const addArguments = (parser) => {
 
   parser.addArgument([ '--key-file' ],
     { type: 'string', metavar: 'PATH',
-      help: 'Path to the key file to use, defaults to "./key.pem".' });
+      help: 'Path to the key file to use, defaults to "./horizon-key.pem".' });
 
   parser.addArgument([ '--cert-file' ],
     { type: 'string', metavar: 'PATH',
-      help: 'Path to the cert file to use, defaults to "./cert.pem".' });
+      help: 'Path to the cert file to use, defaults to "./horizon-cert.pem".' });
 
   parser.addArgument([ '--token-secret' ],
     { type: 'string', metavar: 'SECRET',
