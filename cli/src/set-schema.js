@@ -203,18 +203,28 @@ const runCommand = (options, done) => {
       const groups_obj = { };
       schema.groups.forEach((g) => { groups_obj[g.id] = g; });
 
-      return r.expr(groups_obj).do((groups) =>
+      console.log(`setting groups: ${schema.groups}`);
+
+      return Promise.all([
+        r.expr(groups_obj).do((groups) =>
+          r.db(internal_db).table('groups')
+            .replace((old_row) =>
+              r.branch(groups.hasFields(old_row('id')),
+                       old_row,
+                       null))
+          ).run(conn).then((res) => {
+            if (res.errors) {
+              throw new Error(`Failed to write groups: ${res.first_error}`);
+            }
+          }),
         r.db(internal_db).table('groups')
-          .replace((old_row) =>
-            r.branch(groups.hasFields(old_row('id')),
-                     groups(old_row('id')),
-                     null))
-        ).run(conn);
-    }
-  }).then((res) => {
-    // Check that all groups were written successfully
-    if (res.errors) {
-      throw new Error(`Failed to write groups: ${res.first_error}`);
+          .insert(schema.groups, { conflict: 'replace' })
+          .run(conn).then((res) => {
+            if (res.errors) {
+              throw new Error(`Failed to write groups: ${res.first_error}`);
+            }
+          }),
+      ]);
     }
   }).then(() => {
     // Ensure all collections exist and remove any obsolete collections
