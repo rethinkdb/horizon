@@ -12,7 +12,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   const parsed = Joi.validate(raw_request.options, store);
   if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
 
-  const collection = metadata.get_collection(parsed.value.collection);
+  const collection = metadata.collection(parsed.value.collection);
   const conn = metadata.connection();
   const response_data = [ ];
 

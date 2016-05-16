@@ -39,10 +39,10 @@ class Request {
       if (this._ruleset.empty()) {
         throw new Error('Operation not permitted.');
       }
-      this._cancel_cb = this._endpoint.run(this._raw_request,
-                                           this._client.user_info,
-                                           this._ruleset,
-                                           this._client._metadata,
+      this._cancel_cb = this._endpoint(this._raw_request,
+                                       this._client.user_info,
+                                       this._ruleset,
+                                       this._client._metadata,
       (res) => {
         this._client.send_response(this._raw_request, res);
       },

@@ -13,7 +13,7 @@ const make_reql = (raw_request, metadata) => {
   if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
   const options = parsed.value;
 
-  const collection = metadata.get_collection(parsed.value.collection);
+  const collection = metadata.collection(parsed.value.collection);
   let reql = r.table(collection.table);
 
   const ordered_between = (obj) => {

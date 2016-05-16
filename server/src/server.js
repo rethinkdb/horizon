@@ -74,7 +74,7 @@ class Server {
                                          opts.auto_create_index);
     this._auth = new Auth(this, opts.auth);
     for (const key in endpoints) {
-      this.add_request_handler(key, endpoints[key]);
+      this.add_request_handler(key, endpoints[key].run);
     }
 
     const verify_client = (info, cb) => {
@@ -147,10 +147,10 @@ class Server {
     }
   }
 
-  add_request_handler(request_name, obj) {
-    assert(obj.run !== undefined);
+  add_request_handler(request_name, endpoint) {
+    assert(endpoint !== undefined);
     assert(this._request_handlers.get(request_name) === undefined);
-    this._request_handlers.set(request_name, obj);
+    this._request_handlers.set(request_name, endpoint);
   }
 
   get_request_handler(request) {

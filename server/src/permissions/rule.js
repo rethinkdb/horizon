@@ -6,11 +6,8 @@ class Rule {
   constructor(name, info) {
     this._name = name;
     this._template = new Template(info.template);
-    this._validators = new Map();
     if (info.validators) {
-      for (const type in info.validators) {
-        this._validators.set(type, new Validator(info.validators[type]));
-      }
+      this._validator = new Validator(info.validator);
     }
   }
 
@@ -21,13 +18,10 @@ class Rule {
   // The query is considered valid if it passes all validators for a matching template.
   // Variadic - passes all arguments down to the validators.
   is_valid() {
-    for (const pair of this._validators) {
-      const validator = pair[1];
-      if (!validator.is_valid(...arguments)) {
-        return false;
-      }
+    if (!this._validator) {
+      return true;
     }
-    return true;
+    return validator.is_valid(...arguments);
   }
 }
 

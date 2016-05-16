@@ -29,7 +29,7 @@ const insertSuite = global.insertSuite = getData => () => {
       ::tap(res => compareWithoutVersion({ id: 1, a: 1, b: 1 }, res))
       // Let's attempt to overwrite the document now. This should error.
       ::mergeMapTo(data.insert({ id: 1, c: 1 })),
-      /Duplicate primary key `id`/
+      /The document already exists/
   ))
 
   // If we insert a document without an ID, the ID is generated for us.
@@ -52,7 +52,7 @@ const insertSuite = global.insertSuite = getData => () => {
       ::tap(res => compareWithoutVersion({ id: new_id, a: 1, b: 1 }, res))
       // Let's attempt to overwrite the document now
       ::mergeMap(() => data.insert({ id: new_id, c: 1 }))
-    }, /Duplicate primary key `id`/
+    }, /The document already exists/
   ))
 
   it('fails if null is passed', assertThrows(

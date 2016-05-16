@@ -205,11 +205,11 @@ class Metadata {
     return this._ready_promise;
   }
 
-  get_collection(name) {
-    const collection = this._collections.get(name);
-    if (collection === undefined) { throw new error.CollectionMissing(name); }
-    if (collection.promise) { throw new error.CollectionNotReady(collection); }
-    return collection;
+  collection(name) {
+    const res = this._collections.get(name);
+    if (res === undefined) { throw new error.CollectionMissing(name); }
+    if (res.promise) { throw new error.CollectionNotReady(res); }
+    return res;
   }
 
   handle_error(err, done) {

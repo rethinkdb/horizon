@@ -43,6 +43,14 @@ const wrap_remove = (doc) => {
   return doc;
 };
 
+// Add helper methods to match any subset of the current query for reads or writes
+ast.TermBase.prototype.any_read = function() {
+  return this._sendRequest('query', this._query);
+};
+ast.TermBase.prototype.any_write = function() {
+  return this._sendRequest('query', this._query);
+};
+
 // Monkey-patch the ast functions so we don't clobber certain things
 ast.TermBase.prototype.watch = function() {
   return this._sendRequest('subscribe', this._query);
