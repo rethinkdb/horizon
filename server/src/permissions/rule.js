@@ -21,7 +21,7 @@ class Rule {
     if (!this._validator) {
       return true;
     }
-    return this._validator.is_valid(...arguments);
+    return this._validator.is_valid.apply(this._validator, arguments);
   }
 }
 
@@ -47,7 +47,7 @@ class Ruleset {
   // Variadic - extra arguments are passed down to the validators
   validate() {
     for (const rule of this._rules) {
-      if (rule.is_valid(...arguments)) {
+      if (rule.is_valid.apply(rule, arguments)) {
         return rule;
       }
     }

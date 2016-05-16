@@ -10,8 +10,8 @@ const vm = require('vm');
 let template_compare;
 
 class Any {
-  constructor() {
-    this._values = Array.from(arguments);
+  constructor(values) {
+    this._values = values || [ ];
   }
 
   matches(value, context) {
@@ -56,8 +56,8 @@ class AnyObject {
 // This matches an array where each item matches at least one of the values
 // specified at construction.
 class AnyArray {
-  constructor() {
-    this._values = Array.from(arguments);
+  constructor(values) {
+    this._values = values || [ ];
   }
 
   matches(value, context) {
@@ -103,7 +103,7 @@ const wrap_remove = (doc) => {
 
 // Add helper methods to match any subset of the current query for reads or writes
 ast.TermBase.prototype.any_read = function() {
-  return this._sendRequest(new Any('query', 'subscribe'),
+  return this._sendRequest(new Any([ 'query', 'subscribe' ]),
                            new AnyObject(this._query));
 };
 
@@ -112,7 +112,7 @@ ast.Collection.prototype.any_write = function() {
   if (arguments.length === 0) {
     docs = new AnyArray(new Any());
   }
-  return this._sendRequest(new Any('store', 'upsert', 'insert', 'replace', 'update', 'remove'),
+  return this._sendRequest(new Any([ 'store', 'upsert', 'insert', 'replace', 'update', 'remove' ]),
                            wrap_write(new AnyObject(this._query), docs));
 };
 
@@ -147,16 +147,13 @@ ast.Collection.prototype.removeAll = function(docs) {
 };
 
 const env = {
-  collection: (name) => new ast.Collection((types, options) => {
-    let type = types;
-    if (Array.isArray(type)) {
-      type = new Any(...types);
-    }
-    return { request_id: new Any(), type, options };
-  }, name, false),
-  any: function() { return new Any(...arguments); },
+  collection: (name) => new ast.Collection((type, options) =>
+    ({ request_id: new Any(),
+       type: Array.isArray(type) ? new Any(type) : type,
+       options }), name, false),
+  any: function() { return new Any(Array.from(arguments)); },
   any_object: function(obj) { return new AnyObject(obj); },
-  any_array: function() { return new AnyArray(...arguments); },
+  any_array: function() { return new AnyArray(Array.from(arguments)); },
   userId: function() { return new UserId(); },
 };
 

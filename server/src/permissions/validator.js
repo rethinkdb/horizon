@@ -17,7 +17,7 @@ class Validator {
 
   is_valid() {
     try {
-      return this._fn(...arguments);
+      return this._fn.apply(this._fn, arguments);
     } catch (err) {
       throw remake_error(err);
     }
