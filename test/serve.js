@@ -43,8 +43,8 @@ parser.addArgument([ '--keep', '-k' ],
     help: 'Keep the existing "rethinkdb_data_test" directory.' });
 
 parser.addArgument([ '--permissions' ],
-  { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-    help: 'Enables or disables checking permissions on requests.' });
+  { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?', defaultValue: 'no',
+    help: 'Enable or disable checking permissions on requests, defaults to disabled.' });
 
 const options = parser.parseArgs();
 
