@@ -55,7 +55,7 @@ class Client {
       cb();
     } catch (err) {
       logger.debug(`Unhandled error in request: ${err.stack}`);
-      this.close({ request_id: -1,
+      this.close({ request_id: null,
                    error: `Unhandled error: ${err}`,
                    error_code: 0 });
     }
@@ -66,7 +66,7 @@ class Client {
     try {
       request = JSON.parse(data);
     } catch (err) {
-      return this.close({ request_id: -1,
+      return this.close({ request_id: null,
                           error: `Invalid JSON: ${err}`,
                           error_code: 0 });
     }
@@ -205,12 +205,11 @@ class Client {
     if (this.is_open()) {
       const close_msg = (info.error && info.error.substr(0, 64)) || 'Unspecified reason.';
       logger.debug(`Closing client connection with message: ${info.error || 'Unspecified reason.'}`);
+      logger.debug(`info: ${JSON.stringify(info)}`);
       if (info.request_id !== undefined) {
-        this._socket.send(JSON.stringify(info),
-                         () => this._socket.close(1002, close_msg));
-      } else {
-        this._socket.close(1002, close_msg);
+        this._socket.send(JSON.stringify(info));
       }
+      this._socket.close(1002, close_msg);
     }
   }
 

@@ -65,7 +65,6 @@ const create_collection = (collection, done) => {
                            rejectUnauthorized: false })
     .once('error', (err) => assert.ifError(err))
     .on('open', () => {
-      console.log('open event');
       conn.send(JSON.stringify({ request_id: 123, method: 'unauthenticated' }));
       conn.once('message', (data) => {
         const response = JSON.parse(data);
@@ -155,9 +154,12 @@ const dispatch_message = (raw) => {
   const msg = JSON.parse(raw);
   assert.notStrictEqual(msg.request_id, undefined);
   assert.notStrictEqual(horizon_listeners, undefined);
-  const listener = horizon_listeners.get(msg.request_id);
-  assert.notStrictEqual(listener, undefined);
-  listener(msg);
+
+  if (msg.request_id !== null) {
+    const listener = horizon_listeners.get(msg.request_id);
+    assert.notStrictEqual(listener, undefined);
+    listener(msg);
+  }
 };
 
 const open_horizon_conn = (done) => {

@@ -22,7 +22,11 @@ const make_write_response = (data, results) => {
       check(results.changes.length > results_index);
       const res = results.changes[results_index++];
       if (res.error !== undefined) {
-        data[i] = { error: res.error };
+        if (res.error.indexOf('Duplicate primary key') === 0) {
+          data[i] = { error: 'The document already exists.' };
+        } else {
+          data[i] = { error: res.error };
+        }
       } else if (res.new_val === null) {
         data[i] = { id: res.old_val.id };
         data[i][version_field] = res.old_val[version_field];
