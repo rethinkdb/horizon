@@ -203,8 +203,6 @@ const runCommand = (options, done) => {
       const groups_obj = { };
       schema.groups.forEach((g) => { groups_obj[g.id] = g; });
 
-      console.log(`setting groups: ${schema.groups}`);
-
       return Promise.all([
         r.expr(groups_obj).do((groups) =>
           r.db(internal_db).table('groups')
@@ -281,7 +279,7 @@ const runCommand = (options, done) => {
                 .setDifference(r.db(db).table(row('table')).indexList())
                 .forEach((index) =>
                   c('index_fields')(index).do((fields) =>
-                    r.db(db).table(row('table')).indexCreate((row) =>
+                    r.db(db).table(row('table')).indexCreate(index, (row) =>
                       fields.map((key) => row(key)))))))
         .run(conn)
         .then((res) => {
