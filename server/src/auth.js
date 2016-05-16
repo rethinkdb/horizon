@@ -62,7 +62,7 @@ class Auth {
                  .do((res) =>
                    r.branch(res('inserted').eq(1),
                      r.db('horizon_internal').table('users')
-                      .insert({ id: user_id, groups: [ this._new_user_group ] })
+                      .insert({ id: user_id, groups: [ this._new_user_group, 'default' ] })
                       .do((res2) =>
                         r.branch(res2('inserted').eq(1),
                           res('changes')(0)('new_val'),
@@ -94,7 +94,7 @@ class Auth {
     }
 
     const query = r.db('horizon_internal').table('users')
-                   .insert({ groups: [ this._new_user_group ] });
+                   .insert({ groups: [ this._new_user_group, 'default' ] });
 
     this.reql_call(query, (err, res) => {
       if (err) {

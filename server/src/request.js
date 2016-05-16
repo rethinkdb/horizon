@@ -22,7 +22,7 @@ class Request {
         if (group !== undefined) {
           for (const r of group.rules) {
             if (r.is_match(this._raw_request, user_info)) {
-              matching_rules.push(rule);
+              matching_rules.push(r);
             }
           }
         }

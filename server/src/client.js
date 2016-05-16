@@ -54,6 +54,7 @@ class Client {
     try {
       cb();
     } catch (err) {
+      logger.debug(`Unhandled error in request: ${err.stack}`);
       this.close({ request_id: -1,
                    error: `Unhandled error: ${err}`,
                    error_code: 0 });
@@ -101,22 +102,33 @@ class Client {
 
     const success = (user_feed, token) => {
       this.user_feed = user_feed;
+      let respond = () => {
+        this._socket.on('message', (msg) =>
+          this.error_wrap_socket(() => this.handle_request(msg)));
+        this.send_response(request, { token });
+      }
 
       if (this.user_feed) {
         this.user_feed.eachAsync((change) => {
           if (!change.new_val) {
             this.close({ error: 'User account has been deleted.' });
           } else {
-            this.user_data = change.new_val;
+            Object.assign(this.user_info, change.new_val);
             this._requests.forEach((req) => req.evaluate_rules());
+            if (respond) {
+              respond();
+              respond = null;
+            }
           }
-        }, () => this.close({ error: 'User account feed has been lost.' }));
+        }).then(() =>
+          this.close({ error: 'User account feed has been lost.' })
+        ).catch((err) =>
+          this.close({ error: `User account feed errored: ${err}` })
+        );
       } else {
         this.user_info = { id: null, groups: [ 'default' ] };
+        respond();
       }
-      this._socket.on('message', (msg) =>
-        this.error_wrap_socket(() => this.handle_request(msg)));
-      this.send_response(request, { token });
     };
 
     const done = (err, token, decoded) => {

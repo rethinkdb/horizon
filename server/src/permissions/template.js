@@ -14,7 +14,7 @@ class Any {
   }
 
   matches(value) {
-    if (this._value.length === 0) {
+    if (this._values.length === 0) {
       return true;
     }
 
@@ -86,48 +86,49 @@ const make_template = (str) => {
 };
 
 template_compare = (query, template, context) => {
-  for (const key in query) {
-    const query_value = query[key];
-    const template_value = template[key];
-    if (template_value === undefined) {
-      return false;
-    } else if (template_value instanceof Any) {
-      if (!template_value.matches(query_value)) {
-        return false;
-      }
-    } else if (template_value instanceof UserId) {
-      if (query_value !== context.user_id) {
-        return false;
-      }
-    } else if (template_value === null) {
-      if (query_value !== null) {
-        return false;
-      }
-    } else if (Array.isArray(template_value)) {
-      if (!Array.isArray(query_value) ||
-          template_value.length !== query_value.length) {
-        return false;
-      }
-      for (let i = 0; i < template_value.length; ++i) {
-        if (!template_compare(query_value[i], template_value[i], context)) {
-          return false;
-        }
-      }
-    } else if (typeof template_value === 'object') {
-      if (typeof query_value !== 'object' ||
-          !template_compare(query_value, template_value, context)) {
-        return false;
-      }
-    } else if (template_value !== query_value) {
+  if (template instanceof Any) {
+    if (!template.matches(query)) {
       return false;
     }
-  }
+  } else if (template === undefined) {
+    return false;
+  } else if (template instanceof UserId) {
+    if (query !== context.user_id) {
+      return false;
+    }
+  } else if (template === null) {
+    if (query !== null) {
+      return false;
+    }
+  } else if (Array.isArray(template)) {
+    if (!Array.isArray(query) ||
+        template.length !== query.length) {
+      return false;
+    }
+    for (let i = 0; i < template.length; ++i) {
+      if (!template_compare(query[i], template[i], context)) {
+        return false;
+      }
+    }
+  } else if (typeof template === 'object') {
+    if (typeof query !== 'object') {
+      return false;
+    }
 
-  // Make sure all template keys were handled
-  for (const key in template) {
-    if (query[key] === undefined) {
-      return false;
+    for (const key in query) {
+      if (!template_compare(query[key], template[key], context)) {
+        return false;
+      }
     }
+
+    // Make sure all template keys were handled
+    for (const key in template) {
+      if (query[key] === undefined) {
+        return false;
+      }
+    }
+  } else if (template !== query) {
+    return false;
   }
 
   return true;
