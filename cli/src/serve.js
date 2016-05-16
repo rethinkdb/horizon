@@ -26,9 +26,7 @@ const addArguments = (parser) => {
   parser.addArgument([ '--project-name', '-n' ],
     { type: 'string', action: 'store', metavar: 'NAME',
       help: 'Name of the Horizon project. Determines the name of '
-            + 'the RethinkDB database that stores the project data. '
-            + 'Must be specified if you use the same RethinkDB cluster '
-            + 'for multiple projects.' });
+            + 'the RethinkDB database that stores the project data.' });
 
   parser.addArgument([ '--bind', '-b' ],
     { type: 'string', action: 'append', metavar: 'HOST',
