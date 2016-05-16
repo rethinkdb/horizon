@@ -1,9 +1,10 @@
 'use strict';
 
 const check = require('../error').check;
+const remake_error = require('../utils').remake_error;
 
 const ast = require('@horizon/client/lib/ast');
-const validIndexValue = require('@horizon/client/lib/util/valid-index-value');
+const validIndexValue = require('@horizon/client/lib/util/valid-index-value').default;
 const vm = require('vm');
 
 let template_compare;
@@ -13,8 +14,10 @@ class Any {
     this._values = Array.from(arguments);
   }
 
-  matches(value) {
-    if (this._values.length === 0) {
+  matches(value, context) {
+    if (value === undefined) {
+      return false;
+    } else if (this._values.length === 0) {
       return true;
     }
 
@@ -28,12 +31,67 @@ class Any {
   }
 }
 
+// This works the same as specifying a literal object in a template, except that
+// unspecified key/value pairs are allowed.
+class AnyObject {
+  constructor(obj) {
+    this._obj = obj || { };
+  }
+
+  matches(value, context) {
+    if (value === null || typeof value !== 'object') {
+      return false;
+    }
+
+    for (const key in this._obj) {
+      if (!template_compare(value[key], this._obj[key], context)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+}
+
+// This matches an array where each item matches at least one of the values
+// specified at construction.
+class AnyArray {
+  constructor() {
+    this._values = Array.from(arguments);
+  }
+
+  matches(value, context) {
+    if (!Array.isArray(value)) {
+      return false;
+    }
+
+    for (const item of value) {
+      let match = false;
+      for (const template of this._values) {
+        if (template_compare(item, template, context)) {
+          match = true;
+          break;
+        }
+      }
+      if (!match) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+}
+
 class UserId { }
 
 const wrap_write = (query, docs) => {
-  const result = Object.assign({}, query);
-  result.data = Array.isArray(docs) ? docs : [ docs ];
-  return result;
+  if (docs instanceof AnyArray ||
+      Array.isArray(docs)) {
+    query.data = docs;
+  } else {
+    query.data = [ docs ];
+  }
+  return query;
 };
 
 const wrap_remove = (doc) => {
@@ -45,10 +103,17 @@ const wrap_remove = (doc) => {
 
 // Add helper methods to match any subset of the current query for reads or writes
 ast.TermBase.prototype.any_read = function() {
-  return this._sendRequest('query', this._query);
+  return this._sendRequest(new Any('query', 'subscribe'),
+                           new AnyObject(this._query));
 };
-ast.TermBase.prototype.any_write = function() {
-  return this._sendRequest('query', this._query);
+
+ast.Collection.prototype.any_write = function() {
+  let docs = arguments;
+  if (arguments.length === 0) {
+    docs = new AnyArray(new Any());
+  }
+  return this._sendRequest(new Any('store', 'upsert', 'insert', 'replace', 'update', 'remove'),
+                           wrap_write(new AnyObject(this._query), docs));
 };
 
 // Monkey-patch the ast functions so we don't clobber certain things
@@ -82,24 +147,37 @@ ast.Collection.prototype.removeAll = function(docs) {
 };
 
 const env = {
-  collection: (name) => new ast.Collection((type, opts) =>
-    ({ request_id: new Any(), type, opts }), name, false),
+  collection: (name) => new ast.Collection((types, options) => {
+    let type = types;
+    if (Array.isArray(type)) {
+      type = new Any(...types);
+    }
+    return { request_id: new Any(), type, options };
+  }, name, false),
   any: function() { return new Any(...arguments); },
+  any_object: function(obj) { return new AnyObject(obj); },
+  any_array: function() { return new AnyArray(...arguments); },
   userId: function() { return new UserId(); },
 };
 
 const make_template = (str) => {
-  const sandbox = Object.assign({}, env);
-  return vm.runInNewContext(str, sandbox);
+  try {
+    const sandbox = Object.assign({}, env);
+    return vm.runInNewContext(str, sandbox);
+  } catch (err) {
+    throw remake_error(err);
+  }
 };
 
 template_compare = (query, template, context) => {
-  if (template instanceof Any) {
-    if (!template.matches(query)) {
+  if (template === undefined) {
+    return false;
+  } else if (template instanceof Any ||
+             template instanceof AnyObject ||
+             template instanceof AnyArray) {
+    if (!template.matches(query, context)) {
       return false;
     }
-  } else if (template === undefined) {
-    return false;
   } else if (template instanceof UserId) {
     if (query !== context.user_id) {
       return false;
@@ -142,12 +220,21 @@ template_compare = (query, template, context) => {
   return true;
 };
 
+const incomplete_template_message = (str) =>
+  'Incomplete template "${str}", ' +
+  'consider adding ".fetch()", ".watch()", ".any_read()", or ".any_write()"';
+
 class Template {
   constructor(str) {
     this._value = make_template(str);
-    check(this._value !== null, `Invalid template (incomplete): ${str}`);
+    check(this._value !== null, `Invalid template: ${str}`);
     check(!Array.isArray(this._value), `Invalid template: ${str}`);
     check(typeof this._value === 'object', `Invalid template: ${str}`);
+    if (!(this._value instanceof Any) && !(this._value instanceof AnyObject)) {
+      check(this._value.request_id !== undefined, incomplete_template_message(str));
+      check(this._value.type !== undefined, incomplete_template_message(str));
+      check(this._value.options !== undefined, incomplete_template_message(str));
+    }
   }
 
   is_match(raw_query, context) {

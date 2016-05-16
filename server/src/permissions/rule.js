@@ -21,7 +21,7 @@ class Rule {
     if (!this._validator) {
       return true;
     }
-    return validator.is_valid(...arguments);
+    return this._validator.is_valid(...arguments);
   }
 }
 

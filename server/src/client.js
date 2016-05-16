@@ -106,13 +106,14 @@ class Client {
         this._socket.on('message', (msg) =>
           this.error_wrap_socket(() => this.handle_request(msg)));
         this.send_response(request, { token });
-      }
+      };
 
       if (this.user_feed) {
         this.user_feed.eachAsync((change) => {
           if (!change.new_val) {
             this.close({ error: 'User account has been deleted.' });
           } else {
+            // TODO: make sure removed fields are removed from user_info
             Object.assign(this.user_info, change.new_val);
             this._requests.forEach((req) => req.evaluate_rules());
             if (respond) {

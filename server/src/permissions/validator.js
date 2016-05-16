@@ -1,16 +1,26 @@
 'use strict';
 
-const vm = require('vm');
 const check = require('../error').check;
+const remake_error = require('../utils').remake_error;
+
+const vm = require('vm');
 
 class Validator {
   constructor(str) {
-    this._fn = vm.runInNewContext(str, {});
+    try {
+      this._fn = vm.runInNewContext(str, {});
+    } catch (err) {
+      throw remake_error(err);
+    }
     check(typeof this._fn === 'function');
   }
 
   is_valid() {
-    return this._fn(...arguments);
+    try {
+      return this._fn(...arguments);
+    } catch (err) {
+      throw remake_error(err);
+    }
   }
 }
 
