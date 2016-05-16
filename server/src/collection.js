@@ -20,6 +20,8 @@ class Collection {
         .then(() => {
           this.promise = null;
         });
+
+    this.promise.catch(() => { });
   }
 
   on_ready(done) {

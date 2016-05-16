@@ -24,7 +24,7 @@ const auth = Joi.object({
   duration: Joi.alternatives(Joi.string(), Joi.number().positive()).default('1d'),
 
   create_new_users: Joi.boolean().default(true),
-  new_user_group: Joi.string().default('default'),
+  new_user_group: Joi.string().default('authenticated'),
 
   token_secret: Joi.string().allow(null),
   allow_anonymous: Joi.boolean().default(false),

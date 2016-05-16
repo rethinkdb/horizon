@@ -3,7 +3,8 @@ const Template = require('./template').Template;
 const Validator = require('./validator').Validator;
 
 class Rule {
-  constructor(info) {
+  constructor(name, info) {
+    this._name = name;
     this._template = new Template(info.template);
     this._validators = new Map();
     if (info.validators) {
@@ -60,6 +61,6 @@ class Ruleset {
 }
 
 // The any_rule is used when permissions are disabled - it allows all queries
-const any_rule = new Rule({ template: 'any()' });
+const any_rule = new Rule('permissions_disabled', { template: 'any()' });
 
 module.exports = { Rule, Ruleset, any_rule };

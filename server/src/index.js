@@ -62,6 +62,8 @@ class Index {
           .then(() => {
             this.promise = null;
           });
+
+      this.promise.catch(() => { });
     } else {
       this.promise = null;
     }

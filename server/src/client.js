@@ -112,7 +112,7 @@ class Client {
           }
         }, () => this.close({ error: 'User account feed has been lost.' }));
       } else {
-        this.user_info = { id: null, groups: [ 'unauthenticated' ] };
+        this.user_info = { id: null, groups: [ 'default' ] };
       }
       this._socket.on('message', (msg) =>
         this.error_wrap_socket(() => this.handle_request(msg)));
