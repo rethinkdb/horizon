@@ -3,7 +3,7 @@
 // Test object creation, the `disconnect` method, and `connected/disconnected`
 // events.
 
-var horizonObjectSuite = window.horizonObjectSuite = () => {
+var horizonObjectSuite = global.horizonObjectSuite = () => {
   describe('Horizon', () => {
     it('connects and can track its status', done => {
       Horizon.clearAuthTokens()
@@ -14,7 +14,7 @@ var horizonObjectSuite = window.horizonObjectSuite = () => {
           switch (stat.type) {
           case 'unconnected':
             break
-          case 'connected':
+          case 'ready':
             horizon.disconnect()
             break
           case 'error':

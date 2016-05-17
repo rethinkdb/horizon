@@ -2,18 +2,19 @@
 
 const query = require('../schema/horizon_protocol').query;
 const check = require('../error.js').check;
+const reql_options = require('./common').reql_options;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
 
-// This is also used by the 'subscribe' endpoint
+// This is exposed to be reused by 'subscribe'
 const make_reql = (raw_request, metadata) => {
   const parsed = Joi.validate(raw_request.options, query);
   if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
   const options = parsed.value;
 
-  const table = metadata.get_table(parsed.value.collection);
-  let reql = r.table(table.name);
+  const collection = metadata.collection(parsed.value.collection);
+  let reql = r.table(collection.table);
 
   const ordered_between = (obj) => {
     const order_keys = (options.order && options.order[0]) ||
@@ -33,7 +34,7 @@ const make_reql = (raw_request, metadata) => {
             `"${k}" cannot be used in "order", "above", or "below" when finding by that field.`);
     });
 
-    const index = table.get_matching_index(Object.keys(obj), order_keys);
+    const index = collection.get_matching_index(Object.keys(obj), order_keys);
 
     const get_bound = (name) => {
       const eval_key = (key) => {
@@ -83,24 +84,42 @@ const make_reql = (raw_request, metadata) => {
   return reql;
 };
 
-const handle_response = (request, res, send_cb) => {
-  if (res !== null && res.constructor.name === 'Cursor') {
-    request.add_cursor(res);
-    res.each((err, item) => {
-      if (err !== null) {
-        send_cb({ error: `${err}` });
-      } else {
-        send_cb({ data: [ item ] });
+const run = (raw_request, context, ruleset, metadata, send, done) => {
+  let cursor;
+  const reql = make_reql(raw_request, metadata);
+
+  reql.run(metadata.connection(), reql_options).then((res) => {
+    if (res !== null && res.constructor.name === 'Cursor') {
+      cursor = res;
+      return cursor.eachAsync((item) => {
+        if (!ruleset.validate(context, item)) {
+          done(new Error('Operation not permitted.'));
+          cursor.close();
+        } else {
+          send({ data: [ item ] });
+        }
+      }).then(() => {
+        done({ data: [ ], state: 'complete' });
+      });
+    } else if (res !== null && res.constructor.name === 'Array') {
+      for (const item of res) {
+        if (!ruleset.validate(context, item)) {
+          return done(new Error('Operation not permitted.'));
+        }
       }
-    }, () => {
-      request.remove_cursor();
-      send_cb({ data: [ ], state: 'complete' });
-    });
-  } else if (res !== null && res.constructor.name === 'Array') {
-    send_cb({ data: res, state: 'complete' });
-  } else {
-    send_cb({ data: [ res ], state: 'complete' });
-  }
+      done({ data: res, state: 'complete' });
+    } else if (!ruleset.validate(context, res)) {
+      done(new Error('Operation not permitted.'));
+    } else {
+      done({ data: [ res ], state: 'complete' });
+    }
+  }).catch(done);
+
+  return () => {
+    if (cursor) {
+      cursor.close();
+    }
+  };
 };
 
-module.exports = { make_reql, handle_response };
+module.exports = { make_reql, run };

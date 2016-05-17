@@ -4,16 +4,16 @@ const check = require('./error').check;
 const logger = require('./logger');
 const Metadata = require('./metadata').Metadata;
 const r = require('rethinkdb');
-const utils = require("./utils");
+const utils = require('./utils');
 
 class ReqlConnection {
-  constructor(host, port, db, auto_create_table, auto_create_index, clients) {
+  constructor(host, port, project_name, auto_create_collection, auto_create_index) {
     this._host = host;
     this._port = port;
-    this._db = db;
-    this._auto_create_table = auto_create_table;
+    this._project_name = project_name;
+    this._auto_create_collection = auto_create_collection;
     this._auto_create_index = auto_create_index;
-    this._clients = clients;
+    this._clients = new Set();
     this._connection = undefined;
     this._metadata = undefined;
     this._ready = false;
@@ -24,10 +24,17 @@ class ReqlConnection {
   }
 
   _reconnect(resolve) {
+    if (this._connection) {
+      this._connection.close();
+    }
+    if (this._metadata) {
+      this._metadata.close();
+    }
     this._connection = undefined;
     this._metadata = undefined;
     this._ready = false;
-    this._clients.forEach((client) => client.reql_connection_lost());
+    this._clients.forEach((client) =>
+      client.close({ error: 'Connection to the database was lost.' }));
     this._clients.clear();
 
     if (!this._closed) {
@@ -53,7 +60,7 @@ class ReqlConnection {
       logger.info(`Connecting to RethinkDB: ${this._host}:${this._port}`);
       this._hasRetried = true;
     }
-    r.connect({ host: this._host, port: this._port, db: this._db })
+    r.connect({ host: this._host, port: this._port, db: this._project_name })
      .then((conn) => {
        logger.debug('Connection to RethinkDB established.');
        conn.once('close', () => {
@@ -73,8 +80,10 @@ class ReqlConnection {
           }));
      }).then((conn) => {
        this._connection = conn;
-       this._metadata = new Metadata(this._connection,
-                                     this._auto_create_table,
+       this._metadata = new Metadata(this._project_name,
+                                     this._connection,
+                                     this._clients,
+                                     this._auto_create_collection,
                                      this._auto_create_index);
        return this._metadata.ready();
      }).then(() => {
@@ -108,10 +117,8 @@ class ReqlConnection {
   }
 
   close() {
-    if (this._connection) {
-      this._closed = true;
-      this._connection.close();
-    }
+    this._closed = true;
+    this._reconnect(); // This won't actually reconnect, but will do all the cleanup
   }
 }
 

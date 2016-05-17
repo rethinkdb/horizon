@@ -7,6 +7,7 @@ const child_process = require('child_process');
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
+const path = require('path');
 
 const all_tests = () => {
   [ 'http', 'https' ].forEach((transport) => {
@@ -50,7 +51,7 @@ const all_tests = () => {
                                                four_o_four);
         }
 
-        horizon(http_server);
+        horizon(http_server, { auth: { token_secret: 'hunter2' } });
 
         http_server.listen(0, done);
       });
@@ -64,7 +65,8 @@ const all_tests = () => {
                                  port: http_server.address().port,
                                  path: '/horizon/horizon.js',
                                  rejectUnauthorized: false }, (res) => {
-          const code = fs.readFileSync('./node_modules/@horizon/client/dist/horizon.js');
+          const client_js = path.resolve(__dirname, '../node_modules/@horizon/client/dist/horizon.js');
+          const code = fs.readFileSync(client_js);
           let buffer = '';
           assert.strictEqual(res.statusCode, 200);
           res.on('data', (delta) => { buffer += delta; });
@@ -75,6 +77,6 @@ const all_tests = () => {
   });
 };
 
-const suite = (table) => describe('Webserver', () => all_tests(table));
+const suite = (collection) => describe('Webserver', () => all_tests(collection));
 
 module.exports = { suite };

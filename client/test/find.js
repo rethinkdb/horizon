@@ -1,9 +1,12 @@
 import { _do as tap } from 'rxjs/operator/do'
 import { toArray } from 'rxjs/operator/toArray'
 
-import { assertCompletes, assertThrows, assertErrors } from './utils'
+import { assertCompletes,
+         assertThrows,
+         assertErrors,
+         compareWithoutVersion } from './utils'
 
-const findSuite = window.findSuite = getData => () => {
+const findSuite = global.findSuite = getData => () => {
   let data
 
   before(() => {
@@ -13,14 +16,14 @@ const findSuite = window.findSuite = getData => () => {
   // Let's grab a specific document using `find`
   it('locates a single document when passed an id', assertCompletes(() =>
     data.find(1).fetch()
-      ::tap(res => assert.deepEqual(res, { id: 1, a: 10 }))
+      ::tap(res => compareWithoutVersion(res, { id: 1, a: 10 }))
   ))
 
   // This is equivalent to searching by field `id`
   it('locates a single document when passed an object with an id field',
      assertCompletes(() =>
        data.find({ id: 1 }).fetch()
-         ::tap(res => assert.deepEqual(res, { id: 1, a: 10 }))
+         ::tap(res => compareWithoutVersion(res, { id: 1, a: 10 }))
   ))
 
   // `find` returns `null` if a document doesn't exist.
@@ -49,7 +52,8 @@ const findSuite = window.findSuite = getData => () => {
 
   // The document passed to `find` can't be empty
   it('errors if the document passed is empty', assertErrors(() =>
-    data.find({}).fetch()
+    data.find({}).fetch(),
+    /must have at least 1 children/
   ))
 
   // We can also `find` by a different (indexed!) field. In that case,
@@ -57,7 +61,7 @@ const findSuite = window.findSuite = getData => () => {
   it('locates documents by other fields if passed an object',
      assertCompletes(() =>
        data.find({ a: 10 }).fetch()
-         ::tap(res => assert.deepEqual(res, { id: 1, a: 10 }))
+         ::tap(res => compareWithoutVersion(res, { id: 1, a: 10 }))
   ))
 
   // Let's try this again for a value that doesn't exist.
@@ -84,7 +88,7 @@ const findSuite = window.findSuite = getData => () => {
   // Users can pass multiple fields to look for
   it('can find documents when constrained by multiple field values', assertCompletes(() =>
     data.find({ a: 20, b: 1 }).fetch()
-      ::tap(res => assert.deepEqual(res, { id: 2, a: 20, b: 1 }))
+      ::tap(res => compareWithoutVersion(res, { id: 2, a: 20, b: 1 }))
   ))
 
   // In this case there is no matching document

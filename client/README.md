@@ -392,7 +392,7 @@ chat.upsert([{
 
 chat.find(1).fetch().subscribe((doc) => {
   // Returns "Howdy 😅"
-  console.log(message.text);
+  console.log(doc.text);
 });
 
 ```

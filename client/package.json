@@ -7,15 +7,17 @@
     "dev": "webpack --watch --progress --colors",
     "devtest": "nodemon --watch dist --exec 'npm test -- --reporter dot && npm run lint -s'",
     "builddebug": "webpack --progress --colors --display-modules --display-reasons",
-    "build": "NODE_ENV=production webpack --progress --colors",
-    "compile": "rm -f lib/**/* && babel src --out-dir lib --extends src/.babelrc --source-maps true",
+    "build": "cross-env NODE_ENV=production webpack --progress --colors",
+    "compile": "node ./scripts/compile.js",
     "lint": "eslint src",
     "test": "mocha dist/test.js --inline-diffs --timeout 10000",
-    "prepublish": "npm run build && npm run compile"
+    "prepublish": "npm run compile && npm run build"
   },
   "dependencies": {
     "babel-runtime": "^6.6.1",
     "core-js": "^2.1.0",
+    "engine.io-client": "^1.6.9",
+    "engine.io-parser": "socketio/engine.io-parser#748144b50a1d10e8c7c9b8100f2e21f8ac424c7a",
     "isomorphic-fetch": "^2.2.1",
     "rxjs": "^5.0.0-beta.6",
     "snake-case": "^1.1.2"
@@ -35,6 +37,7 @@
     "babel-preset-es2015-loose": "^7.0.0",
     "chai": "^3.5.0",
     "copy-webpack-plugin": "^1.1.1",
+    "cross-env": "^1.0.7",
     "eslint": "2.2.x",
     "exports-loader": "^0.6.3",
     "imports-loader": "^0.6.5",
@@ -42,9 +45,9 @@
     "lodash": "^4.6.1",
     "mocha": "2.3.4",
     "nodemon": "^1.9.1",
+    "shelljs": "^0.7.0",
     "source-map-support": "^0.4.0",
-    "webpack": "^1.12.14",
-    "ws": "^1.0.1"
+    "webpack": "^1.12.14"
   },
   "main": "lib/index.js",
   "repository": {

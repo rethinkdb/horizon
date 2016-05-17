@@ -2,10 +2,12 @@
 'use strict';
 
 const argparse = require('argparse');
-const initCommand = require('./init.js');
-const serveCommand = require('./serve.js');
-const versionCommand = require('./version.js');
-const createCertCommand = require('./create-cert.js');
+const initCommand = require('./init');
+const serveCommand = require('./serve');
+const versionCommand = require('./version');
+const createCertCommand = require('./create-cert');
+const getSchemaCommand = require('./get-schema');
+const setSchemaCommand = require('./set-schema');
 
 const parser = new argparse.ArgumentParser();
 
@@ -24,27 +26,36 @@ const serveParser = subparsers.addParser('serve', {
   help: 'Serve a horizon app',
 });
 
-const versionParser = subparsers.addParser('version', {
+const versionParser = subparsers.addParser('version', { // eslint-disable-line no-unused-vars
   addHelp: true,
   help: 'Print the verison number of horizon',
 });
 
-const createCertParser = subparsers.addParser('create-cert', {
+const createCertParser = subparsers.addParser('create-cert', { // eslint-disable-line no-unused-vars
   addHelp: true,
   help: 'Generate a certificate',
 });
 
+const getSchemaParser = subparsers.addParser('get-schema', {
+  addHelp: true,
+  help: 'Get the schema from a horizon database',
+});
+
+const setSchemaParser = subparsers.addParser('set-schema', {
+  addHelp: true,
+  help: 'Set the schema in a horizon database',
+});
+
 initCommand.addArguments(initParser);
 serveCommand.addArguments(serveParser);
+getSchemaCommand.addArguments(getSchemaParser);
+setSchemaCommand.addArguments(setSchemaParser);
 
 const parsed = parser.parseArgs();
 
 const done_cb = (options) => (err) => {
   if (err) {
-    console.log(`${parsed.command_name} failed with ${err}`);
-    if (options.debug) {
-      console.log(err.stack);
-    }
+    console.log(`${parsed.command_name} failed with ${options.debug ? err.stack : err}`);
     process.exit(1);
   }
 };
@@ -66,6 +77,16 @@ case 'version': {
 }
 case 'create-cert': {
   createCertCommand.runCommand();
+  break;
+}
+case 'get-schema': {
+  const options = getSchemaCommand.processConfig(parsed);
+  getSchemaCommand.runCommand(options, done_cb(options));
+  break;
+}
+case 'set-schema': {
+  const options = setSchemaCommand.processConfig(parsed);
+  setSchemaCommand.runCommand(options, done_cb(options));
   break;
 }
 }

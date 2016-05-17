@@ -5,9 +5,14 @@ import { concat } from 'rxjs/operator/concat'
 import { map } from 'rxjs/operator/map'
 import { ignoreElements } from 'rxjs/operator/ignoreElements'
 
-import { assertCompletes, assertThrows, removeAllData } from './utils'
+import { assertCompletes,
+         assertThrows,
+         assertErrors,
+         removeAllData,
+         compareWithoutVersion,
+         compareSetsWithoutVersion } from './utils'
 
-const removeSuite = window.removeSuite = getData => () => {
+const removeSuite = global.removeSuite = getData => () => {
   let data
   const testData = [
     { id: 1, a: 1 },
@@ -31,12 +36,12 @@ const removeSuite = window.removeSuite = getData => () => {
     data.store(testData)::ignoreElements()
       ::concat(data.fetch())
       // Make sure it's there
-      ::tap(res => assert.sameDeepMembers(res, testData))
+      ::tap(res => compareSetsWithoutVersion(res, testData))
   ))
 
   it('removes a document when passed an id', assertCompletes(() =>
     data.remove(1)
-      ::tap(res => assert.equal(res, 1))
+      ::tap(res => compareWithoutVersion(res, { id: 1 }))
       // Let's make sure the removed document isn't there
       ::mergeMapTo(data.find(1).fetch())
       // Let's make sure the removed document isn't there
@@ -45,7 +50,7 @@ const removeSuite = window.removeSuite = getData => () => {
 
   it('removes a document with an id field', assertCompletes(() =>
     data.remove({ id: 2 })
-      ::tap(res => assert.equal(res, 2))
+      ::tap(res => compareWithoutVersion(res, { id: 2 }))
       // Let's make sure the removed document isn't there
       ::mergeMapTo(data.find(2).fetch())
       // Let's make sure the removed document isn't there
@@ -53,7 +58,7 @@ const removeSuite = window.removeSuite = getData => () => {
   ))
 
   it(`removing a document that doesn't exist doesn't error`, assertCompletes(() =>
-    data.remove('abracadabra')::tap(res => assert.equal(res, 'abracadabra'))
+    data.remove('abracadabra')::tap(res => assert.deepEqual(res, { id: 'abracadabra' }))
   ))
 
   it('fails when called with no arguments', assertThrows(
