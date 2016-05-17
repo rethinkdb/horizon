@@ -15,7 +15,8 @@
   "author": "RethinkDB",
   "license": "MIT",
   "bin": {
-    "hz": "src/main.js"
+    "hz": "src/main.js",
+    "horizon": "src/main.js"
   },
   "bugs": {
     "url": "https://github.com/rethinkdb/horizon/issues"
