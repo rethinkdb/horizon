@@ -110,7 +110,7 @@ const runCommand = (options, done) => {
                            options.token_secret,
                            { expiresIn: '1d', algorithm: 'HS512' });
     console.log(`${token}`);
-  }).then(() => process.exit(0)).catch(done);
+  }).then(() => interrupt.shutdown()).catch(done);
 };
 
 module.exports = {
