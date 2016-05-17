@@ -18,12 +18,12 @@ class ReqlConnection {
     this._metadata = undefined;
     this._ready = false;
     this._reconnect_delay = 0;
-    this._ready_promise = new Promise((resolve, reject) => this._reconnect(resolve, reject));
+    this._ready_promise = new Promise((resolve) => this._reconnect(resolve));
     this._closed = false;
     this._hasRetried = false;
   }
 
-  _reconnect(resolve, reject) {
+  _reconnect(resolve) {
     if (this._connection) {
       this._connection.close();
     }
@@ -38,21 +38,20 @@ class ReqlConnection {
     this._clients.clear();
 
     if (!this._closed) {
-      setTimeout(() => this._init_connection(resolve, reject), this._reconnect_delay);
+      setTimeout(() => this._init_connection(resolve), this._reconnect_delay);
       this._reconnect_delay = Math.min(this._reconnect_delay + 100, 1000);
     }
   }
 
-  _init_connection(resolve, reject) {
+  _init_connection(resolve) {
     let retried = false;
     const retry = () => {
       if (!retried) {
         retried = true;
         if (!this._ready) {
-          this._reconnect(resolve, reject);
+          this._reconnect(resolve);
         } else {
-          this._ready_promise =
-            new Promise((new_resolve, new_reject) => this._reconnect(new_resolve, new_reject));
+          this._ready_promise = new Promise((new_resolve) => this._reconnect(new_resolve));
         }
       }
     };
@@ -95,12 +94,7 @@ class ReqlConnection {
      }).catch((err) => {
        logger.debug(`Connection to RethinkDB terminated: ${err}`);
        logger.debug(`stack: ${err.stack}`);
-       if (err instanceof r.Error.ReqlDriverError
-           || err instanceof r.Error.ReqlAvailabilityError) {
-         retry();
-       } else {
-         reject(err);
-       }
+       retry();
      });
   }
 
