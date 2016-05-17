@@ -137,23 +137,29 @@ class UserDataTerm {
     this._hz = hz
     this._baseObservable = baseObservable::map(handshake => handshake.user_id)
   }
+
   _query(userId) {
     return this._hz('users').find(userId)
   }
-  _defaultIf(userId, obs) {
-    if (userId === null) {
-      return Observable::of({})
-    } else {
-      return obs
-    }
-  }
+
   fetch() {
-    return this._baseObservable::concatMap(userId =>
-      this._defaultIf(userId, this._query(userId).fetch()))
+    return this._baseObservable::concatMap(userId => {
+      if (userId === null) {
+        return Observable::of({})
+      } else {
+        return this._query(userId).fetch()
+      }
+    })
   }
+
   watch(...args) {
-    return this._baseObservable::concatMap(userId =>
-      this._defaultIf(userId, this._query(userId).watch(...args)))
+    return this._baseObservable::concatMap(userId => {
+      if (userId === null) {
+        return Observable::of({})
+      } else {
+        return this._query(userId).watch(...args)
+      }
+    })
   }
 }
 
