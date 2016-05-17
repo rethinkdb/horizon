@@ -22,14 +22,13 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           send({ state: 'synced' });
         } else if ((item.old_val && !ruleset.validate(context, item.old_val))
                    || (item.new_val && !ruleset.validate(context, item.new_val))) {
-          done(new Error('Operation not permitted.'));
-          feed.close();
+          throw new Error('Operation not permitted.');
         } else {
           send({ data: [ item ] });
         }
       }).then(() => {
         done({ state: 'complete' });
-      });
+      }).catch(done);
     }).catch(done);
 
   return () => {
