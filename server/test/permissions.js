@@ -166,9 +166,22 @@ describe('Permissions', () => {
       assert(rule.is_match(make_request('query', 'test', { find: { owner: context.user_id } }), context));
     });
 
+    it('adds readAny() implicitly', () => {
+      {
+        const rule = new Rule('foo', { template: 'collection("test")' });
+        assert(rule.is_valid());
+        assert(rule.is_match(make_request('query', 'test', { find: { } }), context));
+        assert(rule.is_match(make_request('query', 'test', { find: { bar: 'baz' } }), context));
+      }
+      {
+        const rule = new Rule('foo', { template: 'collection("test").find({bar: any()})' });
+        assert(rule.is_valid());
+        assert(!rule.is_match(make_request('query', 'test', { find: { } }), context));
+        assert(rule.is_match(make_request('query', 'test', { find: { bar: 'baz' } }), context));
+      }
+    });
+
     it('error on incomplete template', () => {
-      assert.throws(() => new Rule('foo', { template: 'collection("test")' }), /Incomplete template/);
-      assert.throws(() => new Rule('foo', { template: 'collection("test").find(any())' }), /Incomplete template/);
       assert.throws(() => new Rule('foo', { template: '({ })' }), /Incomplete template/);
       assert.throws(() => new Rule('foo', { template: '[ ]' }), /Invalid template/);
       assert.throws(() => new Rule('foo', { template: '5' }), /Invalid template/);

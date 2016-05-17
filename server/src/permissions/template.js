@@ -228,6 +228,12 @@ class Template {
     check(!Array.isArray(this._value), `Invalid template: ${str}`);
     check(typeof this._value === 'object', `Invalid template: ${str}`);
     if (!(this._value instanceof Any) && !(this._value instanceof AnyObject)) {
+      if (this._value.request_id === undefined
+          && this._value.type === undefined
+          && this._value.options === undefined
+          && this._value.anyRead) {
+        this._value = this._value.anyRead();
+      }
       check(this._value.request_id !== undefined, incomplete_template_message(str));
       check(this._value.type !== undefined, incomplete_template_message(str));
       check(this._value.options !== undefined, incomplete_template_message(str));
