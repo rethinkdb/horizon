@@ -184,7 +184,7 @@ class Metadata {
         r.expr([ this._db, this._internal_db ])
          .concatMap((db) => r.branch(r.dbList().contains(db), [], [db]))
          .run(this._conn).then((missing_dbs) => {
-           console.log("checking for internal db/tables");
+           logger.debug("checking for internal db/tables");
            if (missing_dbs.length > 0) {
              let err_msg;
              if (missing_dbs.length == 1) {
