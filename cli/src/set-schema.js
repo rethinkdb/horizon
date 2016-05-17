@@ -166,20 +166,16 @@ const runCommand = (options, done) => {
                 port: options.rdb_port })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    return r.dbList().contains(db, internal_db).run(conn);
-  }).then((db_exists) => {
-    if (!db_exists) {
-      console.log("Initializing new application metadata.");
-      return initialize_metadata_reql(r, db, internal_db).run(conn);
-    } else {
-      return Promise.resolve();
+    return initialize_metadata_reql(r, db, internal_db).run(conn);
+  }).then((initialization_result) => {
+    if (initialization_result.tables_created) {
+      console.log("Initialized new application metadata.");
     }
-  }).then(() =>
     // Wait for metadata tables to be writable
-    r.db(internal_db)
+    return r.db(internal_db)
      .wait({ waitFor: 'ready_for_writes', timeout: 30 })
-     .run(conn)
-  ).then(() => {
+     .run(conn);
+  }).then(() => {
     // Error if any collections will be removed
     if (!options.update) {
       return r.db(internal_db).table('collections')('id')
