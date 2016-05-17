@@ -55,7 +55,6 @@ class Request {
           } else if (res) {
             this._client.send_response(this._raw_request, res);
           }
-          this.close();
           this._client.remove_request(this._raw_request);
         }
       });
