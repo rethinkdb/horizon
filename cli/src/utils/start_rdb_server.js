@@ -49,12 +49,18 @@ module.exports = (raw_options) => {
                  '--directory', dataDir ];
   bind.forEach((host) => args.push('--bind', host));
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {    
     const rdbProc = spawn('rethinkdb', args);
 
     rdbProc.once('error', (err) => {
+      console.log("Errored");
       reject(err);
       process.exit(1);
+    });
+    rdbProc.once('exit', (exit_code) => {
+      if (exit_code != 0) {
+        reject(new Error("RethinkDB process terminated with error code " + exit_code + "."));
+      }
     });
 
     interrupt.on_interrupt((done) => {

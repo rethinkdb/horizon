@@ -176,7 +176,23 @@ class Metadata {
                                          [], r.db(this._internal_db).tableCreate(table))))
          .run(this._conn).then(make_feeds);
     } else {
-      this._ready_promise = make_feeds();
+      this._ready_promise =
+        r.expr([ this._db, this._internal_db ])
+         .concatMap((db) => r.branch(r.dbList().contains(db), [], [db]))
+         .run(this._conn).then((missing_dbs) => {
+           if (missing_dbs.length > 0) {
+             let err_msg;
+             if (missing_dbs.length == 1) {
+               err_msg = "The database " + missing_dbs[0] + " doesn't exist. ";
+             } else {
+               err_msg = "The databases " + missing_dbs[0] + " and " + missing_dbs[1] + " don't exist. ";
+             }
+             throw new Error(err_msg + "Run `hz set-schema` to initialize the database, "
+                  + "then start the Horizon server.");
+           } else {
+             return this.make_feeds();
+           }
+         });
     }
     this._ready_promise.catch(() => {
       this.close();
