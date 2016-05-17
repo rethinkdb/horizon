@@ -107,7 +107,7 @@ const runCommand = (options, done) => {
   const internal_db = `${db}_internal`;
   let conn;
 
-  logger.remove(logger.transports.Console);
+  logger.level = 'error';
   interrupt.on_interrupt((done2) => {
     if (conn) {
       conn.close();

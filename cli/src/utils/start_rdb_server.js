@@ -86,7 +86,7 @@ module.exports = (raw_options) => {
 
     process.on('exit', () => {
       if (rdbProc.exitCode === null) {
-        logger.error('Unclean shutdown - killing RethinkDB child process');
+        logger.warn('Unclean shutdown - killing RethinkDB child process');
         rdbProc.kill('SIGKILL');
       }
     });

@@ -7,7 +7,7 @@ const Collection = require('./collection').Collection;
 
 const r = require('rethinkdb');
 
-// This is exported for use by the CLI. This accepts 'R' as a parameter because of
+// These are exported for use by the CLI. They accepts 'R' as a parameter because of
 // https://github.com/rethinkdb/rethinkdb/issues/3263
 const create_collection_reql = (R, internal_db, user_db, collection) => {
   const do_create = (table) =>
@@ -32,6 +32,14 @@ const create_collection_reql = (R, internal_db, user_db, collection) => {
                R.branch(row.eq(null),
                         do_create(table),
                         { old_val: row, new_val: row })));
+};
+const initialize_metadata_reql = (R, db, internal_db) => {
+  return R.expr([ db, internal_db ])
+          .forEach((db) => R.branch(R.dbList().contains(db), [], R.dbCreate(db)))
+          .do(() =>
+            R.expr([ 'collections', 'users_auth', 'users', 'groups' ])
+             .forEach((table) => R.branch(R.db(internal_db).tableList().contains(table),
+                                          [], R.db(internal_db).tableCreate(table))));
 };
 
 class Metadata {
@@ -168,13 +176,7 @@ class Metadata {
 
     if (this._auto_create_collection) {
       this._ready_promise =
-        r.expr([ this._db, this._internal_db ])
-         .forEach((db) => r.branch(r.dbList().contains(db), [], r.dbCreate(db)))
-         .do(() =>
-           r.expr([ 'collections', 'users_auth', 'users', 'groups' ])
-            .forEach((table) => r.branch(r.db(this._internal_db).tableList().contains(table),
-                                         [], r.db(this._internal_db).tableCreate(table))))
-         .run(this._conn).then(make_feeds);
+        initialize_metadata_reql(r, this._db, this._internal_db).run(this._conn).then(make_feeds);
     } else {
       this._ready_promise =
         r.expr([ this._db, this._internal_db ])
@@ -286,4 +288,4 @@ class Metadata {
   }
 }
 
-module.exports = { Metadata, create_collection_reql };
+module.exports = { Metadata, create_collection_reql, initialize_metadata_reql };
