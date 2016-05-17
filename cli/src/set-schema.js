@@ -274,12 +274,12 @@ const runCommand = (options, done) => {
         .forEach((c) =>
           r.db(internal_db).table('collections')
             .get(c('id'))
-            .do((row) =>
+            .do((collection) =>
               c('indexes')
-                .setDifference(r.db(db).table(row('table')).indexList())
+                .setDifference(r.db(db).table(collection('table')).indexList())
                 .forEach((index) =>
                   c('index_fields')(index).do((fields) =>
-                    r.db(db).table(row('table')).indexCreate(index, (row) =>
+                    r.db(db).table(collection('table')).indexCreate(index, (row) =>
                       fields.map((key) => row(key)))))))
         .run(conn)
         .then((res) => {

@@ -19,6 +19,8 @@ const logger = horizon_server.logger;
 
 const TIMEOUT_30_SECONDS = 30 * 1000;
 
+const default_config_file = '.hz/config.toml';
+
 const addArguments = (parser) => {
   parser.addArgument([ 'project_path' ],
     { type: 'string', nargs: '?',
@@ -26,8 +28,8 @@ const addArguments = (parser) => {
 
   parser.addArgument([ '--project-name', '-n' ],
     { type: 'string', action: 'store', metavar: 'NAME',
-      help: 'Name of the Horizon project. Determines the name of '
-            + 'the RethinkDB database that stores the project data.' });
+      help: 'Name of the Horizon project. Determines the name of ' +
+            'the RethinkDB database that stores the project data.' });
 
   parser.addArgument([ '--bind', '-b' ],
     { type: 'string', action: 'append', metavar: 'HOST',
@@ -104,7 +106,7 @@ const addArguments = (parser) => {
 
   parser.addArgument([ '--config' ],
     { type: 'string', metavar: 'PATH',
-      help: 'Path to the config file to use, defaults to ".hz/config.toml".' });
+      help: 'Path to the config file to use, defaults to "${default_config_file}".' });
 
   parser.addArgument([ '--auth' ],
     { type: 'string', action: 'append', metavar: 'PROVIDER,ID,SECRET', defaultValue: [ ],
@@ -115,10 +117,8 @@ const addArguments = (parser) => {
       help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
 };
 
-const default_config_file = '.hz/config.toml';
-
 const make_default_config = () => ({
-  config: default_config_file,
+  config: null,
   debug: false,
   // Default to current directory for path
   project_path: '.',
@@ -286,12 +286,10 @@ const read_config_from_file = (project_path, config_file) => {
 
   let file_data, configFilename;
 
-  if (project_path && config_file) {
-    configFilename = `${project_path}/${config_file}`;
+  if (config_file) {
+    configFilename = config_file;
   } else if (project_path && !config_file) {
     configFilename = `${project_path}/${default_config_file}`;
-  } else if (!project_path && config_file) {
-    configFilename = config_file;
   } else {
     configFilename = default_config_file;
   }
@@ -407,6 +405,10 @@ const read_config_from_flags = (parsed) => {
     if (config.bind.indexOf('all') !== -1) {
       config.bind = [ '0.0.0.0' ];
     }
+  }
+
+  if (parsed.token_secret !== null && parsed.token_secret !== undefined) {
+    config.token_secret = parsed.token_secret;
   }
 
   // Auth options

@@ -86,7 +86,6 @@ const config_to_toml = (collections, groups) => {
     res.push('');
     res.push(`[groups.${g.id}]`);
     if (g.rules) {
-      console.log
       for (const key in g.rules) {
         const template = g.rules[key].template;
         const validator = g.rules[key].validator;

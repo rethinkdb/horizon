@@ -38,7 +38,7 @@ const makeDefaultConfig = (projectName) => `\
 
 ###############################################################################
 # HTTPS Options
-# 'secure' will disable HTTPS and use HTTP instead when set to `false`
+# 'secure' will disable HTTPS and use HTTP instead when set to 'false'
 # 'key_file' and 'cert_file' are required for serving HTTPS
 #------------------------------------------------------------------------------
 # secure = false
