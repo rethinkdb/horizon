@@ -231,9 +231,8 @@ class Metadata {
       // Redirect the 'users' table to the one in the internal db
       this._collections.set('users', new Collection({ id: 'users', table: 'users' },
                                                     this._internal_db, this._conn));
-    }).catch((e) => {
+    }).catch(() => {
       this.close();
-      throw e;
     });
   }
 
