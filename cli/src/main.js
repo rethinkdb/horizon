@@ -9,6 +9,7 @@ const versionCommand = require('./version');
 const createCertCommand = require('./create-cert');
 const getSchemaCommand = require('./get-schema');
 const setSchemaCommand = require('./set-schema');
+const makeTokenCommand = require('./make-token');
 
 const parser = new argparse.ArgumentParser();
 
@@ -47,10 +48,16 @@ const setSchemaParser = subparsers.addParser('set-schema', {
   help: 'Set the schema in a horizon database',
 });
 
+const makeTokenParser = subparsers.addParser('make-token', {
+  addHelp: true,
+  help: 'Generate a token to log in as a user',
+});
+
 initCommand.addArguments(initParser);
 serveCommand.addArguments(serveParser);
 getSchemaCommand.addArguments(getSchemaParser);
 setSchemaCommand.addArguments(setSchemaParser);
+makeTokenCommand.addArguments(makeTokenParser);
 
 const parsed = parser.parseArgs();
 
@@ -88,6 +95,11 @@ case 'get-schema': {
 case 'set-schema': {
   const options = setSchemaCommand.processConfig(parsed);
   setSchemaCommand.runCommand(options, done_cb(options));
+  break;
+}
+case 'make-token': {
+  const options = makeTokenCommand.processConfig(parsed);
+  makeTokenCommand.runCommand(options, done_cb(options));
   break;
 }
 }
