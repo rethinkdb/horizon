@@ -234,7 +234,7 @@ class Metadata {
       logger.debug('metadata sync complete');
       this._ready = true;
       return this;
-    })
+    });
 
     this._ready_promise.catch(() => {
       this.close();
