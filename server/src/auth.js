@@ -62,15 +62,15 @@ class Auth {
   // TODO: maybe we should write something into the user data to track open sessions/tokens
   generate_jwt(provider, info, cb) {
     const key = auth_key(provider, info);
-    let query = r.db('horizon_internal').table('users_auth').get(key);
+    let query = r.db(this._parent._reql_conn.metadata()._internal_db).table('users_auth').get(key);
 
     if (this._create_new_users) {
       query = query.default(r.uuid().do((user_id) =>
-                r.db('horizon_internal').table('users_auth').insert({ id: key, user_id },
-                                                                   { returnChanges: true })
+                r.db(this._parent._reql_conn.metadata()._internal_db)
+                 .table('users_auth').insert({ id: key, user_id }, { returnChanges: true })
                  .do((res) =>
                    r.branch(res('inserted').eq(1),
-                     r.db('horizon_internal').table('users')
+                     r.db(this._parent._reql_conn.metadata()._internal_db).table('users')
                       .insert(this.new_user_row(user_id))
                       .do((res2) =>
                         r.branch(res2('inserted').eq(1),
@@ -100,7 +100,7 @@ class Auth {
       cb(new Error('Anonymous connections are not allowed.'));
     }
 
-    const query = r.db('horizon_internal').table('users')
+    const query = r.db(this._parent._reql_conn.metadata()._internal_db).table('users')
                    .insert(this.new_user_row(r.uuid()),
                            { returnChanges: 'always' })
                    .bracket('changes')(0)
