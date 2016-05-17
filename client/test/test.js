@@ -70,11 +70,15 @@ require('./insert.js')
 require('./upsert.js')
 require('./update.js')
 require('./replace.js')
-require('./times.js')
 
 // Test the removal commands
 require('./remove.js')
 require('./removeAll.js')
+
+// Times tests
+require('./times.js')
+// Authentication tests
+require('./auth.js')
 
 // Read API
 require('./collection.js')
@@ -94,8 +98,8 @@ require('./belowSub.js')
 require('./orderLimitSub.js')
 
 // Unit tests
-require('./auth.js')
-require('./utilsTest.js')
+require('./unit/auth.js')
+require('./unit/utilsTest.js')
 
 // Load the suite runner
 require('./api.js')

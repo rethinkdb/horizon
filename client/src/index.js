@@ -1,7 +1,9 @@
-const { Observable } = require('rxjs/Observable')
+import { Observable } from 'rxjs/Observable'
+import { of } from 'rxjs/observable/of'
 import { from } from 'rxjs/observable/from'
 import { _catch } from 'rxjs/operator/catch'
 import { concatMap } from 'rxjs/operator/concatMap'
+import { map } from 'rxjs/operator/map'
 import { filter } from 'rxjs/operator/filter'
 
 const { Collection } = require('./ast.js')
@@ -31,15 +33,17 @@ function Horizon({
 
   // Store whatever token we get back from the server when we get a
   // handshake response
-  socket.handshake.subscribe(
-    handshake => tokenStorage.set(handshake.token),
-    error => {
-      if (/JsonWebTokenError/.test(error.message)) {
+  socket.handshake.subscribe({
+    next(handshake) {
+      tokenStorage.set(handshake.token)
+    },
+    error(err) {
+      if (/JsonWebTokenError/.test(err.message)) {
         console.error('Horizon: clearing token storage since auth failed')
         tokenStorage.remove()
       }
-    }
-  )
+    },
+  })
 
   // This is the object returned by the Horizon function. It's a
   // function so we can construct a collection simply by calling it
@@ -47,6 +51,8 @@ function Horizon({
   function horizon(name) {
     return new Collection(sendRequest, name, lazyWrites)
   }
+
+  horizon.currentUser = () => new UserDataTerm(horizon, socket.handshake)
 
   horizon.disconnect = () => {
     socket.complete()
@@ -123,6 +129,31 @@ function subscribeOrObservable(observable) {
     } else {
       return observable
     }
+  }
+}
+
+class UserDataTerm {
+  constructor(hz, baseObservable) {
+    this._hz = hz
+    this._baseObservable = baseObservable::map(handshake => handshake.user_id)
+  }
+  _query(userId) {
+    return this._hz('users').find(userId)
+  }
+  _defaultIf(userId, obs) {
+    if (userId === null) {
+      return Observable::of({})
+    } else {
+      return obs
+    }
+  }
+  fetch() {
+    return this._baseObservable::concatMap(userId =>
+      this._defaultIf(userId, this._query(userId).fetch()))
+  }
+  watch(...args) {
+    return this._baseObservable::concatMap(userId =>
+      this._defaultIf(userId, this._query(userId).watch(...args)))
   }
 }
 
