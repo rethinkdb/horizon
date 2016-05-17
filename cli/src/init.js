@@ -38,17 +38,18 @@ const makeDefaultConfig = (projectName) => `\
 
 ###############################################################################
 # HTTPS Options
-# 'insecure' will disable HTTPS and use HTTP instead
+# 'secure' will disable HTTPS and use HTTP instead when set to `false`
 # 'key_file' and 'cert_file' are required for serving HTTPS
 #------------------------------------------------------------------------------
-# insecure = true
+# secure = false
 # key_file = "horizon-key.pem"
 # cert_file = "horizon-cert.pem"
 
 
 ###############################################################################
 # App Options
-# 'project' will change to the given directory
+# 'project_name' sets the name of the RethinkDB database used to store the
+#                application state
 # 'serve_static' will serve files from the given directory over HTTP/HTTPS
 #------------------------------------------------------------------------------
 project_name = "${projectName}"
