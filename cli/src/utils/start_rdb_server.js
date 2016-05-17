@@ -49,7 +49,7 @@ module.exports = (raw_options) => {
                  '--directory', dataDir ];
   bind.forEach((host) => args.push('--bind', host));
 
-  return new Promise((resolve, reject) => {    
+  return new Promise((resolve, reject) => {
     const rdbProc = spawn('rethinkdb', args);
 
     rdbProc.once('error', (err) => {
