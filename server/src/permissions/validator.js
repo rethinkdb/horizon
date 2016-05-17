@@ -1,6 +1,7 @@
 'use strict';
 
 const check = require('../error').check;
+const logger = require('../logger');
 const remake_error = require('../utils').remake_error;
 
 const vm = require('vm');
@@ -19,7 +20,10 @@ class Validator {
     try {
       return this._fn.apply(this._fn, arguments);
     } catch (err) {
-      throw remake_error(err);
+      // We don't want to pass the error message on to the user because it might leak
+      // information about the data.
+      logger.error(`Exception in validator function: ${err.stack}`);
+      throw Error("Validation error");
     }
   }
 }
