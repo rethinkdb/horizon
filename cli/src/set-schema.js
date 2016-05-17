@@ -6,6 +6,7 @@ const start_rdb_server = require('./utils/start_rdb_server');
 const serve = require('./serve');
 const logger = require('@horizon/server').logger;
 const create_collection_reql = require('@horizon/server/src/metadata').create_collection_reql;
+const initialize_metadata_reql = require('@horizon/server/src/metadata').initialize_metadata_reql;
 const name_to_fields = require('@horizon/server/src/index').Index.name_to_fields;
 
 const fs = require('fs');
@@ -136,7 +137,7 @@ const runCommand = (options, done) => {
   const db = options.project_name;
   const internal_db = `${db}_internal`;
 
-  logger.remove(logger.transports.Console);
+  logger.level = 'error';
   interrupt.on_interrupt((done2) => {
     if (conn) {
       conn.close();
@@ -164,11 +165,16 @@ const runCommand = (options, done) => {
     r.connect({ host: options.rdb_host,
                 port: options.rdb_port })
   ).then((rdb_conn) => {
-    // Wait for metadata tables to be writable
     conn = rdb_conn;
+    return initialize_metadata_reql(r, internal_db, db).run(conn);
+  }).then((initialization_result) => {
+    if (initialization_result.tables_created) {
+      console.log("Initialized new application metadata.");
+    }
+    // Wait for metadata tables to be writable
     return r.db(internal_db)
-            .wait({ waitFor: 'ready_for_writes', timeout: 30 })
-            .run(conn);
+     .wait({ waitFor: 'ready_for_writes', timeout: 30 })
+     .run(conn);
   }).then(() => {
     // Error if any collections will be removed
     if (!options.update) {
@@ -311,7 +317,7 @@ const runCommand = (options, done) => {
     return Promise.all(promises);
   }).then(() => {
     conn.close();
-    process.exit(0);
+    interrupt.shutdown();
   }).catch(done);
 };
 

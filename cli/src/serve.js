@@ -495,6 +495,9 @@ const startHorizonServer = (servers, opts) => {
   hzServer.ready().then(() => {
     clearTimeout(timeoutObject);
     console.log(chalk.green.bold('Horizon ready for connections 🌄'));
+  }).catch((err) => {
+    console.log(chalk.red.bold(err));
+    process.exit(1);
   });
   return hzServer;
 };
@@ -517,7 +520,7 @@ const runCommand = (opts, done) => {
   if (opts.debug) {
     logger.level = 'debug';
   } else {
-    logger.level = 'warning';
+    logger.level = 'warn';
   }
 
   change_to_project_dir(opts.project_path);
