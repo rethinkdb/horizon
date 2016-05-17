@@ -169,7 +169,7 @@ const runCommand = (options, done) => {
     return r.dbList().contains(db, internal_db).run(conn);
   }).then((db_exists) => {
     if (!db_exists) {
-      console.log("Initializing new database");
+      console.log("Initializing new application metadata.");
       return initialize_metadata_reql(r, db, internal_db).run(conn);
     } else {
       return Promise.resolve();

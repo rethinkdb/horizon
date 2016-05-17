@@ -192,7 +192,7 @@ class Metadata {
              throw new Error(err_msg + "Run `hz set-schema` to initialize the database, "
                   + "then start the Horizon server.");
            } else {
-             return this.make_feeds();
+             return make_feeds();
            }
          });
     }
