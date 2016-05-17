@@ -102,12 +102,12 @@ const wrap_remove = (doc) => {
 };
 
 // Add helper methods to match any subset of the current query for reads or writes
-ast.TermBase.prototype.any_read = function() {
+ast.TermBase.prototype.anyRead = function() {
   return this._sendRequest(new Any([ 'query', 'subscribe' ]),
                            new AnyObject(this._query));
 };
 
-ast.Collection.prototype.any_write = function() {
+ast.Collection.prototype.anyWrite = function() {
   let docs = arguments;
   if (arguments.length === 0) {
     docs = new AnyArray(new Any());
@@ -219,7 +219,7 @@ template_compare = (query, template, context) => {
 
 const incomplete_template_message = (str) =>
   'Incomplete template "${str}", ' +
-  'consider adding ".fetch()", ".watch()", ".any_read()", or ".any_write()"';
+  'consider adding ".fetch()", ".watch()", ".anyRead()", or ".anyWrite()"';
 
 class Template {
   constructor(str) {

@@ -32,7 +32,7 @@ describe('Permissions', () => {
     });
 
     it('any read', () => {
-      const rule = new Rule('foo', { template: 'collection(any()).any_read()' });
+      const rule = new Rule('foo', { template: 'collection(any()).anyRead()' });
       assert(rule.is_valid());
       assert(!rule.is_match(make_request('fake', 'test', { }), context));
       assert(!rule.is_match(make_request('store', 'test', { }), context));
@@ -49,7 +49,7 @@ describe('Permissions', () => {
     });
 
     it('any read with collection', () => {
-      const rule = new Rule('foo', { template: 'collection("test").any_read()' });
+      const rule = new Rule('foo', { template: 'collection("test").anyRead()' });
       assert(rule.is_valid());
       assert(!rule.is_match(make_request('query', 'fake', { }), context));
       assert(rule.is_match(make_request('query', 'test', { }), context));
@@ -63,7 +63,7 @@ describe('Permissions', () => {
 
     it('any read with order', () => {
       // TODO: allow for any number of fields in order
-      const rule = new Rule('foo', { template: 'collection("test").order(any(), any()).any_read()' });
+      const rule = new Rule('foo', { template: 'collection("test").order(any(), any()).anyRead()' });
       assert(rule.is_valid());
       assert(!rule.is_match(make_request('query', 'fake', { order: [ 'foo', 'ascending' ] }), context));
       assert(!rule.is_match(make_request('query', 'test', { }), context));
@@ -79,7 +79,7 @@ describe('Permissions', () => {
     });
 
     it('any read with find', () => {
-      const rule = new Rule('foo', { template: 'collection("test").find(any()).any_read()' });
+      const rule = new Rule('foo', { template: 'collection("test").find(any()).anyRead()' });
       assert(rule.is_valid());
       assert(!rule.is_match(make_request('query', 'fake', { find: { } }), context));
       assert(!rule.is_match(make_request('query', 'test', { }), context));
@@ -89,7 +89,7 @@ describe('Permissions', () => {
 
     it('any read with findAll', () => {
       // TODO: allow for any number of arguments in findAll
-      const rule = new Rule('foo', { template: 'collection("test").findAll(any()).any_read()' });
+      const rule = new Rule('foo', { template: 'collection("test").findAll(any()).anyRead()' });
       assert(rule.is_valid());
       assert(!rule.is_match(make_request('query', 'fake', { find_all: { } }), context));
       assert(!rule.is_match(make_request('query', 'test', { }), context));
@@ -140,7 +140,7 @@ describe('Permissions', () => {
     }
 
     it('any write', () => {
-      const rule = new Rule('foo', { template: 'collection("test").any_write()' });
+      const rule = new Rule('foo', { template: 'collection("test").anyWrite()' });
       assert(rule.is_valid());
       assert(!rule.is_match(make_request('fake', 'test', { }), context));
       assert(!rule.is_match(make_request('query', 'test', { }), context));
