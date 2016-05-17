@@ -10,7 +10,8 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   reql.changes({ include_initial: true,
                  include_states: true,
                  include_types: true,
-                 include_offsets: Boolean(raw_request.options.order) })
+                 include_offsets: Boolean(raw_request.options.order) &&
+                                  Boolean(raw_request.options.limit) })
     .run(metadata.connection(), reql_options)
     .then((res) => {
       feed = res;

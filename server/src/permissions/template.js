@@ -152,8 +152,8 @@ const env = {
        type: Array.isArray(type) ? new Any(type) : type,
        options }), name, false),
   any: function() { return new Any(Array.from(arguments)); },
-  any_object: function(obj) { return new AnyObject(obj); },
-  any_array: function() { return new AnyArray(Array.from(arguments)); },
+  anyObject: function(obj) { return new AnyObject(obj); },
+  anyArray: function() { return new AnyArray(Array.from(arguments)); },
   userId: function() { return new UserId(); },
 };
 
@@ -218,7 +218,7 @@ template_compare = (query, template, context) => {
 };
 
 const incomplete_template_message = (str) =>
-  'Incomplete template "${str}", ' +
+  `Incomplete template "${str}", ` +
   'consider adding ".fetch()", ".watch()", ".anyRead()", or ".anyWrite()"';
 
 class Template {

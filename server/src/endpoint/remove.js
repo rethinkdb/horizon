@@ -40,11 +40,18 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                rows.forEach((info) =>
                  r.table(collection.table)
                    .get(info('id')).replace((row) =>
-                     r.branch(row.eq(null),
+                     r.branch(// The row may have been deleted between the get and now
+                              row.eq(null),
                               null,
+
+                              // The row may have been changed between the get and now,
+                              // which would require validation again.
                               row(writes.version_field).ne(info(writes.version_field)),
                               r.error(writes.invalidated_error),
+
+                              // Otherwise, we can safely remove the row
                               null),
+
                      { returnChanges: 'always' }))
                  // Pretend like we deleted rows that didn't exist
                  .do((res) =>

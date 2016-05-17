@@ -155,7 +155,7 @@ This can be sent for any request at any time.  Once an error response is sent, n
 ```
 {
   "request_id": <NUMBER>,
-  "data": [<DOCUMENT_ID> | { "error": <STRING> }, ...],
+  "data": [ { "id": <DOCUMENT_ID>, "$hz_v$": <DOCUMENT_VERSION> } | { "error": <STRING> }, ...],
   "state": "complete"
 }
 ```

@@ -51,18 +51,27 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                           r.table(collection.table)
                             .get(new_row('id'))
                             .replace((old_row) =>
-                              r.branch(r.and(old_row.eq(null),
-                                             new_row.hasFields(writes.version_field)),
-                                       r.error(writes.missing_error),
+                              r.branch(// There are several things that may occur to invalidate the write:
+                                       // * the row does not have the expected version
+                                       // * we were expecting the row to not exist, but it does
+                                       // * we were expecting the row to exist, but it doesn't
                                        r.or(r.and(new_row.hasFields(writes.version_field),
                                                   old_row(writes.version_field).ne(new_row(writes.version_field))),
                                             r.and(new_row.hasFields(writes.version_field).not(),
-                                                  old_row.ne(null))),
+                                                  old_row.ne(null)),
+                                            r.and(old_row.eq(null),
+                                                  new_row.hasFields(writes.version_field))),
                                        r.error(writes.invalidated_error),
+
+                                       // The row may not exist, in which case we insert a new row
                                        old_row.eq(null),
                                        writes.apply_version(new_row, 0),
+
+                                       // Otherwise, we can safely update the row and increment the version
                                        writes.apply_version(old_row.merge(new_row), old_row(writes.version_field).add(1))),
                               { returnChanges: 'always' }),
+
+                          // The new row did not have an id, so we insert it with an autogen id
                           r.table(collection.table)
                             .insert(writes.apply_version(new_row, 0),
                                     { returnChanges: 'always' })))

@@ -66,8 +66,6 @@ class Request {
 
 
   close() {
-    // There is no way to interrupt a request, but we can remove all permissions from it,
-    // so any further actions are prevented.
     this._ruleset.clear();
     if (this._cancel_cb) {
       this._cancel_cb();

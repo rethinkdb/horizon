@@ -48,10 +48,15 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
             r.table(collection.table)
               .get(new_row('id'))
               .replace((old_row) =>
-                r.branch(old_row.eq(null),
+                r.branch(// The row may have been deleted between the get and now
+                         old_row.eq(null),
                          r.error(writes.missing_error),
+
+                         // The row may have been changed between the get and now
                          old_row(writes.version_field).ne(new_row(writes.version_field)),
                          r.error(writes.invalidated_error),
+
+                         // Otherwise we can safely update the row and increment the version
                          writes.apply_version(old_row.merge(new_row), old_row(writes.version_field).add(1))),
                 { returnChanges: 'always' }))
           .run(conn, reql_options);

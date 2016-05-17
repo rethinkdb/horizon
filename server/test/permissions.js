@@ -127,7 +127,7 @@ describe('Permissions', () => {
         assert(rule.is_match(make_request(type, 'test', { data: [ { } ] }), context));
       });
       it(`collection ${type} batch`, () => {
-        const rule = new Rule('foo', { template: `collection("test").${type}(any_array(any()))` });
+        const rule = new Rule('foo', { template: `collection("test").${type}(anyArray(any()))` });
         assert(rule.is_valid());
         assert(!rule.is_match(make_request(type, 'test', { }), context));
         assert(!rule.is_match(make_request(type, 'test', { data: { } }), context));

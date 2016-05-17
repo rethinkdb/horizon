@@ -118,12 +118,7 @@ class ReqlConnection {
 
   close() {
     this._closed = true;
-    if (this._connection) {
-      this._connection.close();
-    }
-    if (this._metadata) {
-      this._metadata.close();
-    }
+    this._reconnect(); // This won't actually reconnect, but will do all the cleanup
   }
 }
 
