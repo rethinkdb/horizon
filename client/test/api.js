@@ -3,7 +3,7 @@ import { concat } from 'rxjs/operator/concat'
 import { _do as tap } from 'rxjs/operator/do'
 import { toArray } from 'rxjs/operator/toArray'
 
-import { assertCompletes, removeAllData } from './utils'
+import { assertCompletes, removeAllData, compareSetsWithoutVersion } from './utils'
 
 // This test suite covers various edge cases in the Horizon client library API.
 // It does not cover correctness of the full system in various circumstances.
@@ -79,7 +79,7 @@ describe('Core API tests', () => {
       data.store(testData)
        ::ignoreElements()
        ::concat(data.fetch())
-       ::tap(res => assert.sameDeepMembers(res, testData))
+       ::tap(res => compareSetsWithoutVersion(res, testData))
     ))
 
     describe('Testing full collection read',

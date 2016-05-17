@@ -5,7 +5,7 @@
   "main": "src/horizon.js",
   "scripts": {
     "lint": "eslint src test",
-    "test": "mocha test/test.js test/schema.js --timeout 10000",
+    "test": "mocha test/test.js test/schema.js test/permissions.js --timeout 10000",
     "coverage": "istanbul cover _mocha test/test.js"
   },
   "repository": {
@@ -30,10 +30,10 @@
     "oauth": "^0.9.14",
     "pem": "^1.8.1",
     "rethinkdb": "^2.1.1",
-    "winston": "^2.1.0",
-    "ws": "1.0.1"
+    "winston": "^2.1.0"
   },
   "devDependencies": {
+    "engine.io-client": "^1.6.9",
     "eslint": "^2.3.0",
     "istanbul": "^0.4.3",
     "mocha": "^2.3.3",

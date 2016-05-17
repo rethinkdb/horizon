@@ -1,7 +1,10 @@
 import { _do as tap } from 'rxjs/operator/do'
 import { toArray } from 'rxjs/operator/toArray'
 
-import { assertCompletes, assertThrows, assertErrors } from './utils'
+import { assertCompletes,
+         assertThrows,
+         assertErrors,
+         compareWithoutVersion } from './utils'
 
 const limitSuite = global.limitSuite = getData => () => {
   let data
@@ -13,7 +16,7 @@ const limitSuite = global.limitSuite = getData => () => {
   // Limit returns an array of documents
   it('can return an array of documents', assertCompletes(() =>
     data.order('id').limit(2).fetch()
-      ::tap(res => assert.deepEqual(res, [
+      ::tap(res => compareWithoutVersion(res, [
         { id: 1, a: 10 },
         { id: 2, a: 20, b: 1 },
       ]))
@@ -40,7 +43,7 @@ const limitSuite = global.limitSuite = getData => () => {
   // `limit(0)` is ok
   it('can accept an argument of 0', assertCompletes(() =>
     data.limit(0).fetch()
-      ::tap(res => assert.deepEqual(res, []))
+      ::tap(res => compareWithoutVersion(res, []))
   ))
 
   // `limit(null)` is an error
@@ -51,12 +54,14 @@ const limitSuite = global.limitSuite = getData => () => {
 
   // `limit(-1)` is an error
   it('errors if it receives a negative argument', assertErrors(() =>
-    data.limit(-1).fetch()
+    data.limit(-1).fetch(),
+    /"find" is required/
   ))
 
   // `limit(non_int)` is an error
   it(`errors if the argument to limit isn't a number`, assertErrors(() =>
-    data.limit('k').fetch()
+    data.limit('k').fetch(),
+    /"find" is required/
   ))
 
   // Chaining off of limit is illegal

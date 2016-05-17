@@ -1,11 +1,9 @@
 'use strict';
 
 const Auth = require('./auth').Auth;
-const check = require('./error').check;
 const Client = require('./client').Client;
 const ReqlConnection = require('./reql_connection').ReqlConnection;
 const logger = require('./logger');
-const horizon_protocol = require('./schema/horizon_protocol');
 const options_schema = require('./schema/server_options').server;
 
 // TODO: dynamically serve different versions of the horizon
@@ -63,21 +61,20 @@ class Server {
   constructor(http_servers, user_opts) {
     const opts = Joi.attempt(user_opts || { }, options_schema);
     this._path = opts.path;
-    this._name = opts.db;
+    this._name = opts.project_name;
+    this._permissions_enabled = opts.permissions;
     this._auth_methods = { };
     this._request_handlers = new Map();
     this._http_handlers = new Map();
     this._ws_servers = new Set();
-    this._clients = new Set();
     this._reql_conn = new ReqlConnection(opts.rdb_host,
                                          opts.rdb_port,
-                                         opts.db,
-                                         opts.auto_create_table,
-                                         opts.auto_create_index,
-                                         this._clients);
+                                         opts.project_name,
+                                         opts.auto_create_collection,
+                                         opts.auto_create_index);
     this._auth = new Auth(this, opts.auth);
-    for (let key of Object.keys(endpoints)) {
-      this.add_request_handler(key, endpoints[key].make_reql, endpoints[key].handle_response);
+    for (const key in endpoints) {
+      this.add_request_handler(key, endpoints[key].run);
     }
 
     const verify_client = (info, cb) => {
@@ -150,20 +147,14 @@ class Server {
     }
   }
 
-  add_request_handler(request_name, make_reql, handle_response) {
-    assert(make_reql !== undefined);
-    assert(handle_response !== undefined);
+  add_request_handler(request_name, endpoint) {
+    assert(endpoint !== undefined);
     assert(this._request_handlers.get(request_name) === undefined);
-    this._request_handlers.set(request_name, { make_reql: make_reql, handle_response: handle_response });
+    this._request_handlers.set(request_name, endpoint);
   }
 
   get_request_handler(request) {
-    const parsed = Joi.validate(request, horizon_protocol.request);
-    if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
-
-    const handler = this._request_handlers.get(parsed.value.type);
-    check(handler !== undefined, `"${parsed.value.type}" is not a registered request type.`);
-    return handler;
+    return this._request_handlers.get(request.type);
   }
 
   remove_request_handler(request_name) {

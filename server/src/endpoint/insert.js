@@ -1,35 +1,39 @@
 'use strict';
 
-const check = require('../error').check;
 const insert = require('../schema/horizon_protocol').insert;
+const writes = require('./writes');
+const reql_options = require('./common').reql_options;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
 
-const make_reql = (raw_request, metadata) => {
+const run = (raw_request, context, ruleset, metadata, send, done) => {
   const parsed = Joi.validate(raw_request.options, insert);
-  if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
+  if (parsed.error !== null) { done(new Error(parsed.error.details[0].message)); }
 
-  const table = metadata.get_table(parsed.value.collection);
-  return r.table(table.name).insert(parsed.value.data, { conflict: 'error' });
-};
+  const collection = metadata.collection(parsed.value.collection);
+  const conn = metadata.connection();
 
-// This is also used by the 'store' and 'upsert' endpoints
-const handle_response = (request, response, send_cb) => {
-  if (response.errors !== 0) {
-    send_cb({ error: response.first_error });
-  } else {
-    let index = 0;
-    const ids = request.raw.options.data.map((row) => {
-      if (row.id === undefined) {
-        check(response.generated_keys && response.generated_keys.length > index,
-              'ReQL response does not contain enough generated keys.');
-        return response.generated_keys[index++];
-      }
-      return row.id;
-    });
-    send_cb({ data: ids, state: 'complete' });
+  // TODO: shortcut if validation isn't needed (for all write request types)
+  const response_data = [ ];
+  const valid_rows = [ ];
+  for (let i = 0; i < parsed.value.data.length; ++i) {
+    if (ruleset.validate(context, null, parsed.value.data[i])) {
+      valid_rows.push(parsed.value.data[i]);
+      response_data.push(null);
+    } else {
+      response_data.push(new Error('Operation not permitted.'));
+    }
   }
+
+  // TODO: shortcut if valid rows is empty (for all write request types)
+  r.table(collection.table)
+    .insert(valid_rows.map((row) => writes.apply_version(r.expr(row), 0)),
+            { conflict: 'error', returnChanges: 'always' })
+    .run(conn, reql_options)
+    .then((insert_results) => {
+      done(writes.make_write_response(response_data, insert_results));
+    }).catch(done);
 };
 
-module.exports = { make_reql, handle_response };
+module.exports = { run };

@@ -3,16 +3,16 @@
 const Joi = require('joi');
 
 const server = Joi.object({
-  project_name: Joi.string(),
+  project_name: Joi.string().default('horizon'),
   rdb_host: Joi.string().hostname().default('localhost'),
   rdb_port: Joi.number().greater(0).less(65536).default(28015),
 
-  auto_create_table: Joi.boolean().default(false),
+  auto_create_collection: Joi.boolean().default(false),
   auto_create_index: Joi.boolean().default(false),
 
-  path: Joi.string().default('/horizon'),
+  permissions: Joi.boolean().default(true),
 
-  db: Joi.string().token().default('horizon'),
+  path: Joi.string().default('/horizon'),
 
   auth: Joi.object().default({ }),
 }).unknown(false);
@@ -24,7 +24,7 @@ const auth = Joi.object({
   duration: Joi.alternatives(Joi.string(), Joi.number().positive()).default('1d'),
 
   create_new_users: Joi.boolean().default(true),
-  new_user_group: Joi.string().default('default'),
+  new_user_group: Joi.string().default('authenticated'),
 
   token_secret: Joi.string().allow(null),
   allow_anonymous: Joi.boolean().default(false),

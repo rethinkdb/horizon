@@ -1,181 +1,200 @@
 'use strict';
 
-const check = require('./error').check;
+const error = require('./error');
 const logger = require('./logger');
+const Group = require('./permissions/group').Group;
+const Collection = require('./collection').Collection;
 
 const r = require('rethinkdb');
 
-class IndexMissing extends Error {
-  constructor(table, fields) {
-    super(`Table "${table.name}" has no index matching ${JSON.stringify(fields)}.`);
-    this.table = table;
-    this.fields = fields;
-  }
-}
+// This is exported for use by the CLI. This accepts 'R' as a parameter because of
+// https://github.com/rethinkdb/rethinkdb/issues/3263
+const create_collection_reql = (R, internal_db, user_db, collection) => {
+  const do_create = (table) =>
+    R.db(user_db).tableCreate(table).do(() =>
+      R.db(internal_db)
+        .table('collections')
+        .get(collection)
+        .replace((old_row) =>
+          R.branch(old_row.eq(null),
+                   { id: collection, table },
+                   old_row),
+          { returnChanges: 'always' })('changes')(0)
+        .do((res) =>
+          R.branch(R.or(res.hasFields('error'),
+                        res('new_val')('table').ne(table)),
+                   R.db(user_db).tableDrop(table).do(() => res),
+                   res)));
 
-class TableMissing extends Error {
-  constructor(name) {
-    super(`Table "${name}" does not exist.`);
-    this.name = name;
-  }
-}
+  return R.uuid().split('-')(-1)
+           .do((id) => R.expr(collection).add('_').add(id)).do((table) =>
+             R.db(internal_db).table('collections').get(collection).do((row) =>
+               R.branch(row.eq(null),
+                        do_create(table),
+                        { old_val: row, new_val: row })));
+};
 
-class IndexNotReady extends Error {
-  constructor(table, index) {
-    super(`Index on table "${table.name}" is not ready: ${JSON.stringify(index.fields)}.`);
-    this.table = table;
-    this.index = index;
-  }
-}
+class Metadata {
+  constructor(project_name,
+              conn,
+              clients,
+              auto_create_collection,
+              auto_create_index) {
+    this._db = project_name;
+    this._internal_db = `${this._db}_internal`;
+    this._conn = conn;
+    this._clients = clients;
+    this._auto_create_collection = auto_create_collection;
+    this._auto_create_index = auto_create_index;
+    this._closed = false;
+    this._ready = false;
+    this._collections = new Map();
+    this._groups = new Map();
+    this._collection_feed = null;
+    this._group_feed = null;
+    this._index_feed = null;
 
-class TableNotReady extends Error {
-  constructor(table) {
-    super(`Table "${table.name}" is not ready.`);
-    this.table = table;
-  }
-}
+    const make_feeds = () => {
+      logger.debug('running metadata sync');
+      const groups_ready =
+        r.db(this._internal_db)
+          .table('groups')
+          .changes({ squash: true,
+                     includeInitial: true,
+                     includeStates: true,
+                     includeTypes: true })
+          .run(this._conn).then((res) => {
+            if (this._closed) {
+              res.close();
+              throw new Error('This metadata instance has been closed.');
+            }
+            return new Promise((resolve, reject) => {
+              this._group_feed = res;
+              this._group_feed.eachAsync((change) => {
+                if (change.type === 'state') {
+                  if (change.state === 'ready') {
+                    logger.info('Groups metadata synced.');
+                    resolve();
+                  }
+                } else if (change.type === 'initial' ||
+                           change.type === 'add' ||
+                           change.type === 'change') {
+                  const group = new Group(change.new_val);
+                  this._groups.set(group.name, group);
+                  this._clients.forEach((c) => c.group_changed(group.name));
+                } else if (change.type === 'uninitial' ||
+                           change.type === 'remove') {
+                  const group = this._groups.delete(change.old_val.id);
+                  if (group) {
+                    this._clients.forEach((c) => c.group_changed(group.name));
+                  }
+                }
+              }).catch(reject);
+            });
+          });
+      const collections_ready =
+        r.db(this._internal_db)
+          .table('collections')
+          .changes({ squash: true,
+                     includeInitial: true,
+                     includeStates: true,
+                     includeTypes: true })
+          .run(this._conn).then((res) => {
+            if (this._closed) {
+              res.close();
+              throw new Error('This metadata instance has been closed.');
+            }
+            return new Promise((resolve, reject) => {
+              this._collection_feed = res;
+              this._collection_feed.eachAsync((change) => {
+                if (change.type === 'state') {
+                  if (change.state === 'ready') {
+                    logger.info('Collections metadata synced.');
+                    resolve();
+                  }
+                } else if (change.type === 'initial' ||
+                           change.type === 'add' ||
+                           change.type === 'change') {
+                  const collection = new Collection(change.new_val, this._conn);
+                  this._collections.set(collection.name, collection);
+                } else if (change.type === 'uninitial' ||
+                           change.type === 'remove') {
+                  this._collections.delete(change.old_val.id);
+                }
+              }).catch(reject);
+            });
+          });
+      const indexes_ready =
+        r.db('rethinkdb')
+          .table('table_config')
+          .filter({ db: this._db })
+          .pluck('name', 'indexes')
+          .changes({ squash: true,
+                     includeInitial: true,
+                     includeStates: true,
+                     includeTypes: true })
+          .run(this._conn).then((res) => {
+            if (this._closed) {
+              res.close();
+              throw new Error('This metadata instance has been closed.');
+            }
+            return new Promise((resolve, reject) => {
+              this._index_feed = res;
+              this._index_feed.eachAsync((change) => {
+                if (change.type === 'state') {
+                  if (change.state === 'ready') {
+                    logger.info('Index metadata synced.');
+                    resolve();
+                  }
+                } else if (change.type === 'initial' ||
+                           change.type === 'add' ||
+                           change.type === 'change') {
+                  const table = change.new_val.name;
+                  this._collections.forEach((c) => {
+                    if (c.table === table) {
+                      c.update_indexes(change.new_val.indexes, this._conn);
+                    }
+                  });
+                }
+              }).catch(reject);
+            });
+          });
+      return Promise.all([ groups_ready, collections_ready, indexes_ready ]).then(() => {
+        logger.debug('metadata sync complete');
+        this._ready = true;
+        return this;
+      });
+    };
 
-class Index {
-  constructor(name, fields, promise) {
-    this.name = name;
-    this.fields = fields;
-    this.promise = promise;
-  }
-
-  on_ready(done) {
-    this.promise ? this.promise.then(() => done(), (err) => done(err)) : done();
-  }
-
-  // `fuzzy_fields` may be in any order at the beginning of the index.
-  // These must be immediately followed by `ordered_fields` in the exact
-  // order given.  There may be no other fields present in the index until
-  // after all of `fuzzy_fields` and `ordered_fields` are present.
-  // `fuzzy_fields` may overlap with `ordered_fields`.
-  is_match(fuzzy_fields, ordered_fields) {
-    for (let i = 0; i < fuzzy_fields.length; ++i) {
-      const pos = this.fields.indexOf(fuzzy_fields[i]);
-      if (pos < 0 || pos >= fuzzy_fields.length) { return false; }
+    if (this._auto_create_collection) {
+      this._ready_promise =
+        r.expr([ this._db, this._internal_db ])
+         .forEach((db) => r.branch(r.dbList().contains(db), [], r.dbCreate(db)))
+         .do(() =>
+           r.expr([ 'collections', 'users_auth', 'users', 'groups' ])
+            .forEach((table) => r.branch(r.db(this._internal_db).tableList().contains(table),
+                                         [], r.db(this._internal_db).tableCreate(table))))
+         .run(this._conn).then(make_feeds);
+    } else {
+      this._ready_promise = make_feeds();
     }
-
-    outer: // eslint-disable-line no-labels
-    for (let i = 0; i <= fuzzy_fields.length && i + ordered_fields.length <= this.fields.length; ++i) {
-      for (let j = 0; j < ordered_fields.length; ++j) {
-        if (this.fields[i + j] !== ordered_fields[j]) {
-          continue outer; // eslint-disable-line no-labels
-        }
-      }
-      return true;
-    }
-    return false;
-  }
-}
-
-class Table {
-  constructor(name, indexes, promise) {
-    this.name = name;
-    this.indexes = indexes;
-    this.promise = promise;
-  }
-
-  on_ready(done) {
-    this.promise ? this.promise.then(() => done(), (err) => done(err)) : done();
-  }
-
-  create_index(fields, conn, done) {
-    logger.warn(`Auto-creating index on table "${this.name}" (dev mode): ${JSON.stringify(fields)}`);
-
-    // This may error if two dev mode instances try to create the table at the
-    // same time on multiple instances.  This could maybe be mitigated by adding
-    // a delay before `r.tableWait` below - but the time would depend on the
-    // latency of metadata propagation in the RethinkDB cluster.
-    const promise =
-      r.uuid(r.expr(fields).toJSON()).do((index_id) =>
-        r.db('horizon_internal').table('collections').get(this.name).update((row) =>
-          ({ indexes: r.object(index_id, fields).merge(row('indexes')) })).do((res) =>
-          r.branch(res('replaced').eq(1),
-            r.table(this.name).indexCreate(index_id, (row) =>
-              r.expr(fields).map((field_name) => row(field_name).default(r.minval))),
-            { }).do((res2) => [
-              res2.merge({ index_id }),
-              r.table(this.name).indexWait(index_id),
-            ]))).nth(0)
-       .run(conn);
-
-    const index = new Index('uninitialized', fields, promise);
-    this.indexes.add(index);
-
-    promise.then((res) => {
-      if (res.created) {
-        logger.warn(`Index ${JSON.stringify(fields)} on table "${this.name}" created.`);
-      } else {
-        logger.warn(`Index ${JSON.stringify(fields)} on table "${this.name}" created elsewhere.`);
-      }
-      index.name = res.index_id;
-      index.promise = undefined;
-      done();
-    }, (err) => {
-      this.indexes.delete(index);
-      done(err);
+    this._ready_promise.catch(() => {
+      this.close();
     });
   }
 
-  // Returns a matching (possibly compound) index for the given fields
-  // fuzzy_fields and ordered_fields should both be arrays
-  get_matching_index(fuzzy_fields, ordered_fields) {
-    let match = undefined;
-    for (let index of this.indexes) {
-      if (index.is_match(fuzzy_fields, ordered_fields)) {
-        if (index.promise === undefined) {
-          return index;
-        } else if (match === undefined) {
-          match = index;
-        }
-      }
-    }
-
-    if (match === undefined) {
-      throw new IndexMissing(this, fuzzy_fields.concat(ordered_fields));
-    } else {
-      throw new IndexNotReady(this, match);
-    }
-  }
-}
-
-class Metadata {
-  constructor(conn, auto_create_table, auto_create_index) {
-    this._conn = conn;
-    this._auto_create_table = auto_create_table;
-    this._auto_create_index = auto_create_index;
+  close() {
+    this._closed = true;
     this._ready = false;
-
-    let query =
-      r.db('horizon_internal')
-       .table('collections')
-       .map((row) => ({ name: row('id'), indexes: row('indexes') })).coerceTo('array');
-
-    // If we're in dev mode, add additional steps to ensure dbs and tables exist
-    // Note that because of this, it is not safe to run multiple horizon servers in dev mode
-    if (this._auto_create_table) {
-      query = r.expr([ 'horizon', 'horizon_internal' ])
-       .forEach((db) => r.branch(r.dbList().contains(db), [], r.dbCreate(db)))
-       .do(() =>
-         r.expr([ 'collections', 'users_auth', 'users' ])
-          .forEach((table) => r.branch(r.db('horizon_internal').tableList().contains(table),
-                                       [], r.db('horizon_internal').tableCreate(table)))
-          .do(() => query));
+    if (this._group_feed) {
+      this._group_feed.close();
     }
-
-    logger.debug('running metadata sync');
-    this._ready_promise = query.run(this._conn).then((res) => {
-      logger.debug('metadata sync complete');
-      this._tables = new Map();
-      res.forEach((table) =>
-        this._tables.set(table.name,
-          new Table(table.name,
-            new Set(Object.keys(table.indexes).map((idx) =>
-              new Index(idx, table.indexes[idx]))))));
-      this._ready = true;
-    }).then(() => this);
+    if (this._collection_feed) {
+      this._collection_feed.close();
+    }
+    if (this._index_feed) {
+      this._index_feed.close();
+    }
   }
 
   is_ready() {
@@ -186,27 +205,30 @@ class Metadata {
     return this._ready_promise;
   }
 
-  get_table(name) {
-    const table = this._tables.get(name);
-    if (table === undefined) { throw new TableMissing(name); }
-    if (table.promise !== undefined) { throw new TableNotReady(table); }
-    return table;
+  collection(name) {
+    const res = this._collections.get(name);
+    if (res === undefined) { throw new error.CollectionMissing(name); }
+    if (res.promise) { throw new error.CollectionNotReady(res); }
+    return res;
   }
 
   handle_error(err, done) {
     logger.debug(`Handling error: ${err.message}`);
     try {
-      if (this._auto_create_table) {
-        if (err.constructor.name === 'TableMissing') {
-          return this.create_table(err.name, done);
-        } else if (err.constructor.name === 'TableNotReady') {
-          return err.table.on_ready(done);
+      if (this._auto_create_collection) {
+        if (err instanceof error.CollectionMissing) {
+          logger.warn(`Auto-creating collection (dev mode): ${err.name}`);
+          return this.create_collection(err.name, done);
+        } else if (err instanceof error.CollectionNotReady) {
+          return err.collection.on_ready(done);
         }
       }
       if (this._auto_create_index) {
-        if (err.constructor.name === 'IndexMissing') {
-          return err.table.create_index(err.fields, this._conn, done);
-        } else if (err.constructor.name === 'IndexNotReady') {
+        if (err instanceof error.IndexMissing) {
+          logger.warn(`Auto-creating index on collection "${err.collection.name}" ` +
+                      `(dev mode): ${JSON.stringify(err.fields)}`);
+          return err.collection.create_index(err.fields, this._conn, done);
+        } else if (err instanceof error.IndexNotReady) {
           return err.index.on_ready(done);
         }
       }
@@ -217,42 +239,35 @@ class Metadata {
     }
   }
 
-  create_table(name, done) {
-    logger.warn(`Auto-creating table (dev mode): "${name}"`);
-    check(this._tables.get(name) === undefined, `Table "${name}" already exists.`);
+  create_collection(name, done) {
+    error.check(this._collections.get(name) === undefined,
+                `Collection "${name}" already exists.`);
 
-    // This may error if two dev mode instances try to create the table at the
-    // same time on multiple instances.  This could maybe be mitigated by adding
-    // a delay before `r.tableWait` below - but the time would depend on the
-    // latency of metadata propagation in the RethinkDB cluster.
-    const promise =
-      r.db('horizon_internal').table('collections').insert(
-        { id: name, indexes: { id: [ 'id' ] } }).do((res) =>
-          r.branch(res('inserted').eq(1),
-                   r.tableCreate(name),
-                   r.table(name).wait()))
-       .run(this._conn);
-
-    const table = new Table(name, new Set([ new Index('id', [ 'id' ]) ]), promise);
-    this._tables.set(name, table);
-
-    promise.then((res) => {
-      if (res.tables_created) {
-        logger.warn(`Table "${name}" created.`);
-      } else {
-        logger.warn(`Table "${name}" created elsewhere.`);
-      }
-      table.promise = undefined;
-      done();
-    }, (err) => {
-      this._tables.delete(name);
-      done(err);
-    });
+    create_collection_reql(r, this._internal_db, this._db, name)
+      .run(this._conn)
+      .then((res) => {
+        error.check(!res.error, `Collection creation failed (dev mode): "${name}", ${res.error}`);
+        logger.warn(`Collection created (dev mode): "${name}"`);
+        this._collections.set(name, new Collection(res.new_val, this._conn));
+        done();
+      }).catch(done);
   }
 
-  get_user_info(id, done) {
-    r.db('horizon_internal').table('users').get(id).run(this._conn, done);
+  get_user_feed(id, done) {
+    r.db(this._internal_db)
+      .table('users')
+      .get(id)
+      .changes({ includeInitial: true, squash: true })
+      .run(this._conn, done);
+  }
+
+  get_group(group_name) {
+    return this._groups.get(group_name);
+  }
+
+  connection() {
+    return this._conn;
   }
 }
 
-module.exports = { Metadata };
+module.exports = { Metadata, create_collection_reql };

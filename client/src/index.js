@@ -110,8 +110,8 @@ function Horizon({
           return Observable::from([ { state: resp.state, type: resp.type } ])
         }
       })
-      ::_catch(e => Observable.create(observer => {
-        observer.error(e)
+      ::_catch(e => Observable.create(subscriber => {
+        subscriber.error(e)
       })) // on error, strip error message
   }
 }

@@ -1,33 +1,41 @@
 'use strict';
 
-const query = require('./query');
-const logger = require('../logger');
+const make_reql = require('./query').make_reql;
+const reql_options = require('./common').reql_options;
 
-const make_reql = (raw_request, metadata) => {
-  return query.make_reql(raw_request, metadata).changes(
-    { include_initial: true,
-      include_states: true,
-      include_types: true,
-      include_offsets: Boolean(raw_request.options.order),
-    });
-};
+const run = (raw_request, context, ruleset, metadata, send, done) => {
+  let feed;
+  const reql = make_reql(raw_request, metadata);
 
-const handle_response = (request, feed, send_cb) => {
-  request.add_cursor(feed);
-  feed.each((err, item) => {
-    if (err !== null) {
-      send_cb({ error: `${err}` });
-    } else if (item.state === 'initializing') {
-      // Do nothing - we don't care
-    } else if (item.state === 'ready') {
-      send_cb({ state: 'synced' });
-    } else {
-      send_cb({ data: [ item ] });
+  reql.changes({ include_initial: true,
+                 include_states: true,
+                 include_types: true,
+                 include_offsets: Boolean(raw_request.options.order) &&
+                                  Boolean(raw_request.options.limit) })
+    .run(metadata.connection(), reql_options)
+    .then((res) => {
+      feed = res;
+      feed.eachAsync((item) => {
+        if (item.state === 'initializing') {
+          // Do nothing - we don't care
+        } else if (item.state === 'ready') {
+          send({ state: 'synced' });
+        } else if (!ruleset.validate(context, item)) {
+          done(new Error('Operation not permitted.'));
+          feed.close();
+        } else {
+          send({ data: [ item ] });
+        }
+      }).then(() => {
+        done({ state: 'complete' });
+      });
+    }).catch(done);
+
+  return () => {
+    if (feed) {
+      feed.close();
     }
-  }, () => {
-    request.remove_cursor(feed);
-    send_cb({ data: [ ], state: 'complete' });
-  });
+  };
 };
 
-module.exports = { make_reql, handle_response };
+module.exports = { run };
