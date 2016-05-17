@@ -26,4 +26,4 @@ const shutdown = () => {
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-module.exports = { on_interrupt };
+module.exports = { on_interrupt, shutdown };

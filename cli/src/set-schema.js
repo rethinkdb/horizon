@@ -321,7 +321,7 @@ const runCommand = (options, done) => {
     return Promise.all(promises);
   }).then(() => {
     conn.close();
-    process.exit(0);
+    interrupt.shutdown();
   }).catch(done);
 };
 
