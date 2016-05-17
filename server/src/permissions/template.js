@@ -176,7 +176,7 @@ template_compare = (query, template, context) => {
       return false;
     }
   } else if (template instanceof UserId) {
-    if (query !== context.user_id) {
+    if (query !== context.id) {
       return false;
     }
   } else if (template === null) {
