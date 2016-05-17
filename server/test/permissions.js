@@ -12,7 +12,7 @@ const make_request = (type, collection, options) => {
   }
 };
 
-const context = { user_id: 123, groups: [ 'admin', 'default', 'authenticated' ] };
+const context = { id: 123, groups: [ 'admin', 'default', 'authenticated' ] };
 
 describe('Permissions', () => {
   describe('Template', () => {
@@ -154,16 +154,16 @@ describe('Permissions', () => {
       }
     });
 
-    it('user_id in find', () => {
+    it('userId in find', () => {
       const rule = new Rule('foo', { template: 'collection("test").find({ owner: userId() }).fetch()' });
       assert(rule.is_valid());
       assert(!rule.is_match(make_request('query', 'test', { find: { } }), context));
       assert(!rule.is_match(make_request('query', 'test', { find: true }), context));
       assert(!rule.is_match(make_request('query', 'test', { find: [ ] }), context));
       assert(!rule.is_match(make_request('query', 'test', { find: { bar: 'baz' } }), context));
-      assert(!rule.is_match(make_request('query', 'test', { find: { owner: (context.user_id + 1) } }), context));
-      assert(!rule.is_match(make_request('query', 'test', { find: { owner: context.user_id, bar: 'baz' } }), context));
-      assert(rule.is_match(make_request('query', 'test', { find: { owner: context.user_id } }), context));
+      assert(!rule.is_match(make_request('query', 'test', { find: { owner: (context.id + 1) } }), context));
+      assert(!rule.is_match(make_request('query', 'test', { find: { owner: context.id, bar: 'baz' } }), context));
+      assert(rule.is_match(make_request('query', 'test', { find: { owner: context.id } }), context));
     });
 
     it('adds readAny() implicitly', () => {

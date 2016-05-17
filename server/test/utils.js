@@ -68,7 +68,9 @@ const create_collection = (collection, done) => {
       conn.send(JSON.stringify({ request_id: 123, method: 'unauthenticated' }));
       conn.once('message', (data) => {
         const response = JSON.parse(data);
-        assert.deepStrictEqual(response, { request_id: 123, token: response.token });
+        assert.deepStrictEqual(response, { request_id: 123,
+                                           token: response.token,
+                                           user_id: response.user_id });
 
         // This query should auto-create the collection if it's missing
         conn.send(JSON.stringify({
@@ -198,7 +200,7 @@ const horizon_auth = (req, cb) => {
 
 const horizon_default_auth = (done) => {
   horizon_auth({ request_id: -1, method: 'unauthenticated' }, (res) => {
-    assert.deepStrictEqual(res, { request_id: -1, token: res.token });
+    assert.deepStrictEqual(res, { request_id: -1, token: res.token, user_id: res.user_id });
     done();
   });
 };
