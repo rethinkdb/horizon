@@ -6,15 +6,15 @@ const Index = require('./index').Index;
 const r = require('rethinkdb');
 
 class Collection {
-  constructor(data, conn) {
+  constructor(data, db, conn) {
     this.name = data.id;
-    this.table = data.table;
+    this.table = r.db(db).table(data.table);
     this.indexes = new Map();
 
     this.update_indexes([ ]);
 
     this.promise =
-      r.table(this.table)
+      this.table
         .wait({ waitFor: 'all_replicas_ready' })
         .run(conn)
         .then(() => {
@@ -50,8 +50,7 @@ class Collection {
       return index.promise.then(() => done());
     };
 
-    r.table(this.table)
-      .indexCreate(index_name, (row) => fields.map((key) => row(key)))
+    this.table.indexCreate(index_name, (row) => fields.map((key) => row(key)))
       .run(conn)
       .then(success)
       .catch((err) => {

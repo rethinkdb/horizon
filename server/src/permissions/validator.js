@@ -23,7 +23,7 @@ class Validator {
       // We don't want to pass the error message on to the user because it might leak
       // information about the data.
       logger.error(`Exception in validator function: ${err.stack}`);
-      throw Error("Validation error");
+      throw new Error('Validation error');
     }
   }
 }

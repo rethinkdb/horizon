@@ -169,7 +169,7 @@ new Promise((resolve) => {
     auth: {
       allow_unauthenticated: true,
       allow_anonymous: true,
-      token_secret: 'hunter2',
+      token_secret: crypto.randomBytes(64).toString('base64'),
     },
   });
   console.log('starting http servers');

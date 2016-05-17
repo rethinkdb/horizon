@@ -14,7 +14,7 @@ const make_reql = (raw_request, metadata) => {
   const options = parsed.value;
 
   const collection = metadata.collection(parsed.value.collection);
-  let reql = r.table(collection.table);
+  let reql = collection.table;
 
   const ordered_between = (obj) => {
     const order_keys = (options.order && options.order[0]) ||

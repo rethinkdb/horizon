@@ -2,6 +2,7 @@
 
 const logger = require('./logger');
 const options_schema = require('./schema/server_options').auth;
+const writes = require('./endpoint/writes');
 
 const Joi = require('joi');
 const jwt = require('jsonwebtoken');
@@ -50,6 +51,14 @@ class Auth {
                       algorithm: 'HS512' });
   }
 
+  new_user_row(id) {
+    return {
+      id,
+      groups: [ 'default', this._new_user_group ],
+      [writes.version_field]: 0
+    };
+  }
+
   // TODO: maybe we should write something into the user data to track open sessions/tokens
   generate_jwt(provider, info, cb) {
     const key = auth_key(provider, info);
@@ -62,10 +71,10 @@ class Auth {
                  .do((res) =>
                    r.branch(res('inserted').eq(1),
                      r.db('horizon_internal').table('users')
-                      .insert({ id: user_id, groups: [ this._new_user_group, 'default' ] })
+                      .insert(this.new_user_row(user_id))
                       .do((res2) =>
                         r.branch(res2('inserted').eq(1),
-                          res('changes')(0)('new_val'),
+                          res2('changes')(0)('new_val'),
                           r.error(res2('first_error'))
                         )),
                      r.error(res('first_error'))
@@ -76,15 +85,13 @@ class Auth {
       query = query.default(r.error('User not found and new user creation is disabled.'));
     }
 
-    this.reql_call(query, (err, res) => {
-      if (err) {
-        // TODO: if we got a `Duplicate primary key` error, it was likely a race condition
-        // and we should succeed if we try again.
-        logger.debug('Failed user lookup or creation: ${err}');
-        cb(new Error('User lookup or creation in database failed.'));
-      } else {
-        cb(null, this._jwt_from_user(res.user_id, provider));
-      }
+    this.reql_call(query).then((res) => {
+      cb(null, this._jwt_from_user(res.id, provider));
+    }).catch((err) => {
+      // TODO: if we got a `Duplicate primary key` error, it was likely a race condition
+      // and we should succeed if we try again.
+      logger.debug(`Failed user lookup or creation: ${err}`);
+      cb(new Error('User lookup or creation in database failed.'));
     });
   }
 
@@ -94,15 +101,19 @@ class Auth {
     }
 
     const query = r.db('horizon_internal').table('users')
-                   .insert({ groups: [ this._new_user_group, 'default' ] });
+                   .insert(this.new_user_row(r.uuid()),
+                           { returnChanges: 'always' })
+                   .bracket('changes')(0)
+                   .do((res) =>
+                     r.branch(res('new_val').eq(null),
+                              r.error(res('error')),
+                              res('new_val')));
 
-    this.reql_call(query, (err, res) => {
-      if (err) {
-        logger.error('Failed anonymous user creation: ${err}');
-        cb(new Error('Anonymous user creation in database failed.'));
-      } else {
-        this.verify_jwt(this._jwt_from_user(res.generated_keys[0], null), cb);
-      }
+    this.reql_call(query).then((res) => {
+      this.verify_jwt(this._jwt_from_user(res.id, null), cb);
+    }).catch((err) => {
+      logger.error(`Failed anonymous user creation: ${err.stack}`);
+      cb(new Error('Anonymous user creation in database failed.'));
     });
   }
 
@@ -133,11 +144,11 @@ class Auth {
     });
   }
 
-  reql_call(query, cb) {
+  reql_call(query) {
     if (!this._parent._reql_conn.ready()) {
-      cb(new Error('Connection to database is down, cannot perform authentication.'));
+      return Promise.reject(new Error('Connection to database is down, cannot perform authentication.'));
     } else {
-      query.run(this._parent._reql_conn.connection(), cb);
+      return query.run(this._parent._reql_conn.connection());
     }
   }
 }

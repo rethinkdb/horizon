@@ -105,7 +105,7 @@ class Client {
       let respond = () => {
         this._socket.on('message', (msg) =>
           this.error_wrap_socket(() => this.handle_request(msg)));
-        this.send_response(request, { token });
+        this.send_response(request, { token, user_id: this.user_info.id });
       };
 
       if (this.user_feed) {

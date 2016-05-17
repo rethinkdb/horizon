@@ -18,7 +18,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   const response_data = [ ];
 
   r.expr(parsed.value.data.map((row) => row.id))
-    .map((id) => r.table(collection.table).get(id))
+    .map((id) => collection.table.get(id))
     .run(conn, reql_options)
     .then((old_rows) => {
       check(old_rows.length === parsed.value.data.length, 'Unexpected ReQL response size.');
@@ -37,9 +37,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
 
       return r.expr(valid_rows)
           .forEach((new_row) =>
-            r.table(collection.table)
-              .get(new_row('id'))
-              .replace((old_row) =>
+            collection.table.get(new_row('id')).replace((old_row) =>
                 r.branch(// The row may have been deleted between the get and now
                          old_row.eq(null),
                          r.error(writes.missing_error),

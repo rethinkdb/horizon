@@ -1,6 +1,6 @@
-import validIndexValue from '../src/util/valid-index-value'
+import validIndexValue from '../../src/util/valid-index-value'
 
-const utilsSuite = global.utilsSuite = () => {
+const unitUtilsSuite = global.unitUtilsSuite = () => {
   describe('validIndexValue', () => {
     function assertValid(value) {
       assert.isTrue(validIndexValue(value),

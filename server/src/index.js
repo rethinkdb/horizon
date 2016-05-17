@@ -2,8 +2,6 @@
 
 const check = require('./error').check;
 
-const r = require('rethinkdb');
-
 // Index names are of the format "field1_field2_field3", where the fields
 // are given in order of use in a compound index.  If the field names contain
 // the characters '\' or '_', they will be escaped with a '\'.
@@ -56,12 +54,9 @@ class Index {
     this.fields = Index.name_to_fields(name);
     if (name !== primary_index_name) {
       this.promise =
-        r.table(table)
-          .indexWait(name)
-          .run(conn)
-          .then(() => {
-            this.promise = null;
-          });
+        table.indexWait(name).run(conn).then(() => {
+          this.promise = null;
+        });
 
       this.promise.catch(() => { });
     } else {

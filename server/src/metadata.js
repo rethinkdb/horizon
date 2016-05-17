@@ -115,11 +115,17 @@ class Metadata {
                 } else if (change.type === 'initial' ||
                            change.type === 'add' ||
                            change.type === 'change') {
-                  const collection = new Collection(change.new_val, this._conn);
-                  this._collections.set(collection.name, collection);
+                  // Ignore special collections
+                  if (change.new_val.id !== 'users') {
+                    const collection = new Collection(change.new_val, this._db, this._conn);
+                    this._collections.set(collection.name, collection);
+                  }
                 } else if (change.type === 'uninitial' ||
                            change.type === 'remove') {
-                  this._collections.delete(change.old_val.id);
+                  // Ignore special collections
+                  if (change.old_val.id !== 'users') {
+                    this._collections.delete(change.old_val.id);
+                  }
                 }
               }).catch(reject);
             });
@@ -178,7 +184,11 @@ class Metadata {
     } else {
       this._ready_promise = make_feeds();
     }
-    this._ready_promise.catch(() => {
+    this._ready_promise.then(() => {
+      // Redirect the 'users' table to the one in the internal db
+      this._collections.set('users', new Collection({ id: 'users', table: 'users' },
+                                                    this._internal_db, this._conn));
+    }).catch(() => {
       this.close();
     });
   }
@@ -248,7 +258,7 @@ class Metadata {
       .then((res) => {
         error.check(!res.error, `Collection creation failed (dev mode): "${name}", ${res.error}`);
         logger.warn(`Collection created (dev mode): "${name}"`);
-        this._collections.set(name, new Collection(res.new_val, this._conn));
+        this._collections.set(name, new Collection(res.new_val, this._db, this._conn));
         done();
       }).catch(done);
   }

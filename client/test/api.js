@@ -35,8 +35,15 @@ describe('Core API tests', () => {
 
   // Kill the horizon connection after running these tests.
   after(done => {
+    let alreadyDone = false
+    function wrappedDone(...args) {
+      if (!alreadyDone) {
+        alreadyDone = true
+        return done(...args)
+      }
+    }
     horizon.disconnect()
-    horizon.onDisconnected(() => done())
+    horizon.onDisconnected(() => wrappedDone())
   })
 
   // Test the mutation commands
@@ -54,6 +61,7 @@ describe('Core API tests', () => {
   describe('Testing `removeAll`', removeAllSuite(getData))
 
   describe('Testing `times`', timesSuite(getData))
+  describe('Testing authentication', authSuite(getHorizon))
   // Test the lookup API
   describe('Lookup API', () => {
     const testData = [
@@ -110,7 +118,7 @@ describe('Core API tests', () => {
   }) // Test the subscriptions API
 
   describe('Unit tests', () => {
-    describe('Auth', authSuite)
-    describe('Utils', utilsSuite)
+    describe('Auth', unitAuthSuite)
+    describe('Utils', unitUtilsSuite)
   })
 }) // Core API tests

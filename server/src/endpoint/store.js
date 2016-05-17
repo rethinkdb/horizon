@@ -17,7 +17,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   const response_data = [ ];
 
   r.expr(parsed.value.data.map((row) => (row.id || null)))
-    .map((id) => r.branch(id.eq(null), null, r.table(collection.table).get(id)))
+    .map((id) => r.branch(id.eq(null), null, collection.table.get(id)))
     .run(conn, reql_options)
     .then((old_rows) => {
       check(old_rows.length === parsed.value.data.length, 'Unexpected ReQL response size.');
@@ -42,9 +42,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
       return r.expr(valid_rows)
                .forEach((new_row) =>
                  r.branch(new_row.hasFields('id'),
-                          r.table(collection.table)
-                            .get(new_row('id'))
-                            .replace((old_row) =>
+                          collection.table.get(new_row('id')).replace((old_row) =>
                               r.branch(// There are several things that may occur to invalidate the write:
                                        // * the row does not have the expected version
                                        // * we were expecting the row to not exist, but it does
@@ -66,9 +64,8 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                               { returnChanges: 'always' }),
 
                           // The new row did not have an id, so we insert it with an autogen id
-                          r.table(collection.table)
-                            .insert(writes.apply_version(new_row, 0),
-                                    { returnChanges: 'always' })))
+                          collection.table.insert(writes.apply_version(new_row, 0),
+                                                  { returnChanges: 'always' })))
                .run(conn, reql_options);
     }).then((store_results) => {
       done(writes.make_write_response(response_data, store_results));

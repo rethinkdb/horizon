@@ -20,8 +20,8 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           // Do nothing - we don't care
         } else if (item.state === 'ready') {
           send({ state: 'synced' });
-        } else if ((item.old_val && !ruleset.validate(context, item.old_val))
-                   || (item.new_val && !ruleset.validate(context, item.new_val))) {
+        } else if ((item.old_val && !ruleset.validate(context, item.old_val)) ||
+                   (item.new_val && !ruleset.validate(context, item.new_val))) {
           throw new Error('Operation not permitted.');
         } else {
           send({ data: [ item ] });
