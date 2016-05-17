@@ -35,8 +35,8 @@ const addArguments = (parser) => {
       help: 'Enable debug logging.' });
 
   parser.addArgument([ '--token-secret' ],
-      { type: 'string', metavar: 'SECRET',
-            help: 'Secret key for signing the token.' });
+    { type: 'string', metavar: 'SECRET',
+      help: 'Secret key for signing the token.' });
 
   parser.addArgument([ 'user' ],
     { type: 'string', metavar: 'USER_ID',
