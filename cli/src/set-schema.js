@@ -166,7 +166,7 @@ const runCommand = (options, done) => {
                 port: options.rdb_port })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    return initialize_metadata_reql(r, db, internal_db).run(conn);
+    return initialize_metadata_reql(r, internal_db, db).run(conn);
   }).then((initialization_result) => {
     if (initialization_result.tables_created) {
       console.log("Initialized new application metadata.");
