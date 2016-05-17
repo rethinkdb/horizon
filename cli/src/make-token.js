@@ -107,7 +107,7 @@ const runCommand = (options, done) => {
     }
 
     const token = jwt.sign({ user: res.id, provider: null },
-                           options.token_secret,
+                           new Buffer(options.token_secret, 'base64'),
                            { expiresIn: '1d', algorithm: 'HS512' });
     console.log(`${token}`);
   }).then(() => interrupt.shutdown()).catch(done);

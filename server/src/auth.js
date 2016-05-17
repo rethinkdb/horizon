@@ -55,7 +55,7 @@ class Auth {
     return {
       id,
       groups: [ 'default', this._new_user_group ],
-      [writes.version_field]: 0
+      [writes.version_field]: 0,
     };
   }
 

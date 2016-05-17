@@ -202,7 +202,32 @@ class Metadata {
            }
          });
     }
-    this._ready_promise.then(() => {
+
+    this._ready_promise = this._ready_promise.then(() => {
+      // Ensure that the admin user and group exists
+      return Promise.all([
+        r.db(this._internal_db).table('users').get('admin')
+          .replace((old_row) =>
+            r.branch(old_row.eq(null),
+                     { id: 'admin', groups: [ 'admin' ] },
+                     old_row),
+            { returnChanges: 'always' })('changes')(0)
+          .do((res) =>
+            r.branch(res('new_val').eq(null),
+                     r.error(res('error')),
+                     res('new_val'))).run(this._conn),
+        r.db(this._internal_db).table('groups').get('admin')
+          .replace((old_row) =>
+            r.branch(old_row.eq(null),
+                     { id: 'admin', rules: { 'carte_blanche': { 'template': 'any()' } } },
+                     old_row),
+            { returnChanges: 'always' })('changes')(0)
+          .do((res) =>
+            r.branch(res('new_val').eq(null),
+                     r.error(res('error')),
+                     res('new_val'))).run(this._conn)
+      ]);
+    }).then(() => {
       // Redirect the 'users' table to the one in the internal db
       this._collections.set('users', new Collection({ id: 'users', table: 'users' },
                                                     this._internal_db, this._conn));
