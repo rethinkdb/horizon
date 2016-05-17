@@ -172,12 +172,8 @@ class Metadata {
                 }
               }).catch(reject);
             });
-          });
-      return Promise.all([ groups_ready, collections_ready, indexes_ready ]).then(() => {
-        logger.debug('metadata sync complete');
-        this._ready = true;
-        return this;
-      });
+          })
+      return Promise.all([ groups_ready, collections_ready, indexes_ready ]);
     };
 
     if (this._auto_create_collection) {
@@ -188,6 +184,7 @@ class Metadata {
         r.expr([ this._db, this._internal_db ])
          .concatMap((db) => r.branch(r.dbList().contains(db), [], [db]))
          .run(this._conn).then((missing_dbs) => {
+           console.log("checking for internal db/tables");
            if (missing_dbs.length > 0) {
              let err_msg;
              if (missing_dbs.length == 1) {
@@ -204,6 +201,7 @@ class Metadata {
     }
 
     this._ready_promise = this._ready_promise.then(() => {
+      logger.debug('adding admin user');
       // Ensure that the admin user and group exists
       return Promise.all([
         r.db(this._internal_db).table('users').get('admin')
@@ -228,10 +226,17 @@ class Metadata {
                      res('new_val'))).run(this._conn)
       ]);
     }).then(() => {
+      logger.debug('redirecting users table');
       // Redirect the 'users' table to the one in the internal db
       this._collections.set('users', new Collection({ id: 'users', table: 'users' },
                                                     this._internal_db, this._conn));
-    }).catch((e) => {
+    }).then(() => {
+      logger.debug('metadata sync complete');
+      this._ready = true;
+      return this;
+    })
+
+    this._ready_promise.catch(() => {
       this.close();
       throw e;
     });
