@@ -53,7 +53,6 @@ module.exports = (raw_options) => {
     const rdbProc = spawn('rethinkdb', args);
 
     rdbProc.once('error', (err) => {
-      console.log("Errored");
       reject(err);
       process.exit(1);
     });
