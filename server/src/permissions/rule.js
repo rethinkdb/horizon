@@ -6,7 +6,7 @@ class Rule {
   constructor(name, info) {
     this._name = name;
     this._template = new Template(info.template);
-    if (info.validators) {
+    if (info.validator) {
       this._validator = new Validator(info.validator);
     }
   }
@@ -42,7 +42,7 @@ class Ruleset {
 
   // Check that a query passes at least one rule in a set
   // Returns the matching rule or undefined if no rules match
-  // Variadic - extra arguments are passed down to the validators
+  // Variadic - extra arguments are passed down to the validator
   validate() {
     for (const rule of this._rules) {
       if (rule.is_valid.apply(rule, arguments)) {
