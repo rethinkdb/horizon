@@ -238,7 +238,6 @@ class Metadata {
 
     this._ready_promise.catch(() => {
       this.close();
-      throw e;
     });
   }
 
