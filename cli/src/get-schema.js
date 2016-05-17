@@ -107,7 +107,7 @@ const runCommand = (options, done) => {
   const internal_db = `${db}_internal`;
   let conn;
 
-  logger.remove(logger.transports.Console);
+  logger.level = 'error';
   interrupt.on_interrupt((done2) => {
     if (conn) {
       conn.close();
@@ -144,7 +144,7 @@ const runCommand = (options, done) => {
     conn.close();
     const toml_str = config_to_toml(res.collections, res.groups);
     options.out_file.write(toml_str);
-  }).then(() => process.exit(0)).catch(done);
+  }).then(() => interrupt.shutdown() ).catch(done);
 };
 
 module.exports = {

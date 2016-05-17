@@ -56,6 +56,11 @@ module.exports = (raw_options) => {
       reject(err);
       process.exit(1);
     });
+    rdbProc.once('exit', (exit_code) => {
+      if (exit_code != 0) {
+        reject(new Error("RethinkDB process terminated with error code " + exit_code + "."));
+      }
+    });
 
     interrupt.on_interrupt((done) => {
       if (rdbProc.exitCode === null) {
