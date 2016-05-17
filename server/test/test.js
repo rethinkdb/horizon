@@ -22,7 +22,7 @@ afterEach(
   function() { logger.info(`End test '${this.currentTest.title}'`); });
 
 describe('Horizon Server', function() {
-  this.timeout(10000);
+  this.timeout(30000);
   before('Start Horizon Server', utils.start_horizon_server);
   after('Close Horizon Server', utils.close_horizon_server);
 
