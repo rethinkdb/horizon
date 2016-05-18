@@ -1,10 +1,9 @@
-///<reference path="../../horizon.d.ts" />
-
 import {Component, OnInit} from '@angular/core';
+import {ChatService} from './chat.service'
 
 @Component({
-    selector: '<chat><chat>',
-   styles: [`
+    selector: '<chat></chat>',
+    styles: [`
         ul {
             list-style-type: none;
             padding:0;
@@ -55,37 +54,33 @@ import {Component, OnInit} from '@angular/core';
             {{message.datetime}}
           </span>
         </li>
-    </ul>
-    `
+    </ul>`,
+    providers:[ChatService]
 })
 export class ChatComponent implements OnInit {
-    horizon = Horizon();
-    chat = this.horizon('chat');
-
     newMessage = '';
-    avatar_url = `http://api.adorable.io/avatars/50/${new Date().getMilliseconds()}.png`;
     messages = [];
+    
+    constructor(private _chatService: ChatService) {
+
+    }
     ngOnInit() {
         this.getChats()
     }
 
-    getChats = function() {
-        this.chat
-            .order('datetime', 'descending')
-            .limit(8)
-            .watch()
+    getChats = function () {
+        this._chatService
+            .getChats()            
             .subscribe((newMessages) => {
                 this.messages = [...newMessages];
             });
     }
 
-    addMessage = function(text) {
+    addMessage = function (text) {
         if (text) {
-            this.chat.store({
-                text: text,
-                datetime: new Date(),
-                url: this.avatar_url,
-            }).subscribe();
+            this._chatService
+                .sendChat()
+                .subscribe();
             this.newMessage = '';
         }
     }

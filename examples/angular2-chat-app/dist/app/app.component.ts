@@ -1,3 +1,5 @@
+///<reference path="./horizon.d.ts" />
+
 import {Component} from '@angular/core';
 import {ChatComponent} from './components/chat/chat.component'
 
