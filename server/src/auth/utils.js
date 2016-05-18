@@ -172,7 +172,7 @@ const oauth2 = (raw_options) => {
                 res.statusCode = 500;
                 res.end('unparseable inspect response');
               } else {
-                horizon._auth.generate_jwt(provider, user_id, (err3, jwt) => {
+                horizon._auth.generate(provider, user_id).nodeify(err3, jwt) => {
                   // Clear the nonce just so we aren't polluting clients' cookies
                   clear_nonce(res, horizon._name);
                   do_redirect(res, err3 ?
