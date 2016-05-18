@@ -192,20 +192,27 @@ const runCommand = (options, done) => {
         });
     }
   }).then(() => {
-    // Update groups
     if (options.update) {
-      for (const g of schema.groups) {
-        for (const key in g.rules) {
-          g.rules[key] = r.literal(g.rules[key]);
-        }
-      }
-      return r.expr(schema.groups)
-        .forEach((group) =>
-          r.db(internal_db).table('groups')
-            .get(group.id)
-            .update(group))
-        .run(conn);
+      // Update groups
+      return Promise.all(schema.groups.map((group) => {
+        const literal_group = JSON.parse(JSON.stringify(group));
+        Object.keys(literal_group.rules).forEach((key) =>
+          literal_group.rules[key] = r.literal(literal_group.rules[key])
+        );
+
+        return r.db(internal_db).table('groups')
+          .get(group.id).replace((old_row) =>
+            r.branch(old_row.eq(null),
+                     group,
+                     old_row.merge(literal_group)))
+          .run(conn).then((res) => {
+            if (res.errors) {
+              throw new Error(`Failed to update group: ${res.first_error}`);
+            }
+        });
+      }));
     } else {
+      // Replace and remove groups
       const groups_obj = { };
       schema.groups.forEach((g) => { groups_obj[g.id] = g; });
 
