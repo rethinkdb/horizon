@@ -56,15 +56,13 @@ class Admin {
   }
 
   add_client(client) {
-    let uR = client.socket.upgradeReq;
-    
     this._run_query(
       client_table.insert({
          connected: true,
          id: client.id,
          time: r.now(),
-         ip: uR.connection.remoteAddress || null,
-         origin: uR.headers.origin
+         ip: client.socket.remoteAddress || null,
+         origin: client.socket.request.headers.referer || null
       }));
   }
 
