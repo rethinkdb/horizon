@@ -185,5 +185,4 @@ the necessary information to allow for a scalable feeds implementation.
 
 ### How will Horizon be licensed?
 
-We still have to figure out the exact license, but Horizon will be
-fully open-source (we'll probably use MIT or Apache).
+The Horizon server, client and cli are available under the MIT license
