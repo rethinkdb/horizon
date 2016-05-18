@@ -1,6 +1,6 @@
 ///<reference path="../../horizon.d.ts" />
 
-import {Component, OnInit} from 'angular2/core';
+import {Component, OnInit} from '@angular/core';
 
 @Component({
     selector: '<chat><chat>',
@@ -48,7 +48,7 @@ import {Component, OnInit} from 'angular2/core';
         <button type="submit" (click)="addMessage(newMessage)">Send</button>
     </form>
     <ul>
-        <li *ngFor="#message of messages; #i = index" class="message">
+        <li *ngFor="let message of messages; let i = index" class="message">
         <img height="50px" width="50px" src="{{message.url}}" />
         <span> {{message.text}} </span>
         <span class="datetime u-pull-right">
@@ -59,7 +59,7 @@ import {Component, OnInit} from 'angular2/core';
     `
 })
 export class ChatComponent implements OnInit {
-    horizon = Horizon({ host: 'localhost:8181' });
+    horizon = Horizon();
     chat = this.horizon('chat');
 
     newMessage = '';
