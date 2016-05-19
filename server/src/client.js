@@ -107,9 +107,16 @@ class Client {
       this.send_response(request, res);
       this._socket.on('message', (data) =>
         this.error_wrap_socket(() => this.handle_request(data)));
+
+      if (this.user_info.id != null) {
+        return this._metadata.get_user_feed(this.user_info.id, (change) => {
+          Object.assign(this.user_info, change.new_val);
+          this._requests.forEach((req) => req.evaluate_rules());
+        });
+      }
     })
     .catch(err => {
-      return this.close({ request_id: request.request_id, error: `${err}`, error_code: 0 });
+      return this.close({ error: `${err}`, error_code: 0 });
     });
   }
 
