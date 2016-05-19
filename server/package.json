@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@horizon/client": "1.0.1",
+    "bluebird": "^3.4.0",
     "cookie": "^0.2.3",
     "engine.io": "^1.6.9",
     "joi": "^8.0.4",

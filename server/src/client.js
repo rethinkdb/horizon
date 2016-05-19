@@ -101,72 +101,23 @@ class Client {
       return this.close({ error: 'Invalid handshake.', error_code: 0 });
     }
 
-    const success = (user_feed, token) => {
-      this.user_feed = user_feed;
-      let respond = () => {
-        this._socket.on('message', (msg) =>
-          this.error_wrap_socket(() => this.handle_request(msg)));
-        this.send_response(request, { token, user_id: this.user_info.id });
-      };
+    this._server._auth.handshake(request)
+    .then(res => {
+      this.user_info = res.payload;
+      this.send_response(request, res);
+      this._socket.on('message', (data) =>
+        this.error_wrap_socket(() => this.handle_request(data)));
 
-      if (this.user_feed) {
-        this.user_feed.eachAsync((change) => {
-          if (!change.new_val) {
-            this.close({ error: 'User account has been deleted.' });
-          } else {
-            // TODO: make sure removed fields are removed from user_info
-            Object.assign(this.user_info, change.new_val);
-            this._requests.forEach((req) => req.evaluate_rules());
-            if (respond) {
-              respond();
-              respond = null;
-            }
-          }
-        }).then(() =>
-          this.close({ error: 'User account feed has been lost.' })
-        ).catch((err) =>
-          this.close({ error: `User account feed errored: ${err}` })
-        );
-      } else {
-        this.user_info = { id: null, groups: [ 'default' ] };
-        respond();
-      }
-    };
-
-    const done = (err, token, decoded) => {
-      if (err) {
-        this.close({ request_id: request.request_id,
-                     error: `${err}`, error_code: 0 });
-      } else if (decoded.user !== null) {
-        this._metadata.get_user_feed(decoded.user, (rdb_err, feed) => {
-          if (rdb_err) {
-            this.close({ request_id: request.request_id,
-                         error: 'User does not exist.', error_code: 0 });
-          } else {
-            success(feed, token);
-          }
+      if (this.user_info.id != null) {
+        return this._metadata.get_user_feed(this.user_info.id, (change) => {
+          Object.assign(this.user_info, change.new_val);
+          this._requests.forEach((req) => req.evaluate_rules());
         });
-      } else {
-        success(null, token);
       }
-    };
-
-    switch (request.method) {
-    case 'token':
-      this._auth.verify_jwt(request.token, done);
-      break;
-    case 'anonymous':
-      this._auth.generate_anon_jwt(done);
-      break;
-    case 'unauthenticated':
-      this._auth.generate_unauth_jwt(done);
-      break;
-    default:
-      this.close({ request_id: request.request_id,
-                   error: `Unknown handshake method "${request.method}"`,
-                   error_code: 0 });
-      break;
-    }
+    })
+    .catch(err => {
+      return this.close({ error: `${err}`, error_code: 0 });
+    });
   }
 
   handle_request(data) {

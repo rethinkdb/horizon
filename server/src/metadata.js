@@ -311,12 +311,25 @@ class Metadata {
       }).catch(done);
   }
 
-  get_user_feed(id, done) {
+  get_user_feed(id, cb) {
     r.db(this._internal_db)
       .table('users')
       .get(id)
       .changes({ includeInitial: true, squash: true })
-      .run(this._conn, done);
+      .run(this._conn)
+      .then(cursor => {
+        return cursor.eachAsync(change => {
+          if (!change.new_val) {
+            throw new Error('User account has been deleted.')
+          }
+          return cb(change)
+        })
+        .then(() => {
+          throw new Error('User account feed has been lost.')
+        }, (err) => {
+          throw new Error(`User account feed errored: ${err}`)
+        });
+      });
   }
 
   get_group(group_name) {

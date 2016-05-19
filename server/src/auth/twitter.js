@@ -121,11 +121,11 @@ function twitter(horizon, raw_options) {
                 logger.error(`Bad JSON data from oauth API: ${body}`);
                 auth_utils.do_redirect(res, make_failure_url('unparseable inspect response'));
               } else {
-                horizon._auth.generate_jwt(provider, user_id, (err3, jwt) => {
+                horizon._auth.generate(provider, user_id).nodeify((err3, jwt) => {
                   auth_utils.clear_nonce(res, horizon._name);
                   auth_utils.do_redirect(res, err3 ?
                     make_failure_url('invalid user') :
-                    make_success_url(jwt));
+                    make_success_url(jwt.token));
                 });
               }
             });
