@@ -5,3 +5,7 @@ node_modules
 
 # Coverage directory used by tools like istanbul
 coverage
+
+# RethinkDB stuff
+rethinkdb_data/
+rethinkdb_data_test/
