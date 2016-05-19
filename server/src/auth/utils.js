@@ -177,7 +177,7 @@ const oauth2 = (raw_options) => {
                   clear_nonce(res, horizon._name);
                   do_redirect(res, err3 ?
                     make_failure_url('invalid user') :
-                    make_success_url(jwt));
+                    make_success_url(jwt.token));
                 });
               }
             });
