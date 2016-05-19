@@ -1,6 +1,6 @@
 'use strict';
 
-const MIN_VERSION = [ 2, 3, 0 ];
+const MIN_VERSION = [ 2, 3, 1 ];
 
 // Recursive version compare, could be flatter but opted for instant return if
 //  comparison is greater rather than continuing to compare to end.
