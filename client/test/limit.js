@@ -1,5 +1,12 @@
-'use strict'
-const limitSuite = window.limitSuite = getData => () => {
+import { _do as tap } from 'rxjs/operator/do'
+import { toArray } from 'rxjs/operator/toArray'
+
+import { assertCompletes,
+         assertThrows,
+         assertErrors,
+         compareWithoutVersion } from './utils'
+
+const limitSuite = global.limitSuite = getData => () => {
   let data
 
   before(() => {
@@ -8,8 +15,8 @@ const limitSuite = window.limitSuite = getData => () => {
 
   // Limit returns an array of documents
   it('can return an array of documents', assertCompletes(() =>
-    data.order('id').limit(2).fetch().toArray()
-      .do(res => assert.deepEqual(res, [
+    data.order('id').limit(2).fetch()
+      ::tap(res => compareWithoutVersion(res, [
         { id: 1, a: 10 },
         { id: 2, a: 20, b: 1 },
       ]))
@@ -17,8 +24,8 @@ const limitSuite = window.limitSuite = getData => () => {
 
   // We can chain `limit` off a collection
   it('can be called on a collection directly', assertCompletes(() =>
-    data.limit(2).fetch().toArray()
-      .do(res => {
+    data.limit(2).fetch()
+      ::tap(res => {
         assert.isArray(res)
         assert.lengthOf(res, 2)
       })
@@ -26,8 +33,8 @@ const limitSuite = window.limitSuite = getData => () => {
 
   // Or off other things
   it('can be called on findAll', assertCompletes(() =>
-    data.findAll({ a: 20 }).limit(2).fetch().toArray()
-      .do(res => {
+    data.findAll({ a: 20 }).limit(2).fetch()
+      ::tap(res => {
         assert.isArray(res)
         assert.lengthOf(res, 2)
       })
@@ -35,8 +42,8 @@ const limitSuite = window.limitSuite = getData => () => {
 
   // `limit(0)` is ok
   it('can accept an argument of 0', assertCompletes(() =>
-    data.limit(0).fetch().toArray()
-      .do(res => assert.deepEqual(res, []))
+    data.limit(0).fetch()
+      ::tap(res => compareWithoutVersion(res, []))
   ))
 
   // `limit(null)` is an error
@@ -47,12 +54,14 @@ const limitSuite = window.limitSuite = getData => () => {
 
   // `limit(-1)` is an error
   it('errors if it receives a negative argument', assertErrors(() =>
-    data.limit(-1).fetch()
+    data.limit(-1).fetch(),
+    /"find" is required/
   ))
 
   // `limit(non_int)` is an error
   it(`errors if the argument to limit isn't a number`, assertErrors(() =>
-    data.limit('k').fetch()
+    data.limit('k').fetch(),
+    /"find" is required/
   ))
 
   // Chaining off of limit is illegal

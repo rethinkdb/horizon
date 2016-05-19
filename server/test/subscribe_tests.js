@@ -2,14 +2,14 @@
 
 const utils = require('./utils');
 
-const all_tests = (table) => {
+const all_tests = (collection) => {
   const num_rows = 10;
 
-  before('Clear table', (done) => utils.clear_table(table, done));
-  before('Populate table', (done) => utils.populate_table(table, num_rows, done));
+  before('Clear collection', (done) => utils.clear_collection(collection, done));
+  before('Populate collection', (done) => utils.populate_collection(collection, num_rows, done));
   beforeEach('Authenticate client', utils.horizon_default_auth);
 };
 
-const suite = (table) => describe('Subscribe', () => all_tests(table));
+const suite = (collection) => describe('Subscribe', () => all_tests(collection));
 
 module.exports = { suite };

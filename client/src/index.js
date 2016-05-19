@@ -1,12 +1,19 @@
-const Rx = require('rx')
-const { Collection } = require('./ast')
-const HorizonSocket = require('./socket')
-const { log, logError, enableLogging } = require('./logging')
+import { Observable } from 'rxjs/Observable'
+import { of } from 'rxjs/observable/of'
+import { from } from 'rxjs/observable/from'
+import { _catch } from 'rxjs/operator/catch'
+import { concatMap } from 'rxjs/operator/concatMap'
+import { map } from 'rxjs/operator/map'
+import { filter } from 'rxjs/operator/filter'
+
+const { Collection } = require('./ast.js')
+const HorizonSocket = require('./socket.js')
+const { log, logError, enableLogging } = require('./logging.js')
 const { authEndpoint, TokenStorage, clearAuthTokens } = require('./auth')
 
-const defaultHost = window && window.location &&
+const defaultHost = typeof window !== 'undefined' && window.location &&
         `${window.location.host}` || 'localhost:8181'
-const defaultSecure = window && window.location &&
+const defaultSecure = typeof window !== 'undefined' && window.location &&
         window.location.protocol === 'https:' || false
 
 function Horizon({
@@ -18,17 +25,25 @@ function Horizon({
 } = {}) {
   // If we're in a redirection from OAuth, store the auth token for
   // this user in localStorage.
-  const tokenStorage = new TokenStorage(authType)
+  const tokenStorage = new TokenStorage({ authType, path })
   tokenStorage.setAuthFromQueryParams()
 
   const socket = new HorizonSocket(
-    host, secure, path, tokenStorage.handshake.bind(tokenStorage))
+    host, secure, path, ::tokenStorage.handshake)
 
   // Store whatever token we get back from the server when we get a
   // handshake response
-  socket.handshake.subscribe(
-    handshake => tokenStorage.set(handshake.token)
-  )
+  socket.handshake.subscribe({
+    next(handshake) {
+      tokenStorage.set(handshake.token)
+    },
+    error(err) {
+      if (/JsonWebTokenError/.test(err.message)) {
+        console.error('Horizon: clearing token storage since auth failed')
+        tokenStorage.remove()
+      }
+    },
+  })
 
   // This is the object returned by the Horizon function. It's a
   // function so we can construct a collection simply by calling it
@@ -37,8 +52,10 @@ function Horizon({
     return new Collection(sendRequest, name, lazyWrites)
   }
 
-  horizon.dispose = () => {
-    socket.onCompleted()
+  horizon.currentUser = () => new UserDataTerm(horizon, socket.handshake)
+
+  horizon.disconnect = () => {
+    socket.complete()
   }
 
   // Dummy subscription to force it to connect to the
@@ -60,20 +77,26 @@ function Horizon({
 
   // Convenience method for finding out when disconnected
   horizon.onDisconnected = subscribeOrObservable(
-    socket.status.filter(x => x.type === 'disconnected'))
+    socket.status::filter(x => x.type === 'disconnected'))
 
-  // Convenience method for finding out when opening
-  horizon.onConnected = subscribeOrObservable(
-    socket.status.filter(x => x.type === 'connected'))
+  // Convenience method for finding out when ready
+  horizon.onReady = subscribeOrObservable(
+    socket.status::filter(x => x.type === 'ready'))
 
   // Convenience method for finding out when an error occurs
   horizon.onSocketError = subscribeOrObservable(
-    socket.status.filter(x => x.type === 'error'))
+    socket.status::filter(x => x.type === 'error'))
+
+  horizon.utensils = {
+    sendRequest,
+    tokenStorage,
+  }
+  Object.freeze(horizon.utensils)
 
   horizon._authMethods = null
   horizon._horizonPath = path
   horizon.authEndpoint = authEndpoint
-  horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
+  horizon.hasAuthToken = ::tokenStorage.hasAuthToken
 
   return horizon
 
@@ -84,17 +107,17 @@ function Horizon({
     const normalizedType = type === 'removeAll' ? 'remove' : type
     return socket
       .makeRequest({ type: normalizedType, options }) // send the raw request
-      .concatMap(resp => {
+      ::concatMap(resp => {
         // unroll arrays being returned
         if (resp.data) {
-          return resp.data
+          return Observable::from(resp.data)
         } else {
           // Still need to emit a document even if we have no new data
-          return [ { state: resp.state, type: resp.type } ]
+          return Observable::from([ { state: resp.state, type: resp.type } ])
         }
       })
-      .catch(e => Rx.Observable.create(observer => {
-        observer.onError(new Error(e.error))
+      ::_catch(e => Observable.create(subscriber => {
+        subscriber.error(e)
       })) // on error, strip error message
   }
 }
@@ -106,6 +129,37 @@ function subscribeOrObservable(observable) {
     } else {
       return observable
     }
+  }
+}
+
+class UserDataTerm {
+  constructor(hz, baseObservable) {
+    this._hz = hz
+    this._baseObservable = baseObservable::map(handshake => handshake.user_id)
+  }
+
+  _query(userId) {
+    return this._hz('users').find(userId)
+  }
+
+  fetch() {
+    return this._baseObservable::concatMap(userId => {
+      if (userId === null) {
+        return Observable::of({})
+      } else {
+        return this._query(userId).fetch()
+      }
+    })
+  }
+
+  watch(...args) {
+    return this._baseObservable::concatMap(userId => {
+      if (userId === null) {
+        return Observable::of({})
+      } else {
+        return this._query(userId).watch(...args)
+      }
+    })
   }
 }
 

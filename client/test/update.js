@@ -1,5 +1,15 @@
 'use strict'
-const updateSuite = window.updateSuite = getData => () => {
+import { _do as tap } from 'rxjs/operator/do'
+import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
+import { toArray } from 'rxjs/operator/toArray'
+
+import { assertCompletes,
+         assertThrows,
+         assertErrors,
+         compareWithoutVersion,
+         compareSetsWithoutVersion } from './utils'
+
+const updateSuite = global.updateSuite = getData => () => {
   let data
 
   before(() => {
@@ -8,32 +18,34 @@ const updateSuite = window.updateSuite = getData => () => {
 
   // Let's store a document first, then update it.
   it('allows updating an existing document', assertCompletes(() =>
-    data.store({ id: 1, a: { b: 1, c: 1 }, d: 1 }).toArray()
+    data.store({ id: 1, a: { b: 1, c: 1 }, d: 1 })::toArray()
       // should return an array with an ID of the inserted document.
-      .do(res => assert.deepEqual([ 1 ], res))
+      ::tap(res => compareWithoutVersion([ { id: 1 } ], res))
       // Let's make sure we get back the document that we put in.
-      .flatMap(data.find(1).fetch())
+      ::mergeMapTo(data.find(1).fetch())
       // Check that we get back what we put in.
-      .do(res => assert.deepEqual(res, { id: 1, a: { b: 1, c: 1 }, d: 1 }))
+      ::tap(res => compareWithoutVersion(res, { id: 1, a: { b: 1, c: 1 }, d: 1 }))
       // Let's update the document now
-      .flatMap(data.update({ id: 1, a: { c: 2 } })).toArray()
+      ::mergeMapTo(data.update({ id: 1, a: { c: 2 } }))::toArray()
       // We should have gotten the ID back again
-      .do((res) => assert.deepEqual([ 1 ], res))
+      ::tap((res) => compareWithoutVersion([ { id: 1 } ], res))
       // Make sure `upsert` updated the original document
-      .flatMap(data.find(1).fetch())
+      ::mergeMapTo(data.find(1).fetch())
       // Check that the document was updated correctly
-      .do(res => assert.deepEqual(res, { id: 1, a: { b: 1, c: 2 }, d: 1 }))
+      ::tap(res => compareWithoutVersion(res, { id: 1, a: { b: 1, c: 2 }, d: 1 }))
   ))
 
   // The `update` command updates documents already in the database. It
   // errors if the document doesn't exist.
   it(`fails if document doesn't exist`, assertErrors(() =>
-    data.update({ id: 1, a: 1, b: 1 })
+    data.update({ id: 1, a: 1, b: 1 }),
+    /The document was missing/
   ))
 
   // It means you can't update a document without providing an id.
   it('fails if document has no id provided', assertErrors(() =>
-    data.update({ a: 1, b: 1 })
+    data.update({ a: 1, b: 1 }),
+    /"id" is required/
   ))
 
   // Calling `update` with `null` is an error.
@@ -59,42 +71,40 @@ const updateSuite = window.updateSuite = getData => () => {
     data.store([
       { id: 1, a: { b: 1, c: 1 }, d: 1 },
       { id: 2, a: { b: 2, c: 2 }, d: 2 },
-    ]).toArray()
+    ])::toArray()
       // should return an array with an ID of the inserted document.
-      .do(res => assert.deepEqual([ 1, 2 ], res))
+      ::tap(res => compareWithoutVersion([ { id: 1 }, { id: 2 } ], res))
       // Let's make sure we get back the documents that we put in.
-      .flatMap(data.findAll(1, 2).fetch().toArray())
+      ::mergeMapTo(data.findAll(1, 2).fetch())
       // Check that we get back what we put in.
-      .do(res => assert.sameDeepMembers(res, [
+      ::tap(res => compareSetsWithoutVersion(res, [
         { id: 1, a: { b: 1, c: 1 }, d: 1 },
         { id: 2, a: { b: 2, c: 2 }, d: 2 }
       ]))
       // All right. Let's update the documents now
-      .flatMap(data.update([ { id: 1, a: { c: 2 } }, { id: 2, d: 3 } ]))
-      .toArray()
+      ::mergeMapTo(data.update([ { id: 1, a: { c: 2 } }, { id: 2, d: 3 } ]))
+      ::toArray()
       // We should have gotten the ID back again
-      .do(res => assert.deepEqual(res, [ 1, 2 ]))
+      ::tap(res => compareWithoutVersion(res, [ { id: 1 }, { id: 2 } ]))
       // Make sure `update` updated the documents properly
-      .flatMap(data.findAll(1, 2).fetch().toArray())
+      ::mergeMapTo(data.findAll(1, 2).fetch())
       // Check that we get back what we put in.
-      .do(res => assert.sameDeepMembers(res, [
+      ::tap(res => compareSetsWithoutVersion(res, [
         { id: 1, a: { b: 1, c: 2 }, d: 1 },
         { id: 2, a: { b: 2, c: 2 }, d: 3 },
       ]))
   ))
 
-  // If any operation in a batch update fails, everything is reported as a
-  // failure. Note that we're updating `null` below, and a document with
-  // no ID. Both are failures.
-  it('fails if any document in a batch fails to update', assertErrors(() =>
-    data.update([ { id: 1, a: 1 }, null, { a: 1 } ])
+  it('fails if any document is null', assertErrors(() =>
+    data.update([ { id: 1, a: 1 }, null ]),
+    /must be an object/
   ))
 
   // Updating an empty batch of documents is ok, and returns an empty
   // array.
   it('allows updating an empty batch', assertCompletes(() =>
     data.update([])
-      .do(res => {
+      ::tap(res => {
         // should return an array with the IDs of the documents in
         // order, including the generated IDS.
         assert.isArray(res)

@@ -10,7 +10,7 @@ const each_line_in_pipe = require('../../cli/src/utils/each_line_in_pipe');
 const assert = require('assert');
 const http = require('http');
 const r = require('rethinkdb');
-const websocket = require('ws');
+const websocket = require('engine.io-client');
 
 const db = 'horizon';
 const data_dir = './rethinkdb_data_test';
@@ -44,24 +44,39 @@ const test_db_server = (done) => {
   });
 };
 
-// Creates a table, no-op if it already exists, uses horizon server prereqs
-const create_table = (table, done) => {
+// Used to prefix reql queries with the underlying table of a given collection
+const table = (collection) =>
+  r.table(
+    r.db('horizon_internal')
+      .table('collections')
+      .get(collection)
+      .do((row) =>
+        r.branch(row.eq(null),
+                 r.error('Collection does not exist.'),
+                 row('table'))));
+
+// Creates a collection, no-op if it already exists, uses horizon server prereqs
+const create_collection = (collection, done) => {
   assert.notStrictEqual(horizon_server, undefined);
   assert.notStrictEqual(horizon_port, undefined);
-  const conn = new websocket(`ws://localhost:${horizon_port}/horizon`,
-                           horizon.protocol, { rejectUnauthorized: false })
+  const conn = websocket(`ws://localhost:${horizon_port}`,
+                         { protocol: horizon.protocol,
+                           path: '/horizon',
+                           rejectUnauthorized: false })
     .once('error', (err) => assert.ifError(err))
     .on('open', () => {
       conn.send(JSON.stringify({ request_id: 123, method: 'unauthenticated' }));
       conn.once('message', (data) => {
-        const response = JSON.parse(data);
-        assert.deepStrictEqual(response, { request_id: 123, token: response.token });
+        const res = JSON.parse(data);
+        assert.equal(res.request_id, 123);
+        assert.equal(res.token, res.token);
+        assert(typeof res.payload === 'object');
 
-        // This query should auto-create the table if it's missing
+        // This query should auto-create the collection if it's missing
         conn.send(JSON.stringify({
           request_id: 0,
           type: 'query',
-          options: { collection: table, limit: 0 },
+          options: { collection, limit: 0 },
         }));
 
         conn.once('message', () => {
@@ -72,24 +87,24 @@ const create_table = (table, done) => {
     });
 };
 
-// Removes all data from a table - does not remove indexes
-const clear_table = (table, done) => {
+// Removes all data from a collection - does not remove indexes
+const clear_collection = (collection, done) => {
   assert.notStrictEqual(rdb_conn, undefined);
-  r.table(table).delete().run(rdb_conn).then(() => done());
+  table(collection).delete().run(rdb_conn).then(() => done());
 };
 
-// Populates a table with the given rows
+// Populates a collection with the given rows
 // If `rows` is a number, fill in data using all keys in [0, rows)
-const populate_table = (table, rows, done) => {
+const populate_collection = (collection, rows, done) => {
   assert.notStrictEqual(rdb_conn, undefined);
 
   if (rows.constructor.name !== 'Array') {
-    r.table(table).insert(
+    table(collection).insert(
       r.range(rows).map(
         (i) => ({ id: i, value: i.mod(4) })
       )).run(rdb_conn).then(() => done());
   } else {
-    r.table(table).insert(rows).run(rdb_conn).then(() => done());
+    table(collection).insert(rows).run(rdb_conn).then(() => done());
   }
 };
 
@@ -103,10 +118,11 @@ const start_horizon_server = (done) => {
     horizon_port = http_server.address().port;
     horizon_server = new horizon.Server(http_server,
       { rdb_port,
-        db,
-        auto_create_table: true,
+        auto_create_collection: true,
         auto_create_index: true,
+        permissions: false,
         auth: {
+          token_secret: 'hunter2',
           allow_unauthenticated: true,
         },
       });
@@ -140,9 +156,12 @@ const dispatch_message = (raw) => {
   const msg = JSON.parse(raw);
   assert.notStrictEqual(msg.request_id, undefined);
   assert.notStrictEqual(horizon_listeners, undefined);
-  const listener = horizon_listeners.get(msg.request_id);
-  assert.notStrictEqual(listener, undefined);
-  listener(msg);
+
+  if (msg.request_id !== null) {
+    const listener = horizon_listeners.get(msg.request_id);
+    assert.notStrictEqual(listener, undefined);
+    listener(msg);
+  }
 };
 
 const open_horizon_conn = (done) => {
@@ -152,8 +171,10 @@ const open_horizon_conn = (done) => {
   horizon_authenticated = false;
   horizon_listeners = new Map();
   horizon_conn =
-    new websocket(`ws://localhost:${horizon_port}/horizon`,
-                  horizon.protocol, { rejectUnauthorized: false })
+    websocket(`ws://localhost:${horizon_port}`,
+              { protocol: horizon.protocol,
+                path: '/horizon',
+                rejectUnauthorized: false })
       .once('error', (err) => assert.ifError(err))
       .on('open', () => done());
 };
@@ -167,7 +188,7 @@ const close_horizon_conn = () => {
 };
 
 const horizon_auth = (req, cb) => {
-  assert(horizon_conn && horizon_conn.readyState === websocket.OPEN);
+  assert(horizon_conn && horizon_conn.readyState === 'open');
   horizon_conn.send(JSON.stringify(req));
   horizon_conn.once('message', (auth_msg) => {
     horizon_authenticated = true;
@@ -179,7 +200,9 @@ const horizon_auth = (req, cb) => {
 
 const horizon_default_auth = (done) => {
   horizon_auth({ request_id: -1, method: 'unauthenticated' }, (res) => {
-    assert.deepStrictEqual(res, { request_id: -1, token: res.token });
+    assert.equal(res.request_id, -1);
+    assert.equal(res.token, res.token);
+    assert(typeof res.payload === 'object');
     done();
   });
 };
@@ -190,7 +213,8 @@ const horizon_default_auth = (done) => {
 // of all `data` items returned by the server for the given request_id.
 // TODO: this doesn't allow for dealing with multiple states (like 'synced').
 const stream_test = (req, cb) => {
-  assert(horizon_conn && horizon_conn.readyState === websocket.OPEN);
+  assert(horizon_conn && horizon_conn.readyState === 'open');
+  const results = [];
 
   add_horizon_listener(req.request_id, (msg) => {
     if (msg.data !== undefined) {
@@ -206,7 +230,6 @@ const stream_test = (req, cb) => {
   });
 
   horizon_conn.send(JSON.stringify(req));
-  const results = [];
 };
 
 const check_error = (err, msg) => {
@@ -223,7 +246,9 @@ module.exports = {
   horizon_listeners: () => horizon_listeners,
 
   test_db_server,
-  create_table, populate_table, clear_table,
+  create_collection,
+  populate_collection,
+  clear_collection,
 
   start_horizon_server, close_horizon_server,
   open_horizon_conn, close_horizon_conn,
@@ -233,4 +258,5 @@ module.exports = {
   stream_test,
   check_error,
   each_line_in_pipe,
+  table,
 };

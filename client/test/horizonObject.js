@@ -1,9 +1,9 @@
 'use strict'
 
-// Test object creation, the `dispose` method, and `connected/disconnected`
+// Test object creation, the `disconnect` method, and `connected/disconnected`
 // events.
 
-var horizonObjectSuite = window.horizonObjectSuite = () => {
+var horizonObjectSuite = global.horizonObjectSuite = () => {
   describe('Horizon', () => {
     it('connects and can track its status', done => {
       Horizon.clearAuthTokens()
@@ -14,8 +14,8 @@ var horizonObjectSuite = window.horizonObjectSuite = () => {
           switch (stat.type) {
           case 'unconnected':
             break
-          case 'connected':
-            horizon.dispose()
+          case 'ready':
+            horizon.disconnect()
             break
           case 'error':
             done(new Error('Got an error in socket status'))

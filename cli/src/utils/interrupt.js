@@ -1,6 +1,6 @@
 'use strict';
 
-let handlers = [ ];
+const handlers = [ ];
 
 const on_interrupt = (cb) => {
   handlers.push(cb);
@@ -26,4 +26,4 @@ const shutdown = () => {
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-module.exports = { on_interrupt };
+module.exports = { on_interrupt, shutdown };

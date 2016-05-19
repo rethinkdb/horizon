@@ -1,39 +1,61 @@
-'use strict'
-window.removeAllData = function removeAllData(collection, done) {
+import { Observable } from 'rxjs/Observable'
+import { empty } from 'rxjs/observable/empty'
+import { toArray } from 'rxjs/operator/toArray'
+import { _do as tap } from 'rxjs/operator/do'
+import { mergeMap } from 'rxjs/operator/mergeMap'
+import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
+import { take } from 'rxjs/operator/take'
+import { ignoreElements } from 'rxjs/operator/ignoreElements'
+
+export function removeAllDataObs(collection) {
   // Read all elements from the collection
-  collection.fetch().toArray() // all documents in the collection
-    .flatMap(docs => collection.removeAll(docs))
-    .flatMap(() => collection.fetch())
-    .toArray()
-    .do(remaining => assert.deepEqual([], remaining))
-    .subscribe(doneObserver(done))
+  return collection.fetch() // all documents in the collection
+    ::tap()
+    ::mergeMap(docs => collection.removeAll(docs))
+    ::mergeMapTo(collection.fetch())
+    ::tap(remaining => assert.deepEqual([], remaining))
+}
+
+export function removeAllData(collection, done) {
+  removeAllDataObs(collection).subscribe(doneObserver(done))
 }
 
 // Used to subscribe to observables and call done appropriately
 function doneObserver(done) {
-  return Rx.Observer.create(
-    () => {},
-    err => done(err),
-    () => done()
-  )
+  return {
+    next() {},
+    error(err = new Error()) { done(err) },
+    complete() { done() },
+  }
 }
 
 // Used to subscribe to observables when an error is expected
-function doneErrorObserver(done) {
-  return Rx.Observer.create(
-    () => {},
-    () => done(),
-    () => done(new Error('Unexpectedly completed'))
-  )
+function doneErrorObserver(done, regex) {
+  return {
+    next() {},
+    error(err) {
+      this.finished = true;
+      if (regex && regex.test(err.message)) {
+        done()
+      } else {
+        done(err)
+      }
+    },
+    complete() {
+      if (!this.finished) {
+        done(new Error('Unexpectedly completed'))
+      }
+    },
+  }
 }
 
 // Used to check for stuff that should throw an exception, rather than
 // erroring the observable stream
-window.assertThrows = function assertThrows(message, callback) {
+export function assertThrows(message, callback) {
   const f = done => {
     try {
       callback()
-      done(new Error(`Didn't throw an exception`))
+      done(new Error("Didn't throw an exception"))
     } catch (err) {
       if (err.message === message) {
         done()
@@ -47,14 +69,14 @@ window.assertThrows = function assertThrows(message, callback) {
   return f
 }
 
-window.assertCompletes = function assertCompletes(observable) {
+export function assertCompletes(observable) {
   const f = done => observable().subscribe(doneObserver(done))
   f.toString = () => `assertCompletes(\n(${observable}\n)`
   return f
 }
 
-window.assertErrors = function assertErrors(observable) {
-  const f = done => observable().subscribe(doneErrorObserver(done))
+export function assertErrors(observable, regex) {
+  const f = done => observable().subscribe(doneErrorObserver(done, regex))
   f.toString = () => observable.toString()
   return f
 }
@@ -68,23 +90,52 @@ window.assertErrors = function assertErrors(observable) {
 // changefeed is automatically limited to the length of the expected
 // array. Accepts a `debug` argument that receives every element in
 // the changefeed
-window.observableInterleave = function observableInterleave(options) {
+export function observableInterleave(options) {
   const query = options.query
   const operations = options.operations
   const expected = options.expected
-  const equality = options.equality || assert.deepEqual
+  const equality = options.equality || compareWithoutVersion
   const debug = options.debug || (() => {})
   const values = []
   return query
-    .take(expected.length)
-    .do(debug)
-    .flatMap((val, i) => {
+    ::take(expected.length)
+    ::tap(debug)
+    ::mergeMap((val, i) => {
       values.push(val)
       if (i < operations.length) {
-        return operations[i].ignoreElements()
+        return operations[i]::ignoreElements()
       } else {
-        return Rx.Observable.empty()
+        return Observable::empty()
       }
     })
-    .do(null, null, () => equality(expected, values))
+    ::tap({ complete() { equality(expected, values) } })
+}
+
+const withoutVersion = function withoutVersion(value) {
+  if (Array.isArray(value)) {
+    const modified = [ ]
+    for (const item of value) {
+      modified.push(withoutVersion(item))
+    }
+    return modified
+  } else if (typeof value === 'object') {
+    const modified = Object.assign({ }, value)
+    delete modified['$hz_v$']
+    return modified
+  } else {
+    return value
+  }
+}
+
+// Compare write results - ignoring the new version field ($hz_v$)
+export function compareWithoutVersion(actual, expected, message) {
+  return assert.deepEqual(withoutVersion(actual),
+                          withoutVersion(expected),
+                          message)
+}
+
+export function compareSetsWithoutVersion(actual, expected, message) {
+  return assert.sameDeepMembers(withoutVersion(actual),
+                                withoutVersion(expected),
+                                message)
 }

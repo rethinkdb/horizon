@@ -1,25 +1,20 @@
-Object.assign(module.exports, {
-  deserialize: modifyType,
-  serialize: jsonifyType,
-})
-
 const PRIMITIVES = [
   'string', 'number', 'boolean', 'function', 'symbol' ]
 
 function modifyObject(doc) {
   Object.keys(doc).forEach(key => {
-    doc[key] = modifyType(doc[key])
+    doc[key] = deserialize(doc[key])
   })
   return doc
 }
 
-function modifyType(value) {
+export function deserialize(value) {
   if (value == null) {
     return value
   } else if (PRIMITIVES.indexOf(typeof value) !== -1) {
     return value
   } else if (Array.isArray(value)) {
-    return value.map(modifyType)
+    return value.map(deserialize)
   } else if (value.$reql_type$ === 'TIME') {
     const date = new Date()
     date.setTime(value.epoch_time * 1000)
@@ -31,18 +26,18 @@ function modifyType(value) {
 
 function jsonifyObject(doc) {
   Object.keys(doc).forEach(key => {
-    doc[key] = jsonifyType(doc[key])
+    doc[key] = serialize(doc[key])
   })
   return doc
 }
 
-function jsonifyType(value) {
+export function serialize(value) {
   if (value == null) {
     return value
   } else if (PRIMITIVES.indexOf(typeof value) !== -1) {
     return value
   } else if (Array.isArray(value)) {
-    return value.map(jsonifyType)
+    return value.map(serialize)
   } else if (value instanceof Date) {
     return {
       $reql_type$: 'TIME',

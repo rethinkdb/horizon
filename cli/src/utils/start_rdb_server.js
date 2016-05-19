@@ -13,6 +13,10 @@ const hasbinSync = require('hasbin').sync;
 const defaultDb = 'horizon';
 const defaultDatadir = 'rethinkdb_data';
 
+function infoLevelLog(msg) {
+  return /^Running/.test(msg) || /^Listening/.test(msg);
+}
+
 // start_rdb_server
 // Options:
 // bind: array of ip addresses to bind to, or 'all'
@@ -51,6 +55,11 @@ module.exports = (raw_options) => {
     rdbProc.once('error', (err) => {
       reject(err);
       process.exit(1);
+    });
+    rdbProc.once('exit', (exit_code) => {
+      if (exit_code != 0) {
+        reject(new Error("RethinkDB process terminated with error code " + exit_code + "."));
+      }
     });
 
     interrupt.on_interrupt((done) => {
@@ -96,7 +105,11 @@ module.exports = (raw_options) => {
     };
 
     each_line_in_pipe(rdbProc.stdout, (line) => {
-      logger.info(`rethinkdb stdout: ${line}`);
+      if (infoLevelLog(line)) {
+        logger.info('RethinkDB', line);
+      } else {
+        logger.debug('RethinkDB stdout:', line);
+      }
       if (driverPort === undefined) {
         const matches = line.match(
             /^Listening for client driver connections on port (\d+)$/);

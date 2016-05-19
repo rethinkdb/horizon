@@ -1,11 +1,12 @@
-const queryParse = require('./util/query-parse')
-const Rx = require('rx')
-require('rx-dom-ajax') // add Rx.DOM.ajax methods
+import queryParse from './util/query-parse'
+import { Observable } from 'rxjs/Observable'
+import { map } from 'rxjs/operator/map'
+import fetchJSON from './util/fetch.js'
 
 const HORIZON_JWT = 'horizon-jwt'
 
 /** @this Horizon **/
-function authEndpoint(name) {
+export function authEndpoint(name) {
   const endpointForName = methods => {
     if (methods.hasOwnProperty(name)) {
       return methods[name]
@@ -15,28 +16,30 @@ function authEndpoint(name) {
   }
   if (!this._authMethods) {
     console.log('No auth methods, have to fetch')
-    return Rx.DOM.getJSON(`${this._horizonPath}/auth_methods`)
+    return fetchJSON(`${this._horizonPath}/auth_methods`)
       .do(authMethods => {
         this._authMethods = authMethods
-      }).map(endpointForName)
+      })::map(endpointForName)
   } else {
-    return Rx.Observable.just(this._authMethods).map(endpointForName)
+    return Observable.of(this._authMethods)::map(endpointForName)
   }
 }
 
 // Simple shim to make a Map look like local/session storage
-class FakeStorage {
-  constructor() { this.map = new Map() }
-  setItem(a, b) { return this.map.set(a, b) }
-  getItem(a) { return this.map.get(a) }
-  removeItem(a) { return this.map.delete(a) }
+export class FakeStorage {
+  constructor() { this._storage = new Map() }
+  setItem(a, b) { return this._storage.set(a, b) }
+  getItem(a) { return this._storage.get(a) }
+  removeItem(a) { return this._storage.delete(a) }
 }
 
 function getStorage() {
-  if (window.localStorage === undefined) {
-    return new FakeStorage()
-  }
   try {
+    if (typeof window !== 'object' || window.localStorage === undefined) {
+      return new FakeStorage()
+    }
+    // Mobile safari in private browsing has a localStorage, but it
+    // has a size limit of 0
     window.localStorage.setItem('$$fake', 1)
     window.localStorage.removeItem('$$fake')
     return window.localStorage
@@ -49,26 +52,47 @@ function getStorage() {
   }
 }
 
-class TokenStorage {
-  constructor(authType = 'unauthenticated') {
-    this._storage = getStorage()
+export class TokenStorage {
+  constructor({ authType = 'token',
+                storage = getStorage(),
+                path = 'horizon' } = {}) {
+    this._storage = storage
     this._authType = authType
+    this._path = path
+  }
+
+  _getHash() {
+    const val = this._storage.getItem(HORIZON_JWT)
+    if (val == null) {
+      return {}
+    } else {
+      return JSON.parse(val)
+    }
+  }
+
+  _setHash(hash) {
+    this._storage.setItem(HORIZON_JWT, JSON.stringify(hash))
   }
 
   set(jwt) {
-    return this._storage.setItem(HORIZON_JWT, jwt)
+    const current = this._getHash()
+    current[this._path] = jwt
+    this._setHash(current)
   }
 
   get() {
-    return this._storage.getItem(HORIZON_JWT)
+    return this._getHash()[this._path]
   }
 
   remove() {
-    return this._storage.removeItem(HORIZON_JWT)
+    const current = this._getHash()
+    delete current[this._path]
+    this._setHash(current)
   }
 
   setAuthFromQueryParams() {
-    const parsed = queryParse(window.location.search)
+    const parsed = typeof window !== 'undefined' ? queryParse(window.location.search) : {}
+
     if (parsed.horizon_auth != null) {
       this.set(parsed.horizon_auth)
     }
@@ -95,12 +119,6 @@ class TokenStorage {
   }
 }
 
-function clearAuthTokens() {
+export function clearAuthTokens() {
   return getStorage().removeItem(HORIZON_JWT)
-}
-
-module.exports = {
-  authEndpoint,
-  TokenStorage,
-  clearAuthTokens,
 }

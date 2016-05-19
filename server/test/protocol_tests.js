@@ -3,18 +3,16 @@
 const utils = require('./utils');
 
 const assert = require('assert');
-const r = require('rethinkdb');
 
-const all_tests = (table) => {
+const all_tests = (collection) => {
   beforeEach('Authenticate client', utils.horizon_default_auth);
 
   it('unparseable', (done) => {
     const conn = utils.horizon_conn();
     conn.removeAllListeners('error');
     conn.send('foobar');
-    conn.once('close', (code, msg) => {
-      assert.strictEqual(code, 1002);
-      assert.strictEqual(msg, 'Invalid JSON.');
+    conn.once('close', (reason) => {
+      assert.strictEqual(reason, 'transport close');
       done();
     });
   });
@@ -23,9 +21,8 @@ const all_tests = (table) => {
     const conn = utils.horizon_conn();
     conn.removeAllListeners('error');
     conn.send('{ }');
-    conn.once('close', (code, msg) => {
-      assert.strictEqual(code, 1002);
-      assert.strictEqual(msg, 'Invalid request.');
+    conn.once('close', (reason) => {
+      assert.strictEqual(reason, 'transport close');
       done();
     });
   });
@@ -63,16 +60,14 @@ const all_tests = (table) => {
       {
         request_id: 3,
         type: 'subscribe',
-        options: {
-          collection: table,
-        },
+        options: { collection },
       }));
     utils.add_horizon_listener(3, (msg) => {
       if (msg.error !== undefined) {
         throw new Error(msg.error);
       } else if (msg.state === 'synced') {
         utils.close_horizon_conn();
-        r.table(table).insert({}).run(utils.rdb_conn())
+        utils.table(collection).insert({}).run(utils.rdb_conn())
          .then(() => done());
       }
     });
@@ -87,13 +82,13 @@ const all_tests = (table) => {
         request_id: 4,
         type: 'query',
         options: {
-          collection: table,
+          collection,
           field_name: 'id',
         },
       }), () => (utils.close_horizon_conn(), done()));
   });
 };
 
-const suite = (table) => describe('Protocol', () => all_tests(table));
+const suite = (collection) => describe('Protocol', () => all_tests(collection));
 
 module.exports = { suite };

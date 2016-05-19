@@ -1,18 +1,24 @@
 // Checks whether the return value is a valid primary or secondary
 // index value in RethinkDB.
-const validIndexValue = module.exports = val => {
+export default function validIndexValue(val) {
   if (val === null) {
     return false
   }
   if ([ 'boolean', 'number', 'string' ].indexOf(typeof val) !== -1) {
     return true
   }
+  if (val instanceof ArrayBuffer) {
+    return true
+  }
+  if (val instanceof Date) {
+    return true
+  }
   if (Array.isArray(val)) {
-    let containsBad = false
+    let isValid = true
     val.forEach(v => {
-      containsBad = containsBad || validIndexValue(v)
+      isValid = isValid && validIndexValue(v)
     })
-    return containsBad
+    return isValid
   }
   return false
 }

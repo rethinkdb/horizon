@@ -1,5 +1,9 @@
-'use strict'
-const collectionSuite = window.collectionSuite = (getHorizon, getData, getTestData) => () => {
+import { _do as tap } from 'rxjs/operator/do'
+import { toArray } from 'rxjs/operator/toArray'
+
+import { assertCompletes, removeAllData, compareSetsWithoutVersion } from './utils'
+
+const collectionSuite = global.collectionSuite = (getHorizon, getData, getTestData) => () => {
   let horizon, data, testData, empty_collection
 
   before(() => {
@@ -16,13 +20,27 @@ const collectionSuite = window.collectionSuite = (getHorizon, getData, getTestDa
 
   // Grab everything from the collection.
   it('allows getting all values from the collection', assertCompletes(() =>
-    data.fetch().toArray()
-      .do(res => assert.sameDeepMembers(testData, res))
+    data.fetch()
+      ::tap(res => compareSetsWithoutVersion(testData, res))
   ))
 
   // Reading from an empty collection should result in an empty array
   it('returns an empty array from an empty collection', assertCompletes(() =>
-    empty_collection.fetch().toArray()
-      .do(res => assert.sameDeepMembers(res, []))
+    empty_collection.fetch()
+      ::tap(res => compareSetsWithoutVersion(res, []))
   ))
+
+  // Test forEach for promise behavior
+  it('Allows iterating over the entire collection', done => {
+    let didSomething = false
+    data.fetch().forEach(results => {
+      didSomething = true
+    }).then(() => {
+      if (didSomething) {
+        done()
+      } else {
+        done(new Error("Didn't do anything"))
+      }
+    }).catch(err => done(err))
+  })
 } // Testing full collection reads

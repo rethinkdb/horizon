@@ -1,6 +1,19 @@
-'use strict'
-const removeAllSuite = window.removeAllSuite = getData => () => {
-  let data;
+import { _do as tap } from 'rxjs/operator/do'
+import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
+import { toArray } from 'rxjs/operator/toArray'
+import { concat } from 'rxjs/operator/concat'
+import { map } from 'rxjs/operator/map'
+import { ignoreElements } from 'rxjs/operator/ignoreElements'
+
+import { assertCompletes,
+         assertThrows,
+         assertErrors,
+         removeAllData,
+         compareWithoutVersion,
+         compareSetsWithoutVersion } from './utils'
+
+const removeAllSuite = global.removeAllSuite = getData => () => {
+  let data
   const testData = [
     { id: 1, a: 1 },
     { id: 2, a: 2 },
@@ -21,63 +34,60 @@ const removeAllSuite = window.removeAllSuite = getData => () => {
 
   // Insert the test data and make sure it's in
   before(assertCompletes(() =>
-    data.store(testData).ignoreElements()
-     .concat(data.fetch().toArray())
+    data.store(testData)::ignoreElements()
+     ::concat(data.fetch())
      // Make sure it's there
-     .do(res => assert.sameDeepMembers(res, testData))
+     ::tap(res => compareSetsWithoutVersion(res, testData))
   ))
 
   // All right, let's remove a document. The promise resolves with no
   // arguments.
   it('removes documents when an array of ids is passed', assertCompletes(() =>
     data.removeAll([ 1 ])
-      .do(res => assert.equal(res, 1))
+      ::tap(res => compareWithoutVersion(res, { id: 1 }))
       // Let's make sure the removed document isn't there
-      .flatMap(data.find(1).fetch())
+      ::mergeMapTo(data.find(1).fetch())
       // Let's make sure the removed document isn't there
-      .do(res => assert.isNull(res))
+      ::tap(res => assert.isNull(res))
   ))
 
   // Passing an array of objects to `removeAll` is also ok.
   it('removes documents when array elements are objects', assertCompletes(() =>
     data.removeAll([ { id: 2 } ])
-      .do(res => assert.equal(res, 2))
+      ::tap(res => compareWithoutVersion(res, { id: 2 }))
       // Let's make sure the removed document isn't there
-      .flatMap(data.find(2).fetch())
+      ::mergeMapTo(data.find(2).fetch())
       // Let's make sure the removed document isn't there
-      .do(res => assert.isNull(res))
+      ::tap(res => assert.isNull(res))
   ))
 
   // We can also remove multiple documents
   it('removes multiple documents by id or as objects', assertCompletes(() =>
-    data.removeAll([ 3, 50, { id: 4 } ]).toArray()
-      .do(res => assert.deepEqual(res, [ 3, 50, 4 ]))
+    data.removeAll([ 3, 50, { id: 4 } ])::toArray()
+      ::tap(res => compareWithoutVersion(res, [ { id: 3 }, { id: 50 }, { id: 4 } ]))
       // Let's make sure the removed document isn't there
-      .flatMap(data.findAll(3, 50, 4).fetch().toArray())
+      ::mergeMapTo(data.findAll(3, 50, 4).fetch())
       // Let's make sure the removed document isn't there
-      .do(res => assert.deepEqual(res, []))
+      ::tap(res => assert.deepEqual(res, []))
   ))
 
   // Removing a missing document shouldn't generate an error.
   it('removes a non-existent document without error', assertCompletes(() =>
     data.removeAll([ 'abracadabra' ])
-      .do(res => assert.equal(res, 'abracadabra'))
+      ::tap(res => assert.deepEqual(res, { id: 'abracadabra' })),
+    /document was missing/
   ))
 
   // Calling `removeAll` with an empty array is also ok.
   it(`doesn't error when an empty array is passed`, assertCompletes(() =>
     data.removeAll([])
-      .do(res => assert.fail())
+      ::tap(res => assert.fail())
   ))
 
   // But an array with a `null` is an error.
   it('errors when a null in an array is passed', assertErrors(() =>
-    data.removeAll([ null ])
-  ))
-
-  // If one thing fails, everything is reported as a failure.
-  it('reports failure if anything in a batch fails', assertErrors(() =>
-    data.removeAll([ 3, null, { id: 4 } ])
+    data.removeAll([ null ]),
+    /must be an object/
   ))
 
   // Calling `removeAll` with anything but a single array is an error.
@@ -108,8 +118,9 @@ const removeAllSuite = window.removeAllSuite = getData => () => {
 
   // Check that the remaining documents are there
   it(`doesn't remove documents not specified`, assertCompletes(() =>
-    data.fetch().pluck('id').toArray()
-      .do(res => assert.includeMembers(
+    data.fetch()
+      ::map(docs => docs.map(x => x.id))
+      ::tap(res => assert.includeMembers(
         res, [ 'do_not_remove_1', 'do_not_remove_2' ]))
   ))
 } // Testing `removeAll`

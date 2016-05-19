@@ -1,5 +1,8 @@
-'use strict'
-const findSubscriptionSuite = window.findSubscriptionSuite = (getData) => () => {
+import { concat } from 'rxjs/operator/concat'
+
+import { assertCompletes, observableInterleave } from './utils'
+
+const findSubscriptionSuite = global.findSubscriptionSuite = getData => () => {
   let data
 
   before(() => {
@@ -46,9 +49,9 @@ const findSubscriptionSuite = window.findSubscriptionSuite = (getData) => () => 
       query: data.find(1).watch(),
       operations: [ // only one operation
         data.store({ id: 2, a: 1 }) // irrelevant
-          .concat(data.store({ id: 2, a: 2 })) // irrelevant
-          .concat(data.insert({ id: 1, data: 'blep' })) // relevant
-          .concat(data.remove(2)), // removing irrelevant
+          ::concat(data.store({ id: 2, a: 2 })) // irrelevant
+          ::concat(data.insert({ id: 1, data: 'blep' })) // relevant
+          ::concat(data.remove(2)), // removing irrelevant
         data.remove(1), // triggered after relevant only
       ],
       expected: [
@@ -63,7 +66,7 @@ const findSubscriptionSuite = window.findSubscriptionSuite = (getData) => () => 
   it(`properly handles initial values`, assertCompletes(() =>
     // before starting the feed, insert initial document
     data.store({ id: 1, a: 1 })
-      .concat(observableInterleave({
+      ::concat(observableInterleave({
         query: data.find(1).watch(),
         operations: [
           data.store({ id: 1, a: 2 }),

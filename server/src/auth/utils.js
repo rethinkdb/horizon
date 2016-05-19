@@ -4,7 +4,6 @@ const logger = require('../logger');
 
 const cookie = require('cookie');
 const crypto = require('crypto');
-const extend = require('util')._extend;
 const Joi = require('joi');
 const url = require('url');
 
@@ -15,12 +14,12 @@ const do_redirect = (res, redirect_url) => {
 };
 
 const extend_url_query = (path, query) => {
-  const path_copy = extend({ }, path);
+  const path_copy = Object.assign({}, path);
   if (path_copy.query === null) {
     path_copy.query = query;
   } else {
-    path_copy.query = extend({ }, path_copy.query);
-    path_copy.query = extend(path_copy.query, query);
+    path_copy.query = Object.assign({}, path_copy.query);
+    path_copy.query = Object.assign({}, path_copy.query, query);
   }
   return path_copy;
 };
@@ -173,12 +172,12 @@ const oauth2 = (raw_options) => {
                 res.statusCode = 500;
                 res.end('unparseable inspect response');
               } else {
-                horizon._auth.generate_jwt(provider, user_id, (err3, jwt) => {
+                horizon._auth.generate(provider, user_id).nodeify((err3, jwt) => {
                   // Clear the nonce just so we aren't polluting clients' cookies
                   clear_nonce(res, horizon._name);
                   do_redirect(res, err3 ?
                     make_failure_url('invalid user') :
-                    make_success_url(jwt));
+                    make_success_url(jwt.token));
                 });
               }
             });

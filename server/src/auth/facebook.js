@@ -23,13 +23,12 @@ function facebook(horizon, raw_options) {
   // Facebook requires inspect requests to use a separate app access token
   let app_token;
 
-  const make_app_token_request = () => {
-    return https.request(
+  const make_app_token_request = () =>
+    https.request(
       url.format({ protocol: 'https',
                    host: 'graph.facebook.com',
                    pathname: '/oauth/access_token',
                    query: { client_id, client_secret, grant_type: 'client_credentials' } }));
-  };
 
   auth_utils.run_request(make_app_token_request(), (err, body) => {
     const parsed = body && querystring.parse(body);
@@ -58,13 +57,12 @@ function facebook(horizon, raw_options) {
     return req;
   };
 
-  oauth_options.make_inspect_request = (input_token) => {
-    return https.request(
+  oauth_options.make_inspect_request = (input_token) =>
+    https.request(
       url.format({ protocol: 'https',
                    host: 'graph.facebook.com',
                    pathname: '/debug_token',
                    query: { access_token: app_token, input_token } }));
-  };
 
   oauth_options.extract_id = (user_info) =>
     user_info && user_info.data && user_info.data.user_id;

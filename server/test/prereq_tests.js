@@ -4,29 +4,28 @@ const utils = require('./utils');
 
 const assert = require('assert');
 const crypto = require('crypto');
-const r = require('rethinkdb');
 
-const all_tests = (table) => {
-  beforeEach('clear table', (done) => utils.clear_table(table, done));
+const all_tests = (collection) => {
+  beforeEach('clear collection', (done) => utils.clear_collection(collection, done));
   beforeEach('authenticate', (done) => utils.horizon_default_auth(done));
 
-  // Launch simultaneous queries that depend on a non-existent table, then
-  // verify that only one table exists with that name.
-  it('table create race on read',
+  // Launch simultaneous queries that depend on a non-existent collection, then
+  // verify that only one table exists for that collection.
+  it('collection create race on read',
      /** @this mocha */
      function(done) {
        const query_count = 5;
-       const table_name = crypto.randomBytes(8).toString('hex');
+       const rand_collection = crypto.randomBytes(8).toString('hex');
 
        let finished = 0;
        for (let i = 0; i < query_count; ++i) {
          utils.stream_test(
-           { request_id: i, type: 'query', options: { collection: table_name } },
+           { request_id: i, type: 'query', options: { collection: rand_collection } },
            (err, res) => {
              assert.ifError(err);
              assert.strictEqual(res.length, 0);
              if (++finished === query_count) {
-               r.table(table_name).count().run(utils.rdb_conn())
+               utils.table(rand_collection).count().run(utils.rdb_conn())
                 .then((count) => (assert.strictEqual(count, 0), done()),
                       (error) => done(error));
              }
@@ -36,11 +35,11 @@ const all_tests = (table) => {
 
   // Same as the previous test, but it exists because the ReQL error message
   // is different for a read or a write when the table is unavailable.
-  it('table create race on write',
+  it('collection create race on write',
      /** @this mocha */
      function(done) {
        const query_count = 5;
-       const table_name = crypto.randomBytes(8).toString('hex');
+       const rand_collection = crypto.randomBytes(8).toString('hex');
 
        let finished = 0;
        for (let i = 0; i < query_count; ++i) {
@@ -49,7 +48,7 @@ const all_tests = (table) => {
              request_id: i,
              type: 'insert',
              options: {
-               collection: table_name,
+               collection: rand_collection,
                data: [ { } ],
              },
            },
@@ -57,7 +56,7 @@ const all_tests = (table) => {
              assert.ifError(err);
              assert.strictEqual(res.length, 1);
              if (++finished === query_count) {
-               r.table(table_name).count().run(utils.rdb_conn())
+               utils.table(rand_collection).count().run(utils.rdb_conn())
                 .then((count) => (assert.strictEqual(count, query_count), done()),
                       (error) => done(error));
              }
@@ -72,7 +71,7 @@ const all_tests = (table) => {
     const field_name = crypto.randomBytes(8).toString('hex');
     const conn = utils.rdb_conn();
 
-    r.table(table).indexStatus().count().run(conn).then((old_count) => {
+    utils.table(collection).indexStatus().count().run(conn).then((old_count) => {
       let finished = 0;
       for (let i = 0; i < query_count; ++i) {
         utils.stream_test(
@@ -80,7 +79,7 @@ const all_tests = (table) => {
             request_id: i,
             type: 'query',
             options: {
-              collection: table,
+              collection,
               order: [ [ field_name ], 'ascending' ],
             },
           },
@@ -88,7 +87,7 @@ const all_tests = (table) => {
             assert.ifError(err);
             assert.strictEqual(res.length, 0);
             if (++finished === query_count) {
-              r.table(table).indexStatus().count().run(conn).then((new_count) => {
+              utils.table(collection).indexStatus().count().run(conn).then((new_count) => {
                 assert.strictEqual(old_count + 1, new_count);
                 done();
               }, (err2) => done(err2));
@@ -99,6 +98,6 @@ const all_tests = (table) => {
   });
 };
 
-const suite = (table) => describe('Prereqs', () => all_tests(table));
+const suite = (collection) => describe('Prereqs', () => all_tests(collection));
 
 module.exports = { suite };

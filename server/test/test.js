@@ -9,7 +9,7 @@ const all_suites = [ 'http_tests',
                      'query_tests',
                      'subscribe_tests',
                      'write_tests' ];
-const table = 'test';
+const collection = 'test';
 
 before('Start RethinkDB Server', (done) => utils.test_db_server(done));
 
@@ -21,14 +21,15 @@ afterEach(
   /** @this mocha */
   function() { logger.info(`End test '${this.currentTest.title}'`); });
 
-describe('Horizon Server', () => {
+describe('Horizon Server', function() {
+  this.timeout(30000);
   before('Start Horizon Server', utils.start_horizon_server);
   after('Close Horizon Server', utils.close_horizon_server);
 
-  before(`Creating general-purpose table: '${table}'`,
-         (done) => utils.create_table(table, done));
+  before(`Creating general-purpose collection: '${collection}'`,
+         (done) => utils.create_collection(collection, done));
 
   beforeEach('Connect Horizon Client', utils.open_horizon_conn);
   afterEach('Close Horizon Client', utils.close_horizon_conn);
-  all_suites.forEach((s) => require(`./${s}`).suite(table));
+  all_suites.forEach((s) => require(`./${s}`).suite(collection));
 });
