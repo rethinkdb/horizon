@@ -46,11 +46,12 @@ Optional Args| Description
   --allow-unauthenticated | Whether to allow unauthenticated Horizon connections.
   --debug             | Enable debug logging.
   --insecure          | Serve insecure websockets, ignore `--key-file` and `--cert-file`.
+  --permissions       | Whether to disable the permissions system
   --start-rethinkdb   | Start up a RethinkDB server in the current directory
   --auto-create-table | Create tables used by requests if they do not exist
   --auto-create-index | Create indexes used by requests if they do not exist
   --serve-static [PATH] | Serve static files from a directory. Defaults to `dist`.
-  --dev               | Runs the server in development mode, this sets `--insecure`, `--auto-create-tables`, `--start-rethinkdb`, `--serve-static` and `--auto-create-indexes`.
+  --dev               | Runs the server in development mode, this sets `--insecure`, `--auto-create-tables`, `--start-rethinkdb`, `--serve-static`, `--permissions`, and `--auto-create-indexes`.
 
 #### Serving securely, generating certs for SSL
 
