@@ -83,8 +83,6 @@ class Auth {
         .do(auth_user => insert('users', this.new_user_row(auth_user('user_id'))));
     }
 
-    query = query.merge({ provider })
-
     return this.reql_call(query)
     .catch(err => {
       // TODO: if we got a `Duplicate primary key` error, it was likely a race condition
@@ -92,7 +90,7 @@ class Auth {
       logger.debug(`Failed user lookup or creation: ${err}`);
       throw new Error('User lookup or creation in database failed.');
     })
-    .then(user => this._jwt.sign(user));
+    .then(user => this._jwt.sign({ id: user.id, provider }));
   }
 
   reql_call(query) {
@@ -119,7 +117,7 @@ class JWT {
   }
 
   // A generated token contains the data:
-  // { id: <uuid>, groups: [ ... ], provider: <string> }
+  // { id: <uuid>, provider: <string> }
   sign(payload) {
     const token = jwt.sign(
       payload,
