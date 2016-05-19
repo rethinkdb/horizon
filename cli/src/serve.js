@@ -7,6 +7,7 @@ const path = require('path');
 const toml = require('toml');
 const url = require('url');
 const chalk = require('chalk');
+const getType = require('mime-types').contentType;
 
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const start_rdb_server = require('./utils/start_rdb_server');
@@ -171,14 +172,12 @@ const serve_file = (file_path, res) => {
               res.writeHead(500, { 'Content-Type': 'text/plain' });
               res.end(`${err2}\n`);
             } else {
-              if (file_path.endsWith('.js')) {
-                res.writeHead(200, {
-                  'Content-Type': 'application/javascript' });
-              } else if (file_path.endsWith('.html')) {
-                res.writeHead(200, { 'Content-Type': 'text/html' });
-              } else {
-                res.writeHead(200);
-              }
+              let type = getType(path.extname(file_path)) || false;
+              if (type) {
+                  res.writeHead(200, {'Content-Type': type});
+                 } else {
+                  res.writeHead(200);
+                 }
               res.end(file, 'binary');
             }
           });
