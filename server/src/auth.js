@@ -113,13 +113,13 @@ class JWT {
       this.secret = new Buffer(options.token_secret, 'base64');
     } else {
       throw new Error(
-        'No token_secret set! Try setting it in .hz/config.toml' +
+        'No token_secret set! Try setting it in .hz/config.toml ' +
         'or passing it to the Server constructor.');
     }
   }
 
   // A generated token contains the data:
-  // { user: <uuid>, provider: <string> }
+  // { id: <uuid>, groups: [ ... ], provider: <string> }
   sign(payload) {
     const token = jwt.sign(
       payload,
