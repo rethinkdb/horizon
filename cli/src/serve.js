@@ -263,8 +263,7 @@ const yes_no_options = [ 'debug',
                          'auto_create_index',
                          'auto_create_collection',
                          'allow_unauthenticated',
-                         'allow_anonymous',
-                         'auth_redirect' ];
+                         'allow_anonymous' ];
 
 const parse_connect = (connect, config) => {
   const host_port = connect.split(':');
