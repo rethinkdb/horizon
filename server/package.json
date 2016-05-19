@@ -28,6 +28,7 @@
     "engine.io": "^1.6.9",
     "joi": "^8.0.4",
     "jsonwebtoken": "^5.5.4",
+    "mime-types": "^2.0.4",
     "oauth": "^0.9.14",
     "pem": "^1.8.1",
     "rethinkdb": "^2.1.1",
