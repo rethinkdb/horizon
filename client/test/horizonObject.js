@@ -3,9 +3,20 @@
 // Test object creation, the `disconnect` method, and `connected/disconnected`
 // events.
 
+function doneWrap(done) {
+  let alreadyDone = false
+  return (...args) => {
+    if (!alreadyDone) {
+      alreadyDone = true
+      return done(...args)
+    }
+  }
+}
+
 var horizonObjectSuite = global.horizonObjectSuite = () => {
   describe('Horizon', () => {
     it('connects and can track its status', done => {
+      let oneDone = doneWrap(done)
       Horizon.clearAuthTokens()
       const horizon = Horizon({ secure: false })
       assert.isDefined(horizon)
@@ -18,18 +29,18 @@ var horizonObjectSuite = global.horizonObjectSuite = () => {
             horizon.disconnect()
             break
           case 'error':
-            done(new Error('Got an error in socket status'))
+            oneDone(new Error('Got an error in socket status'))
             break
           case 'disconnected':
-            done()
+            oneDone()
             break
           default:
-            done(new Error(`Received unknown status type ${stat.type}`))
+            oneDone(new Error(`Received unknown status type ${stat.type}`))
           }
         },
-        () => done(new Error('Got an error in status'))
+        () => oneDone(new Error('Got an error in status'))
       )
-      horizon.connect(err => done(err))
+      horizon.connect(err => oneDone(err))
     })
 
     it('errors when it gets the wrong host', done => {
