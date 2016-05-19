@@ -220,7 +220,8 @@ const initialize_servers = (ctor, opts) => {
         srv.on('request', fileServer(opts.serve_static));
       }
       srv.on('listening', () => {
-        console.info(`App available at http://${srv.address().address}:` +
+        const protocol = opts.secure ? 'https' : 'http';
+        console.info(`App available at ${protocol}://${srv.address().address}:` +
                     `${srv.address().port}`);
         if (++numReady === servers.size) {
           resolve(servers);
