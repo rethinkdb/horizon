@@ -144,7 +144,7 @@ const runCommand = (options, done) => {
     conn.close();
     const toml_str = config_to_toml(res.collections, res.groups);
     options.out_file.write(toml_str);
-  }).then(() => interrupt.shutdown() ).catch(done);
+  }).then(() => interrupt.shutdown()).catch(done);
 };
 
 module.exports = {

@@ -169,7 +169,7 @@ const runCommand = (options, done) => {
     return initialize_metadata_reql(r, internal_db, db).run(conn);
   }).then((initialization_result) => {
     if (initialization_result.tables_created) {
-      console.log("Initialized new application metadata.");
+      console.log('Initialized new application metadata.');
     }
     // Wait for metadata tables to be writable
     return r.db(internal_db)
@@ -196,9 +196,9 @@ const runCommand = (options, done) => {
       // Update groups
       return Promise.all(schema.groups.map((group) => {
         const literal_group = JSON.parse(JSON.stringify(group));
-        Object.keys(literal_group.rules).forEach((key) =>
-          literal_group.rules[key] = r.literal(literal_group.rules[key])
-        );
+        Object.keys(literal_group.rules).forEach((key) => {
+          literal_group.rules[key] = r.literal(literal_group.rules[key]);
+        });
 
         return r.db(internal_db).table('groups')
           .get(group.id).replace((old_row) =>
@@ -209,7 +209,7 @@ const runCommand = (options, done) => {
             if (res.errors) {
               throw new Error(`Failed to update group: ${res.first_error}`);
             }
-        });
+          });
       }));
     } else {
       // Replace and remove groups

@@ -4,6 +4,7 @@ const error = require('./error');
 const logger = require('./logger');
 const Group = require('./permissions/group').Group;
 const Collection = require('./collection').Collection;
+const version_field = require('./endpoint/writes').version_field;
 
 const r = require('rethinkdb');
 
@@ -33,14 +34,14 @@ const create_collection_reql = (R, internal_db, user_db, collection) => {
                         do_create(table),
                         { old_val: row, new_val: row })));
 };
-const initialize_metadata_reql = (R, internal_db, user_db) => {
-  return R.expr([ user_db, internal_db ])
-          .forEach((db) => R.branch(R.dbList().contains(db), [], R.dbCreate(db)))
-          .do(() =>
-            R.expr([ 'collections', 'users_auth', 'users', 'groups' ])
-             .forEach((table) => R.branch(R.db(internal_db).tableList().contains(table),
-                                          [], R.db(internal_db).tableCreate(table))));
-};
+
+const initialize_metadata_reql = (R, internal_db, user_db) =>
+  R.expr([ user_db, internal_db ])
+    .forEach((db) => R.branch(R.dbList().contains(db), [], R.dbCreate(db)))
+    .do(() =>
+      R.expr([ 'collections', 'users_auth', 'users', 'groups' ])
+        .forEach((table) => R.branch(R.db(internal_db).tableList().contains(table),
+                                     [], R.db(internal_db).tableCreate(table))));
 
 class Metadata {
   constructor(project_name,
@@ -172,7 +173,7 @@ class Metadata {
                 }
               }).catch(reject);
             });
-          })
+          });
       return Promise.all([ groups_ready, collections_ready, indexes_ready ]);
     };
 
@@ -182,18 +183,18 @@ class Metadata {
     } else {
       this._ready_promise =
         r.expr([ this._db, this._internal_db ])
-         .concatMap((db) => r.branch(r.dbList().contains(db), [], [db]))
+         .concatMap((db) => r.branch(r.dbList().contains(db), [], [ db ]))
          .run(this._conn).then((missing_dbs) => {
-           logger.debug("checking for internal db/tables");
+           logger.debug('checking for internal db/tables');
            if (missing_dbs.length > 0) {
              let err_msg;
-             if (missing_dbs.length == 1) {
-               err_msg = "The database " + missing_dbs[0] + " doesn't exist. ";
+             if (missing_dbs.length === 1) {
+               err_msg = `The database ${missing_dbs[0]} does not exist.`;
              } else {
-               err_msg = "The databases " + missing_dbs[0] + " and " + missing_dbs[1] + " don't exist. ";
+               err_msg = `The databases ${missing_dbs.join(' and ')} do not exist.`;
              }
-             throw new Error(err_msg + "Run `hz set-schema` to initialize the database, "
-                  + "then start the Horizon server.");
+             throw new Error(err_msg + 'Run `hz set-schema` to initialize the database, ' +
+                             'then start the Horizon server.');
            } else {
              return make_feeds();
            }
@@ -217,13 +218,17 @@ class Metadata {
         r.db(this._internal_db).table('groups').get('admin')
           .replace((old_row) =>
             r.branch(old_row.eq(null),
-                     { id: 'admin', rules: { 'carte_blanche': { 'template': 'any()' } } },
-                     old_row),
+              {
+                id: 'admin',
+                rules: { carte_blanche: { template: 'any()' } },
+                [version_field]: 0,
+              },
+              old_row),
             { returnChanges: 'always' })('changes')(0)
           .do((res) =>
             r.branch(res('new_val').eq(null),
                      r.error(res('error')),
-                     res('new_val'))).run(this._conn)
+                     res('new_val'))).run(this._conn),
       ]);
     }).then(() => {
       logger.debug('redirecting users table');
@@ -317,19 +322,18 @@ class Metadata {
       .get(id)
       .changes({ includeInitial: true, squash: true })
       .run(this._conn)
-      .then(cursor => {
-        return cursor.eachAsync(change => {
+      .then((cursor) =>
+        cursor.eachAsync((change) => {
           if (!change.new_val) {
-            throw new Error('User account has been deleted.')
+            throw new Error('User account has been deleted.');
           }
-          return cb(change)
-        })
-        .then(() => {
-          throw new Error('User account feed has been lost.')
+          return cb(change);
+        }).then(() => {
+          throw new Error('User account feed has been lost.');
         }, (err) => {
-          throw new Error(`User account feed errored: ${err}`)
-        });
-      });
+          throw new Error(`User account feed errored: ${err}`);
+        })
+      );
   }
 
   get_group(group_name) {

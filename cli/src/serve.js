@@ -172,12 +172,12 @@ const serve_file = (file_path, res) => {
               res.writeHead(500, { 'Content-Type': 'text/plain' });
               res.end(`${err2}\n`);
             } else {
-              let type = getType(path.extname(file_path)) || false;
+              const type = getType(path.extname(file_path)) || false;
               if (type) {
-                  res.writeHead(200, {'Content-Type': type});
-                 } else {
-                  res.writeHead(200);
-                 }
+                res.writeHead(200, { 'Content-Type': type });
+              } else {
+                res.writeHead(200);
+              }
               res.end(file, 'binary');
             }
           });
