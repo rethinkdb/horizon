@@ -65,23 +65,22 @@ describe('Config', () => {
   });
 
   it('precedence', () => {
-    // Test a boolean flag (in this case `insecure`)
-    // Command-line flags can only set a boolean flag to true
+    // Test a yes/no flag (in this case `secure`)
     // Make a list of all possible states to test, each item contains
     // the state of the config file, the env, and the flags
     const states = [ ];
-    const values = [ false, true, null ];
+    const values = [ 'yes', 'no', 'false', 'true', false, true, null ];
 
-    for (let i = 0; i < 27; ++i) {
+    for (let i = 0; i < Math.pow(values.length, 3); ++i) {
       states.push([ values[i % 3], values[Math.floor(i / 3) % 3], values[Math.floor(i / 9) % 3] ]);
     }
 
     states.forEach((state) => {
       const parsed = { config: config_file };
-      let expected = false; // default value
+      let expected = true; // default value
 
       if (state[0] !== null) {
-        write_config({ insecure: state[0] });
+        write_config({ secure: state[0] });
         expected = state[0];
       } else {
         write_config({ });
@@ -95,11 +94,14 @@ describe('Config', () => {
       }
 
       if (state[2] !== null) {
-        parsed.insecure = state[2];
-        expected = expected || state[2];
+        parsed.secure = state[2];
+        expected = state[2];
       }
 
-      assert.strictEqual(processConfig(make_flags(parsed)).insecure, expected);
+      expected = (expected === 'yes' || expected === 'true') || expected;
+      expected = (expected === 'no' || expected === 'false') ? false : expected;
+
+      assert.strictEqual(processConfig(make_flags(parsed)).secure, expected);
     });
   });
 
