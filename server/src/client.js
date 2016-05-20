@@ -102,8 +102,6 @@ class Client {
     }
 
     this._server._auth.handshake(request).then((res) => {
-      console.log(`making handshake response: ${JSON.stringify(res)}`);
-
       let responded = false;
       const finish_handshake = () => {
         if (!responded) {

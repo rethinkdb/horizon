@@ -68,9 +68,10 @@ const create_collection = (collection, done) => {
       conn.send(JSON.stringify({ request_id: 123, method: 'unauthenticated' }));
       conn.once('message', (data) => {
         const res = JSON.parse(data);
-        assert.equal(res.request_id, 123);
-        assert.equal(res.token, res.token);
-        assert(typeof res.payload === 'object');
+        assert.strictEqual(res.request_id, 123);
+        assert.strictEqual(typeof res.token, 'string');
+        assert.strictEqual(res.id, null);
+        assert.strictEqual(res.provider, 'unauthenticated');
 
         // This query should auto-create the collection if it's missing
         conn.send(JSON.stringify({
@@ -200,9 +201,10 @@ const horizon_auth = (req, cb) => {
 
 const horizon_default_auth = (done) => {
   horizon_auth({ request_id: -1, method: 'unauthenticated' }, (res) => {
-    assert.equal(res.request_id, -1);
-    assert.equal(res.token, res.token);
-    assert(typeof res.payload === 'object');
+    assert.strictEqual(res.request_id, -1);
+    assert.strictEqual(typeof res.token, 'string');
+    assert.strictEqual(res.id, null);
+    assert.strictEqual(res.provider, 'unauthenticated');
     done();
   });
 };

@@ -79,8 +79,6 @@ function twitter(horizon, raw_options) {
                          pathname: request_url.pathname,
                          query: { state: auth_utils.nonce_to_state(nonce) } });
 
-          console.log(`Requesting new app oauth token with auth_url: ${oa._authorize_callback}`);
-
           oa.getOAuthRequestToken((err, app_token, app_token_secret, body) => {
             if (err || body.oauth_callback_confirmed !== 'true') {
               logger.error(`Error acquiring app oauth token: ${JSON.stringify(err)}`);
