@@ -1,0 +1,13 @@
+node_modules
+built
+tags
+typings
+.baseDir.ts
+.tscache
+
+app/**/*.js
+app/**/*.map
+platforms
+lib
+
+*.tgz
