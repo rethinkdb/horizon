@@ -400,10 +400,6 @@ const read_config_from_flags = (parsed) => {
   }
   if (parsed.bind !== null && parsed.bind !== undefined) {
     config.bind = parsed.bind;
-
-    if (config.bind.indexOf('all') !== -1) {
-      config.bind = [ '0.0.0.0' ];
-    }
   }
 
   if (parsed.token_secret !== null && parsed.token_secret !== undefined) {
@@ -464,6 +460,10 @@ const processConfig = (parsed) => {
 
   if (config.project_name === null) {
     config.project_name = path.basename(path.resolve(config.project_path));
+  }
+
+  if (config.bind.indexOf('all') !== -1) {
+    config.bind = [ '0.0.0.0' ];
   }
 
   return config;
