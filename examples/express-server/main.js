@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict'
 
-const express = require('express')();
+const express = require('express');
 const horizon = require('@horizon/server');
 
 const app = express();
