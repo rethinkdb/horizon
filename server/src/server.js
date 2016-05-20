@@ -25,6 +25,7 @@ const endpoints = {
 const assert = require('assert');
 const fs = require('fs');
 const Joi = require('joi');
+const path = require('path');
 const url = require('url');
 const websocket = require('engine.io');
 
@@ -52,10 +53,10 @@ const serve_file = (file_path, res) => {
         } else {
           let type = getType(path.extname(file_path)) || false;
           if (type) {
-              res.writeHead(200, {'Content-Type': type});
-              } else {
-              res.writeHead(200);
-           }
+            res.writeHead(200, { 'Content-Type': type });
+          } else {
+            res.writeHead(200);
+          }
           res.end(file, 'binary');
         }
       });

@@ -102,11 +102,11 @@ class Client {
     }
 
     this._server._auth.handshake(request)
-    .then(res => {
+    .then((res) => {
       this.user_info = res.payload;
       this.send_response(request, res);
-      this._socket.on('message', (data) =>
-        this.error_wrap_socket(() => this.handle_request(data)));
+      this._socket.on('message', (msg) =>
+        this.error_wrap_socket(() => this.handle_request(msg)));
 
       if (this.user_info.id != null) {
         return this._metadata.get_user_feed(this.user_info.id, (change) => {
@@ -115,9 +115,9 @@ class Client {
         });
       }
     })
-    .catch(err => {
-      return this.close({ error: `${err}`, error_code: 0 });
-    });
+    .catch((err) =>
+      this.close({ error: `${err}`, error_code: 0 })
+    );
   }
 
   handle_request(data) {

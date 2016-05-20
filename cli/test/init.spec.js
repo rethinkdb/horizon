@@ -239,7 +239,7 @@ describe('hz init', () => {
         assertDirExists(testCwd, '.hz');
         done();
       });
-      it("doesn't create the .hz dir if it exists", (done) =>{
+      it("doesn't create the .hz dir if it exists", (done) => {
         const hzDir = `${testCwd}/.hz`;
         fs.mkdirSync(hzDir);
         const beforeTime = fs.statSync(hzDir).birthtime.getTime();

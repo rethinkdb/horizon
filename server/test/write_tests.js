@@ -31,13 +31,13 @@ const without_version = (item) => {
 
 const compare_write_response = (actual, expected) => {
   assert.deepStrictEqual(actual.map(without_version), expected);
-}
+};
 
 const check_collection_data = (actual, expected) => {
   // TODO: make sure that versions increment properly
   assert.deepStrictEqual(actual.map(without_version),
                          expected.map(without_version));
-}
+};
 
 // TODO: verify through reql that rows have been inserted/removed
 const all_tests = (collection) => {
@@ -109,9 +109,9 @@ const all_tests = (collection) => {
   describe('Replace', () => {
     const test_case = (ids, done) => {
       utils.stream_test(make_request('replace', ids), (err, res) => {
-        const expected = ids.map((id) => {
-          return id < original_data.length ? { id } : { error: 'The document was missing.' };
-        });
+        const expected = ids.map((id) =>
+          (id < original_data.length ? { id } : { error: 'The document was missing.' })
+        );
         assert.ifError(err);
         compare_write_response(res, expected);
         const new_data = ids.map(new_row_from_id);
@@ -145,9 +145,9 @@ const all_tests = (collection) => {
   describe('Update', () => {
     const test_case = (ids, done) => {
       utils.stream_test(make_request('update', ids), (err, res) => {
-        const expected = ids.map((id) => {
-          return id < original_data.length ? { id } : { error: 'The document was missing.' };
-        });
+        const expected = ids.map((id) =>
+          (id < original_data.length ? { id } : { error: 'The document was missing.' })
+        );
         assert.ifError(err);
         compare_write_response(res, expected);
         const new_data = ids.map(merged_row_from_id);
@@ -168,9 +168,9 @@ const all_tests = (collection) => {
 
     const test_case = (ids, done) => {
       utils.stream_test(make_request('insert', ids), (err, res) => {
-        const expected = ids.map((id) => {
-          return id >= original_data.length ? { id } : { error: 'The document already exists.' };
-        });
+        const expected = ids.map((id) =>
+          (id >= original_data.length ? { id } : { error: 'The document already exists.' })
+        );
 
         assert.ifError(err);
         compare_write_response(res, expected);
