@@ -68,7 +68,7 @@ class Auth {
       if (!this._allow_unauthenticated) {
         throw new Error('Unauthenticated connections are not allowed.');
       }
-      return this._jwt.verify(this._jwt.sign({ provider: request.method }).token);
+      return this._jwt.verify(this._jwt.sign({ id: null, provider: request.method }).token);
     case 'anonymous':
       if (!this._allow_anonymous) {
         throw new Error('Anonymous connections are not allowed.');

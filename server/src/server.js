@@ -6,7 +6,6 @@ const ReqlConnection = require('./reql_connection').ReqlConnection;
 const logger = require('./logger');
 const options_schema = require('./schema/server_options').server;
 const getType = require('mime-types').contentType;
-const path = require('path')
 
 // TODO: dynamically serve different versions of the horizon
 // library. Minified, Rx included etc.

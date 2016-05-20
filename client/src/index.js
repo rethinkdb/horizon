@@ -135,7 +135,7 @@ function subscribeOrObservable(observable) {
 class UserDataTerm {
   constructor(hz, baseObservable) {
     this._hz = hz
-    this._baseObservable = baseObservable::map(handshake => handshake.user_id)
+    this._baseObservable = baseObservable::map(handshake => handshake.id)
   }
 
   _query(userId) {

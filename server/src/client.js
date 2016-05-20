@@ -101,22 +101,32 @@ class Client {
       return this.close({ error: 'Invalid handshake.', error_code: 0 });
     }
 
-    this._server._auth.handshake(request)
-    .then((res) => {
+    this._server._auth.handshake(request).then((res) => {
+      console.log(`making handshake response: ${JSON.stringify(res)}`);
+
+      let responded = false;
+      const finish_handshake = () => {
+        if (!responded) {
+          responded = true;
+          const info = { token: res.token, id: res.payload.id, provider: res.payload.provider };
+          this.send_response(request, info);
+          this._socket.on('message', (msg) =>
+            this.error_wrap_socket(() => this.handle_request(msg)));
+        }
+      };
       this.user_info = res.payload;
-      this.send_response(request, res);
-      this._socket.on('message', (msg) =>
-        this.error_wrap_socket(() => this.handle_request(msg)));
 
       if (this.user_info.id != null) {
         return this._metadata.get_user_feed(this.user_info.id, (change) => {
           Object.assign(this.user_info, change.new_val);
           this._requests.forEach((req) => req.evaluate_rules());
+          finish_handshake();
         });
+      } else {
+        finish_handshake();
       }
-    })
-    .catch((err) =>
-      this.close({ error: `${err}`, error_code: 0 })
+    }).catch((err) =>
+      this.close({ request_id: request.request_id, error: `${err}`, error_code: 0 })
     );
   }
 
