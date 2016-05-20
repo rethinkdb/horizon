@@ -135,7 +135,7 @@ function subscribeOrObservable(observable) {
 class UserDataTerm {
   constructor(hz, baseObservable) {
     this._hz = hz
-    this._baseObservable = baseObservable::map(handshake => handshake.payload.id)
+    this._baseObservable = baseObservable::map(handshake => handshake.id)
   }
 
   _query(userId) {
@@ -144,7 +144,7 @@ class UserDataTerm {
 
   fetch() {
     return this._baseObservable::concatMap(userId => {
-      if (userId === undefined) {
+      if (userId === null) {
         return Observable::of({})
       } else {
         return this._query(userId).fetch()
@@ -154,7 +154,7 @@ class UserDataTerm {
 
   watch(...args) {
     return this._baseObservable::concatMap(userId => {
-      if (userId === undefined) {
+      if (userId === null) {
         return Observable::of({})
       } else {
         return this._query(userId).watch(...args)
