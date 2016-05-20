@@ -44,7 +44,7 @@ const addArguments = (parser) => {
 };
 
 const processConfig = (parsed) => {
-  let config, out_file;
+  let config;
 
   config = serve.make_default_config();
   config.start_rethinkdb = true;
@@ -96,10 +96,9 @@ const runCommand = (options, done) => {
     return r.db(internal_db).table('users')
       .wait({ waitFor: 'ready_for_reads', timeout: 30 })
       .run(conn);
-  }).then(() => {
-    return r.db(internal_db).table('users').get(options.user)
-     .run(conn)
-  }).then((res) => {
+  }).then(() =>
+    r.db(internal_db).table('users').get(options.user).run(conn)
+  ).then((res) => {
     conn.close();
 
     if (res === null) {

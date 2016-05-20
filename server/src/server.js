@@ -5,6 +5,7 @@ const Client = require('./client').Client;
 const ReqlConnection = require('./reql_connection').ReqlConnection;
 const logger = require('./logger');
 const options_schema = require('./schema/server_options').server;
+const getType = require('mime-types').contentType;
 
 // TODO: dynamically serve different versions of the horizon
 // library. Minified, Rx included etc.
@@ -24,6 +25,7 @@ const endpoints = {
 const assert = require('assert');
 const fs = require('fs');
 const Joi = require('joi');
+const path = require('path');
 const url = require('url');
 const websocket = require('engine.io');
 
@@ -49,7 +51,12 @@ const serve_file = (file_path, res) => {
           res.writeHead(500, { 'Content-Type': 'text/plain' });
           res.end(`${err}\n`);
         } else {
-          res.writeHead(200);
+          let type = getType(path.extname(file_path)) || false;
+          if (type) {
+            res.writeHead(200, { 'Content-Type': type });
+          } else {
+            res.writeHead(200);
+          }
           res.end(file, 'binary');
         }
       });

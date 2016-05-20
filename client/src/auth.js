@@ -1,5 +1,6 @@
 import queryParse from './util/query-parse'
 import { Observable } from 'rxjs/Observable'
+import { _do as tap } from 'rxjs/operator/do'
 import { map } from 'rxjs/operator/map'
 import fetchJSON from './util/fetch.js'
 
@@ -15,9 +16,8 @@ export function authEndpoint(name) {
     }
   }
   if (!this._authMethods) {
-    console.log('No auth methods, have to fetch')
     return fetchJSON(`${this._horizonPath}/auth_methods`)
-      .do(authMethods => {
+      ::tap(authMethods => {
         this._authMethods = authMethods
       })::map(endpointForName)
   } else {

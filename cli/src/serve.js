@@ -7,6 +7,7 @@ const path = require('path');
 const toml = require('toml');
 const url = require('url');
 const chalk = require('chalk');
+const getType = require('mime-types').contentType;
 
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const start_rdb_server = require('./utils/start_rdb_server');
@@ -171,11 +172,9 @@ const serve_file = (file_path, res) => {
               res.writeHead(500, { 'Content-Type': 'text/plain' });
               res.end(`${err2}\n`);
             } else {
-              if (file_path.endsWith('.js')) {
-                res.writeHead(200, {
-                  'Content-Type': 'application/javascript' });
-              } else if (file_path.endsWith('.html')) {
-                res.writeHead(200, { 'Content-Type': 'text/html' });
+              const type = getType(path.extname(file_path)) || false;
+              if (type) {
+                res.writeHead(200, { 'Content-Type': type });
               } else {
                 res.writeHead(200);
               }
@@ -221,7 +220,8 @@ const initialize_servers = (ctor, opts) => {
         srv.on('request', fileServer(opts.serve_static));
       }
       srv.on('listening', () => {
-        console.info(`App available at http://${srv.address().address}:` +
+        const protocol = opts.secure ? 'https' : 'http';
+        console.info(`App available at ${protocol}://${srv.address().address}:` +
                     `${srv.address().port}`);
         if (++numReady === servers.size) {
           resolve(servers);
@@ -400,10 +400,6 @@ const read_config_from_flags = (parsed) => {
   }
   if (parsed.bind !== null && parsed.bind !== undefined) {
     config.bind = parsed.bind;
-
-    if (config.bind.indexOf('all') !== -1) {
-      config.bind = [ '0.0.0.0' ];
-    }
   }
 
   if (parsed.token_secret !== null && parsed.token_secret !== undefined) {
@@ -464,6 +460,10 @@ const processConfig = (parsed) => {
 
   if (config.project_name === null) {
     config.project_name = path.basename(path.resolve(config.project_path));
+  }
+
+  if (config.bind.indexOf('all') !== -1) {
+    config.bind = [ '0.0.0.0' ];
   }
 
   return config;
