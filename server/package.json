@@ -1,6 +1,6 @@
 {
   "name": "@horizon/server",
-  "version": "1.1.0",
+  "version": "1.0.1",
   "description": "Server for RethinkDB Horizon, an open-source developer platform for building realtime, scalable web apps.",
   "main": "src/horizon.js",
   "scripts": {
@@ -22,7 +22,7 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "@horizon/client": "1.1.0",
+    "@horizon/client": "1.0.1",
     "bluebird": "^3.4.0",
     "cookie": "^0.2.3",
     "engine.io": "^1.6.9",
