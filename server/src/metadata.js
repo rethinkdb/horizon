@@ -208,8 +208,12 @@ class Metadata {
         r.db(this._internal_db).table('users').get('admin')
           .replace((old_row) =>
             r.branch(old_row.eq(null),
-                     { id: 'admin', groups: [ 'admin' ] },
-                     old_row),
+              {
+                id: 'admin',
+                groups: [ 'admin' ],
+                [version_field]: 0
+              },
+              old_row),
             { returnChanges: 'always' })('changes')(0)
           .do((res) =>
             r.branch(res('new_val').eq(null),
@@ -316,24 +320,12 @@ class Metadata {
       }).catch(done);
   }
 
-  get_user_feed(id, cb) {
-    r.db(this._internal_db)
+  get_user_feed(id) {
+    return r.db(this._internal_db)
       .table('users')
       .get(id)
       .changes({ includeInitial: true, squash: true })
-      .run(this._conn)
-      .then((cursor) =>
-        cursor.eachAsync((change) => {
-          if (!change.new_val) {
-            throw new Error('User account has been deleted.');
-          }
-          return cb(change);
-        }).then(() => {
-          throw new Error('User account feed has been lost.');
-        }, (err) => {
-          throw new Error(`User account feed errored: ${err}`);
-        })
-      );
+      .run(this._conn);
   }
 
   get_group(group_name) {
