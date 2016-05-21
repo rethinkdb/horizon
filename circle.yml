@@ -58,14 +58,14 @@ test:
     - touch $CIRCLE_TEST_REPORTS/xunit/server-tests.xml
   override:
     # Run client tests
-    - ./node_modules/.bin/mocha --timeout 30000 -R xunit dist/test.js > $CIRCLE_TEST_REPORTS/xunit/client-tests.xml:
+    - ./node_modules/.bin/mocha --timeout 90000 -R xunit dist/test.js > $CIRCLE_TEST_REPORTS/xunit/client-tests.xml:
         pwd: client
         parallel: true
     # Run server tests
-    - ./node_modules/.bin/mocha --timeout 30000 -R xunit test/test.js test/schema.js > $CIRCLE_TEST_REPORTS/xunit/server-tests.xml:
+    - ./node_modules/.bin/mocha --timeout 90000 -R xunit test/test.js test/schema.js > $CIRCLE_TEST_REPORTS/xunit/server-tests.xml:
         pwd: server
         parallel: true
     # Run cli tests
-    - ./node_modules/.bin/mocha --timeout 30000 -R xunit test > $CIRCLE_TEST_REPORTS/xunit/cli-tests.xml:
+    - ./node_modules/.bin/mocha --timeout 90000 -R xunit test > $CIRCLE_TEST_REPORTS/xunit/cli-tests.xml:
         pwd: cli
         parallel: true
