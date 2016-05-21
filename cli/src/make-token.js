@@ -105,7 +105,7 @@ const runCommand = (options, done) => {
       throw new Error('User does not exist.');
     }
 
-    const token = jwt.sign({ user: res.id, provider: null },
+    const token = jwt.sign({ id: res.id, provider: null },
                            new Buffer(options.token_secret, 'base64'),
                            { expiresIn: '1d', algorithm: 'HS512' });
     console.log(`${token}`);

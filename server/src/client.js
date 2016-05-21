@@ -37,7 +37,7 @@ class Client {
   handle_websocket_close() {
     logger.debug('Client connection terminated.');
     if (this.user_feed) {
-      this.user_feed.close();
+      this.user_feed.close().catch(() => { });
     }
     this._requests.forEach((request) => {
       request.close();
@@ -101,8 +101,8 @@ class Client {
       return this.close({ error: 'Invalid handshake.', error_code: 0 });
     }
 
+    let responded = false;
     this._server._auth.handshake(request).then((res) => {
-      let responded = false;
       const finish_handshake = () => {
         if (!responded) {
           responded = true;
@@ -115,17 +115,29 @@ class Client {
       this.user_info = res.payload;
 
       if (this.user_info.id != null) {
-        return this._metadata.get_user_feed(this.user_info.id, (change) => {
-          Object.assign(this.user_info, change.new_val);
-          this._requests.forEach((req) => req.evaluate_rules());
-          finish_handshake();
+        return this._metadata.get_user_feed(this.user_info.id).then((feed) => {
+          this.user_feed = feed;
+          return feed.eachAsync((change) => {
+            if (!change.new_val) {
+              throw new Error('User account has been deleted.');
+            }
+            Object.assign(this.user_info, change.new_val);
+            this._requests.forEach((req) => req.evaluate_rules());
+            finish_handshake();
+          }).then(() => {
+            throw new Error('User account feed has been lost.');
+          });
         });
       } else {
+        this.user_info.groups = [ 'default' ];
         finish_handshake();
       }
-    }).catch((err) =>
-      this.close({ request_id: request.request_id, error: `${err}`, error_code: 0 })
-    );
+    }).catch((err) => {
+      if (!responded) {
+        responded = true;
+        this.close({ request_id: request.request_id, error: `${err}`, error_code: 0 })
+      }
+    });
   }
 
   handle_request(data) {

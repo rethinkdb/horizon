@@ -94,7 +94,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
       return cursor.eachAsync((item) => {
         if (!ruleset.validate(context, item)) {
           done(new Error('Operation not permitted.'));
-          cursor.close();
+          cursor.close().catch(() => { });
         } else {
           send({ data: [ item ] });
         }
@@ -117,7 +117,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
 
   return () => {
     if (cursor) {
-      cursor.close();
+      cursor.close().catch(() => { });
     }
   };
 };

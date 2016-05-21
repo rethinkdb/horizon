@@ -33,7 +33,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
 
   return () => {
     if (feed) {
-      feed.close();
+      feed.close().catch(() => { });
     }
   };
 };
