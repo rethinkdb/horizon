@@ -250,13 +250,13 @@ class Metadata {
     this._closed = true;
     this._ready = false;
     if (this._group_feed) {
-      this._group_feed.close();
+      this._group_feed.close().catch(() => { });
     }
     if (this._collection_feed) {
-      this._collection_feed.close();
+      this._collection_feed.close().catch(() => { });
     }
     if (this._index_feed) {
-      this._index_feed.close();
+      this._index_feed.close().catch(() => { });
     }
   }
 
