@@ -51,7 +51,6 @@ test:
   pre:
     - ./test/serve.js:
         background: true
-    - sleep 15
     - mkdir -p $CIRCLE_TEST_REPORTS/xunit
     - touch $CIRCLE_TEST_REPORTS/xunit/cli-tests.xml
     - touch $CIRCLE_TEST_REPORTS/xunit/client-tests.xml
