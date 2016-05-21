@@ -74,7 +74,7 @@ class Metadata {
                      includeTypes: true })
           .run(this._conn).then((res) => {
             if (this._closed) {
-              res.close();
+              res.close().catch(() => { });
               throw new Error('This metadata instance has been closed.');
             }
             return new Promise((resolve, reject) => {
@@ -110,7 +110,7 @@ class Metadata {
                      includeTypes: true })
           .run(this._conn).then((res) => {
             if (this._closed) {
-              res.close();
+              res.close().catch(() => { });
               throw new Error('This metadata instance has been closed.');
             }
             return new Promise((resolve, reject) => {
@@ -150,7 +150,7 @@ class Metadata {
                      includeTypes: true })
           .run(this._conn).then((res) => {
             if (this._closed) {
-              res.close();
+              res.close().catch(() => { });
               throw new Error('This metadata instance has been closed.');
             }
             return new Promise((resolve, reject) => {
