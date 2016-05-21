@@ -1,3 +1,5 @@
+/* global beforeEach, describe, process, afterEach, it, require */
+
 'use strict';
 
 const initCommand = require('../src/init');
@@ -42,14 +44,22 @@ function getFileString(filepath) {
   return fs.readFileSync(filepath, { encoding: 'utf8' });
 }
 
-function assertValidConfig(filepath) {
+function readToml(filepath) {
   const tomlData = getFileString(filepath);
-  // Try parsing it
-  const configObject = toml.parse(tomlData);
+  return toml.parse(tomlData);
+}
+
+function assertValidConfig(filepath) {
+  const configObject = readToml(filepath);
   // Need an uncommented project name
   assert.property(configObject, 'project_name');
   // Need an uncommented token_secret
   assert.property(configObject, 'token_secret');
+}
+
+function assertConfigProjectName(filepath, expectedName) {
+  const configObject = readToml(filepath);
+  assert.propertyVal(configObject, 'project_name', expectedName);
 }
 
 describe('hz init', () => {
@@ -67,13 +77,47 @@ describe('hz init', () => {
   });
   describe('when passed a project name,', () => {
     const testDirName = 'test-app';
-    const projectDir = `${testCwd}/${testDirName}`;
-    const runOptions = { projectName: testDirName };
+    const testDirNormalized = 'test_app';
+    const projectDir = `${testCwd}/${testDirNormalized}`;
+    const runOptions = { projectName: testDirNormalized };
+    const configPath = `${projectDir}/.hz/config.toml`;
     it("creates the project dir if it doesn't exist", (done) => {
       mockFs();
       initCommand.runCommand(runOptions);
       assertDirExists(testCwd, testDirName);
       done();
+    });
+    describe('when the project name is "."', () => {
+      const runOptionsDot = { projectName: '.' };
+      beforeEach(() => {
+        mockFs();
+      });
+      it('stays in the current directory', (done) => {
+        initCommand.runCommand(runOptionsDot);
+        assert(process.cwd() === testCwd);
+        assertValidConfig(configPath);
+        done();
+      });
+      it('translates the project name from - to _', (done) => {
+        mockFs({
+          'test-dir': {},
+        });
+        process.chdir('test-dir');
+        initCommand.runCommand(runOptionsDot);
+        assertDirExists('.', '.hz');
+        // dash translated to underscore in cwd becomes project_name
+        assertConfigProjectName('.hz/config.toml', 'test_dir');
+        done();
+      });
+      it('wont initialize in a directory with invalid chars in it', (done) => {
+        mockFs({
+          'test*dir': {},
+        });
+        process.chdir('test*dir');
+        initCommand.runCommand(runOptionsDot);
+        assertDirDoesntExist('.', '.hz');
+        done();
+      });
     });
     it('moves into the project dir', (done) => {
       mockFs({

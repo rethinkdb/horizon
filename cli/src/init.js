@@ -1,8 +1,12 @@
+/* global require, module */
+
 'use strict';
 
 const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
+const process = require('process');
+const { checkProjectName } = require('./utils/check-project-name.js');
 
 const makeIndexHTML = (projectName) => `\
 <!doctype html>
@@ -148,6 +152,8 @@ const runCommand = (parsed) => {
           path.join(process.cwd(), parsed.projectName) :
           process.cwd();
   const projectName = parsed.projectName || path.basename(process.cwd());
+
+  checkProjectName('foo');
 
   if (runInSubdir) {
     if (!subdirExists) {
