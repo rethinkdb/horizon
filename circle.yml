@@ -52,20 +52,16 @@ test:
     - ./test/serve.js:
         background: true
     - sleep 15
-    - mkdir -p /tmp/xunit
-    - touch /tmp/xunit/cli-tests.xml
-    - touch /tmp/xunit/client-tests.xml
-    - touch /tmp/xunit/server-tests.xml
   override:
     # Run client tests
-    - ./node_modules/.bin/mocha --timeout 90000 -R xunit dist/test.js > /tmp/xunit/client-tests.xml:
+    - ./node_modules/.bin/mocha --timeout 90000 -R xunit dist/test.js:
         pwd: client
         parallel: true
     # Run server tests
-    - ./node_modules/.bin/mocha --timeout 90000 -R xunit test/test.js test/schema.js > /tmp/xunit/server-tests.xml:
+    - ./node_modules/.bin/mocha --timeout 90000 -R xunit test/test.js test/schema.js:
         pwd: server
         parallel: true
     # Run cli tests
-    - ./node_modules/.bin/mocha --timeout 90000 -R xunit test > /tmp/xunit/cli-tests.xml:
+    - ./node_modules/.bin/mocha --timeout 90000 -R xunit test:
         pwd: cli
         parallel: true
