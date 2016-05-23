@@ -1,6 +1,7 @@
 <img style="width:100%;" src="/github-banner.png">
 
 # [Horizon](https://horizon.io)
+[![CircleCI](https://circleci.com/gh/rethinkdb/horizon/tree/next.svg?style=svg)](https://circleci.com/gh/rethinkdb/horizon/tree/next)
 
 ## What is Horizon?
 
