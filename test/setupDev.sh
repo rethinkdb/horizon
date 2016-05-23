@@ -30,6 +30,7 @@ pushd ../server
 green 'Unlinking existing server'
 npm unlink
 green 'Linking server'
+npm link @horizon/client
 npm link
 popd
 
@@ -37,16 +38,8 @@ pushd ../cli
 green 'Unlinking existing horizon cli'
 npm unlink
 green 'Linking horizon cli'
+npm link @horizon/server
 npm link
-popd
-
-pushd ../server
-green 'Linking client to server'
-npm link '@horizon/client'
-popd
-pushd ../cli
-green 'Linking server to cli'
-npm link '@horizon/server'
 popd
 
 green 'Dev environment set up'
