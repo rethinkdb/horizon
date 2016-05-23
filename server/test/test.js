@@ -24,7 +24,6 @@ afterEach(
 describe('Horizon Server',
   /** @this mocha */
   function() {
-    this.timeout(90000);
     before('Start Horizon Server', utils.start_horizon_server);
     after('Close Horizon Server', utils.close_horizon_server);
 
