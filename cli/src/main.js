@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 'use strict';
 
+// To support `pidof horizon`, by default it shows in `pidof node`
+process.title = 'horizon'
+
 const argparse = require('argparse');
 const chalk = require('chalk');
 const initCommand = require('./init');
