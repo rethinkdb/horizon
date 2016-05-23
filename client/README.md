@@ -53,7 +53,7 @@ npm run devtest     | Run tests and linting continually
 
 Object which initializes the connection to a Horizon Server.
 
-If Horizon server has been started with `--insecure` then you will need to connect unsecurely by passing `{secure: false}` as a second parameter.
+If Horizon server has been started with `--secure no` then you will need to connect unsecurely by passing `{secure: false}` as a second parameter.
 
 ###### Example
 
