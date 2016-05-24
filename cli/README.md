@@ -6,52 +6,11 @@ To install the hz tool from npm:
 $ npm install -g horizon
 ```
 
-For a tutorial learn how to use the cli, see the [getting started guide](/GETTING-STARTED.md).
+For a tutorial to learn how to use the cli, see the [getting started guide](/GETTING-STARTED.md).
 
 ## Horizon CLI `hz` || `horizon`
 
-### `hz init`
-Create a horizon app directory, automatically creating a `src` and `dist`
-directories within the folder, as well as a `.hz/config.toml` configuration file.
-
-Positional Args | Description
-----------------|------------
-projectName |  Name of directory to create. Defaults to current directory
-
-### `hz serve`
-
-This serves the directory and supplies all the tooling needed for serving a
-Horizon web application.
-
-*Note:* `hz serve` will be configured by options in the following order of
-least to highest precedence:
-
-```
-environment variables < config file (`.hz/config.toml`) < command-line flags
-```
-
-##### Available options
-
-Positional Args | Description
-----------------|------------
-project | Change to this directory before serving
-
-Optional Args| Description
-------------|----------------------------------
-  --bind HOST         | Local hostname to serve Horizon on (repeatable).
-  --port PORT         | Local port to serve horizon on. Defaults to `8181`.
-  --connect HOST:PORT | Host and port of the RethinkDB server to connect to. Defaults to localhost:28015
-  --key-file PATH     | Path to the key file to use, defaults to `./key.pem`.
-  --cert-file PATH    | Path to the cert file to use, defaults to `./cert.pem`.
-  --allow-unauthenticated | Whether to allow unauthenticated Horizon connections.
-  --debug             | Enable debug logging.
-  --insecure          | Serve insecure websockets, ignore `--key-file` and `--cert-file`.
-  --permissions       | Whether to disable the permissions system
-  --start-rethinkdb   | Start up a RethinkDB server in the current directory
-  --auto-create-table | Create tables used by requests if they do not exist
-  --auto-create-index | Create indexes used by requests if they do not exist
-  --serve-static [PATH] | Serve static files from a directory. Defaults to `dist`.
-  --dev               | Runs the server in development mode, this sets `--insecure`, `--auto-create-tables`, `--start-rethinkdb`, `--serve-static`, `--permissions`, and `--auto-create-indexes`.
+For all the available commands for `hz`, go to [horizon.io/docs/server](https://horizon.io/docs/server).
 
 #### Serving securely, generating certs for SSL
 
@@ -61,11 +20,11 @@ generate a self-signed certificate.  This command will generate the certificate
 using the default options from `openssl`, and should not be used for anything
 serious:
 
-```sh
-openssl req -x509 -newkey rsa:2048 -keyout horizon-key.pem -out horizon-cert.pem -days 365 -nodes -batch
+```
+hz create-cert
 ```
 
-Once a key file and cert file have been obtained, launch the server without the `--insecure`
+Once a key file and cert file have been obtained, launch the server with the `--secure true`
 flag, and provide the files in the `--key-file` and `--cert-file` options.
 
 ### `.hz/config.toml` file
@@ -176,11 +135,10 @@ Or you can follow these commands which achieve the same result:
 npm link
 
 # From the /server directory
-npm link ../client
+npm link @horizon/client
 npm link
 
 # From the /cli directory
-npm link ../server
-npm link ../client
+npm link @horizon/server
 npm link
 ```
