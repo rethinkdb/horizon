@@ -9,7 +9,7 @@
   },
   "scripts": {
     "lint": "eslint src test",
-    "test": "mocha test --timeout 10000",
+    "test": "mocha test test/unit --timeout 10000",
     "coverage": "istanbul cover _mocha test"
   },
   "author": "RethinkDB",

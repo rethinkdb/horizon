@@ -72,36 +72,55 @@ const done_cb = (options) => (err) => {
   }
 };
 
+function runCommand(command, options, done) {
+  try {
+    // TODO: convert all runCommands not to use the done callback, but
+    // rather rely on this outer wrapper. Right now we have to pass
+    // done to runCommand and also in the body of the catch because
+    // some runCommands will exit themselves, and some will throw an
+    // exception.
+    command.runCommand(options, done);
+  } catch (e) {
+    done(e);
+  }
+}
+
 switch (parsed.command_name) {
 case 'init': {
   const options = initCommand.processConfig(parsed);
-  initCommand.runCommand(options, done_cb(options));
+  runCommand(initCommand, options, done_cb(options));
   break;
 }
 case 'serve': {
+  // TODO: convert to use runCommand function
   const options = serveCommand.processConfig(parsed);
   serveCommand.runCommand(options, done_cb(options));
   break;
 }
 case 'version': {
+  // TODO: convert to use runCommand function
   versionCommand.runCommand();
   break;
 }
 case 'create-cert': {
+  // TODO: convert to use runCommand function
   createCertCommand.runCommand();
   break;
 }
 case 'get-schema': {
+  // TODO: convert to use runCommand function
   const options = getSchemaCommand.processConfig(parsed);
   getSchemaCommand.runCommand(options, done_cb(options));
   break;
 }
 case 'set-schema': {
+  // TODO: convert to use runCommand function
   const options = setSchemaCommand.processConfig(parsed);
   setSchemaCommand.runCommand(options, done_cb(options));
   break;
 }
 case 'make-token': {
+  // TODO: convert to use runCommand function
   const options = makeTokenCommand.processConfig(parsed);
   makeTokenCommand.runCommand(options, done_cb(options));
   break;
