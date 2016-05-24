@@ -1,13 +1,15 @@
 'use strict';
 
+const chalk = require('chalk');
+const extend = require('util')._extend;
 const fs = require('fs');
+const getType = require('mime-types').contentType;
 const http = require('http');
 const https = require('https');
+const open = require("open");
 const path = require('path');
 const toml = require('toml');
 const url = require('url');
-const chalk = require('chalk');
-const getType = require('mime-types').contentType;
 
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const start_rdb_server = require('./utils/start_rdb_server');
@@ -116,6 +118,11 @@ const addArguments = (parser) => {
   parser.addArgument([ '--auth-redirect' ],
     { type: 'string', metavar: 'URL',
       help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
+
+  parser.addArgument([ '--open' ],
+    { action: 'storeTrue',
+      help: 'Open index.html in the static files folder once Horizon is ready to' +
+      ' receive connections' });
 };
 
 const make_default_config = () => ({
@@ -131,6 +138,7 @@ const make_default_config = () => ({
 
   start_rethinkdb: false,
   serve_static: null,
+  open: false,
 
   secure: true,
   permissions: true,
@@ -417,6 +425,9 @@ const read_config_from_flags = (parsed) => {
     });
   }
 
+  // Set open config from flag
+  config.open = parsed.open;
+
   return config;
 };
 
@@ -564,6 +575,28 @@ const runCommand = (opts, done) => {
         hz_instance.add_auth_provider(provider,
                                       Object.assign({}, { path: name }, opts.auth[name]));
       }
+    }
+  }).then(() => {
+    // Automatically open up index.html in the `dist` directory only if
+    //  in dev mode and an index.html exists in the directory.
+    if (opts.open && opts.serve_static) {
+      // Check if index.html exists and readable in serve static_static directory
+      fs.access(`${opts.serve_static}/index.html`, fs.R_OK | fs.F_OK, (err) => {
+        if (err) {
+          console.log('Could not find index.html, will not auto open');
+        } else {
+          console.log('Attempting open of index.html in default browser');
+          // Determine scheme from options
+          const scheme = opts.secure ? 'https://' : 'http://';
+          // Open up index.html in default browser
+          try {
+            open(`${scheme}${opts.bind}:${opts.port}/index.html`);
+          } catch (open_err) {
+            console.log(`Error occurred while trying to open ${opts.serve_static}/index.html`);
+            console.log(open_err);
+          }
+        }
+      });
     }
   }).catch(done);
 };
