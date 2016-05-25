@@ -23,6 +23,8 @@ if (BROWSER) {
   global.mocha.setup('bdd')
   global.mocha.timeout(10000)
 } else {
+  global.WebSocket = require('ws')
+
   if (__dirname.split(path.sep).pop(-1) === 'test') {
     global.Horizon = require('../lib/index.js')
   } else {
