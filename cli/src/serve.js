@@ -267,18 +267,44 @@ const yes_no_options = [ 'debug',
                          'allow_anonymous' ];
 
 const parse_connect = (connect, config) => {
-  const host_port = connect.split(':');
-  if (host_port.length === 1) {
-    config.rdb_host = host_port[0];
-    config.rdb_port = default_rdb_port;
-  } else if (host_port.length === 2) {
-    config.rdb_host = host_port[0];
-    config.rdb_port = parseInt(host_port[1]);
-    if (isNaN(config.rdb_port) || config.rdb_port < 0 || config.rdb_port > 65535) {
-      throw new Error(`Invalid port: "${host_port[1]}".`);
+  // support rethinkdb:// style connection uri strings
+  // expects rethinkdb://host:port` at a minimum but can optionally take a user:pass and db
+  // e.g. rethinkdb://user:pass@host:port/db
+  const rdb_uri = url.parse(connect);
+  if (rdb_uri.protocol === "rethinkdb:"){
+    if (rdb_uri.hostname && rdb_uri.port) {
+      config.rdb_host = rdb_uri.hostname;
+      config.rdb_port = rdb_uri.port;
+
+      // check for user/pass
+      if (rdb_uri.auth) {
+        const user_pass = rdb_uri.auth.split(':')
+        config.rdb_user = user_pass[0];
+        config.rdb_pass = user_pass[1];
+      }
+
+      // set the project name based on the db
+      if (rdb_uri.path && rdb_uri.path.replace('/', '') != '') {
+        config.project_name = rdb_uri.path.replace('/', '');
+      }
+    } else {
+      throw new Error(`Expected --connect rethinkdb://HOST:PORT, but found "${connect}".`);
     }
   } else {
-    throw new Error(`Expected --connect HOST:PORT, but found "${connect}".`);
+    // support legacy HOST:PORT connection strings
+    const host_port = connect.split(':');
+    if (host_port.length === 1) {
+      config.rdb_host = host_port[0];
+      config.rdb_port = default_rdb_port;
+    } else if (host_port.length === 2) {
+      config.rdb_host = host_port[0];
+      config.rdb_port = parseInt(host_port[1]);
+      if (isNaN(config.rdb_port) || config.rdb_port < 0 || config.rdb_port > 65535) {
+        throw new Error(`Invalid port: "${host_port[1]}".`);
+      }
+    } else {
+      throw new Error(`Expected --connect HOST:PORT, but found "${connect}".`);
+    }
   }
 };
 
@@ -498,6 +524,8 @@ const startHorizonServer = (servers, opts) => {
       success_redirect: opts.auth_redirect,
       failure_redirect: opts.auth_redirect,
     },
+    rdb_user: opts.rdb_user || null,
+    rdb_pass: opts.rdb_pass || null
   });
   const timeoutObject = setTimeout(() => {
     console.log(chalk.red.bold('Horizon failed to start after 30 seconds'));

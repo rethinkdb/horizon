@@ -78,7 +78,9 @@ class Server {
                                          opts.rdb_port,
                                          opts.project_name,
                                          opts.auto_create_collection,
-                                         opts.auto_create_index);
+                                         opts.auto_create_index,
+                                         opts.rdb_user || null,
+                                         opts.rdb_pass || null);
     this._auth = new Auth(this, opts.auth);
     for (const key in endpoints) {
       this.add_request_handler(key, endpoints[key].run);

@@ -15,6 +15,9 @@ const server = Joi.object({
   path: Joi.string().default('/horizon'),
 
   auth: Joi.object().default({ }),
+
+  rdb_user: Joi.string().allow(null),
+  rdb_pass: Joi.string().allow(null)
 }).unknown(false);
 
 const auth = Joi.object({
