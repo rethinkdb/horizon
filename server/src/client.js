@@ -25,14 +25,20 @@ class Client {
     this._socket.on('error', (error) =>
       this.handle_websocket_error(error));
     
-    // not pretty, hardcoded modulename
-    this._custom = this._server._auth_modules.get('customModule')
+    this._custom = this._server._auth_modules;
         
     // The first message should always be the handshake
-    // if custom_auth is enabled pass the handshake to that instead
+    // if custom_auth is enabled pass the handshake to those instead
     if(this._server._custom_auth){
-      this._socket.once('message', (data) =>
-        this.error_wrap_socket(() => this._custom(this, data, this._auth._jwt)));
+      this._socket.once('message', (data) => {
+        this.error_wrap_socket(() => {
+          this._custom.forEach((x) => {
+            x(this, data, this._auth._jwt)
+          })
+        })
+        
+      })
+        
     }else{
       this._socket.once('message', (data) =>
         this.error_wrap_socket(() => this.handle_handshake(data)));    
@@ -75,11 +81,9 @@ class Client {
     // not pretty right now, just to allow accessing this from the server in a simple way
     switch (schema){
       case 'request':
-        console.log('request')
         schema = schemas.request
         break;
       case 'handshake':
-        console.log('handshake')
         schema = schemas.handshake
         break;
       default:
