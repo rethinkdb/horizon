@@ -24,10 +24,19 @@ class Client {
 
     this._socket.on('error', (error) =>
       this.handle_websocket_error(error));
-
+    
+    // not pretty, hardcoded modulename
+    this._custom = this._server._auth_modules.get('customModule')
+        
     // The first message should always be the handshake
-    this._socket.once('message', (data) =>
-      this.error_wrap_socket(() => this.handle_handshake(data)));
+    // if custom_auth is enabled pass the handshake to that instead
+    if(this._server._custom_auth){
+      this._socket.once('message', (data) =>
+        this.error_wrap_socket(() => this._custom(this, data, this._auth._jwt)));
+    }else{
+      this._socket.once('message', (data) =>
+        this.error_wrap_socket(() => this.handle_handshake(data)));    
+    }
 
     if (!this._metadata.is_ready()) {
       this.close({ error: 'No connection to the database.' });
@@ -62,6 +71,22 @@ class Client {
   }
 
   parse_request(data, schema) {
+
+    // not pretty right now, just to allow accessing this from the server in a simple way
+    switch (schema){
+      case 'request':
+        console.log('request')
+        schema = schemas.request
+        break;
+      case 'handshake':
+        console.log('handshake')
+        schema = schemas.handshake
+        break;
+      default:
+        break;
+    }
+    
+     
     let request;
     try {
       request = JSON.parse(data);
