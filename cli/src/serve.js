@@ -21,6 +21,7 @@ const logger = horizon_server.logger;
 const TIMEOUT_30_SECONDS = 30 * 1000;
 
 const default_config_file = '.hz/config.toml';
+const default_rdb_port = 28015;
 
 const addArguments = (parser) => {
   parser.addArgument([ 'project_path' ],
@@ -140,8 +141,8 @@ const make_default_config = () => ({
   auto_create_collection: false,
   auto_create_index: false,
 
-  rdb_host: 'localhost',
-  rdb_port: 28015,
+  rdb_host: null,
+  rdb_port: null,
 
   token_secret: null,
   allow_anonymous: false,
@@ -269,6 +270,7 @@ const parse_connect = (connect, config) => {
   const host_port = connect.split(':');
   if (host_port.length === 1) {
     config.rdb_host = host_port[0];
+    config.rdb_port = default_rdb_port;
   } else if (host_port.length === 2) {
     config.rdb_host = host_port[0];
     config.rdb_port = parseInt(host_port[1]);
@@ -363,6 +365,10 @@ const read_config_from_flags = (parsed) => {
     config.auto_create_index = true;
     config.serve_static = 'dist';
     config._dev_flag_used = true;
+
+    if (parsed.start_rethinkdb === null || parsed.start_rethinkdb === undefined) {
+      config._start_rethinkdb_implicit = true;
+    }
   }
 
   if (parsed.project_name !== null && parsed.project_name !== undefined) {
@@ -373,6 +379,11 @@ const read_config_from_flags = (parsed) => {
     config.project_path = parsed.project_path;
   }
 
+  // Normalize RethinkDB connection options
+  if (parsed.connect !== null && parsed.connect !== undefined) {
+    parse_connect(parsed.connect, config);
+  }
+
   // Simple 'yes' or 'no' (or 'true' or 'false') flags
   yes_no_options.forEach((key) => {
     const value = parse_yes_no_option(parsed[key], key);
@@ -380,15 +391,6 @@ const read_config_from_flags = (parsed) => {
       config[key] = value;
     }
   });
-
-  // Normalize RethinkDB connection options
-  if (parsed.connect !== null && parsed.connect !== undefined) {
-    // Disable start_rethinkdb if it was enabled by dev mode
-    if (parsed.dev && parse_yes_no_option(parsed.start_rethinkdb) === undefined) {
-      config.start_rethinkdb = false;
-    }
-    parse_connect(parsed.connect, config);
-  }
 
   if (parsed.serve_static !== null && parsed.serve_static !== undefined) {
     config.serve_static = parsed.serve_static;
@@ -421,15 +423,18 @@ const read_config_from_flags = (parsed) => {
 };
 
 const merge_configs = (old_config, new_config) => {
-  if (new_config.start_rethinkdb && new_config.rdb_host) {
+  // Disable start_rethinkdb if it was enabled by dev mode but we already have a host
+  if (new_config._start_rethinkdb_implicit) {
+    if (old_config.rdb_host) {
+      delete new_config.start_rethinkdb;
+    }
+  } else if (new_config.start_rethinkdb && new_config.rdb_host) {
     throw new Error('Cannot provide both --start-rethinkdb and --connect.');
   }
 
   for (const key in new_config) {
     if (key === 'rdb_host') {
       old_config.start_rethinkdb = false;
-    } else if (key === 'start_rethinkdb') {
-      old_config.rdb_host = 'localhost';
     }
 
     if (key === 'auth') {
@@ -464,6 +469,14 @@ const processConfig = (parsed) => {
 
   if (config.bind.indexOf('all') !== -1) {
     config.bind = [ '0.0.0.0' ];
+  }
+
+  if (!config.rdb_host) {
+    config.rdb_host = 'localhost';
+  }
+
+  if (!config.rdb_port) {
+    config.rdb_port = default_rdb_port;
   }
 
   return config;
@@ -546,6 +559,7 @@ const runCommand = (opts, done) => {
     if (opts.start_rethinkdb) {
       return start_rdb_server().then((rdbOpts) => {
         // Don't need to check for host, always localhost.
+        opts.rdb_host = 'localhost';
         opts.rdb_port = rdbOpts.driverPort;
         console.log('RethinkDB');
         console.log(`   ├── Admin interface: http://localhost:${rdbOpts.httpPort}`);
