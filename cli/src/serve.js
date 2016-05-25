@@ -580,23 +580,18 @@ const runCommand = (opts, done) => {
     // Automatically open up index.html in the `dist` directory only if
     //  `--open` flag specified and an index.html exists in the directory.
     if (opts.open && opts.serve_static) {
-      // Check if index.html exists and readable in serve static_static directory
-      fs.access(`${opts.serve_static}/index.html`, fs.R_OK | fs.F_OK, (err) => {
-        if (err) {
-          console.log('Could not find index.html, will not auto open');
-        } else {
-          console.log('Attempting open of index.html in default browser');
-          // Determine scheme from options
-          const scheme = opts.secure ? 'https://' : 'http://';
-          // Open up index.html in default browser
-          try {
-            open(`${scheme}${opts.bind}:${opts.port}/index.html`);
-          } catch (open_err) {
-            console.log(`Error occurred while trying to open ${opts.serve_static}/index.html`);
-            console.log(open_err);
-          }
-        }
-      });
+      try {
+        // Check if index.html exists and readable in serve static_static directory
+        fs.accessSync(`${opts.serve_static}/index.html`, fs.R_OK | fs.F_OK);
+        // Determine scheme from options
+        const scheme = opts.secure ? 'https://' : 'http://';
+        // Open up index.html in default browser
+        console.log('Attempting open of index.html in default browser');
+        open(`${scheme}${opts.bind}:${opts.port}/index.html`);
+      } catch (open_err) {
+        console.log(chalk.red(`Error occurred while trying to open ${opts.serve_static}/index.html`));
+        console.log(open_err);
+      }
     }
   }).catch(done);
 };
