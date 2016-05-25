@@ -578,7 +578,7 @@ const runCommand = (opts, done) => {
     }
   }).then(() => {
     // Automatically open up index.html in the `dist` directory only if
-    //  in dev mode and an index.html exists in the directory.
+    //  `--open` flag specified and an index.html exists in the directory.
     if (opts.open && opts.serve_static) {
       // Check if index.html exists and readable in serve static_static directory
       fs.access(`${opts.serve_static}/index.html`, fs.R_OK | fs.F_OK, (err) => {
