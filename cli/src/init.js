@@ -8,6 +8,8 @@ const process = require('process');
 const checkProjectName = require('./utils/check-project-name');
 const rethrow = require('./utils/rethrow');
 
+const helpText = 'Initialize a horizon app directory';
+
 const makeIndexHTML = (projectName) => `\
 <!doctype html>
 <html>
@@ -230,4 +232,5 @@ module.exports = {
   addArguments,
   runCommand,
   processConfig,
+  helpText,
 };

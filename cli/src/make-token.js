@@ -9,6 +9,8 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const r = require('rethinkdb');
 
+const helpText = 'Generate a token to log in as a user';
+
 const addArguments = (parser) => {
   parser.addArgument([ 'project_path' ],
     { type: 'string', nargs: '?',
@@ -116,4 +118,5 @@ module.exports = {
   addArguments,
   processConfig,
   runCommand,
+  helpText,
 };
