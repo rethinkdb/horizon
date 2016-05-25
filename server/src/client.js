@@ -5,6 +5,7 @@ const schemas = require('./schema/horizon_protocol');
 const Request = require('./request').Request;
 
 const Joi = require('joi');
+const uuid = require("uuid");
 
 class Client {
   constructor(socket, server) {
@@ -16,8 +17,10 @@ class Client {
     this._metadata = this._server._reql_conn.metadata();
     this._requests = new Map();
     this.user_info = { };
+    this.id = uuid.v4();
 
     this._server._reql_conn._clients.add(this);
+    this._server._admin.add_client(this);
 
     this._socket.on('close', (code, msg) =>
       this.handle_websocket_close(code, msg));
@@ -44,6 +47,7 @@ class Client {
     });
     this._requests.clear();
     this._server._reql_conn._clients.delete(this);
+    this._server._admin.remove_client(this);
   }
 
   handle_websocket_error(code, msg) {
@@ -159,11 +163,13 @@ class Client {
 
     const request = new Request(raw_request, endpoint, this);
     this._requests.set(raw_request.request_id, request);
+    this._server._admin.add_request(request, this);
     request.run();
   }
 
   remove_request(raw_request) {
     const request = this._requests.get(raw_request.request_id);
+    this._server._admin.remove_request(request, this);
     this._requests.delete(raw_request.request_id);
     if (request) {
       request.close();

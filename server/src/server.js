@@ -2,6 +2,7 @@
 
 const Auth = require('./auth').Auth;
 const Client = require('./client').Client;
+const Admin = require('./admin').Admin;
 const ReqlConnection = require('./reql_connection').ReqlConnection;
 const logger = require('./logger');
 const options_schema = require('./schema/server_options').server;
@@ -10,6 +11,8 @@ const getType = require('mime-types').contentType;
 // TODO: dynamically serve different versions of the horizon
 // library. Minified, Rx included etc.
 const horizon_client_path = require.resolve('@horizon/client/dist/horizon');
+
+const admin_endpoints = require("./endpoint/admin");
 
 const endpoints = {
   insert: require('./endpoint/insert'),
@@ -69,7 +72,7 @@ class Server {
     const opts = Joi.attempt(user_opts || { }, options_schema);
     this._path = opts.path;
     this._name = opts.project_name;
-    this._permissions_enabled = opts.permissions;
+    this._permissions_enabled = false // opts.permissions; TODO
     this._auth_methods = { };
     this._request_handlers = new Map();
     this._http_handlers = new Map();
@@ -80,9 +83,14 @@ class Server {
                                          opts.auto_create_collection,
                                          opts.auto_create_index);
     this._auth = new Auth(this, opts.auth);
+    this._admin = new Admin(this, opts.stats);
     for (const key in endpoints) {
       this.add_request_handler(key, endpoints[key].run);
     }
+    
+    let _admin_endpoints = admin_endpoints(this);
+    for (let key of Object.keys(_admin_endpoints))
+      this.add_request_handler(`admin:${key}`, _admin_endpoints[key]);
 
     const verify_client = (info, cb) => {
       // Reject connections if we aren't synced with the database

@@ -1,0 +1,75 @@
+// main: main.styl
+
+
+// Base colors
+color-bg = white
+color-grey = #BCBCBC
+color-grey-line = #DCDCDC
+color-grey-text = #B2B2B2
+color-red-highlight = #EC6E7E
+
+
+// Dashboard colors
+color-collections = #F7AB84
+color-requests = #EC6E7E //#60B2C3
+color-clients = #60B2C3 //#9AA8D3
+color-time = #61B2A7
+
+.collections {background: color-collections}
+.requests {background: color-requests}
+.clients {background: color-clients}
+.timestamp {background: color-time}
+
+// Request type colors 
+color-store = #60B2C3
+color-subscribe = #A8DEE1
+color-remove = #EC6E7E
+color-query = #9AA8D3
+
+.query {background: color-query}
+.subscribe {background: color-subscribe}
+.store {background: color-store}
+.remove {background: color-remove}
+
+// Object type colors
+color-value = #3182BD
+color-string = darken(#6DD3C9, 10)
+color-number = #0F91A5
+color-bool = #FE7753
+color-array = darken(#E5EAFE, 20)
+color-object = darken(#CAC1FD, 10)
+color-null = #FE7753
+color-ref = #E6550D
+
+.type-string {background: color-string}
+.type-integer {background: color-number}
+.type-number {background: color-number}
+.type-boolean {background: color-bool}
+.type-array  {background: color-array}
+.type-object {background: color-object}
+.type-null {background: color-null}
+.type-ref {background: color-ref}
+
+
+.type-string-fg {color: color-string}
+.type-integer-fg {color: color-number}
+.type-number-fg {color: color-number}
+.type-boolean-fg {color: color-bool}
+.type-array-fg {color: color-array}
+.type-object-fg {color: color-object}
+.type-null-fg {color: color-null}
+.type-ref-fg {color: color-ref}
+
+
+// Icons
+.icon-query
+  &:before {content: "\f260"}
+
+.icon-subscribe
+  &:before {content: "\f492"}
+
+.icon-store
+  &:before {content: "\f418"}
+
+.icon-remove
+  &:before {content: "\f4c5"}

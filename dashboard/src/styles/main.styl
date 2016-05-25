@@ -1,0 +1,200 @@
+// out: ../../dist/main.css
+
+@import "components"
+@import "graph"
+@import "colors"
+
+body
+  margin 0
+  font-family "Source Sans Pro"
+  font-size 14px
+  background white
+
+#app
+  display flex
+  flex-direction column
+  min-height 100vh
+  
+main
+  margin auto
+  flex-grow 1
+  width 100%
+  max-width 900px
+
+footer
+  height 216px
+  opacity 0.3
+  background url('/images/fg-mountains.png') center 
+  
+header
+  display flex
+  
+  nav
+    display flex
+    flex-grow 1 
+    justify-content flex-end
+    align-items center
+    
+    div
+      display inline-block
+      margin-left 20px
+      font-size 18px
+      padding-bottom 5px
+      border-bottom 2px solid white
+      
+      a
+        color color-grey-text
+        text-decoration none
+        
+      &.selected
+        border-bottom 2px solid color-requests 
+        a {color: darken(color-grey-text, 30)}
+      
+
+#dashboard
+  margin-top 15px
+  
+  .tiles
+    display flex
+    justify-content flex-end 
+    
+    .tile
+      &:not(:first-child)
+        margin-left 15px
+
+  .graph-container
+    margin-top 35px
+    padding 15px
+    border 1px solid color-grey-line
+
+  .box
+    margin-top 25px
+
+  table
+    border-spacing: 10px
+
+    th
+      font-weight bold
+      text-transform uppercase
+      color lighten(color-grey-text, 10)
+      text-align: left;
+
+    .between
+      color darken(color-grey-text, 10)
+
+  .item
+    font-size 14px
+
+    .token
+      font-size 12px
+      i {font-size: 16px}
+      border-radius: 4px
+
+    span
+      margin-right 5px
+      margin-left 5px
+
+
+
+// Browser
+#browser
+  h1
+    color color-grey-text
+    font-weight normal 
+    font-size 22px
+    margin 35px 0 
+    
+    text-transform uppercase
+    letter-spacing 1px
+      
+    .current {color: lighten(color-red-highlight, 10)}
+    i {margin: 0 10px}
+    
+  .paging
+    display flex
+    margin-bottom 20px
+    
+    .spacer {flex-grow: 1}
+      
+    a
+      letter-spacing 0.8px
+      text-transform uppercase
+      text-decoration none
+      font-size 14px
+      font-weight normal 
+      color color-grey-text
+
+  .records
+    .box
+      margin-bottom 20px
+      
+      &.collapsed
+        .document
+          display none
+    
+    .title
+      border-radius 5px 5px 0 0 
+  
+    .document
+      padding 10px 
+      margin-bottom 15px
+      border 1px solid color-grey-line
+      border-top 0
+      border-radius 0 0 5px 5px
+      
+      .expander
+        color darken(color-grey-text, 15)
+    
+    .line
+      margin 5px
+      display inline-block
+      
+    .children
+      .item
+        margin-left 25px
+      
+    .item
+      white-space nowrap
+      overflow hidden
+      text-overflow ellipsis
+      
+      .name
+        color darken(color-grey-text, 30)
+      
+      &.collapsed
+        .children
+          display inline-block
+          vertical-align bottom
+        
+        .item
+          display inline-block
+          vertical-align bottom
+          max-width 150px 
+          margin 0
+          
+          .expander
+            display none
+    
+    .type
+      padding 5px
+      border-radius 5px
+      color white
+      font-size 10px
+      margin-right 5px
+      min-width 15px
+      display inline-block
+      text-align center
+      letter-spacing 0.5px
+      
+    .name
+      margin-right 5px
+      
+    .expander
+      display inline-block
+      vertical-align middle 
+      margin-right 10px
+      width 12px
+      
+      
+    .invisible
+      visibility hidden 

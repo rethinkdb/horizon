@@ -1,0 +1,41 @@
+
+<link jumptag="Dashboard, request, Browser">
+
+<template id="Navigation" type="jumptag">
+  <script>
+    let {items, selected} = opts.state;
+    let navigate = item => opts.state.set("selected", item);
+  </script>
+  
+  <nav>
+    <for var="item" in={items}>
+      <div class="{css({selected: selected == item})}">
+        <a href="#" onclick="{ev => navigate(item)}">${item}</a>
+      </div>
+    </for>
+  </nav>
+</template>
+
+<template id="app" type="jumptag">
+  <script>
+    let {state, data} = model.store;
+  </script>
+
+  <main>
+    <header>
+      <img id="logo" src="images/mark-text.png">
+      <Navigation state={state.navigation}></Navigation>
+    </header>
+    
+    <if check="{state.navigation.selected === 'Collections'}">
+      <Browser state={state.browser} data={data.browser}></Browser>
+    </if>
+    
+    <if check="{state.navigation.selected === 'Dashboard'}">
+      <Dashboard data={data.dashboard}></Dashboard> 
+    </if>
+    
+  </main>
+    
+  <footer></footer>
+</template>

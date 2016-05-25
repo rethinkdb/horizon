@@ -72,6 +72,10 @@ const addArguments = (parser) => {
     { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
       help: 'Serve secure websockets, requires --key-file and ' +
       '--cert-file if true, on by default.' });
+      
+  parser.addArgument([ '--stats' ],
+    { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
+      help: 'Enable admin dashboard and statistics collection' })
 
   parser.addArgument([ '--start-rethinkdb' ],
     { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
@@ -149,6 +153,7 @@ const make_default_config = () => ({
   auth_redirect: '/',
 
   auth: { },
+  stats: false
 });
 
 const default_config = make_default_config();
@@ -258,6 +263,7 @@ const createSecureServers = (opts) => {
 
 const yes_no_options = [ 'debug',
                          'secure',
+                         'stats',
                          'permissions',
                          'start_rethinkdb',
                          'auto_create_index',
@@ -311,7 +317,7 @@ const read_config_from_file = (project_path, config_file) => {
       throw new Error(`Unknown config parameter: "${field}".`);
     }
   }
-
+  
   return config;
 };
 
@@ -478,6 +484,7 @@ const startHorizonServer = (servers, opts) => {
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
     project_name: opts.project_name,
+    stats: opts.stats,
     auth: {
       token_secret: opts.token_secret,
       allow_unauthenticated: opts.allow_unauthenticated,

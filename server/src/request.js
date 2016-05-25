@@ -36,7 +36,8 @@ class Request {
   run() {
     let complete = false;
     try {
-      if (this._ruleset.empty()) {
+      if (this._ruleset.empty() && // TODO: Permissions
+          this._raw_request.type.split(':')[0] !== "admin") {
         throw new Error('Operation not permitted.');
       }
       this._cancel_cb = this._endpoint(this._raw_request,

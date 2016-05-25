@@ -1,0 +1,130 @@
+
+<template id="BrowserTreeExpander" type="jumptag">
+  <script>
+    function onExpand(ev) {
+      expandState.set(opts.data, !opts.state);
+      update();
+    }
+  </script>
+  
+  <a class="expander ${opts.class}" onclick={onExpand}>
+    <i class="icon ion-chevron-${opts.state ? 'down' : 'right'}"></i>
+  </a>
+</template>
+
+<template id="BrowserTreeItem" type="jumptag">
+  <script>
+    let {name, value, parent} = opts;
+    let type = getType(value);
+    let {isExpanded = true} = {isExpanded: expandState.get(value)};
+    let hasExpander = value && (type === "array" || type === "object");
+  </script>
+  
+  <div class="item ${css({collapsed: !isExpanded})}">
+    <div class="line">
+      <BrowserTreeExpander class="{css({invisible: !hasExpander})}"
+                           state={isExpanded} data={value}>
+      </BrowserTreeExpander>
+      
+      <span class="type type-${type}">${typeDisplay[type]}</span>
+      <span class="name">${name}:</span>
+      
+      <if check={!hasExpander}>
+        <span class="value type-${type}-fg">${value}</span>
+      </if>
+    </div>
+     
+    <if check="{value && type === 'array'}">
+      <div class="children">
+        <for var="v" in={value}>
+          <BrowserTreeItem name={index} value={v}></BrowserTreeItem> 
+        </for>
+      </div>
+    </if>
+    
+    <if check="{value && type === 'object'}">
+      <div class="children">
+        <for var="[name, v]" in={Object.entries(value)}>
+          <BrowserTreeItem name={name} value={v}></BrowserTreeItem> 
+        </for>
+      </div>
+    </if>
+
+  </div>
+</template>
+
+<template id="BrowserTreeDoc" type="jumptag">
+  <script>
+    let {value} = opts;
+    let {isExpanded = true} = {isExpanded: expandState.get(value.id)};
+  </script>
+  
+  <div class="box ${css({collapsed: !isExpanded})}">
+    <div class="title clients">
+      <h2>
+        <BrowserTreeExpander state={isExpanded} data={value.id}>
+        </BrowserTreeExpander>
+        <span class="id">${value.id}</span>
+      </h2>
+    </div>
+    
+    <div class="document">
+      <for var="[k, v]" in={Object.entries(value)}>
+        <BrowserTreeItem name={k} value={v}></BrowserTreeItem>
+      </for>
+    </div>
+  </div>
+</template>
+
+<template id="BrowserTree" type="jumptag">
+  <for var="doc" in={opts.data}>
+    <BrowserTreeDoc value={doc}></BrowserTreeDoc>
+  </for>
+</template>
+
+<template id="Browser" type="jumptag">
+  <script>
+    let {data, state: {query}} = opts;
+    let {collections} = model.store.data.dashboard;
+  </script>
+  
+    <if check={query.collection}>
+      <div id="browser">
+        <h1>
+          <span class="base">
+            <a onclick="{ev => model.browserClear()}">Collections</a>
+          </span>
+          <i class="icon ion-chevron-right"></i>
+          <span class="current">${query.collection}</span>
+        </h1>
+        
+        <div class="paging">
+          <if check={query.above}>
+            <a href="#" onclick="{ev => model.browserPrev()}">
+              <i class="icon ion-arrow-left-c"></i> Previous
+            </a>
+          </if>
+          <span class="spacer"></span>
+          <a href="#" onclick="{ev => model.browserNext()}">
+            Next <i class="icon ion-arrow-right-c"></i>
+          </a>
+        </div>
+          
+        <div class="records">
+          <BrowserTree data={data}></BrowserTree>
+        </div>
+      </div>
+    </if>
+    
+    <if check={!query.collection}>
+      <ul>
+        <for var="collection" in={collections}>
+          <li>
+            <a onclick="{ev => model.browserSelect(collection['id'])}">
+              ${collection["id"]}
+            </a>
+          </li>
+        </for>
+      </ul>
+    </if>
+</template>

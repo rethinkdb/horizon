@@ -35,13 +35,29 @@ const create_collection_reql = (R, internal_db, user_db, collection) => {
                         { old_val: row, new_val: row })));
 };
 
-const initialize_metadata_reql = (R, internal_db, user_db) =>
-  R.expr([ user_db, internal_db ])
+let createIndex = (R, db, table, index, expr) =>
+  R.branch(
+    R.db(db).table(table).indexList().contains(index), r.expr(true),
+    R.db(db).table(table).indexCreate(index, expr));
+  
+const initialize_metadata_reql = (R, internal_db, user_db) => {
+  return R.expr([ user_db, internal_db ])
     .forEach((db) => R.branch(R.dbList().contains(db), [], R.dbCreate(db)))
     .do(() =>
       R.expr([ 'collections', 'users_auth', 'users', 'groups' ])
         .forEach((table) => R.branch(R.db(internal_db).tableList().contains(table),
-                                     [], R.db(internal_db).tableCreate(table))));
+                                     [], R.db(internal_db).tableCreate(table))))
+    .do(() => 
+      R.expr(['stats_clients', 'stats_requests', 'stats_servers'])
+     .forEach((table) => R.branch(R.db(internal_db).tableList().contains(table),
+                                  [], R.db(internal_db).tableCreate(table, {durability: "soft"}))))
+    .do(() =>
+        R.expr([
+          createIndex(R, internal_db, 'stats_clients', 'connected'),
+          createIndex(R, internal_db, 'stats_requests', 'time'),
+          createIndex(R, internal_db, 'stats_requests', 'completed')
+        ]));
+}
 
 class Metadata {
   constructor(project_name,
