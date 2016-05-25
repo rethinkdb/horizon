@@ -9,6 +9,8 @@ const fs = require('fs');
 const path = require('path');
 const r = require('rethinkdb');
 
+const helpText = 'Get the schema from a horizon database';
+
 const addArguments = (parser) => {
   parser.addArgument([ 'project_path' ],
     { type: 'string', nargs: '?',
@@ -151,4 +153,5 @@ module.exports = {
   addArguments,
   processConfig,
   runCommand,
+  helpText,
 };

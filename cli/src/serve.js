@@ -23,6 +23,8 @@ const TIMEOUT_30_SECONDS = 30 * 1000;
 const default_config_file = '.hz/config.toml';
 const default_rdb_port = 28015;
 
+const helpText = 'Serve a horizon app';
+
 const addArguments = (parser) => {
   parser.addArgument([ 'project_path' ],
     { type: 'string', nargs: '?',
@@ -586,6 +588,7 @@ module.exports = {
   addArguments,
   processConfig,
   runCommand,
+  helpText,
   merge_configs,
   make_default_config,
   read_config_from_file,

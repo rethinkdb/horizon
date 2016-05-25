@@ -1,3 +1,5 @@
+/* global beforeEach, describe, process, afterEach, it, require */
+
 'use strict';
 
 const initCommand = require('../src/init');
@@ -42,14 +44,22 @@ function getFileString(filepath) {
   return fs.readFileSync(filepath, { encoding: 'utf8' });
 }
 
-function assertValidConfig(filepath) {
+function readToml(filepath) {
   const tomlData = getFileString(filepath);
-  // Try parsing it
-  const configObject = toml.parse(tomlData);
+  return toml.parse(tomlData);
+}
+
+function assertValidConfig(filepath) {
+  const configObject = readToml(filepath);
   // Need an uncommented project name
   assert.property(configObject, 'project_name');
   // Need an uncommented token_secret
   assert.property(configObject, 'token_secret');
+}
+
+function assertConfigProjectName(filepath, expectedName) {
+  const configObject = readToml(filepath);
+  assert.propertyVal(configObject, 'project_name', expectedName);
 }
 
 describe('hz init', () => {

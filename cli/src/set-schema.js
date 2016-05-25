@@ -15,6 +15,8 @@ const path = require('path');
 const r = require('rethinkdb');
 const toml = require('toml');
 
+const helpText = 'Set the schema in a horizon database';
+
 const addArguments = (parser) => {
   parser.addArgument([ 'project_path' ],
     { type: 'string', nargs: '?',
@@ -332,4 +334,5 @@ module.exports = {
   addArguments,
   processConfig,
   runCommand,
+  helpText,
 };

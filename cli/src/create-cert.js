@@ -1,6 +1,9 @@
 'use strict';
 const hasbin = require('hasbin');
 const spawn = require('child_process').spawn;
+
+const helpText = 'Generate a certificate';
+
 const runCommand = () => {
   // TODO: user configuration?
   const settings = {
@@ -53,6 +56,13 @@ const runCommand = () => {
   });
 };
 
+const processConfig = () => ({});
+
+const addArguments = () => {};
+
 module.exports = {
+  addArguments,
+  processConfig,
   runCommand,
+  helpText,
 };
