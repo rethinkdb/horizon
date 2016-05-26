@@ -1,0 +1,28 @@
+<html>
+<head>
+  <link href="app.css" rel="stylesheet">
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-y3tfxAZXuh4HwSYylfB+J125MxIs6mR5FOHamPBG064zB+AFeWH94NdvaCBm8qnd" crossorigin="anonymous">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/fetch/1.0.0/fetch.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div id="steps" class="row">
+      <div class="col-sm-12">
+        <ol>
+          <li id="connection-success">Connect to Horizon</li>
+          <li id="github-configured">Configure Github OAuth</li>
+        </ol>
+      </div>
+    </div>
+    <div id="login" class="row">
+      <div class="col-sm-12">
+        <button type="button" id="login-button" class="btn btn-block btn-primary-outline">Log into Github</button>
+      </div>
+    </div>
+  </div>
+  <script src="/horizon/horizon.js"></script>
+  <script src="app.js"></script>
+
+</body>
+
+</html>
