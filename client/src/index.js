@@ -11,15 +11,21 @@ const HorizonSocket = require('./socket.js')
 const { log, logError, enableLogging } = require('./logging.js')
 const { authEndpoint, TokenStorage, clearAuthTokens } = require('./auth')
 
-const defaultHost = typeof window !== 'undefined' && window.location &&
+let defaultHost = typeof window !== 'undefined' && window.location &&
         `${window.location.host}` || 'localhost:8181'
+let defaultPath = 'horizon'
+let horizonCloudMatch = /^[^.]+\.(hzc(?:-dev)?\.io)$/.exec(defaultHost)
+if (horizonCloudMatch) {
+    defaultPath = defaultHost + "/horizon"
+    defaultHost = "horizon." + horizonCloudMatch[1]
+}
 const defaultSecure = typeof window !== 'undefined' && window.location &&
         window.location.protocol === 'https:' || false
 
 function Horizon({
   host = defaultHost,
   secure = defaultSecure,
-  path = 'horizon',
+  path = defaultPath,
   lazyWrites = false,
   authType = 'unauthenticated',
 } = {}) {
