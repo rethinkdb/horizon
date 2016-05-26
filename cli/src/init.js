@@ -25,7 +25,7 @@ const makeIndexHTML = (projectName) => `\
     </script>
   </head>
   <body>
-   <marquee><h1></h1></marquee>
+   <marquee direction="left"><h1></h1></marquee>
   </body>
 </html>
 `;
