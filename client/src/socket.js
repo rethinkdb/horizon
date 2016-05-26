@@ -219,10 +219,7 @@ class HorizonSocket extends Subject {
       // Add the request id to the request and the unsubscribe request
       // if there is one
       rawRequest.request_id = request_id
-      let unsubscribeRequest
-      if (rawRequest.type === 'subscribe') {
-        unsubscribeRequest = { request_id, type: 'end_subscription' }
-      }
+      const unsubscribeRequest = { request_id, type: 'end_subscription' }
       // First, increment activeRequests and decide if we need to
       // connect to the socket
       incrementActive()
@@ -260,9 +257,7 @@ class HorizonSocket extends Subject {
             )
       return () => {
         // Unsubscribe if necessary
-        if (unsubscribeRequest) {
-          unsubscriptions.next(unsubscribeRequest)
-        }
+        unsubscriptions.next(unsubscribeRequest)
         decrementActive()
         unsubscribeFilter.unsubscribe()
       }
