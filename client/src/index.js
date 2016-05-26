@@ -35,7 +35,9 @@ function Horizon({
   // handshake response
   socket.handshake.subscribe({
     next(handshake) {
-      tokenStorage.set(handshake.token)
+      if (authType !== 'unauthenticated') {
+        tokenStorage.set(handshake.token)
+      }
     },
     error(err) {
       if (/JsonWebTokenError/.test(err.message)) {
