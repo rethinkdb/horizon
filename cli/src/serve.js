@@ -229,6 +229,11 @@ const initialize_servers = (ctor, opts) => {
           console.info(`Static files being served from ${opts.serve_static}`);
         }
         srv.on('request', fileServer(opts.serve_static));
+      } else {
+        srv.on('request', (req, res) => {
+          res.writeHead(404);
+          res.end('404 Not Found');
+        });
       }
       srv.on('listening', () => {
         const protocol = opts.secure ? 'https' : 'http';
