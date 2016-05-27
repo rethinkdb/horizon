@@ -30,18 +30,34 @@ class Client {
     // The first message should always be the handshake
     // if custom_auth is enabled pass the handshake to those instead
     if(this._server._custom_auth){
+      
+      this._custom.forEach((x) => {
+        x(this)
+      })
+      /*
       this._socket.once('message', (data) => {
         this.error_wrap_socket(() => {
           this._custom.forEach((x) => {
+            console.log('message passed to custom ')
             x(this, data, this._auth._jwt)
           })
         })
         
+        
+        
       })
+      
+      */
         
     }else{
-      this._socket.once('message', (data) =>
-        this.error_wrap_socket(() => this.handle_handshake(data)));    
+      this._socket.once('message', (data) => {
+        this.error_wrap_socket(() => {
+          console.log('the initial message', data)
+          this.handle_handshake(data)
+        })
+      })
+        
+          
     }
 
     if (!this._metadata.is_ready()) {
@@ -136,9 +152,14 @@ class Client {
         if (!responded) {
           responded = true;
           const info = { token: res.token, id: res.payload.id, provider: res.payload.provider };
-          this.send_response(request, info);
-          this._socket.on('message', (msg) =>
-            this.error_wrap_socket(() => this.handle_request(msg)));
+          //this.send_response(request, info);
+          this._socket.on('message', (msg) => {
+            this.error_wrap_socket(() => {
+              console.log('the second message')
+              this.handle_request(msg)
+            })
+          })
+
         }
       };
       this.user_info = res.payload;
@@ -150,9 +171,9 @@ class Client {
             if (!change.new_val) {
               throw new Error('User account has been deleted.');
             }
-            Object.assign(this.user_info, change.new_val);
-            this._requests.forEach((req) => req.evaluate_rules());
-            finish_handshake();
+            //Object.assign(this.user_info, change.new_val);
+            //this._requests.forEach((req) => req.evaluate_rules());
+            //finish_handshake();
           }).then(() => {
             throw new Error('User account feed has been lost.');
           });
@@ -176,6 +197,7 @@ class Client {
     if (raw_request === undefined) {
       return;
     } else if (raw_request.type === 'end_subscription') {
+      console.log('should end subscription')
       return this.remove_request(raw_request); // there is no response for end_subscription
     }
 
