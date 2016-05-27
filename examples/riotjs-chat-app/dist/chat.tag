@@ -40,14 +40,13 @@
     }
 
     // Setup changefeed
-    // this.db.order("datetime", "descending")
-    //       .limit(8)
-    //       .watch()
-    //       .forEach((messages) => {
-    //           this.messages = messages;
-    //           this.update();
-    //       }, error => console.log(error)
-    //       )
+    this.db.order("datetime", "descending")
+        .limit(8)
+        .watch()
+        .subscribe(messages => {
+          this.messages = messages;
+          this.update();
+        })
 
     </script>
 
