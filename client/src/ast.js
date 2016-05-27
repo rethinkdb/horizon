@@ -114,6 +114,12 @@ function makePresentable(observable, query) {
       ::filter(change => !hasEmitted || change.type !== 'state')
       ::scan((previous, change) => {
         hasEmitted = true
+        if (change.new_val != null) {
+          delete change.new_val.$hz_v$
+        }
+        if (change.old_val != null) {
+          delete change.old_val.$hz_v$
+        }
         if (change.state === 'synced') {
           return previous
         } else {
@@ -124,6 +130,12 @@ function makePresentable(observable, query) {
     const seedVal = { emitted: false, val: [] }
     return observable
       ::scan((state, change) => {
+        if (change.new_val != null) {
+          delete change.new_val.$hz_v$
+        }
+        if (change.old_val != null) {
+          delete change.old_val.$hz_v$
+        }
         if (change.state === 'synced') {
           state.emitted = true
         }

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "lint": "eslint src test",
-    "test": "mocha test --timeout 10000",
+    "test": "mocha test test/unit --timeout 10000",
     "coverage": "istanbul cover _mocha test"
   },
   "author": "RethinkDB",
@@ -31,6 +31,7 @@
     "jsonwebtoken": "^5.5.4",
     "mime-types": "^2.0.4",
     "rethinkdb": "^2.1.1",
+    "open": "0.0.5",
     "toml": "^2.3.0"
   },
   "devDependencies": {
