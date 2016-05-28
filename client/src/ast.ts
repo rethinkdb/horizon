@@ -11,7 +11,7 @@ import snakeCase from 'snake-case'
 
 import checkArgs from './util/check-args'
 import validIndexValue from './util/valid-index-value.js'
-import { serialize } from './serialization.js'
+import { serialize } from './serialization'
 
 
 /**

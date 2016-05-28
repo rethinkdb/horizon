@@ -22,7 +22,7 @@ interface ErrorResponse extends Response {
 }
 
 function isErrorResponse(resp: Response): resp is ErrorResponse {
-  return (<ErrorResponse>resp).error !== undefined
+  return (resp as ErrorResponse).error !== undefined
 }
 
 interface Handshake extends Request {
@@ -64,7 +64,7 @@ export interface QueryResponse extends Response {
 }
 
 function isQueryResponse(resp: Response): resp is QueryResponse {
-  return (<QueryResponse>resp).data !== undefined
+  return (resp as QueryResponse).data !== undefined
 }
 
 export interface StateResponse extends Response {
@@ -72,7 +72,7 @@ export interface StateResponse extends Response {
 }
 
 function isStateResponse(resp: Response): resp is StateResponse {
-  return (<StateResponse>resp).state !== undefined
+  return (resp as StateResponse).state !== undefined
 }
 
 export interface HandshakeSuccess extends Response {
@@ -80,7 +80,7 @@ export interface HandshakeSuccess extends Response {
 }
 
 function isHandshakeSuccess(resp: Response): resp is HandshakeSuccess {
-  return !isErrorResponse(resp) && (<HandshakeSuccess>resp).token !== undefined
+  return !isErrorResponse(resp) && (resp as HandshakeSuccess).token !== undefined
 }
 
 interface Status {
@@ -118,19 +118,19 @@ export class ProtocolError extends Error {
 // observable is closed.
 export class HorizonSocket extends Subject<Response> {
 
+  status: BehaviorSubject<Status>
+
   private requestCounter: number
   private activeRequests: number
   private handshake: AsyncSubject<HandshakeSuccess>
-  private outgoing: Observable<Request>
-  private outgoingSub: Subscription
+    private outgoing: Observable<Request>
+    private outgoingSub: Subscription
   // Subscriptions will be the observable containing all
   // queries/writes/changefeed requests. Specifically, the documents
   // that initiate them, each one with a different request_id
   private requests: Subject<Request>
-  private endRequests: Subject<EndRequest>
-  private ws: WebSocket
-
-  status: BehaviorSubject<Status>
+    private endRequests: Subject<EndRequest>
+    private ws: WebSocket
 
   constructor(
     host: string,
@@ -148,70 +148,72 @@ export class HorizonSocket extends Subject<Response> {
 
     // This is the observable part of the Subject. It forwards events
     // from the underlying websocket
-    const socketObservable = Observable.create((subscriber: Subscriber<Response>) => {
-      ws = new WebSocket(hostString, PROTOCOL_VERSION);
+    const socketObservable = Observable.create(
+      (subscriber: Subscriber<Response>) => {
+        ws = new WebSocket(hostString, PROTOCOL_VERSION)
 
-      ws.onerror = () => {
-        // If the websocket experiences the error, we forward it through
-        // to the observable. Unfortunately, the event we receive in
-        // this callback doesn't tell us much of anything, so there's no
-        // reason to forward it on and we just send a generic error.
-        statusSubject.next(STATUS_ERROR)
-        const errMsg = `Websocket ${hostString} experienced an error`
-        subscriber.error(new Error(errMsg))
-      }
-
-      ws.onopen = () => {
-        ws.onmessage = event => {
-          const deserialized = deserialize(JSON.parse(event.data))
-          subscriber.next(deserialized)
+        ws.onerror = () => {
+          // If the websocket experiences the error, we forward it through
+          // to the observable. Unfortunately, the event we receive in
+          // this callback doesn't tell us much of anything, so there's no
+          // reason to forward it on and we just send a generic error.
+          statusSubject.next(STATUS_ERROR)
+          const errMsg = `Websocket ${hostString} experienced an error`
+          subscriber.error(new Error(errMsg))
         }
 
-        ws.onclose = e => {
-          // This will happen if the socket is closed by the server If
-          // .close is called from the client (see closeSocket), this
-          // listener will be removed
-          statusSubject.next(STATUS_DISCONNECTED)
-          if (e.code !== 1000 || !e.wasClean) {
-            subscriber.error(
-              new Error(`Socket closed unexpectedly with code: ${e.code}`)
-            )
-          } else {
-            subscriber.complete()
+        ws.onopen = () => {
+          ws.onmessage = event => {
+            const deserialized = deserialize(JSON.parse(event.data))
+            subscriber.next(deserialized)
+          }
+
+          ws.onclose = e => {
+            // This will happen if the socket is closed by the server If
+            // .close is called from the client (see closeSocket), this
+            // listener will be removed
+            statusSubject.next(STATUS_DISCONNECTED)
+            if (e.code !== 1000 || !e.wasClean) {
+              subscriber.error(
+                new Error(`Socket closed unexpectedly with code: ${e.code}`)
+              )
+            } else {
+              subscriber.complete()
+            }
+          }
+
+          // Send the handshake
+          handshakeSubscription = this.makeRequest(handshaker()).subscribe({
+            next(resp: Response) {
+              if (isHandshakeSuccess(resp)) {
+                handshake.next(resp)
+                handshake.complete()
+                statusSubject.next(STATUS_READY)
+              } else {
+                if (isErrorResponse(resp)) {
+                  handshake.error(new Error(resp.error))
+                } else {
+                  handshake.error(
+                    new Error(`Invalid handshake response ${resp}`))
+                }
+                statusSubject.next(STATUS_ERROR)
+              }
+            },
+            error(e: Error) { handshake.error(e) },
+            complete() { handshake.complete() },
+          })
+          // Send any messages that have been buffered
+          while (msgBuffer.length > 0) {
+            const msg = msgBuffer.shift()
+            this.wsSend(msg)
           }
         }
-
-        // Send the handshake
-        handshakeSubscription = this.makeRequest(handshaker()).subscribe({
-          next(resp) {
-            if (isHandshakeSuccess(resp)) {
-              handshake.next(resp)
-              handshake.complete()
-              statusSubject.next(STATUS_READY)
-            } else {
-              if (isErrorResponse(resp)) {
-                handshake.error(new Error(resp.error))
-              } else {
-                handshake.error(new Error(`Invalid handshake response ${resp}`))
-              }
-              statusSubject.next(STATUS_ERROR)
-            }
-          },
-          error(e) { handshake.error(e) },
-          complete() { handshake.complete() },
-        })
-        // Send any messages that have been buffered
-        while (msgBuffer.length > 0) {
-          const msg = msgBuffer.shift()
-          this.wsSend(msg)
+        return () => {
+          handshakeSubscription.unsubscribe()
+          // This is the "unsubscribe" method on the final Subject
+          closeSocket(1000, '')
         }
-      }
-      return () => {
-        handshakeSubscription.unsubscribe()
-        // This is the "unsubscribe" method on the final Subject
-        closeSocket(1000, '')
-      }
-    }).share() // This makes it a "hot" observable, and refCounts it
+      }).share() // This makes it a "hot" observable, and refCounts it
     // Note possible edge cases: the `share` operator is equivalent to
     // .multicast(() => new Subject()).refCount() // RxJS 5
     // .multicast(new Subject()).refCount() // RxJS 4
@@ -251,10 +253,10 @@ export class HorizonSocket extends Subject<Response> {
       } else {
         ws.close(code, reason)
       }
-      ws.onopen = null
-      ws.onclose = null
-      ws.onmessage = null
-      ws.onerror = null
+      ws.onopen = undefined
+      ws.onclose = undefined
+      ws.onmessage = undefined
+      ws.onerror = undefined
     }
 
     super(socketSubscriber, socketObservable)
@@ -281,38 +283,15 @@ export class HorizonSocket extends Subject<Response> {
     return Boolean(this.ws) && this.ws.readyState === WebSocket.OPEN
   }
 
-  // Serializes to a string before sending
-  private wsSend(msg: Request) {
-    const stringMsg = JSON.stringify(serialize(msg))
-    this.ws.send(stringMsg)
-  }
-
-  // Decrement the number of active requests on the socket, and
-  // close the socket if we're the last request
-  private decrementActive() {
-    if (--this.activeRequests === 0 && this.outgoingSub != null) {
-      this.outgoingSub.unsubscribe()
-    }
-  }
-  private incrementActive() {
-    if (++this.activeRequests === 1) {
-      // We subscribe the socket itself to the subscription and
-      // unsubscription requests. Since the socket is both an
-      // observable and a subscriber. Here it's acting as an
-      // subscriber, watching our requests.
-      this.outgoingSub = this.outgoing.subscribe(this)
-    }
-  }
-
   // This is used externally to send requests to the server
   makeRequest(rawRequest: Request): Observable<Response> {
     return Observable.create((reqSub: Subscriber<Object>) => {
       // Get a new request id
-      const request_id = this.requestCounter++
+      const requestId = this.requestCounter++
       // Add the request id to the request and the unsubscribe request
       // if there is one
-      rawRequest.request_id = request_id
-      const endRequest: EndRequest = { request_id, type: 'end_subscription' }
+      rawRequest.request_id = requestId
+      const endRequest: EndRequest = { request_id: requestId, type: 'end_subscription' }
       // First, increment activeRequests and decide if we need to
       // connect to the socket
       this.incrementActive()
@@ -322,9 +301,9 @@ export class HorizonSocket extends Subject<Response> {
 
       // Create an observable from the socket that filters by request_id
       const unsubscribeFilter = this
-        .filter(x => x.request_id === request_id)
+        .filter(x => x.request_id === requestId)
         .subscribe({
-          next(resp) {
+          next(resp: Response) {
             // Need to faithfully end the stream if there is an error
             if (isErrorResponse(resp)) {
               reqSub.error(
@@ -338,7 +317,7 @@ export class HorizonSocket extends Subject<Response> {
             }
             if (isStateResponse(resp)) {
               switch (resp.state) {
-              case 'synced': {
+              case 'synced':
                 // Create a little dummy object
                 // for sync notifications
                 reqSub.next({
@@ -346,17 +325,15 @@ export class HorizonSocket extends Subject<Response> {
                   state: 'synced',
                 })
                 break
-              }
-              case 'complete': {
+              case 'complete':
                 reqSub.complete()
                 break
-              }
               default: {
                 reqSub.error(new Error(`Unrecognized state: ${resp.state}`))
               }}
             }
           },
-          error(err) { reqSub.error(err) },
+          error(err: Error) { reqSub.error(err) },
           complete() { reqSub.complete() },
         })
       return () => {
@@ -367,4 +344,28 @@ export class HorizonSocket extends Subject<Response> {
       }
     })
   }
+
+  // Serializes to a string before sending
+  private wsSend(msg: Request) {
+    const stringMsg = JSON.stringify(serialize(msg))
+    this.ws.send(stringMsg)
+  }
+
+  // Decrement the number of active requests on the socket, and
+  // close the socket if we're the last request
+  private decrementActive() {
+    if (--this.activeRequests === 0 && this.outgoingSub != undefined) {
+      this.outgoingSub.unsubscribe()
+    }
+  }
+  private incrementActive() {
+    if (++this.activeRequests === 1) {
+      // We subscribe the socket itself to the subscription and
+      // unsubscription requests. Since the socket is both an
+      // observable and a subscriber. Here it's acting as an
+      // subscriber, watching our requests.
+      this.outgoingSub = this.outgoing.subscribe(this)
+    }
+  }
+
 }
