@@ -1,14 +1,14 @@
 const PRIMITIVES = [
   'string', 'number', 'boolean', 'function', 'symbol' ]
 
-function modifyObject(doc) {
-  Object.keys(doc).forEach(key => {
+function modifyObject(doc: Object) {
+  Object.keys(doc).forEach((key: string) => {
     doc[key] = deserialize(doc[key])
   })
   return doc
 }
 
-export function deserialize(value) {
+export function deserialize(value: any) {
   if (value == null) {
     return value
   } else if (PRIMITIVES.indexOf(typeof value) !== -1) {
@@ -24,14 +24,14 @@ export function deserialize(value) {
   }
 }
 
-function jsonifyObject(doc) {
-  Object.keys(doc).forEach(key => {
+function jsonifyObject(doc: Object) {
+  Object.keys(doc).forEach((key: string) => {
     doc[key] = serialize(doc[key])
   })
   return doc
 }
 
-export function serialize(value) {
+export function serialize(value: any) {
   if (value == null) {
     return value
   } else if (PRIMITIVES.indexOf(typeof value) !== -1) {

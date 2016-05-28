@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es6",
+        "sourceMap": true,
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "pretty": true,
+        "outDir": "tsc_dist"
+    },
+    "formatOptions": {
+        "tabSize": 2
+    },
+    "exclude": [
+        "node_modules"
+    ],
+    "files": [
+        "src/socket.ts",
+        "node_modules/typescript/lib/lib.es6.d.ts"
+    ]
+}
