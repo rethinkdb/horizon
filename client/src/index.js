@@ -1,10 +1,10 @@
 import { Observable } from 'rxjs/Observable'
-import { of } from 'rxjs/observable/of'
-import { from } from 'rxjs/observable/from'
-import { _catch } from 'rxjs/operator/catch'
-import { concatMap } from 'rxjs/operator/concatMap'
-import { map } from 'rxjs/operator/map'
-import { filter } from 'rxjs/operator/filter'
+require('rxjs/add/observable/of')
+require('rxjs/add/observable/from')
+require('rxjs/add/operator/catch')
+require('rxjs/add/operator/concatMap')
+require('rxjs/add/operator/map')
+require('rxjs/add/operator/filter')
 
 const { Collection } = require('./ast.js')
 const HorizonSocket = require('./socket.js')
@@ -79,15 +79,15 @@ function Horizon({
 
   // Convenience method for finding out when disconnected
   horizon.onDisconnected = subscribeOrObservable(
-    socket.status::filter(x => x.type === 'disconnected'))
+    socket.status.filter(x => x.type === 'disconnected'))
 
   // Convenience method for finding out when ready
   horizon.onReady = subscribeOrObservable(
-    socket.status::filter(x => x.type === 'ready'))
+    socket.status.filter(x => x.type === 'ready'))
 
   // Convenience method for finding out when an error occurs
   horizon.onSocketError = subscribeOrObservable(
-    socket.status::filter(x => x.type === 'error'))
+    socket.status.filter(x => x.type === 'error'))
 
   horizon.utensils = {
     sendRequest,
@@ -109,16 +109,16 @@ function Horizon({
     const normalizedType = type === 'removeAll' ? 'remove' : type
     return socket
       .makeRequest({ type: normalizedType, options }) // send the raw request
-      ::concatMap(resp => {
+      .concatMap(resp => {
         // unroll arrays being returned
         if (resp.data) {
-          return Observable::from(resp.data)
+          return Observable.from(resp.data)
         } else {
           // Still need to emit a document even if we have no new data
-          return Observable::from([ { state: resp.state, type: resp.type } ])
+          return Observable.from([ { state: resp.state, type: resp.type } ])
         }
       })
-      ::_catch(e => Observable.create(subscriber => {
+      .catch(e => Observable.create(subscriber => {
         subscriber.error(e)
       })) // on error, strip error message
   }
@@ -137,7 +137,7 @@ function subscribeOrObservable(observable) {
 class UserDataTerm {
   constructor(hz, baseObservable) {
     this._hz = hz
-    this._baseObservable = baseObservable::map(handshake => handshake.id)
+    this._baseObservable = baseObservable.map(handshake => handshake.id)
   }
 
   _query(userId) {
@@ -145,9 +145,9 @@ class UserDataTerm {
   }
 
   fetch() {
-    return this._baseObservable::concatMap(userId => {
+    return this._baseObservable.concatMap(userId => {
       if (userId === null) {
-        return Observable::of({})
+        return Observable.of({})
       } else {
         return this._query(userId).fetch()
       }
@@ -155,9 +155,9 @@ class UserDataTerm {
   }
 
   watch(...args) {
-    return this._baseObservable::concatMap(userId => {
+    return this._baseObservable.concatMap(userId => {
       if (userId === null) {
-        return Observable::of({})
+        return Observable.of({})
       } else {
         return this._query(userId).watch(...args)
       }
