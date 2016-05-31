@@ -8,7 +8,8 @@ const dashQueries = {
   "clients": ["clients", {}],
   "requests": ["requests", {}],
   "cursors": ["requests", {live: true}],
-  "collections": ["collections", {}]
+  "collections": ["collections", {}],
+  "servers": ["servers", {}]
 };
 
 let dashQueriesState =
@@ -16,6 +17,7 @@ let dashQueriesState =
 
 const initialState = {
   state: {
+    servers: {},
     browser: {
       query: {
         order: [["id"], "ascending"],
@@ -24,7 +26,7 @@ const initialState = {
       },
     },
     navigation: {
-      selected: "Collections",
+      selected: "Servers",
       items: [
         "Dashboard",
         "Users",

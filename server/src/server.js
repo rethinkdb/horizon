@@ -7,6 +7,7 @@ const ReqlConnection = require('./reql_connection').ReqlConnection;
 const logger = require('./logger');
 const options_schema = require('./schema/server_options').server;
 const getType = require('mime-types').contentType;
+const uuid = require('uuid');
 
 // TODO: dynamically serve different versions of the horizon
 // library. Minified, Rx included etc.
@@ -70,6 +71,7 @@ const serve_file = (file_path, res) => {
 class Server {
   constructor(http_servers, user_opts) {
     const opts = Joi.attempt(user_opts || { }, options_schema);
+    this._id = uuid.v4();
     this._path = opts.path;
     this._name = opts.project_name;
     this._permissions_enabled = false // opts.permissions; TODO

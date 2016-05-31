@@ -8,6 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/epoch/0.8.4/js/epoch.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.12.0/moment.min.js"></script>
 
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,300,600,400italic,700,700italic' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/epoch/0.8.4/css/epoch.min.css">
     <link rel="stylesheet" href="http://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
 
@@ -15,7 +16,12 @@
     <script src="/graphing.js"></script>
     <script src="/utils.js"></script>
     <script src="/index.js"></script>
+    
+    <script src="http://second.horizon.drydock.site"></script>
+    
+    <!--
     <script src="/bundle.js"></script>
+    -->
     
     <link rel="stylesheet" href="/main.css">
   </head>
@@ -33,6 +39,7 @@
       model.subscribe(update);
 
       update();
+      hotReload("second.horizon.drydock.site", update);
     </script>
   </body>
 </html>

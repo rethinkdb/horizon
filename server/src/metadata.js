@@ -54,8 +54,11 @@ const initialize_metadata_reql = (R, internal_db, user_db) => {
     .do(() =>
         R.expr([
           createIndex(R, internal_db, 'stats_clients', 'connected'),
+          createIndex(R, internal_db, 'stats_clients', 'server'),
           createIndex(R, internal_db, 'stats_requests', 'time'),
-          createIndex(R, internal_db, 'stats_requests', 'completed')
+          createIndex(R, internal_db, 'stats_requests', 'server'),
+          createIndex(R, internal_db, 'stats_requests', 'completed'),
+          createIndex(R, internal_db, 'stats_servers', 'heartbeat'),
         ]));
 }
 

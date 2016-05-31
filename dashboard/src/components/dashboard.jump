@@ -12,7 +12,7 @@
 
 <template id="Tiles" type="jumptag">
   <script>
-    let {clients, collections, cursors} = opts.data;
+    let {clients, collections, cursors, servers} = opts.data;
   </script>
   
   <div class="tiles">
@@ -29,6 +29,11 @@
     <Tile caption="Requests" class="requests">
       <i class="icon ion-ios-pulse"></i>
       <div class="value">${cursors.length}</div>
+    </Tile>
+    
+    <Tile caption="Servers" class="servers">
+      <i class="icon ion-ios-pulse"></i>
+      <div class="value">${servers.length}</div>
     </Tile>
   </div>
 </template>

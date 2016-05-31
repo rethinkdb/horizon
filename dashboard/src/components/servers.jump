@@ -1,0 +1,30 @@
+
+<link jumptag="Time">
+
+<template id="Servers" type="jumptag">
+  <script>
+  </script>
+  
+  <div class="box">
+    <div class="title servers">
+      <h2>Servers</h2>
+    </div>
+    
+    <table>
+      <tr>
+        <th>Hostname</th>
+        <th>Uptime</th>
+        <th>Memory</th>
+      </tr>
+      <for var="server" in={opts.data}>
+        <tr key={server.id}>
+          <td>${server.hostname}</td>
+          <td>${server.uptime}</td>
+          <td>${server.memoryUsage}</td>
+        </tr>
+      </for>
+    </table>
+    
+  </div>
+  
+</template>

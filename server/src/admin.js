@@ -1,21 +1,55 @@
 'use strict';
 
 const r = require('rethinkdb');
+const os = require('os');
 
 const admin_db = r.db('horizondev_internal');
 const client_table = admin_db.table('stats_clients');
 const request_table = admin_db.table('stats_requests');
+const server_table = admin_db.table('stats_servers');
 
 class Admin {
   constructor(server, enabled) {
     this.server = server;
     this.enabled = enabled;
+    this.add_server();
+    
+    setInterval(() => this.update_server(), 1000 * 60 * 5);
   }
 
   clear_tables() {
     this._run_query(
       r.expr(["stats_clients", "stats_requests"])
        .forEach(admin_db.table(r.row).delete()));
+  }
+  
+  add_server() {
+    this._run_query(server_table.insert({
+      id: this.server._id,
+      heartbeat: r.now(),
+      memoryUsage: process.memoryUsage().rss,
+      hostname: os.hostname(),
+      uptime: process.uptime()
+    }));
+  }
+  
+  update_server() {
+    this._run_query(
+      server_table.get(this.server._id).update({
+        heartbeat: r.now(),
+        memoryUsage: process.memoryUsage().rss,
+        hostname: os.hostname(),
+        uptime: process.uptime(),
+      })
+      .do(() =>
+        server_table
+          .between(r.minval, r.now().sub(60 * 10), {index: "heartbeat"})
+          .forEach(server =>
+            r.do(
+              server_table.get(server("id")).delete(),
+              client_table.getAll(server("id"), {index: "server"}).delete(), 
+              request_table.getAll(server("id"), {index: "server"}).delete()))
+      ));
   }
 
   add_request(req, client) {
@@ -26,7 +60,9 @@ class Admin {
     this._run_query(
       request_table.insert({
         id: [client.id, req_id],
-        request: req_id, raw: req._raw_request,
+        server: this.server._id,
+        request: req_id,
+        raw: req._raw_request,
         time: r.now(), completed: false,
         client: {
           id: client.id,
@@ -50,6 +86,7 @@ class Admin {
          connected: true,
          id: client.id,
          time: r.now(),
+         server: this.server._id,
          ip: client._socket.remoteAddress || null,
          origin: client._socket.request.headers.referer || null
       }));
@@ -68,8 +105,9 @@ class Admin {
   }
 
   _run_query(query) {
-    if (this.enabled)
-      return query.run(this.server._reql_conn.connection());
+    if (!this.enabled) return;
+    this.server._reql_conn.ready().then(() =>
+      query.run(this.server._reql_conn.connection()));
   }
 }
 

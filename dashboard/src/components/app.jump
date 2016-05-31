@@ -1,5 +1,5 @@
 
-<link jumptag="Dashboard, request, Browser">
+<link jumptag="Dashboard, request, Browser, Servers">
 
 <template id="Navigation" type="jumptag">
   <script>
@@ -33,6 +33,10 @@
     
     <if check="{state.navigation.selected === 'Dashboard'}">
       <Dashboard data={data.dashboard}></Dashboard> 
+    </if>
+    
+    <if check="{state.navigation.selected === 'Servers'}">
+      <Servers state={state.servers} data={data.dashboard.servers}></Servers>
     </if>
     
   </main>
