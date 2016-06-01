@@ -1,40 +1,54 @@
 const PRIMITIVES = [
-  'string', 'number', 'boolean', 'function', 'symbol' ]
+  'string', 'number', 'boolean', 'symbol' ]
 
-function modifyObject(doc: Object) {
+function isPrimitive(val: any): string | number | boolean | symbol {
+  return PRIMITIVES.indexOf(typeof val) !== -1
+}
+
+export interface PseudoTypeDate {
+  $reql_type$: "TIME"
+  epoch_time: number
+  timezone: string
+}
+
+export function isPseudoTypeDate(value: any): value is PseudoTypeDate {
+  return (value as PseudoTypeDate).$reql_type$ === "TIME"
+}
+
+function modifyObject(doc: Object): Object {
   Object.keys(doc).forEach((key: string) => {
     doc[key] = deserialize(doc[key])
   })
   return doc
 }
 
-export function deserialize(value: any) {
-  if (value == null) {
+export function deserialize(value: any): any {
+  if (value == undefined) {
     return value
-  } else if (PRIMITIVES.indexOf(typeof value) !== -1) {
+  } else if (isPrimitive(value)) {
     return value
   } else if (Array.isArray(value)) {
     return value.map(deserialize)
-  } else if (value.$reql_type$ === 'TIME') {
+  } else if (isPseudoTypeDate(value)) {
     const date = new Date()
     date.setTime(value.epoch_time * 1000)
     return date
-  } else {
+  } else if (value instanceof Object) {
     return modifyObject(value)
   }
 }
 
-function jsonifyObject(doc: Object) {
+function jsonifyObject(doc: Object): Object {
   Object.keys(doc).forEach((key: string) => {
     doc[key] = serialize(doc[key])
   })
   return doc
 }
 
-export function serialize(value: any) {
-  if (value == null) {
+export function serialize(value: any): any {
+  if (value == undefined) {
     return value
-  } else if (PRIMITIVES.indexOf(typeof value) !== -1) {
+  } else if (isPrimitive(value)) {
     return value
   } else if (Array.isArray(value)) {
     return value.map(serialize)

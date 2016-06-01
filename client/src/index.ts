@@ -14,7 +14,11 @@ import { authEndpoint, TokenStorage, clearAuthTokens } from './auth'
 const defaultHost = typeof window !== 'undefined' && window.location &&
     `${window.location.host}` || 'localhost:8181'
 const defaultSecure = typeof window !== 'undefined' && window.location &&
-    window.location.protocol === 'https:' || false
+  window.location.protocol === 'https:' || false
+
+export interface Horizon {
+
+}
 
 function Horizon({
     host = defaultHost,

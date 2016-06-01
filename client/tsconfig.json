@@ -5,6 +5,7 @@
         "sourceMap": true,
         "noImplicitAny": true,
         "noImplicitReturns": true,
+        "strictNullChecks": true,
         "suppressImplicitAnyIndexErrors": true,
         "pretty": true,
         "outDir": "tsc_dist"
