@@ -79,7 +79,7 @@ export class ChatComponent implements OnInit {
     addMessage = function (text) {
         if (text) {
             this._chatService
-                .sendChat()
+                .sendChat(text)
                 .subscribe();
             this.newMessage = '';
         }
