@@ -40,15 +40,17 @@ export interface WriteRequest extends Request {
 
 export interface ReadRequest extends Request {
   type: 'query' | 'subscribe'
-  options: {
-    collection: string,
-    order?: [string[], 'ascending' | 'descending'],
-    above?: [Object, 'open' | 'closed'],
-    below?: [Object, 'open' | 'closed'],
-    find?: Object,
-    find_all?: any[],
-    limit?: number,
-  }
+  options: ReadOptions
+}
+
+export interface ReadOptions {
+  collection: string,
+  order?: [string[], 'ascending' | 'descending'],
+  above?: [Object, 'open' | 'closed'],
+  below?: [Object, 'open' | 'closed'],
+  find?: Object,
+  find_all?: any[],
+  limit?: number,
 }
 
 interface EndRequest extends Request {
@@ -71,7 +73,7 @@ export interface StateResponse extends Response {
   state: "complete" | "synced",
 }
 
-function isStateResponse(resp: Response): resp is StateResponse {
+export function isStateResponse(resp: Response): resp is StateResponse {
   return (resp as StateResponse).state !== undefined
 }
 

@@ -1,6 +1,16 @@
+interface IndexArray extends Array<IndexValue> { }
+
+export type IndexValue =
+  string |
+  number |
+  boolean |
+  ArrayBuffer |
+  Date |
+  IndexArray
+
 // Checks whether the return value is a valid primary or secondary
 // index value in RethinkDB.
-export default function validIndexValue(val) {
+export function validIndexValue(val: any): val is IndexValue {
   if (val === null) {
     return false
   }

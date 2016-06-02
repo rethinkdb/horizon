@@ -1,39 +1,51 @@
 import { Observable } from 'rxjs/Observable'
-import { empty } from 'rxjs/observable/empty'
+import 'rxjs/add/observable/empty'
 
-import { publishReplay } from 'rxjs/operator/publishReplay'
-import { scan } from 'rxjs/operator/scan'
-import { filter } from 'rxjs/operator/filter'
-import { map } from 'rxjs/operator/map'
-import { toArray } from 'rxjs/operator/toArray'
-
-import snakeCase from 'snake-case'
+import 'rxjs/add/operator/publishReplay'
+import 'rxjs/add/operator/scan'
+import 'rxjs/add/operator/filter'
+import 'rxjs/add/operator/map'
+import 'rxjs/add/operator/toArray'
 
 import checkArgs from './util/check-args'
-import validIndexValue from './util/valid-index-value.js'
+import { validIndexValue, IndexValue } from './util/valid-index-value'
 import { serialize } from './serialization'
+import { ReadOptions } from './socket'
 
+type MethodName = 'findAll' | 'find' | 'order' | 'above' | 'below' | 'limit'
 
-/**
- @this TermBase
+export type SendRequest = (type: string, options: Object) => Observable<Object>;
+export type Bound = 'open' | 'closed'
+export type Direction = 'descending' | 'ascending'
 
- Validation check to throw an exception if a method is chained onto a
- query that already has it. It belongs to TermBase, but we don't want
- to pollute the objects with it (since it isn't useful to api users),
- so it's dynamically bound with :: inside methods that use it.
-*/
-function checkIfLegalToChain(key) {
-  if (this._legalMethods.indexOf(key) === -1) {
-    throw new Error(`${key} cannot be called on the current query`)
-  }
-  if (snakeCase(key) in this._query) {
-    throw new Error(`${key} has already been called on this query`)
-  }
+const snakeCase = {
+  findAll: 'find_all',
+  find: 'find',
+  order: 'order',
+  above: 'above',
+  below: 'below',
+  limit: 'limit',
+}
+
+interface Versioned {
+  $hz_v$: string,
+}
+
+function isVersioned(doc: Object): doc is Versioned {
+  return (doc as Versioned).$hz_v$ !== undefined
+}
+
+interface Document {
+  id: IndexValue
 }
 
 // Abstract base class for terms
 export class TermBase {
-  constructor(sendRequest, query, legalMethods) {
+  private _sendRequest: SendRequest
+  private _query: ReadOptions
+  private _legalMethods: Array<MethodName>
+
+  constructor(sendRequest: SendRequest, query: ReadOptions, legalMethods: Array<MethodName>) {
     this._sendRequest = sendRequest
     this._query = query
     this._legalMethods = legalMethods
@@ -54,46 +66,58 @@ export class TermBase {
   // Grab a snapshot of the current query (non-changefeed). Emits an
   // array with all results. An observable is returned which will
   // lazily emit the query when subscribed to
-  fetch() {
-    const raw = this._sendRequest('query', this._query)::map(val => {
-      delete val.$hz_v$
+  fetch(): Observable<Document[]|Document> {
+    const raw: Observable<Document> = this._sendRequest('query', this._query).map(val => {
+      if(isVersioned(val)){
+        delete val.$hz_v$
+      }
       return val
     })
     if (this._query.find) {
       return raw
     } else {
-      return raw::toArray()
+      return raw.toArray()
     }
   }
-  findAll(...fieldValues) {
-    this::checkIfLegalToChain('findAll')
+  findAll(...fieldValues: Array<Object>) {
+    this._legalToChain('findAll')
     checkArgs('findAll', arguments, { maxArgs: 100 })
     return new FindAll(this._sendRequest, this._query, fieldValues)
   }
-  find(idOrObject) {
-    this::checkIfLegalToChain('find')
+  find(idOrObject: IndexValue | Object) {
+    this._legalToChain('find')
     checkArgs('find', arguments)
     return new Find(this._sendRequest, this._query, idOrObject)
   }
-  order(fields, direction = 'ascending') {
-    this::checkIfLegalToChain('order')
+  order(fields: Object[], direction: Direction = 'ascending') {
+    this._legalToChain('order')
     checkArgs('order', arguments, { minArgs: 1, maxArgs: 2 })
     return new Order(this._sendRequest, this._query, fields, direction)
   }
-  above(aboveSpec, bound = 'closed') {
-    this::checkIfLegalToChain('above')
+  above(aboveSpec: Object[], bound: Bound = 'closed') {
+    this._legalToChain('above')
     checkArgs('above', arguments, { minArgs: 1, maxArgs: 2 })
     return new Above(this._sendRequest, this._query, aboveSpec, bound)
   }
-  below(belowSpec, bound = 'open') {
-    this::checkIfLegalToChain('below')
+  below(belowSpec: Object[], bound: Bound = 'open') {
+    this._legalToChain('below')
     checkArgs('below', arguments, { minArgs: 1, maxArgs: 2 })
     return new Below(this._sendRequest, this._query, belowSpec, bound)
   }
-  limit(size) {
-    this::checkIfLegalToChain('limit')
+  limit(size: number) {
+    this._legalToChain('limit')
     checkArgs('limit', arguments)
     return new Limit(this._sendRequest, this._query, size)
+  }
+  /* Validation check to throw an exception if a method is chained onto
+     a query that already has it.  */
+  private _legalToChain(key: MethodName) {
+    if (this._legalMethods.indexOf(key) === -1) {
+      throw new Error(`${key} cannot be called on the current query`)
+    }
+    if (snakeCase[key] in this._query) {
+      throw new Error(`${key} has already been called on this query`)
+    }
   }
 }
 
@@ -102,7 +126,7 @@ export class TermBase {
 // `observable` is the base observable with full responses coming from
 //              the HorizonSocket
 // `query` is the value of `options` in the request
-function makePresentable(observable, query) {
+function makePresentable(observable: Observable<Response>, query: ) {
   // Whether the entire data structure is in each change
   const pointQuery = Boolean(query.find)
 
@@ -111,8 +135,8 @@ function makePresentable(observable, query) {
     const seedVal = null
     // Simplest case: just pass through new_val
     return observable
-      ::filter(change => !hasEmitted || change.type !== 'state')
-      ::scan((previous, change) => {
+      .filter(change => !hasEmitted || change.type !== 'state')
+      .scan((previous, change) => {
         hasEmitted = true
         if (change.new_val != null) {
           delete change.new_val.$hz_v$
@@ -129,7 +153,7 @@ function makePresentable(observable, query) {
   } else {
     const seedVal = { emitted: false, val: [] }
     return observable
-      ::scan((state, change) => {
+      .scan((state, change) => {
         if (change.new_val != null) {
           delete change.new_val.$hz_v$
         }
@@ -142,8 +166,8 @@ function makePresentable(observable, query) {
         state.val = applyChange(state.val.slice(), change)
         return state
       }, seedVal)
-      ::filter(state => state.emitted)
-      ::map(x => x.val)
+      .filter(state => state.emitted)
+      .map(x => x.val)
   }
 }
 
@@ -214,7 +238,7 @@ function writeOp(name, args, documents) {
     isBatch = false
   } else if (documents.length === 0) {
     // Don't bother sending no-ops to the server
-    return Observable::empty()
+    return Observable.empty()
   }
   const options = Object.assign(
     {}, this._query, { data: serialize(wrappedDocs) })
@@ -222,7 +246,7 @@ function writeOp(name, args, documents) {
   if (isBatch) {
     // If this is a batch writeOp, each document may succeed or fail
     // individually.
-    observable = observable::map(resp => resp.error? new Error(resp.error) : resp)
+    observable = observable.map(resp => resp.error? new Error(resp.error) : resp)
   } else {
     // If this is a single writeOp, the entire operation should fail
     // if any fails.
@@ -245,7 +269,7 @@ function writeOp(name, args, documents) {
   if (!this._lazyWrites) {
     // Need to buffer response since this becomes a hot observable and
     // when we subscribe matters
-    observable = observable::publishReplay().refCount()
+    observable = observable.publishReplay().refCount()
     observable.subscribe()
   }
   return observable
@@ -260,24 +284,24 @@ export class Collection extends TermBase {
     this._lazyWrites = lazyWrites
   }
   store(documents) {
-    return this::writeOp('store', arguments, documents)
+    return this.writeOp('store', arguments, documents)
   }
   upsert(documents) {
-    return this::writeOp('upsert', arguments, documents)
+    return this.writeOp('upsert', arguments, documents)
   }
   insert(documents) {
-    return this::writeOp('insert', arguments, documents)
+    return this.writeOp('insert', arguments, documents)
   }
   replace(documents) {
-    return this::writeOp('replace', arguments, documents)
+    return this.writeOp('replace', arguments, documents)
   }
   update(documents) {
-    return this::writeOp('update', arguments, documents)
+    return this.writeOp('update', arguments, documents)
   }
   remove(documentOrId) {
     const wrapped = validIndexValue(documentOrId) ?
           { id: documentOrId } : documentOrId
-    return this::writeOp('remove', arguments, wrapped)
+    return this.writeOp('remove', arguments, wrapped)
   }
   removeAll(documentsOrIds) {
     if (!Array.isArray(documentsOrIds)) {
@@ -290,7 +314,7 @@ export class Collection extends TermBase {
         return item
       }
     })
-    return this::writeOp('removeAll', arguments, wrapped)
+    return this.writeOp('removeAll', arguments, wrapped)
   }
 }
 
