@@ -1,11 +1,4 @@
 import { Observable } from 'rxjs/Observable'
-require('rxjs/add/observable/empty')
-
-require('rxjs/add/operator/publishReplay')
-require('rxjs/add/operator/scan')
-require('rxjs/add/operator/filter')
-require('rxjs/add/operator/map')
-require('rxjs/add/operator/toArray')
 
 import snakeCase from 'snake-case'
 

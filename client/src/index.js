@@ -1,10 +1,4 @@
 import { Observable } from 'rxjs/Observable'
-require('rxjs/add/observable/of')
-require('rxjs/add/observable/from')
-require('rxjs/add/operator/catch')
-require('rxjs/add/operator/concatMap')
-require('rxjs/add/operator/map')
-require('rxjs/add/operator/filter')
 
 const { Collection } = require('./ast.js')
 const HorizonSocket = require('./socket.js')

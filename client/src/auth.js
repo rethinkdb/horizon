@@ -1,8 +1,6 @@
 import queryParse from './util/query-parse'
 import { Observable } from 'rxjs/Observable'
 import fetchJSON from './util/fetch.js'
-require('rxjs/add/operator/do')
-require('rxjs/add/operator/map')
 
 const HORIZON_JWT = 'horizon-jwt'
 

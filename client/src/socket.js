@@ -2,9 +2,6 @@ import { AsyncSubject } from 'rxjs/AsyncSubject'
 import { BehaviorSubject } from 'rxjs/BehaviorSubject'
 import { Subject } from 'rxjs/Subject'
 import { Observable } from 'rxjs/Observable'
-require('rxjs/add/observable/merge')
-require('rxjs/add/operator/filter')
-require('rxjs/add/operator/share')
 
 import { serialize, deserialize } from './serialization.js'
 import { log } from './logging.js'
