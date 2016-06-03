@@ -1,31 +1,55 @@
 'use strict';
 
-const error = require('./error');
+const error = require('../error');
 const Index = require('./index').Index;
 
 const r = require('rethinkdb');
 
-class Collection {
-  constructor(data, db, conn) {
-    this.name = data.id;
-    this.table = r.db(db).table(data.table);
+class Table {
+  constructor(table_name, db, conn) {
+    this.collection = null; // This will be set when we are attached to a collection
+    this.table = r.db(db).table(table_name);
     this.indexes = new Map();
-
     this.update_indexes([ ]);
 
-    this.promise =
-      this.table
-        .wait({ waitFor: 'all_replicas_ready' })
-        .run(conn)
-        .then(() => {
-          this.promise = null;
-        });
+    this._waiters = [ ];
+    this._result = null;
 
-    this.promise.catch(() => { });
+    this.table
+      .wait({ waitFor: 'all_replicas_ready' })
+      .run(conn)
+      .then(() => {
+        this._result = true;
+        this._waiters.forEach((w) => w());
+        this._waiters = [ ];
+      }).catch((err) => {
+        this._result = err;
+        this._waiters.forEach((w) => w(err));
+        this._waiters = [ ];
+      });
+  }
+
+  close() {
+    this._reject(new Error('collection deleted'));
+    this._waiters.forEach((w) => w(new Error('collection deleted')));
+    this._waiters = [ ];
+
+    this.indexes.forEach((i) => i.close());
+    this.indexes.clear();
+  }
+
+  ready() {
+    return this._result === true;
   }
 
   on_ready(done) {
-    this.promise ? this.promise.then(() => done(), (err) => done(err)) : done();
+    if (this._result === true) {
+      done();
+    } else if (this._result) {
+      done(this._result);
+    } else {
+      this._waiters.push(done);
+    }
   }
 
   update_indexes(indexes, conn) {
@@ -34,20 +58,26 @@ class Collection {
     // indexes are ready, but it saves us from needing more-complicated machinery
     // to ensure we don't miss changes to the set of indexes. (i.e. if an index is
     // deleted then immediately recreated, or replaced by a post-constructing index)
+    this.indexes.forEach((i) => i.close());
     this.indexes.clear();
 
     // Initialize the primary index, which won't show up in the changefeed
     indexes.push(Index.fields_to_name([ 'id' ]));
-    indexes.map((name) => this.indexes.set(name, new Index(name, this.table, conn)));
+    indexes.map((name) => {
+      this.indexes.set(name, new Index(name, this.table, conn));
+    });
   }
 
   create_index(fields, conn, done) {
     const index_name = Index.fields_to_name(fields);
+    error.check(!this.indexes.get(index_name), 'index already exists');
 
     const success = () => {
+      // Create the Index object now so we don't try to create it again before the
+      // feed notifies us of the index creation
       const index = new Index(index_name, this.table, conn);
       this.indexes.set(index_name, index);
-      return index.promise.then(() => done());
+      return index.on_ready(done);
     };
 
     this.table.indexCreate(index_name, (row) => fields.map((key) => row(key)))
@@ -70,23 +100,23 @@ class Collection {
       return this.indexes.get(Index.fields_to_name([ 'id' ]));
     }
 
-    let match = undefined;
+    let match;
     for (const index of this.indexes.values()) {
       if (index.is_match(fuzzy_fields, ordered_fields)) {
-        if (!index.promise) {
+        if (index.ready()) {
           return index;
-        } else if (match === undefined) {
+        } else if (!match) {
           match = index;
         }
       }
     }
 
-    if (match === undefined) {
-      throw new error.IndexMissing(this, fuzzy_fields.concat(ordered_fields));
+    if (match) {
+      throw new error.IndexNotReady(this.collection, match);
     } else {
-      throw new error.IndexNotReady(this, match);
+      throw new error.IndexMissing(this.collection, fuzzy_fields.concat(ordered_fields));
     }
   }
 }
 
-module.exports = { Collection };
+module.exports = { Table };

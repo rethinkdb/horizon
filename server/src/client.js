@@ -135,7 +135,7 @@ class Client {
     }).catch((err) => {
       if (!responded) {
         responded = true;
-        this.close({ request_id: request.request_id, error: `${err}`, error_code: 0 })
+        this.close({ request_id: request.request_id, error: `${err}`, error_code: 0 });
       }
     });
   }

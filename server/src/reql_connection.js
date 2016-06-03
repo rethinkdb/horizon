@@ -2,7 +2,7 @@
 
 const check = require('./error').check;
 const logger = require('./logger');
-const Metadata = require('./metadata').Metadata;
+const Metadata = require('./metadata/metadata').Metadata;
 const r = require('rethinkdb');
 const utils = require('./utils');
 
