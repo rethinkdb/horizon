@@ -6,6 +6,9 @@ import 'rxjs/add/operator/concatMap'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/filter'
 
+// Extra operators not used, but useful to Horizon end-users
+import 'rxjs/add/operator/defaultIfEmpty'
+
 const { Collection } = require('./ast.js')
 const HorizonSocket = require('./socket.js')
 const { log, logError, enableLogging } = require('./logging.js')
