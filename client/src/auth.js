@@ -1,8 +1,8 @@
 import queryParse from './util/query-parse'
 import { Observable } from 'rxjs/Observable'
-import { _do as tap } from 'rxjs/operator/do'
-import { map } from 'rxjs/operator/map'
 import fetchJSON from './util/fetch.js'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/map'
 
 const HORIZON_JWT = 'horizon-jwt'
 
@@ -17,11 +17,11 @@ export function authEndpoint(name) {
   }
   if (!this._authMethods) {
     return fetchJSON(`${this._horizonPath}/auth_methods`)
-      ::tap(authMethods => {
+      .do(authMethods => {
         this._authMethods = authMethods
-      })::map(endpointForName)
+      }).map(endpointForName)
   } else {
-    return Observable.of(this._authMethods)::map(endpointForName)
+    return Observable.of(this._authMethods).map(endpointForName)
   }
 }
 
