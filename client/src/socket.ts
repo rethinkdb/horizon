@@ -8,7 +8,7 @@ import 'rxjs/add/observable/merge'
 import 'rxjs/add/operator/filter'
 import 'rxjs/add/operator/share'
 
-import { serialize, deserialize } from './serialization'
+import { serialize, deserialize, isRawObject, Native } from './serialization'
 
 const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
 
@@ -59,6 +59,10 @@ interface EndRequest extends Request {
 
 export interface Response {
   request_id: number
+}
+
+function isResponse(val: any) {
+  return (val as Response).request_id !== undefined
 }
 
 export interface QueryResponse extends Response {
@@ -165,8 +169,13 @@ export class HorizonSocket extends Subject<Response> {
 
         ws.onopen = () => {
           ws.onmessage = event => {
-            const deserialized = deserialize(JSON.parse(event.data))
-            subscriber.next(deserialized)
+            const response = JSON.parse(event.data)
+            if (isRawObject(response)) {
+              const deserialized: Native = deserialize(response)
+              if (isResponse(deserialized)) {
+                subscriber.next(deserialized)
+              }
+            }
           }
 
           ws.onclose = e => {

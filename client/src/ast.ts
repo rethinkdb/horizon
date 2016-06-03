@@ -10,7 +10,7 @@ import 'rxjs/add/operator/toArray'
 import checkArgs from './util/check-args'
 import { validIndexValue, IndexValue } from './util/valid-index-value'
 import { serialize } from './serialization'
-import { ReadOptions } from './socket'
+import { ReadOptions, Response } from './socket'
 
 type MethodName = 'findAll' | 'find' | 'order' | 'above' | 'below' | 'limit'
 
@@ -126,7 +126,7 @@ export class TermBase {
 // `observable` is the base observable with full responses coming from
 //              the HorizonSocket
 // `query` is the value of `options` in the request
-function makePresentable(observable: Observable<Response>, query: ) {
+function makePresentable(observable: Observable<Response>, query: ReadOptions) {
   // Whether the entire data structure is in each change
   const pointQuery = Boolean(query.find)
 

@@ -5,7 +5,7 @@
         "sourceMap": true,
         "noImplicitAny": true,
         "noImplicitReturns": true,
-        "suppressImplicitAnyIndexErrors": true,
+        "strictNullChecks": true,
         "pretty": true,
         "outDir": "tsc_dist"
     },
@@ -17,6 +17,6 @@
     ],
     "files": [
         "src/socket.ts",
-        "node_modules/typescript/lib/lib.es6.d.ts"
+        "src/ast.ts"
     ]
 }
