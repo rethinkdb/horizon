@@ -40,9 +40,9 @@ module.exports = function(buildTarget) {
     },
     externals: [
       function(context, request, callback) {
-      // Selected modules are not packaged into horizon.js. Webpack
-      // allows them to be required natively at runtime, either from
-      // filesystem (node) or window global.
+        // Selected modules are not packaged into horizon.js. Webpack
+        // allows them to be required natively at runtime, either from
+        // filesystem (node) or window global.
         if (!POLYFILL && /^rxjs\/?/.test(request)) {
           callback(null, {
           // If loaded via script tag, has to be at window.Rx when

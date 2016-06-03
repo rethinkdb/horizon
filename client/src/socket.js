@@ -2,19 +2,13 @@ import { AsyncSubject } from 'rxjs/AsyncSubject'
 import { BehaviorSubject } from 'rxjs/BehaviorSubject'
 import { Subject } from 'rxjs/Subject'
 import { Observable } from 'rxjs/Observable'
-import { merge } from 'rxjs/observable/merge'
-import { filter } from 'rxjs/operator/filter'
-import { share } from 'rxjs/operator/share'
+import 'rxjs/add/observable/merge'
+import 'rxjs/add/operator/filter'
+import 'rxjs/add/operator/share'
 
 import { serialize, deserialize } from './serialization.js'
 import { log } from './logging.js'
-import socket from 'engine.io-client'
-
-let transports
-
-if (typeof window === 'undefined') {
-  transports = [ 'websocket' ]
-}
+import { WebSocket } from './shim.js'
 
 const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
 
@@ -46,7 +40,7 @@ class ProtocolError extends Error {
 // observable is closed.
 class HorizonSocket extends Subject {
   constructor(host, secure, path, handshaker) {
-    const hostString = `ws${secure ? 's' : ''}://${host}`
+    const hostString = `ws${secure ? 's' : ''}:\/\/${host}\/${path}`
     const msgBuffer = []
     let ws, handshakeDisp
     // Handshake is an asyncsubject because we want it to always cache
@@ -54,25 +48,20 @@ class HorizonSocket extends Subject {
     const handshake = new AsyncSubject()
     const statusSubject = new BehaviorSubject(STATUS_UNCONNECTED)
 
-    const isOpen = () => Boolean(ws) && ws.readyState === 'open'
+    const isOpen = () => Boolean(ws) && ws.readyState === WebSocket.OPEN
 
     // Serializes to a string before sending
     function wsSend(msg) {
       const stringMsg = JSON.stringify(serialize(msg))
-
       ws.send(stringMsg)
     }
 
     // This is the observable part of the Subject. It forwards events
     // from the underlying websocket
     const socketObservable = Observable.create(subscriber => {
-      ws = socket(hostString, {
-        protocol: PROTOCOL_VERSION,
-        path: `/${path}`,
-        transports
-      })
+      ws = new WebSocket(hostString, PROTOCOL_VERSION);
 
-      ws.on('error', () => {
+      ws.onerror = () => {
         // If the websocket experiences the error, we forward it through
         // to the observable. Unfortunately, the event we receive in
         // this callback doesn't tell us much of anything, so there's no
@@ -80,28 +69,28 @@ class HorizonSocket extends Subject {
         statusSubject.next(STATUS_ERROR)
         const errMsg = `Websocket ${hostString} experienced an error`
         subscriber.error(new Error(errMsg))
-      })
+      }
 
-      ws.on('open', () => {
-        ws.on('message', data => {
-          const deserialized = deserialize(JSON.parse(data))
+      ws.onopen = () => {
+        ws.onmessage = event => {
+          const deserialized = deserialize(JSON.parse(event.data))
           log('Received', deserialized)
           subscriber.next(deserialized)
-        })
+        }
 
-        ws.on('close', e => {
+        ws.onclose = e => {
           // This will happen if the socket is closed by the server If
           // .close is called from the client (see closeSocket), this
           // listener will be removed
           statusSubject.next(STATUS_DISCONNECTED)
-          if (e !== 'forced close') {
+          if (e.code !== 1000 || !e.wasClean) {
             subscriber.error(
-              new Error(`Socket closed unexpectedly with code: ${e}`)
+              new Error(`Socket closed unexpectedly with code: ${e.code}`)
             )
           } else {
             subscriber.complete()
           }
-        })
+        }
 
         // Send the handshake
         handshakeDisp = this.makeRequest(handshaker()).subscribe(
@@ -119,7 +108,7 @@ class HorizonSocket extends Subject {
           log('Sending buffered:', msg)
           wsSend(msg)
         }
-      })
+      }
       return () => {
         if (handshakeDisp) {
           handshakeDisp.unsubscribe()
@@ -127,7 +116,7 @@ class HorizonSocket extends Subject {
         // This is the "unsubscribe" method on the final Subject
         closeSocket(1000, '')
       }
-    })::share() // This makes it a "hot" observable, and refCounts it
+    }).share() // This makes it a "hot" observable, and refCounts it
     // Note possible edge cases: the `share` operator is equivalent to
     // .multicast(() => new Subject()).refCount() // RxJS 5
     // .multicast(new Subject()).refCount() // RxJS 4
@@ -169,6 +158,10 @@ class HorizonSocket extends Subject {
       } else {
         ws.close(code, reason)
       }
+      ws.onopen = null
+      ws.onclose = null
+      ws.onmessage = null
+      ws.onerror = null
     }
 
     super(socketSubscriber, socketObservable)
@@ -181,7 +174,7 @@ class HorizonSocket extends Subject {
     // close a particular request_id on the server. Currently we only
     // need these for changefeeds.
     const unsubscriptions = new Subject()
-    const outgoing = Observable::merge(subscriptions, unsubscriptions)
+    const outgoing = Observable.merge(subscriptions, unsubscriptions)
     // How many requests are outstanding
     let activeRequests = 0
     // Monotonically increasing counter for request_ids
@@ -229,7 +222,7 @@ class HorizonSocket extends Subject {
 
       // Create an observable from the socket that filters by request_id
       const unsubscribeFilter = this
-            ::filter(x => x.request_id === request_id)
+            .filter(x => x.request_id === request_id)
             .subscribe(
               resp => {
                 // Need to faithfully end the stream if there is an error
