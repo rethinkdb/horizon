@@ -524,7 +524,7 @@ const startHorizonServer = (servers, opts) => {
   }, TIMEOUT_30_SECONDS);
   hzServer.ready().then(() => {
     clearTimeout(timeoutObject);
-    console.log(chalk.green.bold('Horizon ready for connections 🌄'));
+    console.log(chalk.green.bold('🌄 Horizon ready for connections'));
   }).catch((err) => {
     console.log(chalk.red.bold(err));
     process.exit(1);
