@@ -47,7 +47,7 @@ const makeDefaultConfig = (projectName) => `\
 # 'secure' will disable HTTPS and use HTTP instead when set to 'false'
 # 'key_file' and 'cert_file' are required for serving HTTPS
 #------------------------------------------------------------------------------
-# secure = false
+# secure = true
 # key_file = "horizon-key.pem"
 # cert_file = "horizon-cert.pem"
 
@@ -71,8 +71,8 @@ project_name = "${projectName}"
 # 'auto_create_collection' creates a collection when one is needed but does not exist
 # 'auto_create_index' creates an index when one is needed but does not exist
 #------------------------------------------------------------------------------
-# auto_create_collection = true
-# auto_create_index = true
+# auto_create_collection = false
+# auto_create_index = false
 
 
 ###############################################################################
@@ -89,7 +89,7 @@ project_name = "${projectName}"
 # Debug Options
 # 'debug' enables debug log statements
 #------------------------------------------------------------------------------
-# debug = true
+# debug = false
 
 
 ###############################################################################
@@ -102,8 +102,8 @@ project_name = "${projectName}"
 # 'auth_redirect' specifies where users will be redirected to after login
 #------------------------------------------------------------------------------
 token_secret = "${crypto.randomBytes(64).toString('base64')}"
-# allow_anonymous = true
-# allow_unauthenticated = true
+# allow_anonymous = false
+# allow_unauthenticated = false
 # auth_redirect = "/"
 #
 # [auth.facebook]
