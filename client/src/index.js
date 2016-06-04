@@ -44,7 +44,7 @@ function Horizon({
       }
     },
     error(err) {
-      if (/JsonWebTokenError/.test(err.message)) {
+      if (/JsonWebTokenError|TokenExpiredError/.test(err.message)) {
         console.error('Horizon: clearing token storage since auth failed')
         tokenStorage.remove()
       }
