@@ -30,7 +30,6 @@ class Table {
   }
 
   close() {
-    this._reject(new Error('collection deleted'));
     this._waiters.forEach((w) => w(new Error('collection deleted')));
     this._waiters = [ ];
 
@@ -53,19 +52,23 @@ class Table {
   }
 
   update_indexes(indexes, conn) {
-    // Clear all indexes, then re-add the latest set
-    // This will cause new requests to wait until we have confirmation that the
-    // indexes are ready, but it saves us from needing more-complicated machinery
-    // to ensure we don't miss changes to the set of indexes. (i.e. if an index is
-    // deleted then immediately recreated, or replaced by a post-constructing index)
-    this.indexes.forEach((i) => i.close());
-    this.indexes.clear();
-
     // Initialize the primary index, which won't show up in the changefeed
     indexes.push(Index.fields_to_name([ 'id' ]));
+
+    const new_index_map = new Map();
     indexes.map((name) => {
-      this.indexes.set(name, new Index(name, this.table, conn));
+      const old_index = this.indexes.get(name);
+      const new_index = new Index(name, this.table, conn);
+      if (old_index) {
+        // Steal any waiters from the old index
+        new_index._waiters = old_index._waiters;
+        old_index._waiters = [ ];
+      }
+      new_index_map.set(name, new_index);
     });
+
+    this.indexes.forEach((i) => i.close());
+    this.indexes = new_index_map;
   }
 
   create_index(fields, conn, done) {

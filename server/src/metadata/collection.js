@@ -38,7 +38,6 @@ class Collection {
   }
 
   set_table(table) {
-    console.log(`Collection ${this.name} assigned a table - propagating ${this._waiters.length} waiters.`);
     table.collection = this;
     this._table = table;
     this._waiters.forEach((done) => this._table.on_ready(done));

@@ -82,7 +82,6 @@ class Metadata {
             return new Promise((resolve, reject) => {
               this._group_feed = res;
               this._group_feed.eachAsync((change) => {
-                logger.debug(`groups change: ${JSON.stringify(change)}`);
                 if (change.type === 'state') {
                   if (change.state === 'ready') {
                     logger.info('Groups metadata synced.');
@@ -107,7 +106,7 @@ class Metadata {
       const collections_ready =
         r.db(this._internal_db)
           .table('collections')
-          .changes({ squash: true,
+          .changes({ squash: false,
                      includeInitial: true,
                      includeStates: true,
                      includeTypes: true })
@@ -119,7 +118,6 @@ class Metadata {
             return new Promise((resolve, reject) => {
               this._collection_feed = res;
               this._collection_feed.eachAsync((change) => {
-                logger.debug(`collections change: ${JSON.stringify(change)}`);
                 if (change.type === 'state') {
                   if (change.state === 'ready') {
                     logger.info('Collections metadata synced.');
@@ -174,7 +172,7 @@ class Metadata {
             return new Promise((resolve, reject) => {
               this._index_feed = res;
               this._index_feed.eachAsync((change) => {
-                logger.debug(`tables/indexes change: ${JSON.stringify(change)}`);
+                logger.debug(`Got indexes change: ${JSON.stringify(change)}`);
                 if (change.type === 'state') {
                   if (change.state === 'ready') {
                     logger.info('Index metadata synced.');
@@ -289,6 +287,7 @@ class Metadata {
   close() {
     this._closed = true;
     this._ready = false;
+
     if (this._group_feed) {
       this._group_feed.close().catch(() => { });
     }
@@ -298,6 +297,12 @@ class Metadata {
     if (this._index_feed) {
       this._index_feed.close().catch(() => { });
     }
+
+    this._collections.forEach((x) => x.close());
+    this._collections.clear();
+
+    this._tables.forEach((x) => x.close());
+    this._tables.clear();
   }
 
   is_ready() {
@@ -312,6 +317,7 @@ class Metadata {
     const res = this._collections.get(name);
     if (res === undefined) { throw new error.CollectionMissing(name); }
     if (res.promise) { throw new error.CollectionNotReady(res); }
+    if (!res._table) { throw new error.CollectionNotReady(res); }
     return res;
   }
 
