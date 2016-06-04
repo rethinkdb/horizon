@@ -1,6 +1,6 @@
 'use strict';
 
-const check = require('./error').check;
+const check = require('../error').check;
 
 // Index names are of the format "field1_field2_field3", where the fields
 // are given in order of use in a compound index.  If the field names contain
@@ -52,20 +52,42 @@ class Index {
   constructor(name, table, conn) {
     this.name = name;
     this.fields = Index.name_to_fields(name);
-    if (name !== primary_index_name) {
-      this.promise =
-        table.indexWait(name).run(conn).then(() => {
-          this.promise = null;
-        });
 
-      this.promise.catch(() => { });
+    this._waiters = [ ];
+    this._result = null;
+
+    if (name !== primary_index_name) {
+      table.indexWait(name).run(conn).then(() => {
+        this._result = true;
+        this._waiters.forEach((w) => w());
+        this._waiters = [ ];
+      }).catch((err) => {
+        this._result = err;
+        this._waiters.forEach((w) => w(err));
+        this._waiters = [ ];
+      });
     } else {
-      this.promise = null;
+      this._result = true;
     }
   }
 
+  close() {
+    this._waiters.forEach((w) => w(new Error('index deleted')));
+    this._waiters = [ ];
+  }
+
+  ready() {
+    return this._result === true;
+  }
+
   on_ready(done) {
-    this.promise ? this.promise.then(() => done(), (err) => done(err)) : done();
+    if (this._result === true) {
+      done();
+    } else if (this._result) {
+      done(this._result);
+    } else {
+      this._waiters.push(done);
+    }
   }
 
   // `fuzzy_fields` may be in any order at the beginning of the index.
