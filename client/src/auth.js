@@ -33,32 +33,42 @@ export class FakeStorage {
   removeItem(a) { return this._storage.delete(a) }
 }
 
-function getStorage() {
+function getStorage(storeLocally = false) {
+  let storage
   try {
-    if (typeof window !== 'object' || window.localStorage === undefined) {
-      return new FakeStorage()
+    if (!storeLocally ||
+        typeof window !== 'object' ||
+        window.localStorage === undefined) {
+      storage = new FakeStorage()
+    } else {
+      // Mobile safari in private browsing has a localStorage, but it
+      // has a size limit of 0
+      window.localStorage.setItem('$$fake', 1)
+      window.localStorage.removeItem('$$fake')
+      storage = window.localStorage
     }
-    // Mobile safari in private browsing has a localStorage, but it
-    // has a size limit of 0
-    window.localStorage.setItem('$$fake', 1)
-    window.localStorage.removeItem('$$fake')
-    return window.localStorage
   } catch (error) {
     if (window.sessionStorage === undefined) {
-      return new FakeStorage()
+      storage = new FakeStorage()
     } else {
-      return window.sessionStorage
+      storage = window.sessionStorage
     }
   }
+  return storage
 }
 
 export class TokenStorage {
   constructor({ authType = 'token',
-                storage = getStorage(),
+                storage = getStorage(authType.storeLocally),
                 path = 'horizon' } = {}) {
     this._storage = storage
-    this._authType = authType
     this._path = path
+    if (typeof authType === 'string') {
+      this._authType = authType
+    } else {
+      this._authType = 'token'
+      this.set(authType.token)
+    }
   }
 
   _getHash() {

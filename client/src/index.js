@@ -28,6 +28,7 @@ function Horizon({
 } = {}) {
   // If we're in a redirection from OAuth, store the auth token for
   // this user in localStorage.
+
   const tokenStorage = new TokenStorage({ authType, path })
   tokenStorage.setAuthFromQueryParams()
 
