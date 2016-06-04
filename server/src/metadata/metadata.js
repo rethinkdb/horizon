@@ -172,7 +172,6 @@ class Metadata {
             return new Promise((resolve, reject) => {
               this._index_feed = res;
               this._index_feed.eachAsync((change) => {
-                logger.debug(`Got indexes change: ${JSON.stringify(change)}`);
                 if (change.type === 'state') {
                   if (change.state === 'ready') {
                     logger.info('Index metadata synced.');
@@ -358,9 +357,7 @@ class Metadata {
     create_collection_reql(r, this._internal_db, this._db, name)
       .run(this._conn)
       .then((res) => {
-        if (res.error) {
-          error.fail(`Collection creation failed (dev mode): "${name}", ${res.error}`);
-        }
+        error.check(!res.error, `Collection creation failed (dev mode): "${name}", ${res.error}`);
         logger.warn(`Collection created (dev mode): "${name}"`);
         collection.on_ready(done);
       }).catch((err) => {
