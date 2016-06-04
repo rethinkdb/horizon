@@ -5,9 +5,9 @@ const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const start_rdb_server = require('./utils/start_rdb_server');
 const serve = require('./serve');
 const logger = require('@horizon/server').logger;
-const create_collection_reql = require('@horizon/server/src/metadata').create_collection_reql;
-const initialize_metadata_reql = require('@horizon/server/src/metadata').initialize_metadata_reql;
-const name_to_fields = require('@horizon/server/src/index').Index.name_to_fields;
+const create_collection_reql = require('@horizon/server/src/metadata/metadata').create_collection_reql;
+const initialize_metadata_reql = require('@horizon/server/src/metadata/metadata').initialize_metadata_reql;
+const name_to_fields = require('@horizon/server/src/metadata/index').Index.name_to_fields;
 
 const fs = require('fs');
 const Joi = require('joi');
