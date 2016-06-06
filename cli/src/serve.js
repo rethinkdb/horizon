@@ -45,6 +45,10 @@ const addArguments = (parser) => {
     { type: 'string', metavar: 'HOST:PORT',
       help: 'Host and port of the RethinkDB server to connect to.' });
 
+  parser.addArgument([ '--connect-timeout' ],
+    { type: 'string', metavar: 'CONNECTION TIMEOUT',
+      help: 'Timeout period in seconds for the RethinkDB connection to be opened' });
+
   parser.addArgument([ '--key-file' ],
     { type: 'string', metavar: 'PATH',
       help: 'Path to the key file to use, defaults to "./horizon-key.pem".' });
@@ -331,6 +335,8 @@ const read_config_from_file = (project_path, config_file) => {
   for (const field in file_config) {
     if (field === 'connect') {
       parse_connect(file_config.connect, config);
+    } else if (field === 'connect_timeout') {
+      config['rdb_timeout'] = file_config[field];
     } else if (yes_no_options.indexOf(field) !== -1) {
       config[field] = parse_yes_no_option(file_config[field], field);
     } else if (default_config[field] !== undefined) {
@@ -348,6 +354,7 @@ const read_config_from_env = () => {
   const config = { auth: { } };
 
   for (const env_var in process.env) {
+
     const matches = env_regex.exec(env_var);
     if (matches && matches[1]) {
       const dest_var_name = matches[1].toLowerCase();
@@ -358,6 +365,8 @@ const read_config_from_env = () => {
         parse_connect(value, config);
       } else if (dest_var_name === 'bind') {
         config[dest_var_name] = value.split(',');
+      } else if (dest_var_name === 'connect_timeout') {
+        config['rdb_timeout'] = value;
       } else if (var_path[0] === 'auth' && var_path.length === 3) {
         config.auth[var_path[1]] = config.auth[var_path[1]] || { };
 
@@ -428,6 +437,10 @@ const read_config_from_flags = (parsed) => {
   }
   if (parsed.bind !== null && parsed.bind !== undefined) {
     config.bind = parsed.bind;
+  }
+
+  if (parsed.connect_timeout !== null) {
+    config.rdb_timeout = parsed.connect_timeout;
   }
 
   if (parsed.token_secret !== null && parsed.token_secret !== undefined) {
@@ -525,7 +538,8 @@ const startHorizonServer = (servers, opts) => {
       failure_redirect: opts.auth_redirect,
     },
     rdb_user: opts.rdb_user || null,
-    rdb_pass: opts.rdb_pass || null
+    rdb_pass: opts.rdb_pass || null,
+    rdb_timeout: opts.rdb_timeout || null
   });
   const timeoutObject = setTimeout(() => {
     console.log(chalk.red.bold('Horizon failed to start after 30 seconds'));
