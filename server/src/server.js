@@ -140,6 +140,7 @@ class Server {
 
     this.add_http_handler('auth_methods', (req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
       res.end(JSON.stringify(this._auth_methods));
     });
 
