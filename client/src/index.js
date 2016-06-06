@@ -100,7 +100,7 @@ function Horizon({
   Object.freeze(horizon.utensils)
 
   horizon._authMethods = null
-  horizon._horizonPath = path
+  horizon._horizonPath = 'http' + ((secure) ? 's' : '') + '://' + host + '/' + path
   horizon.authEndpoint = authEndpoint
   horizon.hasAuthToken = ::tokenStorage.hasAuthToken
 
