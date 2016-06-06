@@ -158,6 +158,7 @@ const make_default_config = () => ({
   allow_anonymous: false,
   allow_unauthenticated: false,
   auth_redirect: '/',
+  access_control_allow_origin: '',
 
   auth: { },
 });
@@ -509,6 +510,7 @@ const startHorizonServer = (servers, opts) => {
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
     project_name: opts.project_name,
+    access_control_allow_origin: opts.access_control_allow_origin,
     auth: {
       token_secret: opts.token_secret,
       allow_unauthenticated: opts.allow_unauthenticated,
