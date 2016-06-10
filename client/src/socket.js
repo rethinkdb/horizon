@@ -1,6 +1,6 @@
 import { AsyncSubject } from 'rxjs/AsyncSubject'
 import { BehaviorSubject } from 'rxjs/BehaviorSubject'
-import { Subject } from 'rxjs/Subject'
+import { AnonymousSubject } from 'rxjs/Subject'
 import { Observable } from 'rxjs/Observable'
 import 'rxjs/add/observable/merge'
 import 'rxjs/add/operator/filter'
@@ -38,7 +38,7 @@ class ProtocolError extends Error {
 // protocol level things like serializing from/to JSON, routing
 // request_ids, looking at the `state` field to decide when an
 // observable is closed.
-class HorizonSocket extends Subject {
+class HorizonSocket extends AnonymousSubject {
   constructor(host, secure, path, handshaker) {
     const hostString = `ws${secure ? 's' : ''}:\/\/${host}\/${path}`
     const msgBuffer = []
