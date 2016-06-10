@@ -33,7 +33,7 @@ export class FakeStorage {
   removeItem(a) { return this._storage.delete(a) }
 }
 
-function getStorage(storeLocally = false) {
+function getStorage(storeLocally = true) {
   let storage
   try {
     if (!storeLocally ||
