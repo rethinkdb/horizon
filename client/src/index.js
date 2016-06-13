@@ -97,6 +97,7 @@ function Horizon({
   horizon.utensils = {
     sendRequest,
     tokenStorage,
+    handshake: socket.handshake,
   }
   Object.freeze(horizon.utensils)
 
