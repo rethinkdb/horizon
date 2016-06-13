@@ -9,7 +9,7 @@ import 'rxjs/add/operator/filter'
 // Extra operators not used, but useful to Horizon end-users
 import 'rxjs/add/operator/defaultIfEmpty'
 
-const { Collection } = require('./ast.js')
+const { Collection, UserDataTerm } = require('./ast.js')
 const HorizonSocket = require('./socket.js')
 const { log, logError, enableLogging } = require('./logging.js')
 const { authEndpoint, TokenStorage, clearAuthTokens } = require('./auth')
@@ -58,7 +58,8 @@ function Horizon({
     return new Collection(sendRequest, name, lazyWrites)
   }
 
-  horizon.currentUser = () => new UserDataTerm(horizon, socket.handshake)
+  horizon.currentUser = () =>
+    new UserDataTerm(horizon, socket.handshake, socket)
 
   horizon.disconnect = () => {
     socket.complete()
@@ -137,38 +138,6 @@ function subscribeOrObservable(observable) {
     }
   }
 }
-
-class UserDataTerm {
-  constructor(hz, baseObservable) {
-    this._hz = hz
-    this._baseObservable = baseObservable.map(handshake => handshake.id)
-  }
-
-  _query(userId) {
-    return this._hz('users').find(userId)
-  }
-
-  fetch() {
-    return this._baseObservable.concatMap(userId => {
-      if (userId === null) {
-        return Observable.of({})
-      } else {
-        return this._query(userId).fetch()
-      }
-    })
-  }
-
-  watch(...args) {
-    return this._baseObservable.concatMap(userId => {
-      if (userId === null) {
-        return Observable.of({})
-      } else {
-        return this._query(userId).watch(...args)
-      }
-    })
-  }
-}
-
 
 Horizon.log = log
 Horizon.logError = logError

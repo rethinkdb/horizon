@@ -6,6 +6,7 @@ import 'rxjs/add/operator/scan'
 import 'rxjs/add/operator/filter'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/toArray'
+import 'rxjs/add/operator/take'
 
 import snakeCase from 'snake-case'
 
@@ -353,5 +354,41 @@ export class Limit extends TermBase {
     const query = Object.assign({}, previousQuery, { limit: size })
     // Nothing is legal to chain after .limit
     super(sendRequest, query, [])
+  }
+}
+
+
+export class UserDataTerm {
+  constructor(hz, handshake, socket) {
+    this._hz = hz
+    this._before = Observable.merge(
+      socket.take(0), // just need to force connection
+      handshake // guarantee we get handshake even if we're already
+                // connected
+    )
+  }
+
+  _query(userId) {
+    return this._hz('users').find(userId)
+  }
+
+  fetch() {
+    return this._before.concatMap(handshake => {
+      if (handshake.id === null) {
+        return Observable.of({})
+      } else {
+        return this._query(handshake.id).fetch()
+      }
+    })
+  }
+
+  watch(...args) {
+    return this._before.concatMap(handshake => {
+      if (handshake.id === null) {
+        return Observable.of({})
+      } else {
+        return this._query(handshake.id).watch(...args)
+      }
+    })
   }
 }
