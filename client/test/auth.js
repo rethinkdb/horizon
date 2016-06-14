@@ -8,17 +8,21 @@ const authSuite = global.authSuite = (getHorizon) => () => {
     horizon = getHorizon()
   })
   it('gets an empty object when unauthenticated', done => {
-    horizon.currentUser().fetch().subscribe(
-      user => {
+    horizon.currentUser().fetch().subscribe({
+      next(user) {
         assert.isObject(user)
         assert.deepEqual([], Object.keys(user))
       },
-      err => done(err),
-      complete => done()
-    )
+      error(err) { done(err) },
+      complete() { done() },
+    })
   })
   it('gets a normal user object when anonymous', done => {
-    const myHorizon = Horizon({ secure: false, lazyWrites: true, authType: 'anonymous' })
+    const myHorizon = Horizon({
+      secure: false,
+      lazyWrites: true,
+      authType: 'anonymous'
+    })
     Horizon.clearAuthTokens()
     myHorizon.connect()
     myHorizon.currentUser().fetch().subscribe({
