@@ -34,8 +34,8 @@ Plugins are intended to be flexible enough to implement things like:
  - The plugin is required to completely clean itself up in the
    `deactivate` function, leaving no state behind.
 
-### (#commands) Commands
-### (#processes) Processes
-### (#endpoints) Endpoints
-### (#config) Config
-### (#requests) Requests
+### Commands
+### Processes
+### Endpoints
+### Config
+### Requests
