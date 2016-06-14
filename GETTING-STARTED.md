@@ -433,7 +433,7 @@ chat.watch().subscribe(chats => {
   },
 
   // When error occurs on server
-  error => console.log(error),
+  error => console.log(error)
 )
 ```
 

@@ -10,7 +10,7 @@ const each_line_in_pipe = require('../../cli/src/utils/each_line_in_pipe');
 const assert = require('assert');
 const http = require('http');
 const r = require('rethinkdb');
-const websocket = require('engine.io-client');
+const websocket = require('ws');
 
 const db = 'horizon';
 const data_dir = './rethinkdb_data_test';
@@ -59,10 +59,9 @@ const table = (collection) =>
 const create_collection = (collection, done) => {
   assert.notStrictEqual(horizon_server, undefined);
   assert.notStrictEqual(horizon_port, undefined);
-  const conn = websocket(`ws://localhost:${horizon_port}`,
-                         { protocol: horizon.protocol,
-                           path: '/horizon',
-                           rejectUnauthorized: false })
+  const conn = new websocket(`ws://localhost:${horizon_port}/horizon`,
+                             horizon.protocol,
+                             { rejectUnauthorized: false })
     .once('error', (err) => assert.ifError(err))
     .on('open', () => {
       conn.send(JSON.stringify({ request_id: 123, method: 'unauthenticated' }));
@@ -172,10 +171,9 @@ const open_horizon_conn = (done) => {
   horizon_authenticated = false;
   horizon_listeners = new Map();
   horizon_conn =
-    websocket(`ws://localhost:${horizon_port}`,
-              { protocol: horizon.protocol,
-                path: '/horizon',
-                rejectUnauthorized: false })
+    new websocket(`ws://localhost:${horizon_port}/horizon`,
+                  horizon.protocol,
+                  { rejectUnauthorized: false })
       .once('error', (err) => assert.ifError(err))
       .on('open', () => done());
 };
@@ -189,7 +187,7 @@ const close_horizon_conn = () => {
 };
 
 const horizon_auth = (req, cb) => {
-  assert(horizon_conn && horizon_conn.readyState === 'open');
+  assert(horizon_conn && horizon_conn.readyState === websocket.OPEN);
   horizon_conn.send(JSON.stringify(req));
   horizon_conn.once('message', (auth_msg) => {
     horizon_authenticated = true;
@@ -215,7 +213,7 @@ const horizon_default_auth = (done) => {
 // of all `data` items returned by the server for the given request_id.
 // TODO: this doesn't allow for dealing with multiple states (like 'synced').
 const stream_test = (req, cb) => {
-  assert(horizon_conn && horizon_conn.readyState === 'open');
+  assert(horizon_conn && horizon_conn.readyState === websocket.OPEN);
   const results = [];
 
   add_horizon_listener(req.request_id, (msg) => {

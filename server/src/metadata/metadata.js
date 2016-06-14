@@ -1,10 +1,11 @@
 'use strict';
 
-const error = require('./error');
-const logger = require('./logger');
-const Group = require('./permissions/group').Group;
+const error = require('../error');
+const logger = require('../logger');
+const Group = require('../permissions/group').Group;
 const Collection = require('./collection').Collection;
-const version_field = require('./endpoint/writes').version_field;
+const Table = require('./table').Table;
+const version_field = require('../endpoint/writes').version_field;
 
 const r = require('rethinkdb');
 
@@ -57,6 +58,7 @@ class Metadata {
     this._auto_create_index = auto_create_index;
     this._closed = false;
     this._ready = false;
+    this._tables = new Map();
     this._collections = new Map();
     this._groups = new Map();
     this._collection_feed = null;
@@ -104,7 +106,7 @@ class Metadata {
       const collections_ready =
         r.db(this._internal_db)
           .table('collections')
-          .changes({ squash: true,
+          .changes({ squash: false,
                      includeInitial: true,
                      includeStates: true,
                      includeTypes: true })
@@ -126,14 +128,28 @@ class Metadata {
                            change.type === 'change') {
                   // Ignore special collections
                   if (change.new_val.id !== 'users') {
-                    const collection = new Collection(change.new_val, this._db, this._conn);
-                    this._collections.set(collection.name, collection);
+                    let collection = this._collections.get(change.new_val.id);
+                    if (!collection) {
+                      collection = new Collection(change.new_val, this._db);
+                      this._collections.set(change.new_val.id, collection);
+                    } else {
+                      collection.changed(change.new_val, this._db);
+                    }
+
+                    // Check if we already have a table object for this collection
+                    // TODO: timer-supervise this state - if we don't have a table after x seconds, delete the collection row
+                    const table = this._tables.get(collection._table_name);
+                    if (table) {
+                      collection.set_table(table);
+                    }
                   }
                 } else if (change.type === 'uninitial' ||
                            change.type === 'remove') {
                   // Ignore special collections
                   if (change.old_val.id !== 'users') {
+                    const collection = this._collections.get(change.old_val.id);
                     this._collections.delete(change.old_val.id);
+                    collection.close();
                   }
                 }
               }).catch(reject);
@@ -164,12 +180,24 @@ class Metadata {
                 } else if (change.type === 'initial' ||
                            change.type === 'add' ||
                            change.type === 'change') {
-                  const table = change.new_val.name;
+                  const table_name = change.new_val.name;
+                  let table = this._tables.get(table_name);
+                  if (!table) {
+                    table = new Table(table_name, this._db, this._conn);
+                    this._tables.set(table_name, table);
+                  }
+                  table.update_indexes(change.new_val.indexes, this._conn);
+
                   this._collections.forEach((c) => {
-                    if (c.table === table) {
-                      c.update_indexes(change.new_val.indexes, this._conn);
+                    if (c._table_name === table_name) {
+                      c.set_table(table);
                     }
                   });
+                } else if (change.type === 'uninitial' ||
+                           change.type === 'remove') {
+                  const table = this._tables.get(change.old_val.name);
+                  this._tables.delete(change.old_val.name);
+                  table.close();
                 }
               }).catch(reject);
             });
@@ -211,7 +239,7 @@ class Metadata {
               {
                 id: 'admin',
                 groups: [ 'admin' ],
-                [version_field]: 0
+                [version_field]: 0,
               },
               old_row),
             { returnChanges: 'always' })('changes')(0)
@@ -237,8 +265,13 @@ class Metadata {
     }).then(() => {
       logger.debug('redirecting users table');
       // Redirect the 'users' table to the one in the internal db
-      this._collections.set('users', new Collection({ id: 'users', table: 'users' },
-                                                    this._internal_db, this._conn));
+      const users_table = new Table('users', this._internal_db, this._conn);
+      const users_collection = new Collection({ id: 'users', table: 'users' }, this._internal_db);
+
+      users_collection.set_table(users_table);
+
+      this._tables.set('users', users_table);
+      this._collections.set('users', users_collection);
     }).then(() => {
       logger.debug('metadata sync complete');
       this._ready = true;
@@ -253,6 +286,7 @@ class Metadata {
   close() {
     this._closed = true;
     this._ready = false;
+
     if (this._group_feed) {
       this._group_feed.close().catch(() => { });
     }
@@ -262,6 +296,12 @@ class Metadata {
     if (this._index_feed) {
       this._index_feed.close().catch(() => { });
     }
+
+    this._collections.forEach((x) => x.close());
+    this._collections.clear();
+
+    this._tables.forEach((x) => x.close());
+    this._tables.clear();
   }
 
   is_ready() {
@@ -276,6 +316,7 @@ class Metadata {
     const res = this._collections.get(name);
     if (res === undefined) { throw new error.CollectionMissing(name); }
     if (res.promise) { throw new error.CollectionNotReady(res); }
+    if (!res._table) { throw new error.CollectionNotReady(res); }
     return res;
   }
 
@@ -310,14 +351,24 @@ class Metadata {
     error.check(this._collections.get(name) === undefined,
                 `Collection "${name}" already exists.`);
 
+    const collection = new Collection({ id: name, table: null }, this._db);
+    this._collections.set(name, collection);
+
     create_collection_reql(r, this._internal_db, this._db, name)
       .run(this._conn)
       .then((res) => {
         error.check(!res.error, `Collection creation failed (dev mode): "${name}", ${res.error}`);
         logger.warn(`Collection created (dev mode): "${name}"`);
-        this._collections.set(name, new Collection(res.new_val, this._db, this._conn));
-        done();
-      }).catch(done);
+        collection.on_ready(done);
+      }).catch((err) => {
+        // If an error occurred we should clean up this proto-collection - but only if
+        // it hasn't changed yet - e.g. it was created by another instance at the same time.
+        if (collection._table_name === null) {
+          collection.close();
+          this._collections.delete(name);
+        }
+        done(err);
+      });
   }
 
   get_user_feed(id) {
