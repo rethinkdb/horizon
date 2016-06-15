@@ -17,7 +17,7 @@ Plugins are intended to be flexible enough to implement things like:
 ## Things plugins can do
  - Add new configuration options
  - Add new `hz` commands
- - Add new http endpoints
+ - Add a new http route
  - Add new helper functions available to validators
  - Spawn supervised processes
  - Add new horizon request types useable by the client
@@ -28,7 +28,7 @@ If you need to do any of these things, writing a custom backend and
 importing `@horizon/server` as a module will be your best bet.
 
  - hook into websocket request types it didn't define
- - respond to requests to http endpoints it didn't define
+ - respond to requests to http routes it didn't define
  - modify state of other plugins
  - override validation results
  - see configuration options for other plugins
@@ -48,7 +48,7 @@ specification (say if two plugins take over the same http path).
    - `name`: a name for the plugin. Defaults to the package name
    - `command` for extending the `hz` command line tool [command](#command)
    - `processes`: specifies subprocesses to spawn [processes](#processes)
-   - `endpoints`: specifies http endpoints that will be owned by the plugin [endpoints](#endpoints)
+   - `httpRoute`: specifies the http route that will be owned by the plugin [Http route](#http-route)
    - `config`: specifies new configuration options [config](#config)
    - `env`: specifies environment variables the plugin cares about [environment vars](#environment-vars)
    - `requests`: specified new request types to accept over the websocket connection [requests](#requests)
@@ -126,11 +126,11 @@ will look like:
 }
 ```
 
-### Endpoints
+### Http route
 
-The `endpoints` plugin property is an object with keys that correspond
-to endpoints the plugin will be responsible for, and values that are
-functions that handle requests to that endpoint. The functions receive
+The `httpRoute` plugin property is an object with a single key
+defining the http route the plugin will receive requests from. The
+value is the request handler for the route. The function receives
 three arguments:
  - An Express `request` object
  - An Express `response` object
@@ -142,32 +142,28 @@ The handler should deal with whatever HTTP methods come to the route.
 Example:
 
 ```js
-{
-  endpoints: {
+httpRoute: {
     'hello-world': (req, res, state) => {
-      res.send(`Hello ${state.value}`);
-      res.end()
+        res.send(`Hello ${state.value}`);
+            res.end()
     },
-    'set-world': (req, res, state) => {
-      state.value = req.body
-      res.end()
-    }
-  }
 }
 ```
 
 Notes:
- - The endpoint is responsible for calling `res.end()`.
+ - The handler is responsible for calling `res.end()`.
  - The route is a hard-prefix from the root of the horizon server address.
-  - It cannot clash with any other plugin routes (no overlapping)
-      - If multiple routes need to be handled, they have to all start
-        with the same prefix
+  - It cannot clash with any other other loaded plugin routes (no
+    overlapping)
+      - If multiple routes need to be handled, the r
       - Example, if you want to create a REST plugin, you need to
-        create an endpoint like `rest`, and handle the suffixes in
-        your function, rather than registering many different
-        endpoints like `/users`, `/blogs` etc.
-  - It cannot clash with the route horizon itself (usually `"horizon"`)
- - Express 4.0
+        specify the route as something like `rest` and the endpoints
+        underneath it like `/rest/users` `/rest/vehicles` etc.
+  - It cannot clash with the route horizon uses itself (usually
+    `"horizon"`)
+ - In the configuration, the user may override the httpRoute for the
+   plugin, and the plugin must behave properly.
+ - Express 4.0 api for request and response objects
 
 ### Processes
 
@@ -223,3 +219,7 @@ validationHelpers: {
 
 The plugin is required to completely clean itself up in the
 `deactivate` function, leaving no state behind.
+
+## User control over plugins
+
+- Users may override the httpRoute for any plugin
