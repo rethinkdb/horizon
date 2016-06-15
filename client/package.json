@@ -16,9 +16,8 @@
   "dependencies": {
     "babel-runtime": "^6.6.1",
     "core-js": "^2.1.0",
-    "exports-loader": "^0.6.3",
-    "imports-loader": "^0.6.5",
-    "isomorphic-fetch": "^2.2.1",
+    "whatwg-fetch": "^1.0.0",
+    "es6-promise": "^3.2.1",
     "rxjs": "5.0.0-beta.7",
     "snake-case": "^1.1.2",
     "ws": "^1.1.0"
@@ -40,6 +39,8 @@
     "copy-webpack-plugin": "^1.1.1",
     "cross-env": "^1.0.7",
     "eslint": "2.2.x",
+    "exports-loader": "^0.6.3",
+    "imports-loader": "^0.6.5",
     "istanbul": "^0.4.2",
     "lodash": "^4.6.1",
     "mocha": "2.3.4",
