@@ -202,9 +202,20 @@ The env vars declared here will be validated to ensure no other plugin
 declares them. If a plugin wants to make use of externally defined env
 variables like `$PATH` etc, and doesn't want to mutual exclusivity to be enforced by Horizon, it can just access `process.env` like normal.
 
-### Requests
+### Validation helpers
 
-### Validation functions
+The `validationHelpers` plugin property is an object containing
+functions that will be made available in the validation context. There
+are no restrictions on the types of the functions.
+
+Example:
+```js
+validationHelpers: {
+ isTruthy(val) { return !!val }
+}
+```
+
+### Requests
 
 ### Activate
 
