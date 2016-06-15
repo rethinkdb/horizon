@@ -30,7 +30,9 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           response_data.push(new Error(writes.unauthorized_error));
         } else {
           response_data.push(null);
-          parsed.value.data[i][writes.version_field] = old_rows[i][writes.version_field];
+          if (old_rows[i][writes.version_field] !== undefined) {
+            parsed.value.data[i][writes.version_field] = old_rows[i][writes.version_field];
+          }
           valid_rows.push(parsed.value.data[i]);
         }
       }
@@ -41,6 +43,13 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                 r.branch(// The row may have been deleted between the get and now
                          old_row.eq(null),
                          r.error(writes.missing_error),
+
+                         // The row may not have a horizon version, only ignore it
+                         //  if the request did not expect a version field
+                         old_row.hasFields(writes.version_field).not(),
+                         r.branch(new_row.hasFields(writes.version_field),
+                                  r.error(writes.invalidated_error),
+                                  writes.apply_version(new_row, 0)),
 
                          // The row may have been changed between the get and now
                          old_row(writes.version_field).ne(new_row(writes.version_field)),

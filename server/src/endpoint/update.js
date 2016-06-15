@@ -48,6 +48,13 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                          old_row.eq(null),
                          r.error(writes.missing_error),
 
+                         // The row may not have a horizon version, only ignore it
+                         //  if the request did not expect a version field
+                         old_row.hasFields(writes.version_field).not(),
+                         r.branch(new_row.hasFields(writes.version_field),
+                                  r.error(writes.invalidated_error),
+                                  writes.apply_version(new_row, 0)),
+
                          // The row may have been changed between the get and now
                          old_row(writes.version_field).ne(new_row(writes.version_field)),
                          r.error(writes.invalidated_error),

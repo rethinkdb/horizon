@@ -30,7 +30,9 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           response_data.push(new Error('Operation not permitted.'));
         } else {
           const info = { id: old_rows[i].id };
-          info[writes.version_field] = old_rows[i][writes.version_field];
+          if (old_rows[i][writes.version_field] !== undefined) {
+            info[writes.version_field] = old_rows[i][writes.version_field];
+          }
           valid_info.push(info);
           response_data.push(null);
         }
@@ -42,6 +44,13 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                      r.branch(// The row may have been deleted between the get and now
                               row.eq(null),
                               null,
+
+                              // The row may not have a horizon version, only ignore it
+                              //  if the request did not expect a version field
+                              row.hasFields(writes.version_field).not(),
+                              r.branch(info.hasFields(writes.version_field),
+                                       r.error(writes.invalidated_error),
+                                       null),
 
                               // The row may have been changed between the get and now,
                               // which would require validation again.
