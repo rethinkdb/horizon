@@ -126,7 +126,7 @@ will look like:
 }
 ```
 
-### Http route
+### HTTP route
 
 The `httpRoute` plugin property is an object with a single key
 defining the http route the plugin will receive requests from. The
@@ -174,9 +174,6 @@ to process titles, and values which are objects with 2 properties:
  - `cleanup`: a function receiving the plugin state that cleans up the
    process
 
-**TODO**: do we need to provide process monitor options? Stuff like
-backoff values and restart limits etc.
-
 ### Environment vars
 
 The `env` plugin property is an object from keys with environment
@@ -202,7 +199,7 @@ variables like `$PATH` etc, and doesn't want to mutual exclusivity to be enforce
 
 The `validationHelpers` plugin property is an object containing
 functions that will be made available in the validation context. There
-are no restrictions on the types of the functions.
+are no restrictions on the types of the functions here
 
 Example:
 ```js
@@ -211,15 +208,102 @@ validationHelpers: {
 }
 ```
 
+This will make the `isTruthy` function available to the `validators`
+functions specified in `.hz/config.toml`:
+
+```toml
+[groups.authenticated.rules.foo]
+validator = """
+  function(context, oldValue, newValue) {
+    return isTruthy(newValue.isFoo)
+  }
+"""
+```
+
 ### Requests
+
+The `requests` plugin property allows specifying new request types
+that can be sent by the client. The keys are the name of the new
+requests, the value is an object with the following properties:
+  - `optionsSchema`: A Joi schema to validate the request type.
+  - `handler`: A function that receives a validated request, the
+    current plugin state
+
+The schema provided just validates the contents of the `options`
+field. So for a schema like:
+
+```js
+requests: {
+  foo: {
+    optionsSchema: {
+      bar: Joi.boolean().default(false),
+    },
+    ...
+  }
+}
+```
+
+A matching raw request might look like:
+
+```js
+{
+    "request_id": 33,
+    "type": "foo",
+    "options": {
+        "bar": true
+    }
+}
+```
 
 ### Activate
 
+The `activate` plugin property must be present and contain a function
+that accepts an object with the following properties:
+  - `config`: config options from the config.toml section for the
+    plugin. This includes user overrides which are not specified in
+    the `config` plugin property.
+  - `env`: an object with relevant environment variables (defined in
+    [environment](#environment))
+  - `rdbConn`: a function that returns an open rethinkdb connection
+    - If the plugin doesn't need a rethinkDB connection, it shouldn't
+      call this function
+
+The function should return an object which will be passed to various
+other callbacks for the plugin and contains all internal state the
+plugin needs to function. This includes keeping a reference to the
+rethinkDB connection if necessary.
+
 ### Deactivate
 
-The plugin is required to completely clean itself up in the
-`deactivate` function, leaving no state behind.
+The `deactivate` plugin property must be present and contain a function that accepts the current plugin state and frees any resources the plugin is using. (Disconnect any connections, close any files, etc)
 
 ## User control over plugins
 
-- Users may override the httpRoute for any plugin
+Users may override some names provided by the plugin:
+  - rename the [httpRoute](#http-route) if defined
+  - rename any function in [validationHelpers](#validation-helpers)
+  - rename any new [request types](#request-types)
+
+Users configure the plugins with a section like:
+
+```toml
+[plugin.plugin-name]
+httpRoute = "httpRouteOverride",
+validationHelpers = {
+ isTruthy = "namespacedIsTruthy"
+}
+requests = {
+  foo = "namespacedFoo"
+}
+# plugin specified options ...
+```
+
+Every plugin can always accept the `httpRoute`, `validationHelpers`,
+and `requests` keys, even if the plugin specifies no [config](#config)
+section. Horizon will respect these renames itself, the plugin doesn't need to do anything based on them. It will still be passed the options though in the [activate](#activate) function, so it can optionally do something if it wants to.
+
+# Open questions:
+
+- Can you instantiate a plugin more than once per app?
+- Do we need to provide process monitor options? Stuff like backoff
+values and restart limits etc.
