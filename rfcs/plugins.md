@@ -246,7 +246,8 @@ field. So for a schema like:
 requests: {
   myRequestType: {
     optionsSchema: {
-
+      collection: Joi.string(),
+      findAll: Joi.array(Joi.any()),
       myRequestType: Joi.array().ordered(
           Joi.number(), Joi.boolean().default(false))
     },
