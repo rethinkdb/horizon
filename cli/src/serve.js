@@ -564,6 +564,11 @@ const runCommand = (opts, done) => {
     logger.level = 'warn';
   }
 
+  if (!opts.secure && opts.auth && Array.from(Object.keys(opts.auth)).length > 0) {
+    logger.warn('Authentication requires that the server be accessible via HTTPS. ' +
+                'Either specify "secure=true" or use a reverse proxy.');
+  }
+
   change_to_project_dir(opts.project_path);
 
   let http_servers, hz_instance;
