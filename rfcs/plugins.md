@@ -222,9 +222,20 @@ validator = """
 ### Requests
 
 The `requests` plugin property allows specifying new request types
-that can be sent by the client. The keys are the name of the new
-requests, the value is an object with the following properties:
+that can be sent by the client. The keys of the provided object are
+the name of the new requests, the values are an object with the
+following properties:
   - `optionsSchema`: A Joi schema to validate the request type.
+  - `clientValidation`: An object with the keys:
+    - `minArgs`: minimum number of arguments accepted
+    - `maxArgs`: maximum number of arguments accepted
+    - `legalToChainFrom`: a list of terms that can be chained before
+      this request method. The special value `"/"` indicates the
+      method is available directly on the `horizon`
+      instance. `"collection"` indicates it's chainable from a
+      collection.
+    - `nullable`: a boolean determining whether any arguments can be
+      null
   - `handler`: A function that receives a validated request, the
     current plugin state
 
@@ -233,26 +244,55 @@ field. So for a schema like:
 
 ```js
 requests: {
-  foo: {
+  myRequestType: {
     optionsSchema: {
-      bar: Joi.boolean().default(false),
+
+      myRequestType: Joi.array().ordered(
+          Joi.number(), Joi.boolean().default(false))
     },
-    ...
+    clientValidation: {
+      minArgs: 1,
+      maxArgs: 2,
+      nullable: true,
+      legalToChainFrom: [ '/', 'collection', 'findAll' ],
+    },
+    handler: (requestOptions, pluginState) => { ... },
   }
 }
 ```
 
-A matching raw request might look like:
+This will inform the client that it needs to add a method that can be
+called like:
+
+``` js
+horizon.myRequestType(33, true)
+horizon('abc').myRequestType(12)
+horizon('abc').myRequestType("string") // server will error
+horizon('abc').findAll({ thing: 123 }).myRequestType(22)
+// The following will throw an exception when they are called:
+horizon.myRequestType() // not enough arguments
+horizon.myRequestType(1,2,3) // too many arguments
+horizon('abc').find({ id: 12 }).myRequestType(55) // not chainable from `find`
+```
+
+A raw request might look like:
 
 ```js
 {
-    "request_id": 33,
-    "type": "foo",
+    "request_id": 126,
+    "type": "myRequestType",
     "options": {
-        "bar": true
+        "collection": "abc",
+        "myRequestType": [ 12 ]
     }
 }
 ```
+
+** Note **
+Although the request is chained off built in methods in Horizon, it is entirely up to the plugin to do something with the `options.collection`
+key here, as well as any other keys that it allows itself to be chained from.
+
+The plugin is responsible for responding to `end_subscription` requests, and for sending `state: complete` to the client if no more results are available for the current request. See the [protocol document](https://github.com/rethinkdb/horizon/blob/next/docs/protocol.md) for details.
 
 ### Activate
 
