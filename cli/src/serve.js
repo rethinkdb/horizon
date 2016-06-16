@@ -121,6 +121,10 @@ const addArguments = (parser) => {
   parser.addArgument([ '--auth-redirect' ],
     { type: 'string', metavar: 'URL',
       help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
+      
+  parser.addArgument([ '--access-control-allow-origin' ],
+    { type: 'string', metavar: 'URL',
+      help: 'The URL of the host that can access auth settings, defaults to "".' });
 
   parser.addArgument([ '--open' ],
     { action: 'storeTrue',
@@ -158,6 +162,7 @@ const make_default_config = () => ({
   allow_anonymous: false,
   allow_unauthenticated: false,
   auth_redirect: '/',
+  access_control_allow_origin: '',
 
   auth: { },
 });
@@ -422,6 +427,10 @@ const read_config_from_flags = (parsed) => {
   if (parsed.token_secret !== null && parsed.token_secret !== undefined) {
     config.token_secret = parsed.token_secret;
   }
+  
+  if (parsed.access_control_allow_origin !== null && parsed.access_control_allow_origin !== undefined) {
+    config.access_control_allow_origin = parsed.access_control_allow_origin;
+  }
 
   // Auth options
   if (parsed.auth !== null && parsed.auth !== undefined) {
@@ -509,6 +518,7 @@ const startHorizonServer = (servers, opts) => {
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
     project_name: opts.project_name,
+    access_control_allow_origin: opts.access_control_allow_origin,
     auth: {
       token_secret: opts.token_secret,
       allow_unauthenticated: opts.allow_unauthenticated,
