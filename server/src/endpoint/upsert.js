@@ -32,8 +32,9 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
         if (ruleset.validate(context, changes[i][0], changes[i][1])) {
           if (changes[i][0] === null) {
             // This tells the ReQL query that the row should not exist
-            delete parsed.value.data[i][writes.version_field];
-          } else if (parsed.value.data[i][writes.version_field] === undefined) {
+            delete parsed.value.data[i][writes.version_field]; // TODO: need another way to do this?
+          } else if (parsed.value.data[i][writes.version_field] === undefined &&
+                     changes[i][0][writes.version_field] !== undefined) {
             parsed.value.data[i][writes.version_field] = changes[i][0][writes.version_field];
           }
           response_data.push(null);

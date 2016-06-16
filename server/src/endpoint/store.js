@@ -26,10 +26,10 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
         if (ruleset.validate(context, old_rows[i], parsed.value.data[i])) {
           if (old_rows[i] === null) {
             // This will tell the ReQL query that the row should not exist
-            delete parsed.value.data[i][writes.version_field];
-          } else {
+            delete parsed.value.data[i][writes.version_field]; // TODO: need another way to do this to allow missing version fields
+          } else if (old_rows[i][writes.version_field] !== undefined) {
             // No need to fail if the client has an outdated version - the write is still
-            // allowed
+            // allowed - TODO is this still correct?
             parsed.value.data[i][writes.version_field] = old_rows[i][writes.version_field];
           }
           response_data.push(null);

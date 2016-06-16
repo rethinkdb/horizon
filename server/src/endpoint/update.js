@@ -33,7 +33,8 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           response_data.push(new Error(writes.unauthorized_error));
         } else {
           const row = parsed.value.data[i];
-          if (row[writes.version_field] === undefined) {
+          if (row[writes.version_field] === undefined &&
+              changes[i][0][writes.version_field] !== undefined) {
             row[writes.version_field] = changes[i][0][writes.version_field];
           }
           valid_rows.push(row);
@@ -53,7 +54,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                          old_row.hasFields(writes.version_field).not(),
                          r.branch(new_row.hasFields(writes.version_field),
                                   r.error(writes.invalidated_error),
-                                  writes.apply_version(new_row, 0)),
+                                  writes.apply_version(old_row.merge(new_row), 0)),
 
                          // The row may have been changed between the get and now
                          old_row(writes.version_field).ne(new_row(writes.version_field)),
