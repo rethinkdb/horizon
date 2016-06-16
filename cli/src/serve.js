@@ -376,6 +376,7 @@ const read_config_from_flags = (parsed) => {
 
   // Dev mode
   if (parsed.dev) {
+    config.access_control_allow_origin = '*';
     config.allow_unauthenticated = true;
     config.allow_anonymous = true;
     config.secure = false;
