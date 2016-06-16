@@ -1,0 +1,14 @@
+rethinkdb:
+  image: rethinkdb
+  ports:
+    - "28015:28015"
+    - "8080:8080"
+horizon:
+  build: horizon-prod
+  command: hz --key-file /opt/certs/key.pem --cert-file /opt/certs/cert.pem --secure yes --connect rethinkdb:28015 --bind all --start-rethinkdb no --auto-create-index no --auto-create-collection no --permissions yes /app
+  volumes:
+    - .:/app
+  links:
+    - rethinkdb
+  ports:
+    - "8181:8181"

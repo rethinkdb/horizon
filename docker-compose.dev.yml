@@ -1,0 +1,14 @@
+rethinkdb:
+  image: rethinkdb
+  ports:
+    - "28015:28015"
+    - "8080:8080"
+horizon:
+  image: dalanmiller/horizon-dev
+  command: /bin/bash horizon -c "hz --dev --connect rethinkdb:28015 --bind all /app"
+  volumes:
+    - .:/app
+  links:
+    - rethinkdb
+  ports:
+    - "8181:8181"
