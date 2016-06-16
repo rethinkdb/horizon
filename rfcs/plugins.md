@@ -6,13 +6,13 @@ of configuration.
 
 Plugins are intended to be flexible enough to implement things like:
 
- - GraphQL endpoints #125)
- - REST endpoints (#510)
- - Custom horizon commands (#337)
- - Custom authentication methods (#428)
- - Server side rendering (#249)
- - Worker processes (#368)
- - Scheduled tasks (#311)
+ - GraphQL endpoints ([#125](https://github.com/rethinkdb/horizon/issues/125))
+ - REST endpoints ([#510](https://github.com/rethinkdb/horizon/issues/510))
+ - Custom horizon commands ([#337](https://github.com/rethinkdb/horizon/issues/337))
+ - Custom authentication methods ([#428](https://github.com/rethinkdb/horizon/issues/428))
+ - Server side rendering ([#249](https://github.com/rethinkdb/horizon/issues/249))
+ - Worker processes ([#368](https://github.com/rethinkdb/horizon/issues/368))
+ - Scheduled tasks ([#311](https://github.com/rethinkdb/horizon/issues/311))
 
 ## Things plugins can do
  - Add new configuration options
@@ -24,14 +24,13 @@ Plugins are intended to be flexible enough to implement things like:
 
 ## Things plugins can't do
 
-If you need to do any of these things, writing a custom backend and
-importing `@horizon/server` as a module will be your best bet.
-
  - hook into websocket request types it didn't define
  - respond to requests to http routes it didn't define
  - modify state of other plugins
  - override validation results
  - see configuration options for other plugins
+
+If you need to do any of these things, embedding Horizon is your best bet.
 
 Critically, plugins should not be thought of as middleware, being
 injected into a stack of plugins each of which potentially modifies
