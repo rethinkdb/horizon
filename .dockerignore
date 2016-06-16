@@ -11,8 +11,8 @@ client/dist
 **/README.md
 docker-compose.yml
 
-rethinkdb_data_test
-rethinkdb_data/
+**/rethinkdb_data_test
+**/rethinkdb_data/
 
 **/*.log
 .#*
@@ -24,3 +24,5 @@ node_modules/
 
 .hz/
 config.toml
+Dockerfile*
+.git

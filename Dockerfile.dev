@@ -1,22 +1,7 @@
-FROM node:5-slim
+FROM rethinkdb/horizon
 
-RUN yes '' | adduser --disabled-password horizon
-RUN mkdir -p /horizon
-RUN mkdir -p /app
+ENV HZ_DEV=yes
 
-COPY . /usr/horizon/
-WORKDIR /usr/horizon
-RUN cd test; ./setupDev.sh
-
-# Bail at first error
-RUN set -eu
-
-# Strip all environment variables that aren't whitelisted
-RUN unset $(env | cut -d= -f1 | grep -Ev '^(HOME|PATH|HOSTNAME|HZ_.*)$')
-
-EXPOSE 8181
-
-# Needs both a RETHINKDB_HOST and RETHINKDB_PORT environment variable pushed
-# into the container at runtime, with -e RETHINKDB_HOST=HOST -e RETHINKDB_PORT=PORT.
-# Also the project needs to be mounted into /app using -v /path/to/app:/app
-CMD ["/bin/bash", "horizon", "-c", "\"hz serve --dev --bind all --connect $RETHINKDB_HOST:$RETHINKDB_PORT /app\""]
+# REQUIREMENTS
+# * Needs a RETHINKDB_URI environment variable pushed into the container at runtime, with -e RETHINKDB_URI=HOST:PORT
+# * Your Horizon app needs to be mounted into /usr/app using -v /path/to/app:/usr/app
