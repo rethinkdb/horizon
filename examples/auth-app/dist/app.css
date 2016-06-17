@@ -1,0 +1,13 @@
+#steps {
+  margin-top:25%;
+}
+
+#success > div > div                                                     {
+  margin-top:10%;
+  text-align:center;
+  color:green;
+}
+
+#login #login-button {
+  height: 100px;
+}
