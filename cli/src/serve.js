@@ -352,13 +352,18 @@ const read_config_from_env = () => {
         parse_connect(value, config);
       } else if (dest_var_name === 'bind') {
         config[dest_var_name] = value.split(',');
-      } else if (var_path[0] === 'auth' && var_path.length === 3) {
-        config.auth[var_path[1]] = config.auth[var_path[1]] || { };
+      } else if (var_path[0] === 'auth') {
+        if (var_path.length !== 3) {
+          console.log(`Ignoring malformed Horizon environment variable: "${env_var}", ` +
+                      'should be HZ_AUTH_{PROVIDER}_ID or HZ_AUTH_{PROVIDER}_SECRET.');
+        } else {
+          config.auth[var_path[1]] = config.auth[var_path[1]] || { };
 
-        if (var_path[2] === 'id') {
-          config.auth[var_path[1]].id = value;
-        } else if (var_path[2] === 'secret') {
-          config.auth[var_path[1]].secret = value;
+          if (var_path[2] === 'id') {
+            config.auth[var_path[1]].id = value;
+          } else if (var_path[2] === 'secret') {
+            config.auth[var_path[1]].secret = value;
+          }
         }
       } else if (yes_no_options.indexOf(dest_var_name) !== -1) {
         config[dest_var_name] = parse_yes_no_option(value, dest_var_name);
