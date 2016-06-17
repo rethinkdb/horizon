@@ -16,7 +16,7 @@ const server = Joi.object({
 
   auth: Joi.object().default({ }),
   
-  access_control_allow_origin: Joi.string().default('')
+  access_control_allow_origin: Joi.string().allow('').default('')
 }).unknown(false);
 
 const auth = Joi.object({
