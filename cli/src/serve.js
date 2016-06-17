@@ -376,6 +376,7 @@ const read_config_from_flags = (parsed) => {
 
   // Dev mode
   if (parsed.dev) {
+    config.access_control_allow_origin = '*';
     config.allow_unauthenticated = true;
     config.allow_anonymous = true;
     config.secure = false;
@@ -561,6 +562,11 @@ const runCommand = (opts, done) => {
     logger.level = 'debug';
   } else {
     logger.level = 'warn';
+  }
+
+  if (!opts.secure && opts.auth && Array.from(Object.keys(opts.auth)).length > 0) {
+    logger.warn('Authentication requires that the server be accessible via HTTPS. ' +
+                'Either specify "secure=true" or use a reverse proxy.');
   }
 
   change_to_project_dir(opts.project_path);
