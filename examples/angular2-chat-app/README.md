@@ -1,0 +1,1 @@
+Horizon Chat example using Angular2
