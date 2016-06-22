@@ -1,4 +1,3 @@
-import { Observable } from 'rxjs/Observable'
 import 'rxjs/add/observable/of'
 import 'rxjs/add/observable/from'
 import 'rxjs/add/operator/catch'
@@ -6,13 +5,12 @@ import 'rxjs/add/operator/concatMap'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/filter'
 
-// Extra operators not used, but useful to Horizon end-users
-import 'rxjs/add/operator/defaultIfEmpty'
+import * as Rx from 'rxjs'
+import { Collection, UserDataTerm } from './ast'
+import { HorizonSocket } from './socket'
+import { log, logError, enableLogging } from './logging'
+import { authEndpoint, TokenStorage, clearAuthTokens } from './auth'
 
-const { Collection, UserDataTerm } = require('./ast.js')
-const HorizonSocket = require('./socket.js')
-const { log, logError, enableLogging } = require('./logging.js')
-const { authEndpoint, TokenStorage, clearAuthTokens } = require('./auth')
 
 const defaultHost = typeof window !== 'undefined' && window.location &&
         `${window.location.host}` || 'localhost:8181'
@@ -25,6 +23,8 @@ function Horizon({
   path = 'horizon',
   lazyWrites = false,
   authType = 'unauthenticated',
+  keepalive = 60,
+  WebSocketCtor = WebSocket,
 } = {}) {
   // If we're in a redirection from OAuth, store the auth token for
   // this user in localStorage.
@@ -32,8 +32,13 @@ function Horizon({
   const tokenStorage = new TokenStorage({ authType, path })
   tokenStorage.setAuthFromQueryParams()
 
-  const socket = new HorizonSocket(
-    host, secure, path, ::tokenStorage.handshake)
+  const url = `ws${secure ? 's' : ''}:\/\/${host}\/${path}`
+  const socket = new HorizonSocket({
+    url,
+    handshakeMessage: tokenStorage.handshake(),
+    keepalive,
+    WebSocketCtor,
+  })
 
   // Store whatever token we get back from the server when we get a
   // handshake response
@@ -102,9 +107,9 @@ function Horizon({
   Object.freeze(horizon.utensils)
 
   horizon._authMethods = null
-  horizon._horizonPath = 'http' + ((secure) ? 's' : '') + '://' + host + '/' + path
+  horizon._horizonPath = `http${(secure) ? 's' : ''}://${host}/${path}`
   horizon.authEndpoint = authEndpoint
-  horizon.hasAuthToken = ::tokenStorage.hasAuthToken
+  horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
 
   return horizon
 
@@ -114,19 +119,8 @@ function Horizon({
     // Both remove and removeAll use the type 'remove' in the protocol
     const normalizedType = type === 'removeAll' ? 'remove' : type
     return socket
-      .makeRequest({ type: normalizedType, options }) // send the raw request
-      .concatMap(resp => {
-        // unroll arrays being returned
-        if (resp.data) {
-          return Observable.from(resp.data)
-        } else {
-          // Still need to emit a document even if we have no new data
-          return Observable.from([ { state: resp.state, type: resp.type } ])
-        }
-      })
-      .catch(e => Observable.create(subscriber => {
-        subscriber.error(e)
-      })) // on error, strip error message
+      .hzRequest({ type: normalizedType, options }) // send the raw request
+      .takeWhile(resp => resp.state !== 'complete')
   }
 }
 
@@ -144,6 +138,7 @@ Horizon.log = log
 Horizon.logError = logError
 Horizon.enableLogging = enableLogging
 Horizon.Socket = HorizonSocket
+Horizon.Rx = Rx
 Horizon.clearAuthTokens = clearAuthTokens
 
 module.exports = Horizon
