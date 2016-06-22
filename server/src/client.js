@@ -95,8 +95,8 @@ class Client {
   }
 
   handle_handshake(data) {
+    logger.debug(`Received handshake: ${data}`);
     const request = this.parse_request(data, schemas.handshake);
-    logger.debug(`Received handshake: ${JSON.stringify(request)}`);
 
     if (request === undefined) {
       return this.close({ error: 'Invalid handshake.', error_code: 0 });

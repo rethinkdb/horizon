@@ -32,8 +32,8 @@ function Horizon({
   const tokenStorage = new TokenStorage({ authType, path })
   tokenStorage.setAuthFromQueryParams()
 
-  const socket = new HorizonSocket(
-    host, secure, path, ::tokenStorage.handshake)
+  const url = `ws${secure ? 's' : ''}:\/\/${host}\/${path}`
+  const socket = new HorizonSocket(url, tokenStorage.handshake())
 
   // Store whatever token we get back from the server when we get a
   // handshake response
@@ -102,7 +102,7 @@ function Horizon({
   Object.freeze(horizon.utensils)
 
   horizon._authMethods = null
-  horizon._horizonPath = 'http' + ((secure) ? 's' : '') + '://' + host + '/' + path
+  horizon._horizonPath = `http${(secure) ? 's' : ''}://${host}/${path}`
   horizon.authEndpoint = authEndpoint
   horizon.hasAuthToken = ::tokenStorage.hasAuthToken
 

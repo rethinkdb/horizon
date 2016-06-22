@@ -1,6 +1,7 @@
 import { AsyncSubject } from 'rxjs/AsyncSubject'
 import { BehaviorSubject } from 'rxjs/BehaviorSubject'
-import { Subject } from 'rxjs/Subject'
+import { Subject, AnonymousSubject } from 'rxjs/Subject'
+import { WebSocketSubject } from 'rxjs/observable/dom/WebSocketSubject'
 import { Observable } from 'rxjs/Observable'
 import 'rxjs/add/observable/merge'
 import 'rxjs/add/operator/filter'
@@ -31,14 +32,164 @@ class ProtocolError extends Error {
   }
 }
 
+
 // Wraps native websockets with a Subject, which is both an Subscriber
-// and an Observable (it is bi-directional after all!). This
-// implementation is adapted from Rx.DOM.fromWebSocket and
-// RxSocketSubject by Ben Lesh, but it also deals with some simple
-// protocol level things like serializing from/to JSON, routing
-// request_ids, looking at the `state` field to decide when an
-// observable is closed.
-class HorizonSocket extends Subject {
+// and an Observable (it is bi-directional after all!). This version
+// is based on the rxjs.observable.dom.WebSocketSubject implementation.
+class HorizonSocket extends WebSocketSubject {
+
+  // Deserializes a message from a string. Overrides the version
+  // implemented in WebSocketSubject
+  resultSelector(e) {
+    return deserialize(e)
+  }
+
+  // We're overriding the next defined in AnonymousSubject so we
+  // always serialize the value. When this is called a message will be
+  // sent over the socket to the server.
+  next(value) {
+    super.next(JSON.stringify(serialize(value)))
+  }
+
+  constructor({
+    url,              // Full url to connect to
+    handshakeMessage, // function that returns handshake to emit
+    keepalive = 60,   // seconds between keepalive messages
+    socket,           // optionally provide a WebSocket to use
+    WebSocketCtor,    // optionally provide a WebSocket constructor to
+                      // instantiate
+  } = {}) {
+    super({
+      url,
+      protocol: PROTOCOL_VERSION,
+      socket,
+      WebSocketCtor,
+    })
+    // Completes or errors based on handshake success. Buffers
+    // handshake response for later subscribers (like a Promise)
+    this.handshake = new AsyncSubject()
+    this.handshakeMessage = handshakeMessage
+    this.handshakeSub = null
+
+    // This is used to emit status changes that others can hook into.
+    this.status = new BehaviorSubject(STATUS_UNCONNECTED)
+    // Keep track of subscribers so we's can decide when to
+    // unsubscribe.
+    this.activeSubscribers = 0
+    this.requestCounter = 0
+    this.keepalive = keepalive
+    // A map from request_ids to an object with metadata about the
+    // request. Eventually, this should allow re-sending requests when
+    // reconnecting.
+    this.activeRequests = new Map()
+  }
+
+  deactivateRequest(requestId) {
+    this.activeRequests.delete(requestId)
+    if (this.activeRequests.size === 0) {
+      // Unsubscribe handshake and socket
+      this.unsubscribe()
+    }
+  }
+
+  // This is a trimmed-down version of multiplex that only listens for
+  // the handshake requestId, and doesn't send `end_subscription`
+  // messages etc that aren't needed. It also starts the keepalive
+  // observable and cleans up after it when the handshake is cleaned
+  // up.
+  sendHandshake() {
+    const requestId = this.requestCounter++
+    const handshake = this.handshake
+    const status = this.status
+
+    const request = Object.assign(
+      { request_id: requestId }, this.handshakeMessage)
+
+    this.next(request)
+    this.activeRequests.set(requestId, { request })
+    this.handshakeSub = this.subscribe({
+      next: incomingMsg => {
+        // Check if we're getting a response to the handshake or not
+        if (incomingMsg.request_id === requestId) {
+          // This is a per-query error
+          if (incomingMsg.error) {
+            handshake.error(incomingMsg)
+            status.next(STATUS_ERROR)
+          } else {
+            handshake.next(incomingMsg)
+            handshake.complete()
+            status.next(STATUS_READY)
+          }
+        }
+      },
+      error: err => {
+        handshake.error(err)
+        status.next(STATUS_ERROR)
+      },
+      complete: () => handshake.complete(),
+    })
+    this.handshakeSub.add(() => {
+      this.activeRequests.delete(requestId)
+    })
+    // Start the keepalive. We don't do anything with the subscription
+    // since we don't care about responses. All that matters is that
+    // we can stop it later when needed. If an error to a keepalive
+    // comes back, that's fine since either the socket is down (which
+    // we'll find out about elsewhere) or the keepalive "failed" which
+    // is a server bug, but indicates the socket is still alive, so
+    // it's not really a failure.
+    const keepAliveSub = Observable
+            .timer(this.keepalive * 1000, this.keepalive * 1000)
+            .map(n => ({ type: 'keepalive', n }))
+            .subscribe()
+    // Make sure keepalive is killed when the handshake is cleaned up
+    this.handshakeSub.add(keepAliveSub)
+  }
+
+  multiplex(rawRequest) {
+    const requestId = this.requestCounter++
+    const request = Object.assign({ request_id: requestId }, rawRequest)
+    this.activeRequests.set(requestId, { request })
+    return new Observable(observer => {
+      if (this.activeRequests.size === 1) {
+        // send handshake only if we're the first request to be
+        // subscribed to
+        this.sendHandshake()
+      }
+      self.next(request)
+      const subscription = this.subscribe({
+        next: msg => {
+          try {
+            if (msg.request_id === requestId) {
+              observer.next(msg)
+            }
+          } catch (e) {
+            observer.error(e)
+          }
+        },
+        error: err => observer.error(err),
+        complete: () => {
+          observer.complete()
+          this.deactivateRequest(requestId)
+        },
+      })
+
+      return () => {
+        this.next({ request_id: requestId, type: 'end_subscription' })
+        subscription.unsubscribe()
+        this.deactivateRequest(requestId)
+      }
+    })
+  }
+
+  unsubscribe() {
+    this.handshakeSub.unsubscribe()
+    super.unsubscribe()
+    this.status.next(STATUS_DISCONNECTED)
+  }
+}
+
+export class HorizonSocket extends AnonymousSubject {
   constructor(host, secure, path, handshaker) {
     const hostString = `ws${secure ? 's' : ''}:\/\/${host}\/${path}`
     const msgBuffer = []
@@ -59,7 +210,7 @@ class HorizonSocket extends Subject {
     // This is the observable part of the Subject. It forwards events
     // from the underlying websocket
     const socketObservable = Observable.create(subscriber => {
-      ws = new WebSocket(hostString, PROTOCOL_VERSION);
+      ws = new WebSocket(hostString, PROTOCOL_VERSION)
 
       ws.onerror = () => {
         // If the websocket experiences the error, we forward it through
@@ -169,11 +320,11 @@ class HorizonSocket extends Subject {
     // Subscriptions will be the observable containing all
     // queries/writes/changefeed requests. Specifically, the documents
     // that initiate them, each one with a different request_id
-    const subscriptions = new Subject()
+    const subscriptions = new AnonymousSubject()
     // Unsubscriptions is similar, only it holds only requests to
     // close a particular request_id on the server. Currently we only
     // need these for changefeeds.
-    const unsubscriptions = new Subject()
+    const unsubscriptions = new AnonymousSubject()
     const outgoing = Observable.merge(subscriptions, unsubscriptions)
     // How many requests are outstanding
     let activeRequests = 0
@@ -233,7 +384,8 @@ class HorizonSocket extends Subject {
                            resp.token !== undefined) {
                   try {
                     reqSubscriber.next(resp)
-                  } catch (e) { }
+                  } catch (e) {
+                  }
                 }
                 if (resp.state === 'synced') {
                   // Create a little dummy object for sync notifications
@@ -257,5 +409,3 @@ class HorizonSocket extends Subject {
     })
   }
 }
-
-module.exports = HorizonSocket
