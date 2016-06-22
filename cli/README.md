@@ -1,13 +1,21 @@
-# Horizon
+# **Horizon** is a realtime, open-source backend for JavaScript apps.
 
-Horizon is a realtime, open-source backend for JavaScript apps.
+Rapidly build and deploy web or mobile apps using a simple JavaScript API. Scale your apps to millions of users without any backend code.
 
+Horizon consists of three components:
 
-To install the hz tool from npm:
+* Horizon server: a middleware server that connects to/is built on top of RethinkDB, and exposes a simple API/protocol to front-end applications.
+* Horizon client: a JavaScript client library that wraps Horizon server’s protocol in a convenient API for front-end developers.
+* Horizon CLI: a command line tool, hz, aiding in scaffolding, development, and deployment.
 
-```
-$ npm install -g horizon
-```
+Built by the [RethinkDB](https://rethinkdb.com) team and an open-source community, Horizon lets you build sophisticated apps with lightning speed.
 
-For a tutorial to learn how to use the cli, see the [getting started guide](/GETTING-STARTED.md).
+## Installing Horizon 
+
+https://horizon.io/install/
+
+## Getting Started
+
+https://horizon.io/docs/getting-started/
+
 
