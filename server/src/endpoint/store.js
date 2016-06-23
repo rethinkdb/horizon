@@ -23,19 +23,26 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
       check(old_rows.length === parsed.value.data.length, 'Unexpected ReQL response size.');
       const valid_rows = [ ];
       for (let i = 0; i < old_rows.length; ++i) {
-        if (ruleset.validate(context, old_rows[i], parsed.value.data[i])) {
-          if (old_rows[i] === null) {
-            // This will tell the ReQL query that the row should not exist
-            delete parsed.value.data[i][writes.version_field]; // TODO: need another way to do this to allow missing version fields
-          } else if (old_rows[i][writes.version_field] !== undefined) {
-            // No need to fail if the client has an outdated version - the write is still
-            // allowed - TODO is this still correct?
-            parsed.value.data[i][writes.version_field] = old_rows[i][writes.version_field];
-          }
-          response_data.push(null);
-          valid_rows.push(parsed.value.data[i]);
-        } else {
+        if (!ruleset.validate(context, old_rows[i], parsed.value.data[i])) {
           response_data.push(new Error(writes.unauthorized_error));
+        } else {
+          const new_version = parsed.value.data[i][writes.version_field];
+          if (old_rows[i] === null) {
+            if (new_version !== undefined) {
+              response_data.push(new Error(writes.invalidated_error));
+            } else {
+              valid_rows.push(parsed.value.data[i]);
+              response_data.push(null);
+            }
+          } else {
+            const old_version = old_rows[i][writes.version_field];
+            if (new_version === undefined) {
+              parsed.value.data[i][writes.version_field] =
+                old_version === undefined ? -1 : old_version;
+            }
+            valid_rows.push(parsed.value.data[i]);
+            response_data.push(null);
+          }
         }
       }
 
@@ -43,33 +50,27 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                .forEach((new_row) =>
                  r.branch(new_row.hasFields('id'),
                           collection.table.get(new_row('id')).replace((old_row) =>
-                              r.branch(old_row.eq(null),
+                              r.branch(
+                                old_row.eq(null),
                                 r.branch(
-                                  // We may have been expecting an existing row
+                                  // Error if we were expecting the row to exist
                                   new_row.hasFields(writes.version_field),
                                   r.error(writes.invalidated_error),
 
-                                  // Otherwise, we can safely insert the row
+                                  // Otherwise, insert the row
                                   writes.apply_version(new_row, 0)
                                 ),
                                 r.branch(
-                                  // The row may not have a horizon version, only ignore it
-                                  //  if the request did not expect a version field
-                                  old_row.hasFields(writes.version_field).not(),
-                                  r.branch(new_row.hasFields(writes.version_field),
-                                           r.error(writes.invalidated_error),
-                                           writes.apply_version(new_row, 0)),
-
                                   // The row may have changed from the expected version
-                                  old_row(writes.version_field).ne(new_row(writes.version_field)),
+                                  old_row(writes.version_field).default(-1).ne(new_row(writes.version_field)),
                                   r.error(writes.invalidated_error),
 
                                   // Otherwise, we can safely overwrite the row
-                                  writes.apply_version(new_row, old_row(writes.version_field).add(1))
+                                  writes.apply_version(new_row, old_row(writes.version_field).default(-1).add(1))
                                 )
                               ), { returnChanges: 'always' }),
 
-                          // The new row did not have an id, so we insert it with an autogen id
+                          // The new row does not have an id, so we insert it with an autogen id
                           collection.table.insert(writes.apply_version(new_row, 0),
                                                   { returnChanges: 'always' })))
                .run(conn, reql_options);

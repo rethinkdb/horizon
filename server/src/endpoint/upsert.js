@@ -29,18 +29,26 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
       check(changes.length === parsed.value.data.length, 'Unexpected ReQL response size.');
       const valid_rows = [ ];
       for (let i = 0; i < changes.length; ++i) {
-        if (ruleset.validate(context, changes[i][0], changes[i][1])) {
-          if (changes[i][0] === null) {
-            // This tells the ReQL query that the row should not exist
-            delete parsed.value.data[i][writes.version_field]; // TODO: need another way to do this?
-          } else if (parsed.value.data[i][writes.version_field] === undefined &&
-                     changes[i][0][writes.version_field] !== undefined) {
-            parsed.value.data[i][writes.version_field] = changes[i][0][writes.version_field];
-          }
-          response_data.push(null);
-          valid_rows.push(parsed.value.data[i]);
-        } else {
+        if (!ruleset.validate(context, changes[i][0], changes[i][1])) {
           response_data.push(new Error(writes.unauthorized_error));
+        } else {
+          const new_version = parsed.value.data[i][writes.version_field];
+          if (changes[i][0] === null) {
+            if (new_version !== undefined) {
+              response_data.push(new Error(writes.invalidated_error));
+            } else {
+              valid_rows.push(parsed.value.data[i]);
+              response_data.push(null);
+            }
+          } else {
+            const old_version = changes[i][0][writes.version_field];
+            if (new_version === undefined) {
+              parsed.value.data[i][writes.version_field] =
+                old_version === undefined ? -1 : old_version;
+            }
+            valid_rows.push(parsed.value.data[i]);
+            response_data.push(null);
+          }
         }
       }
 
@@ -51,27 +59,20 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                               r.branch(
                                 old_row.eq(null),
                                 r.branch(
-                                  // We may have been expecting an existing row
+                                  // Error if we were expecting the row to exist
                                   new_row.hasFields(writes.version_field),
                                   r.error(writes.invalidated_error),
 
-                                  // Otherwise, we can safely insert the row
+                                  // Otherwise, insert the row
                                   writes.apply_version(new_row, 0)
                                 ),
                                 r.branch(
-                                  // The row may not have a horizon version, only ignore it
-                                  //  if the request did not expect a version field
-                                  old_row.hasFields(writes.version_field).not(),
-                                  r.branch(new_row.hasFields(writes.version_field),
-                                           r.error(writes.invalidated_error),
-                                           writes.apply_version(old_row.merge(new_row), 0)),
-
                                   // The row may have changed from the expected version
-                                  old_row(writes.version_field).ne(new_row(writes.version_field)),
+                                  old_row(writes.version_field).default(-1).ne(new_row(writes.version_field)),
                                   r.error(writes.invalidated_error),
 
                                   // Otherwise, we can safely update the row and increment the version
-                                  writes.apply_version(old_row.merge(new_row), old_row(writes.version_field).add(1))
+                                  writes.apply_version(old_row.merge(new_row), old_row(writes.version_field).default(-1).add(1))
                                 )
                               ), { returnChanges: 'always' }),
 

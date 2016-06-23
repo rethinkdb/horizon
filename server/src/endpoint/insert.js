@@ -18,18 +18,18 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   const response_data = [ ];
   const valid_rows = [ ];
   for (let i = 0; i < parsed.value.data.length; ++i) {
-    if (ruleset.validate(context, null, parsed.value.data[i])) {
+    if (!ruleset.validate(context, null, parsed.value.data[i])) {
+      response_data.push(new Error(writes.unauthorized_error));
+    } else {
       valid_rows.push(parsed.value.data[i]);
       response_data.push(null);
-    } else {
-      response_data.push(new Error('Operation not permitted.'));
     }
   }
 
-  // TODO: shortcut if valid rows is empty (for all write request types)
+  // TODO: shortcut if valid_rows is empty (for all write request types)
   collection.table
     .insert(valid_rows.map((row) => writes.apply_version(r.expr(row), 0)),
-            { conflict: 'error', returnChanges: 'always' })
+            { returnChanges: 'always' })
     .run(conn, reql_options)
     .then((insert_results) => {
       done(writes.make_write_response(response_data, insert_results));
