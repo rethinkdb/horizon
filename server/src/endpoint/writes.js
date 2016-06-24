@@ -29,7 +29,9 @@ const make_write_response = (data, results) => {
         }
       } else if (res.new_val === null) {
         data[i] = { id: res.old_val.id };
-        data[i][version_field] = res.old_val[version_field];
+        if (res.old_val[version_field] !== undefined) {
+          data[i][version_field] = res.old_val[version_field];
+        }
       } else {
         data[i] = { id: res.new_val.id };
         data[i][version_field] = res.new_val[version_field];
