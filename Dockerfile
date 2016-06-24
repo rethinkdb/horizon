@@ -4,8 +4,8 @@
 
 FROM node:5-slim
 
-RUN yes '' | adduser --disabled-password horizon
-RUN mkdir -p /usr/horizon /usr/app /usr/certs
+RUN yes '' | adduser --disabled-password horizon && \
+    mkdir -p /usr/horizon /usr/app /usr/certs
 
 COPY . /usr/horizon/
 WORKDIR /usr/horizon
