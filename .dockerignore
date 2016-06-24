@@ -19,7 +19,6 @@ docker-compose.yml
 **/*-key.pem
 **/*-cert.pem
 
-node_modules/
 **/.DS_Store
 
 .hz/
