@@ -21,7 +21,9 @@ const logger = horizon_server.logger;
 const TIMEOUT_30_SECONDS = 30 * 1000;
 
 const default_config_file = '.hz/config.toml';
+const default_rdb_host = 'localhost';
 const default_rdb_port = 28015;
+const default_rdb_timeout = 20;
 
 const addArguments = (parser) => {
   parser.addArgument([ 'project_path' ],
@@ -45,9 +47,17 @@ const addArguments = (parser) => {
     { type: 'string', metavar: 'HOST:PORT',
       help: 'Host and port of the RethinkDB server to connect to.' });
 
-  parser.addArgument([ '--connect-timeout' ],
-    { type: 'string', metavar: 'CONNECTION TIMEOUT',
+  parser.addArgument([ '--rdb-timeout' ],
+    { type: 'int', metavar: 'TIMEOUT',
       help: 'Timeout period in seconds for the RethinkDB connection to be opened' });
+
+  parser.addArgument([ '--rdb-user' ],
+    { type: 'string', metavar: 'USER',
+      help: 'RethinkDB User' });
+
+  parser.addArgument([ '--rdb-password' ],
+    { type: 'string', metavar: 'PASSWORD',
+      help: 'RethinkDB Password' });
 
   parser.addArgument([ '--key-file' ],
     { type: 'string', metavar: 'PATH',
@@ -147,6 +157,9 @@ const make_default_config = () => ({
 
   rdb_host: null,
   rdb_port: null,
+  rdb_user: null,
+  rdb_pass: null,
+  rdb_timeout: null,
 
   token_secret: null,
   allow_anonymous: false,
@@ -276,9 +289,9 @@ const parse_connect = (connect, config) => {
   // e.g. rethinkdb://user:pass@host:port/db
   const rdb_uri = url.parse(connect);
   if (rdb_uri.protocol === "rethinkdb:"){
-    if (rdb_uri.hostname && rdb_uri.port) {
+    if (rdb_uri.hostname) {
       config.rdb_host = rdb_uri.hostname;
-      config.rdb_port = rdb_uri.port;
+      config.rdb_port = rdb_uri.port || default_rdb_port;
 
       // check for user/pass
       if (rdb_uri.auth) {
@@ -292,7 +305,7 @@ const parse_connect = (connect, config) => {
         config.project_name = rdb_uri.path.replace('/', '');
       }
     } else {
-      throw new Error(`Expected --connect rethinkdb://HOST:PORT, but found "${connect}".`);
+      throw new Error(`Expected --connect rethinkdb://HOST, but found "${connect}".`);
     }
   } else {
     // support legacy HOST:PORT connection strings
@@ -335,8 +348,6 @@ const read_config_from_file = (project_path, config_file) => {
   for (const field in file_config) {
     if (field === 'connect') {
       parse_connect(file_config.connect, config);
-    } else if (field === 'connect_timeout') {
-      config['rdb_timeout'] = file_config[field];
     } else if (yes_no_options.indexOf(field) !== -1) {
       config[field] = parse_yes_no_option(file_config[field], field);
     } else if (default_config[field] !== undefined) {
@@ -365,8 +376,6 @@ const read_config_from_env = () => {
         parse_connect(value, config);
       } else if (dest_var_name === 'bind') {
         config[dest_var_name] = value.split(',');
-      } else if (dest_var_name === 'connect_timeout') {
-        config['rdb_timeout'] = value;
       } else if (var_path[0] === 'auth' && var_path.length === 3) {
         config.auth[var_path[1]] = config.auth[var_path[1]] || { };
 
@@ -439,8 +448,16 @@ const read_config_from_flags = (parsed) => {
     config.bind = parsed.bind;
   }
 
-  if (parsed.connect_timeout !== null) {
-    config.rdb_timeout = parsed.connect_timeout;
+  if (parsed.rdb_timeout !== null && parsed.rdb_timeout !== undefined) {
+    config.rdb_timeout = parsed.rdb_timeout;
+  }
+
+  if (parsed.rdb_user !== null && parsed.rdb_user !== undefined) {
+    config.rdb_user = parsed.rdb_user;
+  }
+
+  if (parsed.rdb_password !== null && parsed.rdb_password !== undefined) {
+    config.rdb_pass = parsed.rdb_password;
   }
 
   if (parsed.token_secret !== null && parsed.token_secret !== undefined) {
@@ -511,11 +528,15 @@ const processConfig = (parsed) => {
   }
 
   if (!config.rdb_host) {
-    config.rdb_host = 'localhost';
+    config.rdb_host = default_rdb_host;
   }
 
   if (!config.rdb_port) {
     config.rdb_port = default_rdb_port;
+  }
+
+  if (!config.rdb_timeout) {
+    config.rdb_timeout = default_rdb_timeout;
   }
 
   return config;
@@ -527,8 +548,6 @@ const startHorizonServer = (servers, opts) => {
     auto_create_collection: opts.auto_create_collection,
     auto_create_index: opts.auto_create_index,
     permissions: opts.permissions,
-    rdb_host: opts.rdb_host,
-    rdb_port: opts.rdb_port,
     project_name: opts.project_name,
     auth: {
       token_secret: opts.token_secret,
@@ -537,6 +556,8 @@ const startHorizonServer = (servers, opts) => {
       success_redirect: opts.auth_redirect,
       failure_redirect: opts.auth_redirect,
     },
+    rdb_host: opts.rdb_host,
+    rdb_port: opts.rdb_port,
     rdb_user: opts.rdb_user || null,
     rdb_pass: opts.rdb_pass || null,
     rdb_timeout: opts.rdb_timeout || null
