@@ -17,7 +17,7 @@ const server = Joi.object({
   auth: Joi.object().default({ }),
 
   rdb_user: Joi.string().allow(null),
-  rdb_pass: Joi.string().allow(null),
+  rdb_password: Joi.string().allow(null),
   rdb_timeout: Joi.number().allow(null)
 }).unknown(false);
 

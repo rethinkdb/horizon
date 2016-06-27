@@ -158,7 +158,7 @@ const make_default_config = () => ({
   rdb_host: null,
   rdb_port: null,
   rdb_user: null,
-  rdb_pass: null,
+  rdb_password: null,
   rdb_timeout: null,
 
   token_secret: null,
@@ -297,7 +297,7 @@ const parse_connect = (connect, config) => {
       if (rdb_uri.auth) {
         const user_pass = rdb_uri.auth.split(':')
         config.rdb_user = user_pass[0];
-        config.rdb_pass = user_pass[1];
+        config.rdb_password = user_pass[1];
       }
 
       // set the project name based on the db
@@ -457,7 +457,7 @@ const read_config_from_flags = (parsed) => {
   }
 
   if (parsed.rdb_password !== null && parsed.rdb_password !== undefined) {
-    config.rdb_pass = parsed.rdb_password;
+    config.rdb_password = parsed.rdb_password;
   }
 
   if (parsed.token_secret !== null && parsed.token_secret !== undefined) {
@@ -559,7 +559,7 @@ const startHorizonServer = (servers, opts) => {
     rdb_host: opts.rdb_host,
     rdb_port: opts.rdb_port,
     rdb_user: opts.rdb_user || null,
-    rdb_pass: opts.rdb_pass || null,
+    rdb_password: opts.rdb_password || null,
     rdb_timeout: opts.rdb_timeout || null
   });
   const timeoutObject = setTimeout(() => {
