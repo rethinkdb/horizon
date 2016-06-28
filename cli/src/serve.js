@@ -23,7 +23,9 @@ const logger = horizon_server.logger;
 const TIMEOUT_30_SECONDS = 30 * 1000;
 
 const default_config_file = '.hz/config.toml';
+const default_rdb_host = 'localhost';
 const default_rdb_port = 28015;
+const default_rdb_timeout = 20;
 
 const helpText = 'Serve a horizon app';
 
@@ -48,6 +50,18 @@ const addArguments = (parser) => {
   parser.addArgument([ '--connect', '-c' ],
     { type: 'string', metavar: 'HOST:PORT',
       help: 'Host and port of the RethinkDB server to connect to.' });
+
+  parser.addArgument([ '--rdb-timeout' ],
+    { type: 'int', metavar: 'TIMEOUT',
+      help: 'Timeout period in seconds for the RethinkDB connection to be opened' });
+
+  parser.addArgument([ '--rdb-user' ],
+    { type: 'string', metavar: 'USER',
+      help: 'RethinkDB User' });
+
+  parser.addArgument([ '--rdb-password' ],
+    { type: 'string', metavar: 'PASSWORD',
+      help: 'RethinkDB Password' });
 
   parser.addArgument([ '--key-file' ],
     { type: 'string', metavar: 'PATH',
@@ -157,6 +171,9 @@ const make_default_config = () => ({
 
   rdb_host: null,
   rdb_port: null,
+  rdb_user: null,
+  rdb_password: null,
+  rdb_timeout: null,
 
   token_secret: null,
   allow_anonymous: false,
@@ -287,18 +304,44 @@ const yes_no_options = [ 'debug',
                          'allow_anonymous' ];
 
 const parse_connect = (connect, config) => {
-  const host_port = connect.split(':');
-  if (host_port.length === 1) {
-    config.rdb_host = host_port[0];
-    config.rdb_port = default_rdb_port;
-  } else if (host_port.length === 2) {
-    config.rdb_host = host_port[0];
-    config.rdb_port = parseInt(host_port[1]);
-    if (isNaN(config.rdb_port) || config.rdb_port < 0 || config.rdb_port > 65535) {
-      throw new Error(`Invalid port: "${host_port[1]}".`);
+  // support rethinkdb:// style connection uri strings
+  // expects rethinkdb://host:port` at a minimum but can optionally take a user:pass and db
+  // e.g. rethinkdb://user:pass@host:port/db
+  const rdb_uri = url.parse(connect);
+  if (rdb_uri.protocol === "rethinkdb:"){
+    if (rdb_uri.hostname) {
+      config.rdb_host = rdb_uri.hostname;
+      config.rdb_port = rdb_uri.port || default_rdb_port;
+
+      // check for user/pass
+      if (rdb_uri.auth) {
+        const user_pass = rdb_uri.auth.split(':')
+        config.rdb_user = user_pass[0];
+        config.rdb_password = user_pass[1];
+      }
+
+      // set the project name based on the db
+      if (rdb_uri.path && rdb_uri.path.replace('/', '') != '') {
+        config.project_name = rdb_uri.path.replace('/', '');
+      }
+    } else {
+      throw new Error(`Expected --connect rethinkdb://HOST, but found "${connect}".`);
     }
   } else {
-    throw new Error(`Expected --connect HOST:PORT, but found "${connect}".`);
+    // support legacy HOST:PORT connection strings
+    const host_port = connect.split(':');
+    if (host_port.length === 1) {
+      config.rdb_host = host_port[0];
+      config.rdb_port = default_rdb_port;
+    } else if (host_port.length === 2) {
+      config.rdb_host = host_port[0];
+      config.rdb_port = parseInt(host_port[1]);
+      if (isNaN(config.rdb_port) || config.rdb_port < 0 || config.rdb_port > 65535) {
+        throw new Error(`Invalid port: "${host_port[1]}".`);
+      }
+    } else {
+      throw new Error(`Expected --connect HOST:PORT, but found "${connect}".`);
+    }
   }
 };
 
@@ -342,6 +385,7 @@ const read_config_from_env = () => {
   const config = { auth: { } };
 
   for (const env_var in process.env) {
+
     const matches = env_regex.exec(env_var);
     if (matches && matches[1]) {
       const dest_var_name = matches[1].toLowerCase();
@@ -430,6 +474,18 @@ const read_config_from_flags = (parsed) => {
     config.bind = parsed.bind;
   }
 
+  if (parsed.rdb_timeout !== null && parsed.rdb_timeout !== undefined) {
+    config.rdb_timeout = parsed.rdb_timeout;
+  }
+
+  if (parsed.rdb_user !== null && parsed.rdb_user !== undefined) {
+    config.rdb_user = parsed.rdb_user;
+  }
+
+  if (parsed.rdb_password !== null && parsed.rdb_password !== undefined) {
+    config.rdb_password = parsed.rdb_password;
+  }
+
   if (parsed.token_secret !== null && parsed.token_secret !== undefined) {
     config.token_secret = parsed.token_secret;
   }
@@ -505,11 +561,15 @@ const processConfig = (parsed) => {
   }
 
   if (!config.rdb_host) {
-    config.rdb_host = 'localhost';
+    config.rdb_host = default_rdb_host;
   }
 
   if (!config.rdb_port) {
     config.rdb_port = default_rdb_port;
+  }
+
+  if (!config.rdb_timeout) {
+    config.rdb_timeout = default_rdb_timeout;
   }
 
   return config;
@@ -521,8 +581,6 @@ const startHorizonServer = (servers, opts) => {
     auto_create_collection: opts.auto_create_collection,
     auto_create_index: opts.auto_create_index,
     permissions: opts.permissions,
-    rdb_host: opts.rdb_host,
-    rdb_port: opts.rdb_port,
     project_name: opts.project_name,
     access_control_allow_origin: opts.access_control_allow_origin,
     auth: {
@@ -532,6 +590,11 @@ const startHorizonServer = (servers, opts) => {
       success_redirect: opts.auth_redirect,
       failure_redirect: opts.auth_redirect,
     },
+    rdb_host: opts.rdb_host,
+    rdb_port: opts.rdb_port,
+    rdb_user: opts.rdb_user || null,
+    rdb_password: opts.rdb_password || null,
+    rdb_timeout: opts.rdb_timeout || null
   });
   const timeoutObject = setTimeout(() => {
     console.log(chalk.red.bold('Horizon failed to start after 30 seconds'));
