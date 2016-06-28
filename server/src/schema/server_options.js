@@ -16,6 +16,8 @@ const server = Joi.object({
 
   auth: Joi.object().default({ }),
 
+  access_control_allow_origin: Joi.string().allow('').default(''),
+
   rdb_user: Joi.string().allow(null),
   rdb_password: Joi.string().allow(null),
   rdb_timeout: Joi.number().allow(null)

@@ -1,13 +1,15 @@
 'use strict';
 
+const chalk = require('chalk');
+const extend = require('util')._extend;
 const fs = require('fs');
+const getType = require('mime-types').contentType;
 const http = require('http');
 const https = require('https');
+const open = require("open");
 const path = require('path');
 const toml = require('toml');
 const url = require('url');
-const chalk = require('chalk');
-const getType = require('mime-types').contentType;
 
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const start_rdb_server = require('./utils/start_rdb_server');
@@ -24,6 +26,8 @@ const default_config_file = '.hz/config.toml';
 const default_rdb_host = 'localhost';
 const default_rdb_port = 28015;
 const default_rdb_timeout = 20;
+
+const helpText = 'Serve a horizon app';
 
 const addArguments = (parser) => {
   parser.addArgument([ 'project_path' ],
@@ -131,6 +135,15 @@ const addArguments = (parser) => {
   parser.addArgument([ '--auth-redirect' ],
     { type: 'string', metavar: 'URL',
       help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
+      
+  parser.addArgument([ '--access-control-allow-origin' ],
+    { type: 'string', metavar: 'URL',
+      help: 'The URL of the host that can access auth settings, defaults to "".' });
+
+  parser.addArgument([ '--open' ],
+    { action: 'storeTrue',
+      help: 'Open index.html in the static files folder once Horizon is ready to' +
+      ' receive connections' });
 };
 
 const make_default_config = () => ({
@@ -146,6 +159,7 @@ const make_default_config = () => ({
 
   start_rethinkdb: false,
   serve_static: null,
+  open: false,
 
   secure: true,
   permissions: true,
@@ -165,6 +179,7 @@ const make_default_config = () => ({
   allow_anonymous: false,
   allow_unauthenticated: false,
   auth_redirect: '/',
+  access_control_allow_origin: '',
 
   auth: { },
 });
@@ -236,6 +251,11 @@ const initialize_servers = (ctor, opts) => {
           console.info(`Static files being served from ${opts.serve_static}`);
         }
         srv.on('request', fileServer(opts.serve_static));
+      } else {
+        srv.on('request', (req, res) => {
+          res.writeHead(404);
+          res.end('404 Not Found');
+        });
       }
       srv.on('listening', () => {
         const protocol = opts.secure ? 'https' : 'http';
@@ -376,13 +396,18 @@ const read_config_from_env = () => {
         parse_connect(value, config);
       } else if (dest_var_name === 'bind') {
         config[dest_var_name] = value.split(',');
-      } else if (var_path[0] === 'auth' && var_path.length === 3) {
-        config.auth[var_path[1]] = config.auth[var_path[1]] || { };
+      } else if (var_path[0] === 'auth') {
+        if (var_path.length !== 3) {
+          console.log(`Ignoring malformed Horizon environment variable: "${env_var}", ` +
+                      'should be HZ_AUTH_{PROVIDER}_ID or HZ_AUTH_{PROVIDER}_SECRET.');
+        } else {
+          config.auth[var_path[1]] = config.auth[var_path[1]] || { };
 
-        if (var_path[2] === 'id') {
-          config.auth[var_path[1]].id = value;
-        } else if (var_path[2] === 'secret') {
-          config.auth[var_path[1]].secret = value;
+          if (var_path[2] === 'id') {
+            config.auth[var_path[1]].id = value;
+          } else if (var_path[2] === 'secret') {
+            config.auth[var_path[1]].secret = value;
+          }
         }
       } else if (yes_no_options.indexOf(dest_var_name) !== -1) {
         config[dest_var_name] = parse_yes_no_option(value, dest_var_name);
@@ -400,6 +425,7 @@ const read_config_from_flags = (parsed) => {
 
   // Dev mode
   if (parsed.dev) {
+    config.access_control_allow_origin = '*';
     config.allow_unauthenticated = true;
     config.allow_anonymous = true;
     config.secure = false;
@@ -463,6 +489,10 @@ const read_config_from_flags = (parsed) => {
   if (parsed.token_secret !== null && parsed.token_secret !== undefined) {
     config.token_secret = parsed.token_secret;
   }
+  
+  if (parsed.access_control_allow_origin !== null && parsed.access_control_allow_origin !== undefined) {
+    config.access_control_allow_origin = parsed.access_control_allow_origin;
+  }
 
   // Auth options
   if (parsed.auth !== null && parsed.auth !== undefined) {
@@ -474,6 +504,9 @@ const read_config_from_flags = (parsed) => {
       config.auth[params[0]] = { id: params[1], secret: params[2] };
     });
   }
+
+  // Set open config from flag
+  config.open = parsed.open;
 
   return config;
 };
@@ -549,6 +582,7 @@ const startHorizonServer = (servers, opts) => {
     auto_create_index: opts.auto_create_index,
     permissions: opts.permissions,
     project_name: opts.project_name,
+    access_control_allow_origin: opts.access_control_allow_origin,
     auth: {
       token_secret: opts.token_secret,
       allow_unauthenticated: opts.allow_unauthenticated,
@@ -569,7 +603,7 @@ const startHorizonServer = (servers, opts) => {
   }, TIMEOUT_30_SECONDS);
   hzServer.ready().then(() => {
     clearTimeout(timeoutObject);
-    console.log(chalk.green.bold('Horizon ready for connections 🌄'));
+    console.log(chalk.green.bold('🌄 Horizon ready for connections'));
   }).catch((err) => {
     console.log(chalk.red.bold(err));
     process.exit(1);
@@ -596,6 +630,11 @@ const runCommand = (opts, done) => {
     logger.level = 'debug';
   } else {
     logger.level = 'warn';
+  }
+
+  if (!opts.secure && opts.auth && Array.from(Object.keys(opts.auth)).length > 0) {
+    logger.warn('Authentication requires that the server be accessible via HTTPS. ' +
+                'Either specify "secure=true" or use a reverse proxy.');
   }
 
   change_to_project_dir(opts.project_path);
@@ -642,6 +681,23 @@ const runCommand = (opts, done) => {
                                       Object.assign({}, { path: name }, opts.auth[name]));
       }
     }
+  }).then(() => {
+    // Automatically open up index.html in the `dist` directory only if
+    //  `--open` flag specified and an index.html exists in the directory.
+    if (opts.open && opts.serve_static) {
+      try {
+        // Check if index.html exists and readable in serve static_static directory
+        fs.accessSync(`${opts.serve_static}/index.html`, fs.R_OK | fs.F_OK);
+        // Determine scheme from options
+        const scheme = opts.secure ? 'https://' : 'http://';
+        // Open up index.html in default browser
+        console.log('Attempting open of index.html in default browser');
+        open(`${scheme}${opts.bind}:${opts.port}/index.html`);
+      } catch (open_err) {
+        console.log(chalk.red(`Error occurred while trying to open ${opts.serve_static}/index.html`));
+        console.log(open_err);
+      }
+    }
   }).catch(done);
 };
 
@@ -649,6 +705,7 @@ module.exports = {
   addArguments,
   processConfig,
   runCommand,
+  helpText,
   merge_configs,
   make_default_config,
   read_config_from_file,

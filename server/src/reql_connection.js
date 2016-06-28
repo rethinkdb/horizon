@@ -2,7 +2,7 @@
 
 const check = require('./error').check;
 const logger = require('./logger');
-const Metadata = require('./metadata').Metadata;
+const Metadata = require('./metadata/metadata').Metadata;
 const r = require('rethinkdb');
 const utils = require('./utils');
 
@@ -84,14 +84,12 @@ class ReqlConnection {
          logger.error(`Error on connection to RethinkDB: ${err}.`);
          retry();
        });
-       return conn.server().then((serv) =>
-         r.db('rethinkdb').table('server_status')
-          .get(serv.id)('process')('version')
-          .run(conn)
-          .then((res) => {
-            utils.rethinkdb_version_check(res);
-            return conn;
-          }));
+       return r.db('rethinkdb').table('server_status').nth(0)('process')('version')
+               .run(conn)
+               .then((res) => {
+                 utils.rethinkdb_version_check(res);
+                 return conn;
+               });
      }).then((conn) => {
        this._connection = conn;
        this._metadata = new Metadata(this._project_name,

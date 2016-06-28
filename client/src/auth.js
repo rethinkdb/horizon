@@ -1,8 +1,8 @@
 import queryParse from './util/query-parse'
 import { Observable } from 'rxjs/Observable'
-import { _do as tap } from 'rxjs/operator/do'
-import { map } from 'rxjs/operator/map'
 import fetchJSON from './util/fetch.js'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/map'
 
 const HORIZON_JWT = 'horizon-jwt'
 
@@ -17,11 +17,11 @@ export function authEndpoint(name) {
   }
   if (!this._authMethods) {
     return fetchJSON(`${this._horizonPath}/auth_methods`)
-      ::tap(authMethods => {
+      .do(authMethods => {
         this._authMethods = authMethods
-      })::map(endpointForName)
+      }).map(endpointForName)
   } else {
-    return Observable.of(this._authMethods)::map(endpointForName)
+    return Observable.of(this._authMethods).map(endpointForName)
   }
 }
 
@@ -33,32 +33,42 @@ export class FakeStorage {
   removeItem(a) { return this._storage.delete(a) }
 }
 
-function getStorage() {
+function getStorage(storeLocally = true) {
+  let storage
   try {
-    if (typeof window !== 'object' || window.localStorage === undefined) {
-      return new FakeStorage()
+    if (!storeLocally ||
+        typeof window !== 'object' ||
+        window.localStorage === undefined) {
+      storage = new FakeStorage()
+    } else {
+      // Mobile safari in private browsing has a localStorage, but it
+      // has a size limit of 0
+      window.localStorage.setItem('$$fake', 1)
+      window.localStorage.removeItem('$$fake')
+      storage = window.localStorage
     }
-    // Mobile safari in private browsing has a localStorage, but it
-    // has a size limit of 0
-    window.localStorage.setItem('$$fake', 1)
-    window.localStorage.removeItem('$$fake')
-    return window.localStorage
   } catch (error) {
     if (window.sessionStorage === undefined) {
-      return new FakeStorage()
+      storage = new FakeStorage()
     } else {
-      return window.sessionStorage
+      storage = window.sessionStorage
     }
   }
+  return storage
 }
 
 export class TokenStorage {
   constructor({ authType = 'token',
-                storage = getStorage(),
+                storage = getStorage(authType.storeLocally),
                 path = 'horizon' } = {}) {
     this._storage = storage
-    this._authType = authType
     this._path = path
+    if (typeof authType === 'string') {
+      this._authType = authType
+    } else {
+      this._authType = 'token'
+      this.set(authType.token)
+    }
   }
 
   _getHash() {

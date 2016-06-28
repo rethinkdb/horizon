@@ -27,7 +27,7 @@ const fs = require('fs');
 const Joi = require('joi');
 const path = require('path');
 const url = require('url');
-const websocket = require('engine.io');
+const websocket = require('ws');
 
 const protocol_name = 'rethinkdb-horizon-v0';
 
@@ -90,23 +90,20 @@ class Server {
     const verify_client = (info, cb) => {
       // Reject connections if we aren't synced with the database
       if (!this._reql_conn.is_ready()) {
-        cb(503, false);
+        cb(false, 503, 'Connection to the database is down.');
       } else {
-        cb(false, true);
+        cb(true);
       }
     };
 
     const ws_options = { handleProtocols: accept_protocol,
-                         allowRequest: verify_client };
+                         allowRequest: verify_client,
+                         path: this._path };
 
     const add_websocket = (server) => {
-      const ws_server = websocket(Object.assign({}, ws_options))
+      const ws_server = new websocket.Server(Object.assign({ server }, ws_options))
       .on('error', (error) => logger.error(`Websocket server error: ${error}`))
       .on('connection', (socket) => new Client(socket, this));
-
-      ws_server.attach(server, {
-        path: this._path,
-      });
 
       this._ws_servers.add(ws_server);
     };
@@ -145,7 +142,7 @@ class Server {
     });
 
     this.add_http_handler('auth_methods', (req, res) => {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': opts.access_control_allow_origin });
       res.end(JSON.stringify(this._auth_methods));
     });
 

@@ -1,0 +1,14 @@
+rethinkdb:
+  image: rethinkdb
+  ports:
+    - "28015:28015"
+    - "8080:8080"
+horizon:
+  image: rethinkdb/horizon
+  command: su -s /bin/sh horizon -c "hz serve --connect rethinkdb:28015 --bind all /usr/app"
+  volumes:
+    - ./:/usr/app
+  links:
+    - rethinkdb
+  ports:
+    - "8181:8181"

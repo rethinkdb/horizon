@@ -1,8 +1,14 @@
+/* global require, module */
+
 'use strict';
 
 const fs = require('fs');
 const crypto = require('crypto');
-const path = require('path');
+const process = require('process');
+const checkProjectName = require('./utils/check-project-name');
+const rethrow = require('./utils/rethrow');
+
+const helpText = 'Initialize a horizon app directory';
 
 const makeIndexHTML = (projectName) => `\
 <!doctype html>
@@ -19,7 +25,7 @@ const makeIndexHTML = (projectName) => `\
     </script>
   </head>
   <body>
-   <marquee><h1></h1></marquee>
+   <marquee direction="left"><h1></h1></marquee>
   </body>
 </html>
 `;
@@ -41,7 +47,7 @@ const makeDefaultConfig = (projectName) => `\
 # 'secure' will disable HTTPS and use HTTP instead when set to 'false'
 # 'key_file' and 'cert_file' are required for serving HTTPS
 #------------------------------------------------------------------------------
-# secure = false
+# secure = true
 # key_file = "horizon-key.pem"
 # cert_file = "horizon-cert.pem"
 
@@ -65,8 +71,8 @@ project_name = "${projectName}"
 # 'auto_create_collection' creates a collection when one is needed but does not exist
 # 'auto_create_index' creates an index when one is needed but does not exist
 #------------------------------------------------------------------------------
-# auto_create_collection = true
-# auto_create_index = true
+# auto_create_collection = false
+# auto_create_index = false
 
 
 ###############################################################################
@@ -83,7 +89,7 @@ project_name = "${projectName}"
 # Debug Options
 # 'debug' enables debug log statements
 #------------------------------------------------------------------------------
-# debug = true
+# debug = false
 
 
 ###############################################################################
@@ -94,11 +100,13 @@ project_name = "${projectName}"
 # 'allow_anonymous' issues new accounts to users without an auth provider
 # 'allow_unauthenticated' allows connections that are not tied to a user id
 # 'auth_redirect' specifies where users will be redirected to after login
+# 'access_control_allow_origin' sets a host that can access auth settings (typically your frontend host)
 #------------------------------------------------------------------------------
 token_secret = "${crypto.randomBytes(64).toString('base64')}"
-# allow_anonymous = true
-# allow_unauthenticated = true
+# allow_anonymous = false
+# allow_unauthenticated = false
 # auth_redirect = "/"
+# access_control_allow_origin = ""
 #
 # [auth.facebook]
 # id = "000000000000000"
@@ -141,77 +149,84 @@ const fileExists = (pathName) => {
 
 const processConfig = (parsed) => parsed;
 
-const runCommand = (parsed) => {
-  const runInSubdir = parsed.projectName != null;
-  const subdirExists = !runInSubdir || fileExists(parsed.projectName);
-  const projectDirName = parsed.projectName ?
-          path.join(process.cwd(), parsed.projectName) :
-          process.cwd();
-  const projectName = parsed.projectName || path.basename(process.cwd());
-
-  if (runInSubdir) {
-    if (!subdirExists) {
-      fs.mkdirSync(projectName);
-      console.info(`Created new project directory ${parsed.projectName}`);
-    } else {
-      console.info(`Initializing in existing directory ${parsed.projectName}`);
+function maybeMakeDir(createDir, dirName) {
+  if (createDir) {
+    try {
+      fs.mkdirSync(dirName);
+      console.info(`Created new project directory ${dirName}`);
+    } catch (e) {
+      throw rethrow(e,
+        `Couldn't make directory ${dirName}: ${e.message}`);
     }
   } else {
-    console.info('Creating new project in current directory');
+    console.info(`Initializing in existing directory ${dirName}`);
   }
-  if (runInSubdir) {
-    process.chdir(projectDirName);
+}
+
+function maybeChdir(chdirTo) {
+  if (chdirTo) {
+    try {
+      process.chdir(chdirTo);
+    } catch (e) {
+      if (e.code === 'ENOTDIR') {
+        throw rethrow(e, `${chdirTo} is not a directory`);
+      } else {
+        throw rethrow(e, `Couldn't chdir to ${chdirTo}: ${e.message}`);
+      }
+    }
   }
+}
 
-  // Before we create things, check if the directory is empty
-  const dirWasPopulated = fs.readdirSync(process.cwd()).length !== 0;
-
+function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
+  const niceDir = chdirTo ? `${dirName}/` : '';
   if (!dirWasPopulated && !fileExists('src')) {
     fs.mkdirSync('src');
-    if (runInSubdir) {
-      console.info(`Created ${parsed.projectName}/src directory`);
-    } else {
-      console.info('Created src directory');
-    }
+    console.info(`Created ${niceDir}src directory`);
   }
   if (!dirWasPopulated && !fileExists('dist')) {
     fs.mkdirSync('dist');
-    if (runInSubdir) {
-      console.info(`Created ${parsed.projectName}/dist directory`);
-    } else {
-      console.info('Created dist directory');
-    }
+    console.info(`Created ${niceDir}dist directory`);
 
     fs.appendFileSync('./dist/index.html', makeIndexHTML(projectName));
-    if (runInSubdir) {
-      console.info(`Created ${parsed.projectName}/dist/index.html example`);
-    } else {
-      console.info('Created dist/index.html example');
-    }
+    console.info(`Created ${niceDir}dist/index.html example`);
   }
 
   if (!fileExists('.hz')) {
     fs.mkdirSync('.hz');
-    if (runInSubdir) {
-      console.info(`Created ${parsed.projectName}/.hz directory`);
-    } else {
-      console.info('Created .hz directory');
-    }
+    console.info(`Created ${niceDir}.hz directory`);
   }
   if (!fileExists('.hz/config.toml')) {
-    fs.appendFileSync('.hz/config.toml', makeDefaultConfig(projectName), {
-      encoding: 'utf8',
-      mode: 0o600, // Secrets are put in this config, so set it user
-                   // read/write only
-    });
-    if (runInSubdir) {
-      console.info(`Created ${parsed.projectName}/.hz/config.toml`);
-    } else {
-      console.info('Created .hz/config.toml');
-    }
+    fs.appendFileSync(
+      '.hz/config.toml',
+      makeDefaultConfig(projectName),
+      {
+        encoding: 'utf8',
+        mode: 0o600, // Secrets are put in this config, so set it user
+        // read/write only
+      }
+    );
+    console.info(`Created ${niceDir}.hz/config.toml`);
   } else {
     console.info('.hz/config.toml already exists, not touching it.');
   }
+}
+
+const runCommand = (parsed) => {
+  const check = checkProjectName(
+    parsed.projectName,
+    process.cwd(),
+    fs.readdirSync('.')
+  );
+  const projectName = check.projectName;
+  const dirName = check.dirName;
+  const chdirTo = check.chdirTo;
+  const createDir = check.createDir;
+  maybeMakeDir(createDir, dirName);
+  maybeChdir(chdirTo);
+
+  // Before we create things, check if the directory is empty
+  const dirWasPopulated = fs.readdirSync(process.cwd()).length !== 0;
+  populateDir(projectName, dirWasPopulated, chdirTo, dirName);
 };
 
 
@@ -219,4 +234,5 @@ module.exports = {
   addArguments,
   runCommand,
   processConfig,
+  helpText,
 };

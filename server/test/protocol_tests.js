@@ -11,8 +11,9 @@ const all_tests = (collection) => {
     const conn = utils.horizon_conn();
     conn.removeAllListeners('error');
     conn.send('foobar');
-    conn.once('close', (reason) => {
-      assert.strictEqual(reason, 'transport close');
+    conn.once('close', (code, reason) => {
+      assert.strictEqual(code, 1002);
+      assert(/^Invalid JSON/.test(reason));
       done();
     });
   });
@@ -21,8 +22,9 @@ const all_tests = (collection) => {
     const conn = utils.horizon_conn();
     conn.removeAllListeners('error');
     conn.send('{ }');
-    conn.once('close', (reason) => {
-      assert.strictEqual(reason, 'transport close');
+    conn.once('close', (code, reason) => {
+      assert.strictEqual(code, 1002);
+      assert(/^Protocol error: ValidationError/.test(reason));
       done();
     });
   });

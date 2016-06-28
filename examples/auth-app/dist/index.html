@@ -1,0 +1,39 @@
+<html>
+
+<head>
+    <link href="app.css" rel="stylesheet">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-y3tfxAZXuh4HwSYylfB+J125MxIs6mR5FOHamPBG064zB+AFeWH94NdvaCBm8qnd" crossorigin="anonymous">
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/fetch/1.0.0/fetch.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div id="steps" class="row">
+            <div class="col-sm-5 col-sm-offset-1">
+                <p>This small example will help you get started with setting up OAuth on Horizon. Here's what you need to get OAuth going:
+                    <ol>
+                        <li><a href="https://github.com/settings/developers">Create an application at Github.</a></li>
+                        <li>Add the client id and client secret to the configuration file</li>
+                        <li><a href="https://localhost:8181/horizon/auth_methods">Ensure that you can find Github in the registered providers</a></li>
+                        <li>Click the authenticate with Github button</li>
+                    </ol>
+                </p>
+            </div>
+            <div class="col-sm-5">
+                <ol>
+                    <li id="connection-success">Connect to Horizon</li>
+                    <li id="github-configured">Configure Github OAuth</li>
+                </ol>
+                <div id="login">
+                    <button type="button" id="login-button" class="btn btn-error-outline" disabled>Authenticate with Github</button>
+                </div>
+            </div>
+        </div>
+        <div id="success" class="row">
+        </div>
+    </div>
+    <script src="/horizon/horizon.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

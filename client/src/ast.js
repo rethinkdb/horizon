@@ -1,11 +1,12 @@
 import { Observable } from 'rxjs/Observable'
-import { empty } from 'rxjs/observable/empty'
+import 'rxjs/add/observable/empty'
 
-import { publishReplay } from 'rxjs/operator/publishReplay'
-import { scan } from 'rxjs/operator/scan'
-import { filter } from 'rxjs/operator/filter'
-import { map } from 'rxjs/operator/map'
-import { toArray } from 'rxjs/operator/toArray'
+import 'rxjs/add/operator/publishReplay'
+import 'rxjs/add/operator/scan'
+import 'rxjs/add/operator/filter'
+import 'rxjs/add/operator/map'
+import 'rxjs/add/operator/toArray'
+import 'rxjs/add/operator/take'
 
 import snakeCase from 'snake-case'
 
@@ -55,14 +56,14 @@ export class TermBase {
   // array with all results. An observable is returned which will
   // lazily emit the query when subscribed to
   fetch() {
-    const raw = this._sendRequest('query', this._query)::map(val => {
+    const raw = this._sendRequest('query', this._query).map(val => {
       delete val.$hz_v$
       return val
     })
     if (this._query.find) {
       return raw
     } else {
-      return raw::toArray()
+      return raw.toArray()
     }
   }
   findAll(...fieldValues) {
@@ -111,9 +112,15 @@ function makePresentable(observable, query) {
     const seedVal = null
     // Simplest case: just pass through new_val
     return observable
-      ::filter(change => !hasEmitted || change.type !== 'state')
-      ::scan((previous, change) => {
+      .filter(change => !hasEmitted || change.type !== 'state')
+      .scan((previous, change) => {
         hasEmitted = true
+        if (change.new_val != null) {
+          delete change.new_val.$hz_v$
+        }
+        if (change.old_val != null) {
+          delete change.old_val.$hz_v$
+        }
         if (change.state === 'synced') {
           return previous
         } else {
@@ -123,15 +130,21 @@ function makePresentable(observable, query) {
   } else {
     const seedVal = { emitted: false, val: [] }
     return observable
-      ::scan((state, change) => {
+      .scan((state, change) => {
+        if (change.new_val != null) {
+          delete change.new_val.$hz_v$
+        }
+        if (change.old_val != null) {
+          delete change.old_val.$hz_v$
+        }
         if (change.state === 'synced') {
           state.emitted = true
         }
         state.val = applyChange(state.val.slice(), change)
         return state
       }, seedVal)
-      ::filter(state => state.emitted)
-      ::map(x => x.val)
+      .filter(state => state.emitted)
+      .map(x => x.val)
   }
 }
 
@@ -202,7 +215,7 @@ function writeOp(name, args, documents) {
     isBatch = false
   } else if (documents.length === 0) {
     // Don't bother sending no-ops to the server
-    return Observable::empty()
+    return Observable.empty()
   }
   const options = Object.assign(
     {}, this._query, { data: serialize(wrappedDocs) })
@@ -210,7 +223,7 @@ function writeOp(name, args, documents) {
   if (isBatch) {
     // If this is a batch writeOp, each document may succeed or fail
     // individually.
-    observable = observable::map(resp => resp.error? new Error(resp.error) : resp)
+    observable = observable.map(resp => resp.error? new Error(resp.error) : resp)
   } else {
     // If this is a single writeOp, the entire operation should fail
     // if any fails.
@@ -233,7 +246,7 @@ function writeOp(name, args, documents) {
   if (!this._lazyWrites) {
     // Need to buffer response since this becomes a hot observable and
     // when we subscribe matters
-    observable = observable::publishReplay().refCount()
+    observable = observable.publishReplay().refCount()
     observable.subscribe()
   }
   return observable
@@ -341,5 +354,41 @@ export class Limit extends TermBase {
     const query = Object.assign({}, previousQuery, { limit: size })
     // Nothing is legal to chain after .limit
     super(sendRequest, query, [])
+  }
+}
+
+
+export class UserDataTerm {
+  constructor(hz, handshake, socket) {
+    this._hz = hz
+    this._before = Observable.merge(
+      socket.take(0), // just need to force connection
+      handshake // guarantee we get handshake even if we're already
+                // connected
+    )
+  }
+
+  _query(userId) {
+    return this._hz('users').find(userId)
+  }
+
+  fetch() {
+    return this._before.concatMap(handshake => {
+      if (handshake.id === null) {
+        return Observable.of({})
+      } else {
+        return this._query(handshake.id).fetch()
+      }
+    })
+  }
+
+  watch(...args) {
+    return this._before.concatMap(handshake => {
+      if (handshake.id === null) {
+        return Observable.of({})
+      } else {
+        return this._query(handshake.id).watch(...args)
+      }
+    })
   }
 }

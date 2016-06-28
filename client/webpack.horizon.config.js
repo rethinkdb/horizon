@@ -6,6 +6,7 @@ const DefinePlugin = require('webpack/lib/DefinePlugin')
 const OccurrenceOrderPlugin = require(
   'webpack/lib/optimize/OccurrenceOrderPlugin')
 const UglifyJsPlugin = require('webpack/lib/optimize/UglifyJsPlugin')
+const ProvidePlugin = require('webpack/lib/ProvidePlugin');
 
 module.exports = function(buildTarget) {
   const FILENAME = buildTarget.FILENAME
@@ -40,9 +41,9 @@ module.exports = function(buildTarget) {
     },
     externals: [
       function(context, request, callback) {
-      // Selected modules are not packaged into horizon.js. Webpack
-      // allows them to be required natively at runtime, either from
-      // filesystem (node) or window global.
+        // Selected modules are not packaged into horizon.js. Webpack
+        // allows them to be required natively at runtime, either from
+        // filesystem (node) or window global.
         if (!POLYFILL && /^rxjs\/?/.test(request)) {
           callback(null, {
           // If loaded via script tag, has to be at window.Rx when
@@ -83,6 +84,10 @@ module.exports = function(buildTarget) {
       // and thus strip helpful warnings from production build:
       new DefinePlugin({
         'process.env.NODE_ENV': (DEV_BUILD ? 'development' : 'production'),
+      }),
+      new ProvidePlugin({
+        'Promise': 'es6-promise',
+        'fetch': 'imports?this=>global!exports?global.fetch!whatwg-fetch'
       }),
     ].concat(DEV_BUILD ? [] : [
       new DedupePlugin(),
