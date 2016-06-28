@@ -85,10 +85,17 @@ class HorizonSocket extends WebSocketSubject {
   }
 
   deactivateRequest(requestId) {
-    this.activeRequests.delete(requestId)
-    if (this.activeRequests.size === 0) {
+    if (this.activeRequests.delete(requestId) &&
+        this.activeRequests.size === 0) {
       // Unsubscribe handshake and socket
       this.unsubscribe()
+    }
+  }
+
+  activateRequest(requestId, request) {
+    this.activeRequests.set(requestId, { request })
+    if (this.activeRequests.size === 1) {
+      this.sendHandshake()
     }
   }
 
@@ -108,15 +115,16 @@ class HorizonSocket extends WebSocketSubject {
     this.next(request)
     this.activeRequests.set(requestId, { request })
     this.handshakeSub = this.subscribe({
-      next: incomingMsg => {
+      next: resp => {
         // Check if we're getting a response to the handshake or not
-        if (incomingMsg.request_id === requestId) {
+        if (resp.request_id === requestId) {
           // This is a per-query error
-          if (incomingMsg.error) {
-            handshake.error(incomingMsg)
+          if (resp.error) {
+            handshake.error(
+              new ProtocolError(resp.error, resp.error_code))
             status.next(STATUS_ERROR)
           } else {
-            handshake.next(incomingMsg)
+            handshake.next(resp)
             handshake.complete()
             status.next(STATUS_READY)
           }
@@ -147,29 +155,56 @@ class HorizonSocket extends WebSocketSubject {
   }
 
   multiplex(rawRequest) {
-    const requestId = this.requestCounter++
-    const request = Object.assign({ request_id: requestId }, rawRequest)
-    this.activeRequests.set(requestId, { request })
-    return new Observable(observer => {
-      if (this.activeRequests.size === 1) {
-        // send handshake only if we're the first request to be
-        // subscribed to
-        this.sendHandshake()
-      }
-      self.next(request)
+    return new Observable(subscriber => {
+      const requestId = this.requestCounter++
+      const request = Object.assign({ request_id: requestId }, rawRequest)
+
+      this.activateRequest(requestId, request)
+      // Ensure the handshake is complete successfully before sending
+      // our request. this.handshake is an AsyncSubject which acts
+      // like a Promise and caches its value.
+      this.handshake.subscribe({
+        // we don't care about the handshake value so no `next`
+        error: err => subscriber.error(err), // TODO: when
+                                             // reconnection
+                                             // implemented, this
+                                             // shouldn't error out.
+        complete: () => this.next(request), // send request on
+                                            // handshake completion
+      })
+
+      // Now we subscribe to messages from the server with our
+      // requestId.
       const subscription = this.subscribe({
-        next: msg => {
+        next: resp => {
           try {
-            if (msg.request_id === requestId) {
-              observer.next(msg)
+            if (resp.request_id === requestId) {
+              if (resp.error !== undefined) {
+                // This is an error just for this request, not the
+                // entire connection
+                subscriber.error(
+                  new ProtocolError(resp.error, resp.error_code))
+              } else if (resp.data !== undefined) {
+                // Forward on the response if there's a data field
+                subscriber.next(resp)
+              }
+              if (resp.state === 'synced') {
+                // Create a little dummy object for sync notifications
+                subscriber.next({
+                  type: 'state',
+                  state: 'synced',
+                })
+              } else if (resp.state === 'complete') {
+                subscriber.complete()
+              }
             }
           } catch (e) {
-            observer.error(e)
+            subscriber.error(e)
           }
         },
-        error: err => observer.error(err),
+        error: err => subscriber.error(err),
         complete: () => {
-          observer.complete()
+          subscriber.complete()
           this.deactivateRequest(requestId)
         },
       })
