@@ -149,6 +149,8 @@ class Client {
       return;
     } else if (raw_request.type === 'end_subscription') {
       return this.remove_request(raw_request); // there is no response for end_subscription
+    } else if (raw_request.type === 'keepalive') {
+      return this.send_response(raw_request, { state: 'complete' });
     }
 
     const endpoint = this._server.get_request_handler(raw_request);
