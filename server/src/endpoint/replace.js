@@ -29,9 +29,15 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
         } else if (!ruleset.validate(context, old_rows[i], parsed.value.data[i])) {
           response_data.push(new Error(writes.unauthorized_error));
         } else {
-          response_data.push(null);
-          parsed.value.data[i][writes.version_field] = old_rows[i][writes.version_field];
+          const old_version = old_rows[i][writes.version_field];
+          const new_version = parsed.value.data[i][writes.version_field];
+          if (new_version === undefined) {
+            parsed.value.data[i][writes.version_field] =
+              old_version === undefined ? -1 : old_version;
+          }
+
           valid_rows.push(parsed.value.data[i]);
+          response_data.push(null);
         }
       }
 
@@ -43,11 +49,11 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                          r.error(writes.missing_error),
 
                          // The row may have been changed between the get and now
-                         old_row(writes.version_field).ne(new_row(writes.version_field)),
+                         old_row(writes.version_field).default(-1).ne(new_row(writes.version_field)),
                          r.error(writes.invalidated_error),
 
                          // Otherwise, we can safely replace the row
-                         writes.apply_version(new_row, old_row(writes.version_field).add(1))),
+                         writes.apply_version(new_row, old_row(writes.version_field).default(-1).add(1))),
                 { returnChanges: 'always' }))
         .run(conn, reql_options);
     }).then((replace_results) => {

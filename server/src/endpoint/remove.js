@@ -27,10 +27,18 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           // Just pretend we deleted it
           response_data.push({ id: parsed.value.data[i].id });
         } else if (!ruleset.validate(context, old_rows[i], null)) {
-          response_data.push(new Error('Operation not permitted.'));
+          response_data.push(new Error(writes.unauthorized_error));
         } else {
           const info = { id: old_rows[i].id };
-          info[writes.version_field] = old_rows[i][writes.version_field];
+          const old_version = old_rows[i][writes.version_field];
+          const new_version = parsed.value.data[i][writes.version_field];
+          if (new_version !== undefined) {
+            info[writes.version_field] = new_version;
+          } else if (old_version !== undefined) {
+            info[writes.version_field] = old_version;
+          } else {
+            info[writes.version_field] = -1;
+          }
           valid_info.push(info);
           response_data.push(null);
         }
@@ -45,7 +53,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
 
                               // The row may have been changed between the get and now,
                               // which would require validation again.
-                              row(writes.version_field).ne(info(writes.version_field)),
+                              row(writes.version_field).default(-1).ne(info(writes.version_field)),
                               r.error(writes.invalidated_error),
 
                               // Otherwise, we can safely remove the row

@@ -15,8 +15,8 @@ const server = Joi.object({
   path: Joi.string().default('/horizon'),
 
   auth: Joi.object().default({ }),
-  
-  access_control_allow_origin: Joi.string().allow('').default('')
+
+  access_control_allow_origin: Joi.string().allow('').default(''),
 }).unknown(false);
 
 const auth = Joi.object({
