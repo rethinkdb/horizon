@@ -1,6 +1,6 @@
 import { AsyncSubject } from 'rxjs/AsyncSubject'
 import { BehaviorSubject } from 'rxjs/BehaviorSubject'
-import { Subject, AnonymousSubject } from 'rxjs/Subject'
+import { Subject } from 'rxjs/Subject'
 import { WebSocketSubject } from 'rxjs/observable/dom/WebSocketSubject'
 import { Observable } from 'rxjs/Observable'
 import 'rxjs/add/observable/merge'
@@ -8,8 +8,6 @@ import 'rxjs/add/operator/filter'
 import 'rxjs/add/operator/share'
 
 import { serialize, deserialize } from './serialization.js'
-import { log } from './logging.js'
-import { WebSocket } from './shim.js'
 
 const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
 
@@ -36,7 +34,7 @@ class ProtocolError extends Error {
 // Wraps native websockets with a Subject, which is both an Subscriber
 // and an Observable (it is bi-directional after all!). This version
 // is based on the rxjs.observable.dom.WebSocketSubject implementation.
-class HorizonSocket extends WebSocketSubject {
+export class HorizonSocket extends WebSocketSubject {
 
   // Deserializes a message from a string. Overrides the version
   // implemented in WebSocketSubject
@@ -56,8 +54,7 @@ class HorizonSocket extends WebSocketSubject {
     handshakeMessage, // function that returns handshake to emit
     keepalive = 60,   // seconds between keepalive messages
     socket,           // optionally provide a WebSocket to use
-    WebSocketCtor,    // optionally provide a WebSocket constructor to
-                      // instantiate
+    WebSocketCtor,    // optionally provide a WebSocket constructor
   } = {}) {
     super({
       url,
@@ -112,22 +109,27 @@ class HorizonSocket extends WebSocketSubject {
     const request = Object.assign(
       { request_id: requestId }, this.handshakeMessage)
 
-    this.next(request)
-    this.activeRequests.set(requestId, { request })
-    this.handshakeSub = this.subscribe({
+    const subMsg = () => {
+      this.activeRequests.set(requestId, { request })
+      return request
+    }
+
+    const unsubMsg = () => {
+      this.activeRequests.delete(requestId)
+    }
+
+    const filter = resp => resp.request_id === requestId
+
+    this.handshakeSub = super.multiplex(subMsg, unsubMsg, filter).subscribe({
       next: resp => {
-        // Check if we're getting a response to the handshake or not
-        if (resp.request_id === requestId) {
-          // This is a per-query error
-          if (resp.error) {
-            handshake.error(
-              new ProtocolError(resp.error, resp.error_code))
-            status.next(STATUS_ERROR)
-          } else {
-            handshake.next(resp)
-            handshake.complete()
-            status.next(STATUS_READY)
-          }
+        // This is a per-query error
+        if (resp.error) {
+          handshake.error(new ProtocolError(resp.error, resp.error_code))
+          status.next(STATUS_ERROR)
+        } else {
+          handshake.next(resp)
+          handshake.complete()
+          status.next(STATUS_READY)
         }
       },
       error: err => {
@@ -136,84 +138,77 @@ class HorizonSocket extends WebSocketSubject {
       },
       complete: () => handshake.complete(),
     })
-    this.handshakeSub.add(() => {
-      this.activeRequests.delete(requestId)
-    })
-    // Start the keepalive. We don't do anything with the subscription
-    // since we don't care about responses. All that matters is that
-    // we can stop it later when needed. If an error to a keepalive
-    // comes back, that's fine since either the socket is down (which
-    // we'll find out about elsewhere) or the keepalive "failed" which
-    // is a server bug, but indicates the socket is still alive, so
-    // it's not really a failure.
+    // Start the keepalive. While it has a request_id, we don't
+    // actually care about responses.
     const keepAliveSub = Observable
             .timer(this.keepalive * 1000, this.keepalive * 1000)
-            .map(n => ({ type: 'keepalive', n }))
-            .subscribe()
+            .map(n => ({
+              type: 'keepalive',
+              n,
+              request_id: this.requestCounter++,
+            })).subscribe(ka => this.next(ka))
     // Make sure keepalive is killed when the handshake is cleaned up
     this.handshakeSub.add(keepAliveSub)
   }
 
+  // Wrapper around the superclass's version of multiplex. With the
+  // following additional features we need for horizon's protocol:
+  // * Generate a request id and filter by it
+  // * Sends handshake on subscription if it hasn't happened already
+  // * Wait for the handshake to complete before sending the request
+  // * Errors when a document with an `error` field is received
+  // * Completes when `state: complete` is received
+  // * Emits `state: synced` as a separate document for easy filtering
   multiplex(rawRequest) {
     return new Observable(subscriber => {
       const requestId = this.requestCounter++
       const request = Object.assign({ request_id: requestId }, rawRequest)
 
-      this.activateRequest(requestId, request)
+      const subMsg = () => {
+        this.activateRequest(requestId, request)
+        return request
+      }
+
+      const unsubMsg = () => {
+        this.deactivateRequest(requestId)
+        return { request_id: requestId, type: 'end_subscription' }
+      }
+
       // Ensure the handshake is complete successfully before sending
       // our request. this.handshake is an AsyncSubject which acts
       // like a Promise and caches its value.
       this.handshake.subscribe({
-        // we don't care about the handshake value so no `next`
-        error: err => subscriber.error(err), // TODO: when
-                                             // reconnection
-                                             // implemented, this
-                                             // shouldn't error out.
+        error: err => subscriber.error(err),
         complete: () => this.next(request), // send request on
-                                            // handshake completion
+        // handshake completion
       })
 
-      // Now we subscribe to messages from the server with our
-      // requestId.
-      const subscription = this.subscribe({
+      this.handshake.ignoreElements().concat(
+        super.multiplex(subMsg, unsubMsg, resp => resp.request_id === requestId)
+      ).subscribe({
         next: resp => {
-          try {
-            if (resp.request_id === requestId) {
-              if (resp.error !== undefined) {
-                // This is an error just for this request, not the
-                // entire connection
-                subscriber.error(
-                  new ProtocolError(resp.error, resp.error_code))
-              } else if (resp.data !== undefined) {
-                // Forward on the response if there's a data field
-                subscriber.next(resp)
-              }
-              if (resp.state === 'synced') {
-                // Create a little dummy object for sync notifications
-                subscriber.next({
-                  type: 'state',
-                  state: 'synced',
-                })
-              } else if (resp.state === 'complete') {
-                subscriber.complete()
-              }
-            }
-          } catch (e) {
-            subscriber.error(e)
+          if (resp.error !== undefined) {
+            // This is an error just for this request, not the
+            // entire connection
+            subscriber.error(
+              new ProtocolError(resp.error, resp.error_code))
+          } else if (resp.data !== undefined) {
+            // Forward on the response if there's a data field
+            subscriber.next(resp)
+          }
+          if (resp.state === 'synced') {
+            // Create a little dummy object for sync notifications
+            subscriber.next({
+              type: 'state',
+              state: 'synced',
+            })
+          } else if (resp.state === 'complete') {
+            subscriber.complete()
           }
         },
         error: err => subscriber.error(err),
-        complete: () => {
-          subscriber.complete()
-          this.deactivateRequest(requestId)
-        },
+        complete: () => subscriber.complete(),
       })
-
-      return () => {
-        this.next({ request_id: requestId, type: 'end_subscription' })
-        subscription.unsubscribe()
-        this.deactivateRequest(requestId)
-      }
     })
   }
 
@@ -221,226 +216,5 @@ class HorizonSocket extends WebSocketSubject {
     this.handshakeSub.unsubscribe()
     super.unsubscribe()
     this.status.next(STATUS_DISCONNECTED)
-  }
-}
-
-export class HorizonSocket extends AnonymousSubject {
-  constructor(host, secure, path, handshaker) {
-    const hostString = `ws${secure ? 's' : ''}:\/\/${host}\/${path}`
-    const msgBuffer = []
-    let ws, handshakeDisp
-    // Handshake is an asyncsubject because we want it to always cache
-    // the last value it received, like a promise
-    const handshake = new AsyncSubject()
-    const statusSubject = new BehaviorSubject(STATUS_UNCONNECTED)
-
-    const isOpen = () => Boolean(ws) && ws.readyState === WebSocket.OPEN
-
-    // Serializes to a string before sending
-    function wsSend(msg) {
-      const stringMsg = JSON.stringify(serialize(msg))
-      ws.send(stringMsg)
-    }
-
-    // This is the observable part of the Subject. It forwards events
-    // from the underlying websocket
-    const socketObservable = Observable.create(subscriber => {
-      ws = new WebSocket(hostString, PROTOCOL_VERSION)
-
-      ws.onerror = () => {
-        // If the websocket experiences the error, we forward it through
-        // to the observable. Unfortunately, the event we receive in
-        // this callback doesn't tell us much of anything, so there's no
-        // reason to forward it on and we just send a generic error.
-        statusSubject.next(STATUS_ERROR)
-        const errMsg = `Websocket ${hostString} experienced an error`
-        subscriber.error(new Error(errMsg))
-      }
-
-      ws.onopen = () => {
-        ws.onmessage = event => {
-          const deserialized = deserialize(JSON.parse(event.data))
-          log('Received', deserialized)
-          subscriber.next(deserialized)
-        }
-
-        ws.onclose = e => {
-          // This will happen if the socket is closed by the server If
-          // .close is called from the client (see closeSocket), this
-          // listener will be removed
-          statusSubject.next(STATUS_DISCONNECTED)
-          if (e.code !== 1000 || !e.wasClean) {
-            subscriber.error(
-              new Error(`Socket closed unexpectedly with code: ${e.code}`)
-            )
-          } else {
-            subscriber.complete()
-          }
-        }
-
-        // Send the handshake
-        handshakeDisp = this.makeRequest(handshaker()).subscribe(
-          x => {
-            handshake.next(x)
-            handshake.complete()
-            statusSubject.next(STATUS_READY)
-          },
-          err => handshake.error(err),
-          () => handshake.complete()
-        )
-        // Send any messages that have been buffered
-        while (msgBuffer.length > 0) {
-          const msg = msgBuffer.shift()
-          log('Sending buffered:', msg)
-          wsSend(msg)
-        }
-      }
-      return () => {
-        if (handshakeDisp) {
-          handshakeDisp.unsubscribe()
-        }
-        // This is the "unsubscribe" method on the final Subject
-        closeSocket(1000, '')
-      }
-    }).share() // This makes it a "hot" observable, and refCounts it
-    // Note possible edge cases: the `share` operator is equivalent to
-    // .multicast(() => new Subject()).refCount() // RxJS 5
-    // .multicast(new Subject()).refCount() // RxJS 4
-
-    // This is the Subscriber part of the Subject. How we can send stuff
-    // over the websocket
-    const socketSubscriber = {
-      next(messageToSend) {
-        // When next is called on this subscriber
-        // Note: If we aren't ready, the message is silently dropped
-        if (isOpen()) {
-          log('Sending', messageToSend)
-          wsSend(messageToSend) // wsSend serializes to a string
-        } else {
-          log('Buffering', messageToSend)
-          msgBuffer.push(messageToSend)
-        }
-      },
-      error(error) {
-        // The subscriber is receiving an error. Better close the
-        // websocket with an error
-        if (!error.code) {
-          throw new Error('no code specified. Be sure to pass ' +
-                          '{ code: ###, reason: "" } to error()')
-        }
-        closeSocket(error.code, error.reason)
-      },
-      complete() {
-        // complete for the subscriber here is equivalent to "close
-        // this socket successfully (which is what code 1000 is)"
-        closeSocket(1000, '')
-      },
-    }
-
-    function closeSocket(code, reason) {
-      statusSubject.next(STATUS_DISCONNECTED)
-      if (!code) {
-        ws.close() // successful close
-      } else {
-        ws.close(code, reason)
-      }
-      ws.onopen = null
-      ws.onclose = null
-      ws.onmessage = null
-      ws.onerror = null
-    }
-
-    super(socketSubscriber, socketObservable)
-
-    // Subscriptions will be the observable containing all
-    // queries/writes/changefeed requests. Specifically, the documents
-    // that initiate them, each one with a different request_id
-    const subscriptions = new AnonymousSubject()
-    // Unsubscriptions is similar, only it holds only requests to
-    // close a particular request_id on the server. Currently we only
-    // need these for changefeeds.
-    const unsubscriptions = new AnonymousSubject()
-    const outgoing = Observable.merge(subscriptions, unsubscriptions)
-    // How many requests are outstanding
-    let activeRequests = 0
-    // Monotonically increasing counter for request_ids
-    let requestCounter = 0
-    // Unsubscriber for subscriptions/unsubscriptions
-    let subDisp = null
-    // Now that super has been called, we can add attributes to this
-    this.handshake = handshake
-    // Lets external users keep track of the current websocket status
-    // without causing it to connect
-    this.status = statusSubject
-
-    const incrementActive = () => {
-      if (++activeRequests === 1) {
-        // We subscribe the socket itself to the subscription and
-        // unsubscription requests. Since the socket is both an
-        // observable and an subscriber. Here it's acting as an subscriber,
-        // watching our requests.
-        subDisp = outgoing.subscribe(this)
-      }
-    }
-
-    // Decrement the number of active requests on the socket, and
-    // close the socket if we're the last request
-    const decrementActive = () => {
-      if (--activeRequests === 0) {
-        subDisp.unsubscribe()
-      }
-    }
-
-    // This is used externally to send requests to the server
-    this.makeRequest = rawRequest => Observable.create(reqSubscriber => {
-      // Get a new request id
-      const request_id = requestCounter++
-      // Add the request id to the request and the unsubscribe request
-      // if there is one
-      rawRequest.request_id = request_id
-      const unsubscribeRequest = { request_id, type: 'end_subscription' }
-      // First, increment activeRequests and decide if we need to
-      // connect to the socket
-      incrementActive()
-
-      // Now send the request to the server
-      subscriptions.next(rawRequest)
-
-      // Create an observable from the socket that filters by request_id
-      const unsubscribeFilter = this
-            .filter(x => x.request_id === request_id)
-            .subscribe(
-              resp => {
-                // Need to faithfully end the stream if there is an error
-                if (resp.error !== undefined) {
-                  reqSubscriber.error(
-                    new ProtocolError(resp.error, resp.error_code))
-                } else if (resp.data !== undefined ||
-                           resp.token !== undefined) {
-                  try {
-                    reqSubscriber.next(resp)
-                  } catch (e) {
-                  }
-                }
-                if (resp.state === 'synced') {
-                  // Create a little dummy object for sync notifications
-                  reqSubscriber.next({
-                    type: 'state',
-                    state: 'synced',
-                  })
-                } else if (resp.state === 'complete') {
-                  reqSubscriber.complete()
-                }
-              },
-              err => reqSubscriber.error(err),
-              () => reqSubscriber.complete()
-            )
-      return () => {
-        // Unsubscribe if necessary
-        unsubscriptions.next(unsubscribeRequest)
-        decrementActive()
-        unsubscribeFilter.unsubscribe()
-      }
-    })
   }
 }
