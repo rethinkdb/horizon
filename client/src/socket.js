@@ -1,12 +1,14 @@
 import { AsyncSubject } from 'rxjs/AsyncSubject'
 import { BehaviorSubject } from 'rxjs/BehaviorSubject'
-import { Subject } from 'rxjs/Subject'
 import { WebSocketSubject } from 'rxjs/observable/dom/WebSocketSubject'
 import { Observable } from 'rxjs/Observable'
 import 'rxjs/add/observable/merge'
 import 'rxjs/add/observable/timer'
 import 'rxjs/add/operator/filter'
 import 'rxjs/add/operator/share'
+import 'rxjs/add/operator/ignoreElements'
+import 'rxjs/add/operator/concat'
+import 'rxjs/add/operator/takeWhile'
 
 import { serialize, deserialize } from './serialization.js'
 
@@ -52,7 +54,8 @@ export class HorizonSocket extends WebSocketSubject {
   // always serialize the value. When this is called a message will be
   // sent over the socket to the server.
   next(value) {
-    super.next(JSON.stringify(serialize(value)))
+    const request = JSON.stringify(serialize(value))
+    super.next(request)
   }
 
   constructor({
@@ -70,7 +73,9 @@ export class HorizonSocket extends WebSocketSubject {
       },
       closeObserver: {
         next: () => {
-          this._handshakeSub.unsubscribe()
+          if (this._handshakeSub) {
+            this._handshakeSub.unsubscribe()
+          }
           this.status.next(STATUS_DISCONNECTED)
         },
       },
@@ -92,21 +97,23 @@ export class HorizonSocket extends WebSocketSubject {
     // request. Eventually, this should allow re-sending requests when
     // reconnecting.
     this.activeRequests = new Map()
+    this._output.subscribe({
+      // This emits if the entire socket errors (usually due to
+      // failure to connect)
+      error: () => this.status.next(STATUS_ERROR),
+    })
   }
 
   deactivateRequest(requestId) {
-    if (this.activeRequests.delete(requestId) &&
-        this.activeRequests.size === 0) {
-      // Unsubscribe handshake and socket
-      this.unsubscribe()
-    }
+    this.activeRequests.delete(requestId)
   }
 
   activateRequest(requestId, request) {
     this.activeRequests.set(requestId, { request })
-    if (this.activeRequests.size === 1) {
-      this.sendHandshake()
-    }
+  }
+
+  getRequestId() {
+    return this.requestCounter++
   }
 
   // This is a trimmed-down version of multiplex that only listens for
@@ -115,35 +122,43 @@ export class HorizonSocket extends WebSocketSubject {
   // observable and cleans up after it when the handshake is cleaned
   // up.
   sendHandshake() {
-    const requestId = this.requestCounter++
+    const requestId = this.getRequestId()
     const handshake = this.handshake
     const status = this.status
 
     const request = Object.assign({ request_id: requestId }, this._handshakeMsg)
 
     const subMsg = () => {
-      this.activeRequests.set(requestId, { request })
+      this.activateRequest(requestId, request)
       return request
     }
 
     const unsubMsg = () => {
-      this.activeRequests.delete(requestId)
+      this.deactivateRequest(requestId)
       return { request_id: requestId, type: 'end_subscription' }
     }
 
     const filter = resp => resp.request_id === requestId
 
     this._handshakeSub = super.multiplex(subMsg, unsubMsg, filter)
-      .take(1)
-      .subscribe(handshake)
+      .subscribe({
+        next: n => {
+          handshake.next(n)
+          handshake.complete()
+        },
+        error: e => {
+          handshake.error(e)
+        },
+      })
 
     // Emit our status events
     handshake.subscribe({
-      completed: () => {
-        status.next(STATUS_READY)
-        this.subscribe({ error: () => status.next(STATUS_ERROR) })
-      },
-      error: (e) => status.next({ e, STATUS_ERROR }),
+      next: () => status.next(STATUS_READY),
+      error: () => status.next(STATUS_ERROR),
+      // You'd think, since above we call handshake.complete(), this
+      // would have a completion handler right? Wrong! The
+      // AsyncSubject doesn't actually complete when you call
+      // complete. That just forces it to emit its last value.
     })
 
     // Start the keepalive. While it has a request_id, we don't
@@ -153,7 +168,7 @@ export class HorizonSocket extends WebSocketSubject {
             .map(n => ({
               type: 'keepalive',
               n,
-              request_id: this.requestCounter++,
+              request_id: this.getRequestId(),
             })).subscribe(ka => this.next(ka))
     // Make sure keepalive is killed when the handshake is cleaned up
     this._handshakeSub.add(keepAliveSub)
@@ -168,7 +183,7 @@ export class HorizonSocket extends WebSocketSubject {
   // * Completes when `state: complete` is received
   // * Emits `state: synced` as a separate document for easy filtering
   multiplex(rawRequest) {
-    const requestId = this.requestCounter++
+    const requestId = this.getRequestId()
     const request = Object.assign({ request_id: requestId }, rawRequest)
 
     const subMsg = () => {
@@ -202,7 +217,13 @@ export class HorizonSocket extends WebSocketSubject {
           state: 'synced',
         })
       }
+      // This is emitted just so we can finish the observable for this
+      // request in the `takeWhile` below. `takeWhile` doesn't emit
+      // the first non-matching event, so this will never make it to
+      // the client.
       if (resp.state === 'complete') {
+        // This isn't an object event so that things will break loudly
+        // if the logic changes
         data.push('complete')
       }
       return data
