@@ -4,6 +4,7 @@ import { Subject } from 'rxjs/Subject'
 import { WebSocketSubject } from 'rxjs/observable/dom/WebSocketSubject'
 import { Observable } from 'rxjs/Observable'
 import 'rxjs/add/observable/merge'
+import 'rxjs/add/observable/timer'
 import 'rxjs/add/operator/filter'
 import 'rxjs/add/operator/share'
 
@@ -39,7 +40,12 @@ export class HorizonSocket extends WebSocketSubject {
   // Deserializes a message from a string. Overrides the version
   // implemented in WebSocketSubject
   resultSelector(e) {
-    return deserialize(e)
+    const result = deserialize(e.data)
+    if (result.error !== undefined) {
+      throw new ProtocolError(result.error, result.error_code)
+    } else {
+      return result
+    }
   }
 
   // We're overriding the next defined in AnonymousSubject so we
@@ -53,20 +59,27 @@ export class HorizonSocket extends WebSocketSubject {
     url,              // Full url to connect to
     handshakeMessage, // function that returns handshake to emit
     keepalive = 60,   // seconds between keepalive messages
-    socket,           // optionally provide a WebSocket to use
-    WebSocketCtor,    // optionally provide a WebSocket constructor
+    WebSocketCtor = WebSocket,    // optionally provide a WebSocket constructor
   } = {}) {
     super({
       url,
       protocol: PROTOCOL_VERSION,
-      socket,
       WebSocketCtor,
+      openObserver: {
+        next: () => this.sendHandshake(),
+      },
+      closeObserver: {
+        next: () => {
+          this._handshakeSub.unsubscribe()
+          this.status.next(STATUS_DISCONNECTED)
+        },
+      },
     })
     // Completes or errors based on handshake success. Buffers
     // handshake response for later subscribers (like a Promise)
     this.handshake = new AsyncSubject()
-    this.handshakeMessage = handshakeMessage
-    this.handshakeSub = null
+    this._handshakeMsg = handshakeMessage
+    this._handshakeSub = null
 
     // This is used to emit status changes that others can hook into.
     this.status = new BehaviorSubject(STATUS_UNCONNECTED)
@@ -106,8 +119,7 @@ export class HorizonSocket extends WebSocketSubject {
     const handshake = this.handshake
     const status = this.status
 
-    const request = Object.assign(
-      { request_id: requestId }, this.handshakeMessage)
+    const request = Object.assign({ request_id: requestId }, this._handshakeMsg)
 
     const subMsg = () => {
       this.activeRequests.set(requestId, { request })
@@ -116,28 +128,24 @@ export class HorizonSocket extends WebSocketSubject {
 
     const unsubMsg = () => {
       this.activeRequests.delete(requestId)
+      return { request_id: requestId, type: 'end_subscription' }
     }
 
     const filter = resp => resp.request_id === requestId
 
-    this.handshakeSub = super.multiplex(subMsg, unsubMsg, filter).subscribe({
-      next: resp => {
-        // This is a per-query error
-        if (resp.error) {
-          handshake.error(new ProtocolError(resp.error, resp.error_code))
-          status.next(STATUS_ERROR)
-        } else {
-          handshake.next(resp)
-          handshake.complete()
-          status.next(STATUS_READY)
-        }
+    this._handshakeSub = super.multiplex(subMsg, unsubMsg, filter)
+      .take(1)
+      .subscribe(handshake)
+
+    // Emit our status events
+    handshake.subscribe({
+      completed: () => {
+        status.next(STATUS_READY)
+        this.subscribe({ error: () => status.next(STATUS_ERROR) })
       },
-      error: err => {
-        handshake.error(err)
-        status.next(STATUS_ERROR)
-      },
-      complete: () => handshake.complete(),
+      error: (e) => status.next({ e, STATUS_ERROR }),
     })
+
     // Start the keepalive. While it has a request_id, we don't
     // actually care about responses.
     const keepAliveSub = Observable
@@ -148,7 +156,7 @@ export class HorizonSocket extends WebSocketSubject {
               request_id: this.requestCounter++,
             })).subscribe(ka => this.next(ka))
     // Make sure keepalive is killed when the handshake is cleaned up
-    this.handshakeSub.add(keepAliveSub)
+    this._handshakeSub.add(keepAliveSub)
   }
 
   // Wrapper around the superclass's version of multiplex. With the
@@ -160,61 +168,44 @@ export class HorizonSocket extends WebSocketSubject {
   // * Completes when `state: complete` is received
   // * Emits `state: synced` as a separate document for easy filtering
   multiplex(rawRequest) {
-    return new Observable(subscriber => {
-      const requestId = this.requestCounter++
-      const request = Object.assign({ request_id: requestId }, rawRequest)
+    const requestId = this.requestCounter++
+    const request = Object.assign({ request_id: requestId }, rawRequest)
 
-      const subMsg = () => {
-        this.activateRequest(requestId, request)
-        return request
-      }
+    const subMsg = () => {
+      this.activateRequest(requestId, request)
+      return request
+    }
 
-      const unsubMsg = () => {
-        this.deactivateRequest(requestId)
-        return { request_id: requestId, type: 'end_subscription' }
-      }
+    const unsubMsg = () => {
+      this.deactivateRequest(requestId)
+      return { request_id: requestId, type: 'end_subscription' }
+    }
 
-      // Ensure the handshake is complete successfully before sending
-      // our request. this.handshake is an AsyncSubject which acts
-      // like a Promise and caches its value.
-      this.handshake.subscribe({
-        error: err => subscriber.error(err),
-        complete: () => this.next(request), // send request on
-        // handshake completion
-      })
-
-      this.handshake.ignoreElements().concat(
-        super.multiplex(subMsg, unsubMsg, resp => resp.request_id === requestId)
-      ).subscribe({
-        next: resp => {
-          if (resp.error !== undefined) {
-            // This is an error just for this request, not the
-            // entire connection
-            subscriber.error(
-              new ProtocolError(resp.error, resp.error_code))
-          } else if (resp.data !== undefined) {
-            // Forward on the response if there's a data field
-            subscriber.next(resp)
-          }
-          if (resp.state === 'synced') {
-            // Create a little dummy object for sync notifications
-            subscriber.next({
-              type: 'state',
-              state: 'synced',
-            })
-          } else if (resp.state === 'complete') {
-            subscriber.complete()
-          }
-        },
-        error: err => subscriber.error(err),
-        complete: () => subscriber.complete(),
-      })
+    // Ensure the handshake is complete successfully before sending
+    // our request. this.handshake is an AsyncSubject which acts
+    // like a Promise and caches its value.
+    this.handshake.subscribe({
+      complete: () => this.next(request),
     })
-  }
 
-  unsubscribe() {
-    this.handshakeSub.unsubscribe()
-    super.unsubscribe()
-    this.status.next(STATUS_DISCONNECTED)
+    return this.handshake.ignoreElements().concat(
+      super.multiplex(subMsg, unsubMsg, resp => resp.request_id === requestId)
+    ).concatMap(resp => {
+      const data = []
+      if (resp.data !== undefined) {
+        data.push(resp)
+      }
+      if (resp.state === 'synced') {
+        // Create a little dummy object for sync notifications
+        data.push({
+          type: 'state',
+          state: 'synced',
+        })
+      }
+      if (resp.state === 'complete') {
+        data.push('complete')
+      }
+      return data
+    }).takeWhile(resp => resp !== 'complete')
   }
 }

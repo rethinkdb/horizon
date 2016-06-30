@@ -26,9 +26,9 @@ if (BROWSER) {
   global.WebSocket = require('ws')
 
   if (__dirname.split(path.sep).pop(-1) === 'test') {
-    global.Horizon = require('../lib/index.js')
+    global.Horizon = require('../lib/index.js').default
   } else {
-    global.Horizon = require('./horizon.js')
+    global.Horizon = require('./horizon.js').default
   }
 }
 
@@ -46,7 +46,9 @@ describe('Waiting until server ready...', function() {
   it('connected', done => {
     const tryConnecting = () => {
       const horizon = Horizon()
+      horizon.status(stat => console.log('got status', stat))
       horizon.onReady(() => {
+        console.log('trying to connect')
         clearInterval(connectInterval)
         horizon.disconnect()
         done()

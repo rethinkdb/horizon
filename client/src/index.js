@@ -9,10 +9,10 @@ import 'rxjs/add/operator/filter'
 // Extra operators not used, but useful to Horizon end-users
 import 'rxjs/add/operator/defaultIfEmpty'
 
-const { Collection, UserDataTerm } = require('./ast.js')
-const HorizonSocket = require('./socket.js')
-const { log, logError, enableLogging } = require('./logging.js')
-const { authEndpoint, TokenStorage, clearAuthTokens } = require('./auth')
+import { Collection, UserDataTerm } from './ast'
+import { HorizonSocket } from './socket'
+import { log, logError, enableLogging } from './logging'
+import { authEndpoint, TokenStorage, clearAuthTokens } from './auth'
 
 const defaultHost = typeof window !== 'undefined' && window.location &&
         `${window.location.host}` || 'localhost:8181'
@@ -25,6 +25,8 @@ function Horizon({
   path = 'horizon',
   lazyWrites = false,
   authType = 'unauthenticated',
+  keepalive = 60,
+  WebSocketCtor = WebSocket,
 } = {}) {
   // If we're in a redirection from OAuth, store the auth token for
   // this user in localStorage.
@@ -33,7 +35,12 @@ function Horizon({
   tokenStorage.setAuthFromQueryParams()
 
   const url = `ws${secure ? 's' : ''}:\/\/${host}\/${path}`
-  const socket = new HorizonSocket(url, tokenStorage.handshake())
+  const socket = new HorizonSocket({
+    url,
+    handshakeMessage: tokenStorage.handshake(),
+    keepalive,
+    WebSocketCtor,
+  })
 
   // Store whatever token we get back from the server when we get a
   // handshake response
@@ -114,7 +121,7 @@ function Horizon({
     // Both remove and removeAll use the type 'remove' in the protocol
     const normalizedType = type === 'removeAll' ? 'remove' : type
     return socket
-      .makeRequest({ type: normalizedType, options }) // send the raw request
+      .multiplex({ type: normalizedType, options }) // send the raw request
       .concatMap(resp => {
         // unroll arrays being returned
         if (resp.data) {
@@ -124,9 +131,6 @@ function Horizon({
           return Observable.from([ { state: resp.state, type: resp.type } ])
         }
       })
-      .catch(e => Observable.create(subscriber => {
-        subscriber.error(e)
-      })) // on error, strip error message
   }
 }
 
