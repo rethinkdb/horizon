@@ -40,7 +40,7 @@ export class HorizonSocket extends WebSocketSubject {
   // Deserializes a message from a string. Overrides the version
   // implemented in WebSocketSubject
   resultSelector(e) {
-    const result = deserialize(e.data)
+    const result = deserialize(JSON.parse(e.data))
     if (result.error !== undefined) {
       throw new ProtocolError(result.error, result.error_code)
     } else {
