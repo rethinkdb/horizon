@@ -89,6 +89,7 @@ export class HorizonSocket extends WebSocketSubject {
     this.keepalive = Observable
       .timer(keepalive * 1000, keepalive * 1000)
       .map(n => this._multiplex({ type: 'keepalive', n }))
+      .publish()
 
     // This is used to emit status changes that others can hook into.
     this.status = new BehaviorSubject(STATUS_UNCONNECTED)
@@ -134,23 +135,20 @@ export class HorizonSocket extends WebSocketSubject {
   sendHandshake() {
     this._handshakeSub = this._multiplex(this._handshakeMsg)
       .subscribe({
-        next(n) {
+        next: n => {
           status.next(STATUS_READY)
           this.handshake.next(n)
           this.handshake.complete()
         },
-        error(e) {
+        error: e => {
           this.status.next(STATUS_ERROR)
           this.handshake.error(e)
-        },
+        }
       })
 
-    // Start the keepalive. While it has a request_id, we don't
-    // actually care about responses.
-    const keepAliveSub = this.keepalive.subscribe()
-
-    // Make sure keepalive is killed when the handshake is cleaned up
-    this._handshakeSub.add(keepAliveSub)
+    // Start the keepalive and make sure it's
+    // killed when the handshake is cleaned up
+    this._handshakeSub.add(this.keepalive.connect())
   }
 
   // Internal wrapper around the superclass's version of multiplex.
