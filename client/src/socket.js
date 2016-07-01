@@ -90,7 +90,6 @@ export class HorizonSocket extends WebSocketSubject {
     this.status = new BehaviorSubject(STATUS_UNCONNECTED)
     // Keep track of subscribers so we's can decide when to
     // unsubscribe.
-    this.activeSubscribers = 0
     this.requestCounter = 0
     this.keepalive = keepalive
     // A map from request_ids to an object with metadata about the
