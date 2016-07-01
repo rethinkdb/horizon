@@ -196,13 +196,6 @@ export class HorizonSocket extends WebSocketSubject {
       return { request_id: requestId, type: 'end_subscription' }
     }
 
-    // Ensure the handshake is complete successfully before sending
-    // our request. this.handshake is an AsyncSubject which acts
-    // like a Promise and caches its value.
-    this.handshake.subscribe({
-      complete: () => this.next(request),
-    })
-
     return this.handshake.ignoreElements().concat(
       super.multiplex(subMsg, unsubMsg, resp => resp.request_id === requestId)
     ).concatMap(resp => {

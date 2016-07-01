@@ -14,6 +14,16 @@ import { assertCompletes, removeAllData, compareSetsWithoutVersion } from './uti
 // Test the methods and event callbacks on the Horizon object.
 describe('Horizon Object API', horizonObjectSuite)
 
+function wrappedDone(done) {
+  let alreadyDone = false
+  return (...args) => {
+    if (!alreadyDone) {
+      alreadyDone = true
+      done(...args)
+    }
+  }
+}
+
 // Test the core client library API
 describe('Core API tests', () => {
   // The connection for our tests
@@ -27,23 +37,18 @@ describe('Core API tests', () => {
     Horizon.clearAuthTokens()
     horizon = Horizon({ secure: false, lazyWrites: true })
     horizon.connect(err => done(err))
+    const wDone = wrappedDone(done)
     horizon.onReady(() => {
       data = horizon('test_data')
-      done()
+      wDone()
     })
   })
 
   // Kill the horizon connection after running these tests.
   after(done => {
-    let alreadyDone = false
-    function wrappedDone(...args) {
-      if (!alreadyDone) {
-        alreadyDone = true
-        return done(...args)
-      }
-    }
+    const wDone = wrappedDone(done)
     horizon.disconnect()
-    horizon.onDisconnected(() => wrappedDone())
+    horizon.onDisconnected(() => wDone())
   })
 
   // Test the mutation commands
