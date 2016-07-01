@@ -122,15 +122,7 @@ function Horizon({
     const normalizedType = type === 'removeAll' ? 'remove' : type
     return socket
       .multiplex({ type: normalizedType, options }) // send the raw request
-      .concatMap(resp => {
-        // unroll arrays being returned
-        if (resp.data) {
-          return Observable.from(resp.data)
-        } else {
-          // Still need to emit a document even if we have no new data
-          return Observable.from([ { state: resp.state, type: resp.type } ])
-        }
-      })
+      .takeWhile(resp => resp.state !== 'complete')
   }
 }
 

@@ -86,12 +86,15 @@ export class HorizonSocket extends WebSocketSubject {
     this._handshakeMsg = handshakeMessage
     this._handshakeSub = null
 
+    this.keepalive = Observable
+      .timer(keepalive * 1000, keepalive * 1000)
+      .map(n => this._multiplex({ type: 'keepalive', n }))
+
     // This is used to emit status changes that others can hook into.
     this.status = new BehaviorSubject(STATUS_UNCONNECTED)
     // Keep track of subscribers so we's can decide when to
     // unsubscribe.
     this.requestCounter = 0
-    this.keepalive = keepalive
     // A map from request_ids to an object with metadata about the
     // request. Eventually, this should allow re-sending requests when
     // reconnecting.
@@ -103,74 +106,64 @@ export class HorizonSocket extends WebSocketSubject {
     })
   }
 
-  deactivateRequest(requestId) {
-    this.activeRequests.delete(requestId)
+  deactivateRequest(req) {
+    return () => {
+      this.activeRequests.delete(req.request_id)
+      return { request_id: req.request_id, type: 'end_subscription' }
+    }
   }
 
-  activateRequest(requestId, request) {
-    this.activeRequests.set(requestId, { request })
+  activateRequest(req) {
+    return () => {
+      this.activeRequests.set(req.request_id, req)
+      return req
+    }
   }
 
-  getRequestId() {
-    return this.requestCounter++
+  filterRequest(req) {
+    return (resp) => resp.request_id === req.request_id
+  }
+
+  getRequest(request) {
+    return Object.assign({ request_id: this.requestCounter++ }, request)
   }
 
   // This is a trimmed-down version of multiplex that only listens for
-  // the handshake requestId, and doesn't send `end_subscription`
-  // messages etc that aren't needed. It also starts the keepalive
-  // observable and cleans up after it when the handshake is cleaned
-  // up.
+  // the handshake requestId. It also starts the keepalive observable
+  // and cleans up after it when the handshake is cleaned up.
   sendHandshake() {
-    const requestId = this.getRequestId()
-    const handshake = this.handshake
-    const status = this.status
-
-    const request = Object.assign({ request_id: requestId }, this._handshakeMsg)
-
-    const subMsg = () => {
-      this.activateRequest(requestId, request)
-      return request
-    }
-
-    const unsubMsg = () => {
-      this.deactivateRequest(requestId)
-      return { request_id: requestId, type: 'end_subscription' }
-    }
-
-    const filter = resp => resp.request_id === requestId
-
-    this._handshakeSub = super.multiplex(subMsg, unsubMsg, filter)
+    this._handshakeSub = this._multiplex(this._handshakeMsg)
       .subscribe({
-        next: n => {
-          handshake.next(n)
-          handshake.complete()
+        next(n) {
+          status.next(STATUS_READY)
+          this.handshake.next(n)
+          this.handshake.complete()
         },
-        error: e => {
-          handshake.error(e)
+        error(e) {
+          this.status.next(STATUS_ERROR)
+          this.handshake.error(e)
         },
       })
 
-    // Emit our status events
-    handshake.subscribe({
-      next: () => status.next(STATUS_READY),
-      error: () => status.next(STATUS_ERROR),
-      // You'd think, since above we call handshake.complete(), this
-      // would have a completion handler right? Wrong! The
-      // AsyncSubject doesn't actually complete when you call
-      // complete. That just forces it to emit its last value.
-    })
-
     // Start the keepalive. While it has a request_id, we don't
     // actually care about responses.
-    const keepAliveSub = Observable
-            .timer(this.keepalive * 1000, this.keepalive * 1000)
-            .map(n => ({
-              type: 'keepalive',
-              n,
-              request_id: this.getRequestId(),
-            })).subscribe(ka => this.next(ka))
+    const keepAliveSub = this.keepalive.subscribe()
+
     // Make sure keepalive is killed when the handshake is cleaned up
     this._handshakeSub.add(keepAliveSub)
+  }
+
+  // Internal wrapper around the superclass's version of multiplex.
+  // Incorporates shared logic between the inital handshake request and
+  // all subsequent requests.
+  _multiplex(rawRequest) {
+    const request = this.getRequest(rawRequest)
+
+    return super.multiplex(
+      this.activateRequest(request),
+      this.deactivateRequest(request),
+      this.filterRequest(request)
+    )
   }
 
   // Wrapper around the superclass's version of multiplex. With the
@@ -182,43 +175,20 @@ export class HorizonSocket extends WebSocketSubject {
   // * Completes when `state: complete` is received
   // * Emits `state: synced` as a separate document for easy filtering
   multiplex(rawRequest) {
-    const requestId = this.getRequestId()
-    const request = Object.assign({ request_id: requestId }, rawRequest)
+    return this.handshake.ignoreElements()
+      .concat(this._multiplex(rawRequest))
+      .concatMap(resp => {
+        const data = resp.data || []
 
-    const subMsg = () => {
-      this.activateRequest(requestId, request)
-      return request
-    }
+        if (resp.state !== undefined) {
+          // Create a little dummy object for sync notifications
+          data.push({
+            type: 'state',
+            state: resp.state,
+          })
+        }
 
-    const unsubMsg = () => {
-      this.deactivateRequest(requestId)
-      return { request_id: requestId, type: 'end_subscription' }
-    }
-
-    return this.handshake.ignoreElements().concat(
-      super.multiplex(subMsg, unsubMsg, resp => resp.request_id === requestId)
-    ).concatMap(resp => {
-      const data = []
-      if (resp.data !== undefined) {
-        data.push(resp)
-      }
-      if (resp.state === 'synced') {
-        // Create a little dummy object for sync notifications
-        data.push({
-          type: 'state',
-          state: 'synced',
-        })
-      }
-      // This is emitted just so we can finish the observable for this
-      // request in the `takeWhile` below. `takeWhile` doesn't emit
-      // the first non-matching event, so this will never make it to
-      // the client.
-      if (resp.state === 'complete') {
-        // This isn't an object event so that things will break loudly
-        // if the logic changes
-        data.push('complete')
-      }
-      return data
-    }).takeWhile(resp => resp !== 'complete')
+        return data
+      })
   }
 }
