@@ -136,7 +136,7 @@ export class HorizonSocket extends WebSocketSubject {
     this._handshakeSub = this._multiplex(this._handshakeMsg)
       .subscribe({
         next: n => {
-          status.next(STATUS_READY)
+          this.status.next(STATUS_READY)
           this.handshake.next(n)
           this.handshake.complete()
         },
