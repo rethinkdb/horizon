@@ -12,7 +12,6 @@ const options_schema = Joi.object().keys({
   path: Joi.string().required(),
   id: Joi.string().required(),
   secret: Joi.string().required(),
-  redirect_url: Joi.string().required(),
   host: Joi.string().required()
 }).unknown(false);
 
@@ -22,11 +21,11 @@ function auth0(horizon, raw_options) {
   const client_id = options.id;
   const client_secret = options.secret;
   const provider = options.path;
-  const return_url = options.redirect_url;
+  const return_url = horizon._auth._success_redirect.href.slice(0,-1);
   const host = options.host;
   
-  const self_url = (host, path) =>
-    url.format({ protocol: 'https', host: host, pathname: path });
+  const self_url = (self_host, path) =>
+    url.format({ protocol: 'https', host: self_host, pathname: path });
 
   const make_acquire_url = (state, redirect_uri) =>
     url.format({ protocol: 'https',
@@ -55,7 +54,7 @@ function auth0(horizon, raw_options) {
     logger.debug(`oauth request: ${JSON.stringify(request_url)}`);
     if (error) {
       const description = request_url.query.error_description || error;
-      do_redirect(res, make_failure_url(description));
+      auth_utils.do_redirect(res, make_failure_url(description));
     } else if (!access_token) {
       // We need to redirect to the API to acquire a token, then come back and try again
       // Generate a nonce to track this client session to prevent CSRF attacks
