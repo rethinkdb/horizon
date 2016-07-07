@@ -39,16 +39,16 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
       }
     },
     (rows) => // write to database, all valid rows
-      r.expr(rows.map((x) => ({ id: x.id, [writes.version_field]: x[writes.version_field] }))).do((row_data) =>
+      r.expr(rows).do((row_data) =>
         row_data.forEach((info) =>
           collection.table.get(info('id')).replace((row) =>
               r.branch(// The row may have been deleted between the get and now
                        row.eq(null),
                        null,
 
-                       // The row may have been changed between the get and now,
-                       // which would require validation again.
-                       row(writes.version_field).default(-1).ne(info(writes.version_field)),
+                       // The row may have been changed between the get and now
+                       r.and(info.hasFields(writes.version_field),
+                             row(writes.version_field).default(-1).ne(info(writes.version_field))),
                        r.error(writes.invalidated_msg),
 
                        // Otherwise, we can safely remove the row

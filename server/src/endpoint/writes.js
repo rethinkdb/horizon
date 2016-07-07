@@ -25,6 +25,9 @@ const make_write_response = (data) => {
 
 // This function returns a Promise that resolves to an array of responses - one for each row in
 //  `original_rows`, or rejects with an appropriate error.
+// timeout -> integer
+//   minimum number of milliseconds before giving up on retrying writes
+//   null means no timeout
 // pre_validate -> function (rows):
 //   rows: all pending rows
 //   return: a (promise of an) array of info for those rows (which will be passed to the validate step)
@@ -45,15 +48,17 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
   const iterate = () => {
     if (row_data.length === 0) {
       return response_data;
-    } else if (!deadline) {
-      deadline = Date.now() + timeout;
-    } else if (Date.now() > deadline) {
-      response_data.forEach((data, index) => {
-        if (data === null) {
-          response_data[index] = new Error(timeout_msg);
-        }
-      });
-      return response_data;
+    } else if (timeout !== null) {
+      if (!deadline) {
+        deadline = Date.now() + timeout;
+      } else if (Date.now() > deadline) {
+        response_data.forEach((data, index) => {
+          if (data === null) {
+            response_data[index] = new Error(timeout_msg);
+          }
+        });
+        return response_data;
+      }
     }
 
     return Promise.resolve().then(() => {
@@ -101,7 +106,7 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
           if (res.error.indexOf('Duplicate primary key') === 0) {
             response_data[data.index] = { error: 'The document already exists.' };
           } else if (res.error.indexOf(invalidated_msg) === 0 &&
-                     data.version !== undefined) {
+                     data.version === undefined) {
             retry_rows.push(data);
           } else {
             response_data[data.index] = { error: res.error };
@@ -120,7 +125,10 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
     });
   };
 
-  return iterate().then(make_write_response);
+  return iterate().then(make_write_response).catch((err) => {
+    console.log(`Write error: ${err.stack}`);
+    throw err;
+  });
 };
 
 module.exports = {

@@ -53,7 +53,8 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                          ),
                          r.branch(
                            // The row may have changed from the expected version
-                           old_row(writes.version_field).default(-1).ne(new_row(writes.version_field)),
+                           r.and(new_row.hasFields(writes.version_field),
+                                 old_row(writes.version_field).default(-1).ne(new_row(writes.version_field))),
                            r.error(writes.invalidated_msg),
 
                            // Otherwise, we can safely overwrite the row

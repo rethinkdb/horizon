@@ -7,7 +7,7 @@ const assert = require('assert');
 const crypto = require('crypto');
 
 const hz_v = horizon_writes.version_field;
-const invalidated_error = horizon_writes.invalidated_error;
+const invalidated_msg = horizon_writes.invalidated_msg;
 
 // Before each test, ids [0, 4) will be present in the collection
 const original_data = [
@@ -227,7 +227,7 @@ const all_tests = (collection) => {
 
       it('incorrect version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
-          const expected = [ { error: invalidated_error } ];
+          const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
         });
@@ -247,7 +247,7 @@ const all_tests = (collection) => {
 
       it('incorrect version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
-          const expected = [ { error: invalidated_error } ];
+          const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
         });
@@ -267,7 +267,7 @@ const all_tests = (collection) => {
 
       it('incorrect version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
-          const expected = [ { error: invalidated_error } ];
+          const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
         });
@@ -287,7 +287,7 @@ const all_tests = (collection) => {
 
       it('incorrect version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
-          const expected = [ { error: invalidated_error } ];
+          const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
         });
@@ -307,7 +307,7 @@ const all_tests = (collection) => {
 
       it('incorrect version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
-          const expected = [ { error: invalidated_error } ];
+          const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
         });
@@ -333,7 +333,7 @@ const all_tests = (collection) => {
 
       it('specified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
-          const expected = [ { error: invalidated_error } ];
+          const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
         });
@@ -353,7 +353,7 @@ const all_tests = (collection) => {
 
       it('specified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
-          const expected = [ { error: invalidated_error } ];
+          const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
         });
@@ -373,7 +373,7 @@ const all_tests = (collection) => {
 
       it('specified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
-          const expected = [ { error: invalidated_error } ];
+          const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
         });
@@ -393,7 +393,7 @@ const all_tests = (collection) => {
 
       it('specified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
-          const expected = [ { error: invalidated_error } ];
+          const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
         });
@@ -413,7 +413,7 @@ const all_tests = (collection) => {
 
       it('specified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
-          const expected = [ { error: invalidated_error } ];
+          const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
         });

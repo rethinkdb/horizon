@@ -25,16 +25,16 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
         .run(conn, reql_options),
     (row, info) => { // validation, each row
       if (info === null) {
-        return new Error(writes.missing_error);
+        return new Error(writes.missing_msg);
       }
 
       const old_version = info[0][writes.version_field];
       const expected_version = row[writes.version_field];
       if (expected_version !== undefined &&
           expected_version !== old_version) {
-        return new Error(writes.invalidated_error);
+        return new Error(writes.invalidated_msg);
       } else if (!ruleset.validate(context, info[0], info[1])) {
-        return new Error(writes.unauthorized_error);
+        return new Error(writes.unauthorized_msg);
       }
 
       if (expected_version === undefined) {
@@ -48,11 +48,12 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           collection.table.get(new_row('id')).replace((old_row) =>
               r.branch(// The row may have been deleted between the get and now
                        old_row.eq(null),
-                       r.error(writes.missing_error),
+                       r.error(writes.missing_msg),
 
                        // The row may have been changed between the get and now
-                       old_row(writes.version_field).default(-1).ne(new_row(writes.version_field)),
-                       r.error(writes.invalidated_error),
+                       r.and(new_row.hasFields(writes.version_field),
+                             old_row(writes.version_field).default(-1).ne(new_row(writes.version_field))),
+                       r.error(writes.invalidated_msg),
 
                        // Otherwise we can safely update the row and increment the version
                        writes.apply_version(old_row.merge(new_row), old_row(writes.version_field).default(-1).add(1))),

@@ -19,7 +19,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
       Array(rows.length).fill(null),
     (row, info) => { // validation, each row
       if (!ruleset.validate(context, info, row)) {
-        return new Error(writes.unauthorized_error);
+        return new Error(writes.unauthorized_msg);
       }
     },
     (rows) => // write to database, all valid rows
