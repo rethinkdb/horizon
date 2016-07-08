@@ -73,7 +73,7 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
 
       if (ruleset.validation_required()) {
         // For the set of rows to write, gather info for the validation step
-        return pre_validate(row_data.map((data) => data.row)).then((infos) => {
+        return Promise.resolve(pre_validate(row_data.map((data) => data.row))).then((infos) => {
           check(infos.length === row_data.length);
 
           // For each row to write (and info), validate it with permissions
@@ -125,10 +125,7 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
     });
   };
 
-  return iterate().then(make_write_response).catch((err) => {
-    console.log(`Write error: ${err.stack}`);
-    throw err;
-  });
+  return iterate().then(make_write_response);
 };
 
 module.exports = {

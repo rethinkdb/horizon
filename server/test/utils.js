@@ -55,6 +55,12 @@ const table = (collection) =>
                  r.error('Collection does not exist.'),
                  row('table'))));
 
+const make_admin_token = () => {
+  const jwt = horizon_server && horizon_server._auth && horizon_server._auth._jwt;
+  assert(jwt);
+  return jwt.sign({ id: 'admin', provider: null }).token;
+};
+
 // Creates a collection, no-op if it already exists, uses horizon server prereqs
 const create_collection = (collection, done) => {
   assert.notStrictEqual(horizon_server, undefined);
@@ -197,15 +203,8 @@ const horizon_auth = (req, cb) => {
   });
 };
 
-const make_admin_token = () => {
-  const jwt = horizon_server && horizon_server._auth && horizon_server._auth._jwt;
-  assert(jwt);
-  return jwt.sign({ id: 'admin', provider: null }).token;
-}
-
 // Create a token for the admin user and use that to authenticate
 const horizon_admin_auth = (done) => {
-
   horizon_auth({ request_id: -1, method: 'token', token: make_admin_token() }, (res) => {
     assert.strictEqual(res.request_id, -1);
     assert.strictEqual(typeof res.token, 'string');

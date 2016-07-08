@@ -60,7 +60,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
             res.merge({ changes:
               r.range(row_data.count()).map((index) =>
                 r.branch(res('changes')(index)('old_val').eq(null),
-                         res('changes')(index).merge({ old_val: row_data(index) }),
+                         res('changes')(index).merge({ old_val: { id: row_data(index)('id') } }),
                          res('changes')(index))).coerceTo('array'),
             })))
         .run(conn, reql_options)
