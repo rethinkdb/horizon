@@ -46,19 +46,19 @@ module.exports = function(buildTarget) {
         // filesystem (node) or window global.
         if (!POLYFILL && /^rxjs\/?/.test(request)) {
           callback(null, {
-          // If loaded via script tag, has to be at window.Rx when
-          // library loads
-          root: 'Rx',
-          // Otherwise imported via `require('rx')`
-          commonjs: 'rxjs',
-          commonjs2: 'rxjs',
-          amd: 'rxjs'
-        })
+            // If loaded via script tag, has to be at window.Rx when
+            // library loads
+            root: 'Rx',
+            // Otherwise imported via `require('@reactivex/rxjs')`
+            commonjs: '@reactivex/rxjs',
+            commonjs2: '@reactivex/rxjs',
+            amd: '@reactivex/rxjs',
+          })
         } else {
           callback()
         }
       },
-      { ws: 'commonjs ws' }
+      { ws: 'commonjs ws' },
     ],
     debug: DEV_BUILD,
     devtool: SOURCEMAPS ? (DEV_BUILD ? 'source-map' : 'source-map') : false,
@@ -86,8 +86,8 @@ module.exports = function(buildTarget) {
         'process.env.NODE_ENV': (DEV_BUILD ? 'development' : 'production'),
       }),
       new ProvidePlugin({
-        'Promise': 'es6-promise',
-        'fetch': 'imports?this=>global!exports?global.fetch!whatwg-fetch'
+        Promise: 'es6-promise',
+        fetch: 'imports?this=>global!exports?global.fetch!whatwg-fetch'
       }),
     ].concat(DEV_BUILD ? [] : [
       new DedupePlugin(),

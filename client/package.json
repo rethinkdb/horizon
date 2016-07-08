@@ -18,9 +18,11 @@
     "core-js": "^2.1.0",
     "whatwg-fetch": "^1.0.0",
     "es6-promise": "^3.2.1",
-    "rxjs": "reactivex/rxjs#cd8cdd0",
     "snake-case": "^1.1.2",
     "ws": "^1.1.0"
+  },
+  "peerDependencies": {
+      "@reactivex/rxjs": ">=5.0.0-beta.10"
   },
   "engines": {
     "node": ">=4.0.0"
@@ -50,6 +52,7 @@
     "webpack": "^1.12.14"
   },
   "main": "lib/index.js",
+  "jsnext:main": "src/index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/rethinkdb/horizon.git"

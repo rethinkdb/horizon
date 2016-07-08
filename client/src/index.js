@@ -111,7 +111,7 @@ function Horizon({
   horizon._authMethods = null
   horizon._horizonPath = `http${(secure) ? 's' : ''}://${host}/${path}`
   horizon.authEndpoint = authEndpoint
-  horizon.hasAuthToken = ::tokenStorage.hasAuthToken
+  horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
 
   return horizon
 
