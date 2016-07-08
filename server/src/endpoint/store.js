@@ -3,6 +3,7 @@
 const store = require('../schema/horizon_protocol').store;
 const reql_options = require('./common').reql_options;
 const writes = require('./writes');
+const hz_v = writes.version_field;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
@@ -20,19 +21,18 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
         .map((id) => r.branch(id.eq(null), null, collection.table.get(id)))
         .run(conn, reql_options),
     (row, info) => { // validation, each row
-      const expected_version = row[writes.version_field];
+      const expected_version = row[hz_v];
       if (expected_version !== undefined &&
-          (!info || expected_version !== info[writes.version_field])) {
+          (!info || expected_version !== info[hz_v])) {
         return new Error(writes.invalidated_msg);
       } else if (!ruleset.validate(context, info, row)) {
         return new Error(writes.unauthorized_msg);
       }
 
       if (info !== null) {
-        const old_version = info[writes.version_field];
+        const old_version = info[hz_v];
         if (expected_version === undefined) {
-          row[writes.version_field] =
-            old_version === undefined ? -1 : old_version;
+          row[hz_v] = old_version === undefined ? -1 : old_version;
         }
       }
     },
@@ -45,7 +45,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                          old_row.eq(null),
                          r.branch(
                            // Error if we were expecting the row to exist
-                           new_row.hasFields(writes.version_field),
+                           new_row.hasFields(hz_v),
                            r.error(writes.invalidated_msg),
 
                            // Otherwise, insert the row
@@ -53,12 +53,12 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                          ),
                          r.branch(
                            // The row may have changed from the expected version
-                           r.and(new_row.hasFields(writes.version_field),
-                                 old_row(writes.version_field).default(-1).ne(new_row(writes.version_field))),
+                           r.and(new_row.hasFields(hz_v),
+                                 old_row(hz_v).default(-1).ne(new_row(hz_v))),
                            r.error(writes.invalidated_msg),
 
                            // Otherwise, we can safely overwrite the row
-                           writes.apply_version(new_row, old_row(writes.version_field).default(-1).add(1))
+                           writes.apply_version(new_row, old_row(hz_v).default(-1).add(1))
                          )
                        ), { returnChanges: 'always' }),
 

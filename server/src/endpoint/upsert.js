@@ -3,6 +3,7 @@
 const upsert = require('../schema/horizon_protocol').upsert;
 const reql_options = require('./common').reql_options;
 const writes = require('./writes');
+const hz_v = writes.version_field;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
@@ -26,19 +27,18 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                    [ null, new_row ]))
         .run(conn, reql_options),
     (row, info) => { // validation, each row
-      const expected_version = row[writes.version_field];
+      const expected_version = row[hz_v];
       if (expected_version !== undefined &&
-          (!info[0] || expected_version !== info[0][writes.version_field])) {
+          (!info[0] || expected_version !== info[0][hz_v])) {
         return new Error(writes.invalidated_msg);
       } else if (!ruleset.validate(context, info[0], info[1])) {
         return new Error(writes.unauthorized_msg);
       }
 
       if (info[0] !== null) {
-        const old_version = info[0][writes.version_field];
+        const old_version = info[0][hz_v];
         if (expected_version === undefined) {
-          row[writes.version_field] =
-            old_version === undefined ? -1 : old_version;
+          row[hz_v] = old_version === undefined ? -1 : old_version;
         }
       }
     },
@@ -51,7 +51,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                          old_row.eq(null),
                          r.branch(
                            // Error if we were expecting the row to exist
-                           new_row.hasFields(writes.version_field),
+                           new_row.hasFields(hz_v),
                            r.error(writes.invalidated_msg),
 
                            // Otherwise, insert the row
@@ -59,12 +59,12 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                          ),
                          r.branch(
                            // The row may have changed from the expected version
-                           r.and(new_row.hasFields(writes.version_field),
-                                 old_row(writes.version_field).default(-1).ne(new_row(writes.version_field))),
+                           r.and(new_row.hasFields(hz_v),
+                                 old_row(hz_v).default(-1).ne(new_row(hz_v))),
                            r.error(writes.invalidated_msg),
 
                            // Otherwise, we can safely update the row and increment the version
-                           writes.apply_version(old_row.merge(new_row), old_row(writes.version_field).default(-1).add(1))
+                           writes.apply_version(old_row.merge(new_row), old_row(hz_v).default(-1).add(1))
                          )
                        ), { returnChanges: 'always' }),
 

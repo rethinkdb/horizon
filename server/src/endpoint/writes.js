@@ -11,8 +11,8 @@ const missing_msg = 'The document was missing.';
 const timeout_msg = 'Operation timed out.';
 const unauthorized_msg = 'Operation not permitted.';
 
-const version_field = '$hz_v$';
-const apply_version = (row, new_version) => row.merge(r.object(version_field, new_version));
+const hz_v = '$hz_v$';
+const apply_version = (row, new_version) => row.merge(r.object(hz_v, new_version));
 
 const make_write_response = (data) => {
   data.forEach((item, index) => {
@@ -42,7 +42,7 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
   const response_data = Array(original_rows.length).fill(null);
 
   // Save original version fields, which may get clobbered, so we don't have to copy everything
-  let row_data = original_rows.map((row, index) => ({ row, index, version: row[version_field] }));
+  let row_data = original_rows.map((row, index) => ({ row, index, version: row[hz_v] }));
   let deadline;
 
   const iterate = () => {
@@ -65,9 +65,9 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
       // Gather all rows to write
       row_data.forEach((data) => {
         if (data.version === undefined) {
-          delete data.row[version_field];
+          delete data.row[hz_v];
         } else {
-          data.row[version_field] = data.version;
+          data.row[hz_v] = data.version;
         }
       });
 
@@ -112,9 +112,9 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
             response_data[data.index] = { error: res.error };
           }
         } else if (res.new_val === null) {
-          response_data[data.index] = { id: res.old_val.id, [version_field]: res.old_val[version_field] };
+          response_data[data.index] = { id: res.old_val.id, [hz_v]: res.old_val[hz_v] };
         } else {
-          response_data[data.index] = { id: res.new_val.id, [version_field]: res.new_val[version_field] };
+          response_data[data.index] = { id: res.new_val.id, [hz_v]: res.new_val[hz_v] };
         }
       });
 
@@ -134,7 +134,7 @@ module.exports = {
   timeout_msg,
   unauthorized_msg,
   make_write_response,
-  version_field,
+  version_field: hz_v,
   apply_version,
   retry_loop,
 };

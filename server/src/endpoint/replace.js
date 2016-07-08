@@ -3,6 +3,7 @@
 const replace = require('../schema/horizon_protocol').replace;
 const reql_options = require('./common').reql_options;
 const writes = require('./writes');
+const hz_v = writes.version_field;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
@@ -24,8 +25,8 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
         return new Error(writes.missing_msg);
       }
 
-      const old_version = info && info[writes.version_field];
-      const expected_version = row[writes.version_field];
+      const old_version = info && info[hz_v];
+      const expected_version = row[hz_v];
       if (expected_version !== undefined &&
           expected_version !== old_version) {
         return new Error(writes.invalidated_msg);
@@ -34,8 +35,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
       }
 
       if (expected_version === undefined) {
-        row[writes.version_field] =
-          old_version === undefined ? -1 : old_version;
+        row[hz_v] = old_version === undefined ? -1 : old_version;
       }
     },
     (rows) => // write to database, all valid rows
@@ -47,12 +47,12 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                        r.error(writes.missing_msg),
 
                        // The row may have been changed between the get and now
-                       r.and(new_row.hasFields(writes.version_field),
-                             old_row(writes.version_field).default(-1).ne(new_row(writes.version_field))),
+                       r.and(new_row.hasFields(hz_v),
+                             old_row(hz_v).default(-1).ne(new_row(hz_v))),
                        r.error(writes.invalidated_msg),
 
                        // Otherwise, we can safely replace the row
-                       writes.apply_version(new_row, old_row(writes.version_field).default(-1).add(1))),
+                       writes.apply_version(new_row, old_row(hz_v).default(-1).add(1))),
               { returnChanges: 'always' }))
       .run(conn, reql_options)
   ).then(done).catch(done);

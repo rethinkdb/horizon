@@ -3,6 +3,7 @@
 const remove = require('../schema/horizon_protocol').remove;
 const reql_options = require('./common').reql_options;
 const writes = require('./writes');
+const hz_v = writes.version_field;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
@@ -24,8 +25,8 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
         return { id: row.id }; // Just pretend we deleted it
       }
 
-      const old_version = info[writes.version_field];
-      const expected_version = row[writes.version_field];
+      const old_version = info[hz_v];
+      const expected_version = row[hz_v];
       if (expected_version !== undefined &&
           expected_version !== old_version) {
         return new Error(writes.invalidated_msg);
@@ -33,9 +34,8 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
         return new Error(writes.unauthorized_msg);
       }
 
-      if (row[writes.version_field] === undefined) {
-        row[writes.version_field] =
-          old_version === undefined ? -1 : old_version;
+      if (row[hz_v] === undefined) {
+        row[hz_v] = old_version === undefined ? -1 : old_version;
       }
     },
     (rows) => // write to database, all valid rows
@@ -47,8 +47,8 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                        null,
 
                        // The row may have been changed between the get and now
-                       r.and(info.hasFields(writes.version_field),
-                             row(writes.version_field).default(-1).ne(info(writes.version_field))),
+                       r.and(info.hasFields(hz_v),
+                             row(hz_v).default(-1).ne(info(hz_v))),
                        r.error(writes.invalidated_msg),
 
                        // Otherwise, we can safely remove the row
