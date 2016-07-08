@@ -7,7 +7,7 @@ const all_tests = (collection) => {
 
   before('Clear collection', (done) => utils.clear_collection(collection, done));
   before('Populate collection', (done) => utils.populate_collection(collection, num_rows, done));
-  beforeEach('Authenticate client', utils.horizon_default_auth);
+  beforeEach('Authenticate client', utils.horizon_admin_auth);
 };
 
 const suite = (collection) => describe('Subscribe', () => all_tests(collection));

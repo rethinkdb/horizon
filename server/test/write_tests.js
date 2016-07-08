@@ -82,9 +82,9 @@ const all_tests = (collection) => {
       () => null, (row, map) => map.set(row.id, row));
 
   beforeEach('Clear collection', (done) => utils.clear_collection(collection, done));
-  beforeEach('Authenticate', (done) => utils.horizon_default_auth(done));
 
   describe('Basic writes', () => {
+    beforeEach('Authenticate', (done) => utils.horizon_admin_auth(done));
     beforeEach('Populate collection', (done) => utils.populate_collection(collection, original_data, done));
 
     const request_from_ids = (type, ids) => make_request(type, ids.map(new_row_from_id));
@@ -210,8 +210,9 @@ const all_tests = (collection) => {
   });
 
   describe('Versioned', () => {
-    const test_data = [ { id: 'versioned', [hz_v]: 11, foo: 'bar' } ];
+    beforeEach('Authenticate', (done) => utils.horizon_admin_auth(done));
 
+    const test_data = [ { id: 'versioned', [hz_v]: 11, foo: 'bar' } ];
     beforeEach('Populate collection', (done) => utils.populate_collection(collection, test_data, done));
 
     describe('Store', () => {
@@ -219,6 +220,7 @@ const all_tests = (collection) => {
 
       it('correct version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 1, [hz_v]: 11 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { id: 'versioned', [hz_v]: 12 } ];
           assert.deepStrictEqual(res, expected);
           check_collection([ { id: 'versioned', [hz_v]: 12, value: 1 } ], done)
@@ -227,6 +229,7 @@ const all_tests = (collection) => {
 
       it('incorrect version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
@@ -239,6 +242,7 @@ const all_tests = (collection) => {
 
       it('correct version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 1, [hz_v]: 11 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { id: 'versioned', [hz_v]: 12 } ];
           assert.deepStrictEqual(res, expected);
           check_collection([ { id: 'versioned', [hz_v]: 12, value: 1 } ], done)
@@ -247,6 +251,7 @@ const all_tests = (collection) => {
 
       it('incorrect version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
@@ -259,6 +264,7 @@ const all_tests = (collection) => {
 
       it('correct version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 1, [hz_v]: 11 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { id: 'versioned', [hz_v]: 12 } ];
           assert.deepStrictEqual(res, expected);
           check_collection([ { id: 'versioned', [hz_v]: 12, value: 1, foo: 'bar' } ], done)
@@ -267,6 +273,7 @@ const all_tests = (collection) => {
 
       it('incorrect version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
@@ -279,6 +286,7 @@ const all_tests = (collection) => {
 
       it('correct version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 1, [hz_v]: 11 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { id: 'versioned', [hz_v]: 12 } ];
           assert.deepStrictEqual(res, expected);
           check_collection([ { id: 'versioned', [hz_v]: 12, value: 1, foo: 'bar' } ], done)
@@ -287,6 +295,7 @@ const all_tests = (collection) => {
 
       it('incorrect version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
@@ -299,6 +308,7 @@ const all_tests = (collection) => {
 
       it('correct version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 1, [hz_v]: 11 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { id: 'versioned', [hz_v]: 11 } ];
           assert.deepStrictEqual(res, expected);
           check_collection([ ], done)
@@ -307,6 +317,7 @@ const all_tests = (collection) => {
 
       it('incorrect version', (done) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
@@ -316,8 +327,9 @@ const all_tests = (collection) => {
   });
 
   describe('Versionless', () => {
-    const test_data = [ { id: 'versionless', foo: 'bar' } ];
+    beforeEach('Authenticate', (done) => utils.horizon_admin_auth(done));
 
+    const test_data = [ { id: 'versionless', foo: 'bar' } ];
     beforeEach('Populate collection', (done) => utils.populate_collection(collection, test_data, done));
 
     describe('Store', () => {
@@ -325,6 +337,7 @@ const all_tests = (collection) => {
 
       it('unspecified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 3 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { id: 'versionless', [hz_v]: 0 } ];
           assert.deepStrictEqual(res, expected);
           check_collection([ { id: 'versionless', [hz_v]: 0, value: 3 } ], done)
@@ -333,6 +346,7 @@ const all_tests = (collection) => {
 
       it('specified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
@@ -345,6 +359,7 @@ const all_tests = (collection) => {
 
       it('unspecified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 3 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { id: 'versionless', [hz_v]: 0 } ];
           assert.deepStrictEqual(res, expected);
           check_collection([ { id: 'versionless', [hz_v]: 0, value: 3 } ], done)
@@ -353,6 +368,7 @@ const all_tests = (collection) => {
 
       it('specified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
@@ -365,6 +381,7 @@ const all_tests = (collection) => {
 
       it('unspecified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 3 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { id: 'versionless', [hz_v]: 0 } ];
           assert.deepStrictEqual(res, expected);
           check_collection([ { id: 'versionless', [hz_v]: 0, value: 3, foo: 'bar' } ], done)
@@ -373,6 +390,7 @@ const all_tests = (collection) => {
 
       it('specified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
@@ -385,6 +403,7 @@ const all_tests = (collection) => {
 
       it('unspecified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 3 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { id: 'versionless', [hz_v]: 0 } ];
           assert.deepStrictEqual(res, expected);
           check_collection([ { id: 'versionless', [hz_v]: 0, value: 3, foo: 'bar' } ], done)
@@ -393,6 +412,7 @@ const all_tests = (collection) => {
 
       it('specified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
@@ -405,6 +425,7 @@ const all_tests = (collection) => {
 
       it('unspecified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 3 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { id: 'versionless' } ];
           assert.deepStrictEqual(res, expected);
           check_collection([ ], done)
@@ -413,10 +434,44 @@ const all_tests = (collection) => {
 
       it('specified version', (done) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
+          assert.ifError(err);
           const expected = [ { error: invalidated_msg } ];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done)
         });
+      });
+    });
+  });
+
+  // To guarantee multiple retries of a write, we combine a batch of writes
+  // for the same row (unspecified versions) with a validator.  This way, only one
+  // write will make it through each loop, although it is undefined in which order
+  // the writes occur.
+  describe('Retry', () => {
+    beforeEach('Authenticate', (done) => utils.horizon_default_auth(done));
+
+    const test_data = [ { id: 0, value: 0 } ];
+    beforeEach('Populate collection', (done) => utils.populate_collection(collection, test_data, done));
+
+    // Set a catch-all rule for the 'default' group so we can have a validator
+    before('Set rules', (done) => utils.set_group({
+      id: 'default',
+      rules: {
+        dummy: {
+          template: 'any()',
+          validator: '() => true',
+        }
+      },
+    }, done));
+
+    it('Update', (done) => {
+      utils.stream_test(make_request('update', [
+        { id: 0, a: 1 },
+        { id: 0, b: 2 },
+        { id: 0, b: 3 }
+      ]), (err, res) => {
+        assert.ifError(err);
+        done();
       });
     });
   });
