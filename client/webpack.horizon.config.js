@@ -44,9 +44,14 @@ module.exports = function(buildTarget) {
         // Selected modules are not packaged into horizon.js. Webpack
         // allows them to be required natively at runtime, either from
         // filesystem (node) or window global.
-        if (!POLYFILL && /^rxjs\/Observable/.test(request)) {
+        if (!POLYFILL && /^rxjs/.test(request)) {
           // If loaded via script tag, has to be at window.Rx when
           // library loads
+          //
+          // This will technically catch any rxjs/* requires, they
+          // will all get the Rx module back. This means the
+          // `rxjs/add/*` imports will technically also return Rx, but
+          // it doesn't matter since their results aren't used.
           callback(null, 'var Rx')
         } else {
           callback()
