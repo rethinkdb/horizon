@@ -16,7 +16,6 @@
   "dependencies": {
     "babel-runtime": "^6.6.1",
     "core-js": "^2.1.0",
-    "whatwg-fetch": "^1.0.0",
     "es6-promise": "^3.2.1",
     "snake-case": "^1.1.2",
     "ws": "^1.1.0"

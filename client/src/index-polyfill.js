@@ -31,11 +31,11 @@ require('rxjs/add/observable/throw')
 require('rxjs/add/observable/timer')
 require('rxjs/add/observable/zip')
 
-//dom
+// dom
 require('rxjs/add/observable/dom/ajax')
 require('rxjs/add/observable/dom/webSocket')
 
-//operators
+// operators
 require('rxjs/add/operator/buffer')
 require('rxjs/add/operator/bufferCount')
 require('rxjs/add/operator/bufferTime')
