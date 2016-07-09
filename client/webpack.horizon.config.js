@@ -6,7 +6,7 @@ const DefinePlugin = require('webpack/lib/DefinePlugin')
 const OccurrenceOrderPlugin = require(
   'webpack/lib/optimize/OccurrenceOrderPlugin')
 const UglifyJsPlugin = require('webpack/lib/optimize/UglifyJsPlugin')
-const ProvidePlugin = require('webpack/lib/ProvidePlugin');
+const ProvidePlugin = require('webpack/lib/ProvidePlugin')
 
 module.exports = function(buildTarget) {
   const FILENAME = buildTarget.FILENAME
@@ -44,16 +44,10 @@ module.exports = function(buildTarget) {
         // Selected modules are not packaged into horizon.js. Webpack
         // allows them to be required natively at runtime, either from
         // filesystem (node) or window global.
-        if (!POLYFILL && /^rxjs\/?/.test(request)) {
-          callback(null, {
-            // If loaded via script tag, has to be at window.Rx when
-            // library loads
-            root: 'Rx',
-            // Otherwise imported via `require('@reactivex/rxjs')`
-            commonjs: '@reactivex/rxjs',
-            commonjs2: '@reactivex/rxjs',
-            amd: '@reactivex/rxjs',
-          })
+        if (!POLYFILL && /^rxjs\/Observable/.test(request)) {
+          // If loaded via script tag, has to be at window.Rx when
+          // library loads
+          callback(null, 'var Rx')
         } else {
           callback()
         }
@@ -68,6 +62,7 @@ module.exports = function(buildTarget) {
       preLoaders: [],
       loaders: [
         {
+          // what to babelify
           test: /\.js$/,
           exclude: /node_modules/,
           loader: 'babel-loader',
@@ -75,6 +70,11 @@ module.exports = function(buildTarget) {
             cacheDirectory: true,
             extends: path.resolve(__dirname, 'src/.babelrc'),
           },
+        },
+        {
+          // ignore rxjs/add/* modules when not polyfilling
+          test: /^rxjs\/add/,
+          loader: 'noop',
         },
       ],
     },

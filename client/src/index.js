@@ -1,13 +1,9 @@
-import { Observable } from 'rxjs/Observable'
 import 'rxjs/add/observable/of'
 import 'rxjs/add/observable/from'
 import 'rxjs/add/operator/catch'
 import 'rxjs/add/operator/concatMap'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/filter'
-
-// Extra operators not used, but useful to Horizon end-users
-import 'rxjs/add/operator/defaultIfEmpty'
 
 import { Collection, UserDataTerm } from './ast'
 import { HorizonSocket } from './socket'
