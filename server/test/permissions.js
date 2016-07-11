@@ -97,6 +97,30 @@ describe('Permissions', () => {
       assert(rule.is_match(make_request('query', 'test', { find_all: [ { } ], fake: 'baz' }), context));
     });
 
+    it('single key in findAll', () => {
+      const rule = new Rule('foo', { template: 'collection("test").findAll({ owner: userId() }).fetch()' });
+      assert(rule.is_valid());
+      assert(!rule.is_match(make_request('query', 'test', { findAll: { } }), context));
+      assert(!rule.is_match(make_request('query', 'test', { findAll: true }), context));
+      assert(!rule.is_match(make_request('query', 'test', { findAll: [ ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { findAll: [ { bar: 'baz' } ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { findAll: [ { owner: (context.id + 1) } ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { findAll: [ { owner: context.id, bar: 'baz' } ] }), context));
+      assert(rule.is_match(make_request('query', 'test', { findAll: [ { owner: context.id } ] }), context));
+    });
+
+    it('multiple keys in findAll', () => {
+      const rule = new Rule('foo', { template: 'collection("test").findAll({ owner: userId(), key: any() }).fetch()' });
+      assert(rule.is_valid());
+      assert(!rule.is_match(make_request('query', 'test', { findAll: { } }), context));
+      assert(!rule.is_match(make_request('query', 'test', { findAll: true }), context));
+      assert(!rule.is_match(make_request('query', 'test', { findAll: [ ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { findAll: [ { bar: 'baz' } ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { findAll: [ { owner: (context.id + 1) } ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { findAll: [ { owner: context.id, bar: 'baz' } ] }), context));
+      assert(rule.is_match(make_request('query', 'test', { findAll: [ { owner: context.id, key: 123 } ] }), context));
+    });
+
     it('collection fetch', () => {
       const rule = new Rule('foo', { template: 'collection("test").fetch()' });
       assert(rule.is_valid());
