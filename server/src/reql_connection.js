@@ -6,10 +6,16 @@ const Metadata = require('./metadata/metadata').Metadata;
 const r = require('rethinkdb');
 const utils = require('./utils');
 
+const default_user = 'admin'
+const default_pass = '';
+
 class ReqlConnection {
-  constructor(host, port, project_name, auto_create_collection, auto_create_index) {
+  constructor(host, port, project_name, auto_create_collection, auto_create_index, user, pass, connect_timeout) {
     this._host = host;
     this._port = port;
+    this._user = user || default_user;
+    this._pass = pass || default_pass;
+    this._connect_timeout = connect_timeout || null;
     this._project_name = project_name;
     this._auto_create_collection = auto_create_collection;
     this._auto_create_index = auto_create_index;
@@ -57,10 +63,18 @@ class ReqlConnection {
     };
 
     if (!this._hasRetried) {
-      logger.info(`Connecting to RethinkDB: ${this._host}:${this._port}`);
+      logger.info(`Connecting to RethinkDB: ${this._user} @ ${this._host}:${this._port}`);
       this._hasRetried = true;
     }
-    r.connect({ host: this._host, port: this._port, db: this._project_name })
+    let rdb_conn = { host: this._host, port: this._port, db: this._project_name };
+    if (this._user) {
+        rdb_conn.user = this._user;
+        rdb_conn.password = this._pass;
+    }
+    if (this._connect_timeout) {
+        rdb_conn.timeout = this._connect_timeout;
+    }
+    r.connect(rdb_conn)
      .then((conn) => {
        logger.debug('Connection to RethinkDB established.');
        conn.once('close', () => {
