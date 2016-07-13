@@ -1,4 +1,5 @@
-'use strict'
+import { toArray } from 'rxjs/operator/toArray'
+import { take } from 'rxjs/operator/take'
 
 // Test object creation, the `disconnect` method, and `connected/disconnected`
 // events.
@@ -51,22 +52,13 @@ var horizonObjectSuite = global.horizonObjectSuite = () => {
       })
       assert.isDefined(horizon)
       let val = 0
-      horizon.status().subscribe(status => {
-        if (status.type === 'unconnected') {
-          assert.equal(val, 0)
-          assert.deepEqual(status, { type: 'unconnected' })
-          val += 1
-        } else if (status.type === 'error') {
-          assert.equal(val, 1)
-          assert.deepEqual(status, { type: 'error' })
-          val += 1
-        } else if (status.type === 'disconnected') {
-          assert.equal(val, 2)
-          assert.deepEqual(status, { type: 'disconnected' })
-          done()
-        } else {
-          done(new Error(`Got unexpected status: ${status.type}`))
-        }
+      horizon.status()::take(3)::toArray().subscribe(status => {
+        assert.deepEqual(status, [
+          { type: 'unconnected' },
+          { type: 'error' },
+          { type: 'disconnected' },
+        ])
+        done()
       })
       horizon.connect(() => {}) // no-op error handler, already covered
     })
