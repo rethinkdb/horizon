@@ -86,8 +86,7 @@ module.exports = function(buildTarget) {
         'process.env.NODE_ENV': (DEV_BUILD ? 'development' : 'production'),
       }),
       new ProvidePlugin({
-        'Promise': 'es6-promise',
-        'fetch': 'imports?this=>global!exports?global.fetch!whatwg-fetch'
+        Promise: 'es6-promise',
       }),
     ].concat(DEV_BUILD ? [] : [
       new DedupePlugin(),
