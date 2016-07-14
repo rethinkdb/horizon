@@ -57,7 +57,13 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
     }
 
     return Promise.resolve().then(() => {
-      // Gather all rows to write
+      // The validate callback may clobber the original version field in the row,
+      // so we have to restore it to the original value.
+      // This is done because validation only approves moving from one specific
+      // version of the row to another.  Even if the original request did not choose
+      // the version, we are locked in to the version fetched from the pre_validate
+      // callback until the next iteration.  If the version has changed in the meantime,
+      // it is an invalidated error which may be retried until we hit the deadline.
       row_data.forEach((data) => {
         if (data.version === undefined) {
           delete data.row[hz_v];
