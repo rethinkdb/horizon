@@ -1,9 +1,9 @@
 'use strict';
 
-const check = require('../error').check;
 const remove = require('../schema/horizon_protocol').remove;
 const reql_options = require('./common').reql_options;
 const writes = require('./writes');
+const hz_v = writes.version_field;
 
 const Joi = require('joi');
 const r = require('rethinkdb');
@@ -14,64 +14,40 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
 
   const collection = metadata.collection(parsed.value.collection);
   const conn = metadata.connection();
-  const response_data = [ ];
 
-  r.expr(parsed.value.data.map((row) => row.id))
-    .map((id) => collection.table.get(id))
-    .run(conn, reql_options)
-    .then((old_rows) => {
-      check(old_rows.length === parsed.value.data.length, 'Unexpected ReQL response size.');
-      const valid_info = [ ];
-      for (let i = 0; i < old_rows.length; ++i) {
-        if (old_rows[i] === null) {
-          // Just pretend we deleted it
-          response_data.push({ id: parsed.value.data[i].id });
-        } else if (!ruleset.validate(context, old_rows[i], null)) {
-          response_data.push(new Error(writes.unauthorized_error));
-        } else {
-          const info = { id: old_rows[i].id };
-          const old_version = old_rows[i][writes.version_field];
-          const new_version = parsed.value.data[i][writes.version_field];
-          if (new_version !== undefined) {
-            info[writes.version_field] = new_version;
-          } else if (old_version !== undefined) {
-            info[writes.version_field] = old_version;
-          } else {
-            info[writes.version_field] = -1;
-          }
-          valid_info.push(info);
-          response_data.push(null);
-        }
-      }
+  writes.retry_loop(parsed.value.data, ruleset, parsed.value.timeout,
+    (rows) => // pre-validation, all rows
+      r.expr(rows.map((row) => row.id))
+        .map((id) => collection.table.get(id))
+        .run(conn, reql_options),
+    (row, info) => writes.validate_old_row_required(row, info, null, ruleset),
+    (rows) => // write to database, all valid rows
+      r.expr(rows).do((row_data) =>
+        row_data.forEach((info) =>
+          collection.table.get(info('id')).replace((row) =>
+              r.branch(// The row may have been deleted between the get and now
+                       row.eq(null),
+                       null,
 
-      return r.expr(valid_info).do((rows) =>
-               rows.forEach((info) =>
-                 collection.table.get(info('id')).replace((row) =>
-                     r.branch(// The row may have been deleted between the get and now
-                              row.eq(null),
-                              null,
+                       // The row may have been changed between the get and now
+                       r.and(info.hasFields(hz_v),
+                             row(hz_v).default(-1).ne(info(hz_v))),
+                       r.error(writes.invalidated_msg),
 
-                              // The row may have been changed between the get and now,
-                              // which would require validation again.
-                              row(writes.version_field).default(-1).ne(info(writes.version_field)),
-                              r.error(writes.invalidated_error),
+                       // Otherwise, we can safely remove the row
+                       null),
 
-                              // Otherwise, we can safely remove the row
-                              null),
-
-                     { returnChanges: 'always' }))
-                 // Pretend like we deleted rows that didn't exist
-                 .do((res) =>
-                   res.merge({ changes:
-                     r.range(rows.count()).map((index) =>
-                       r.branch(res('changes')(index)('old_val').eq(null),
-                                res('changes')(index).merge({ old_val: rows(index) }),
-                                res('changes')(index))).coerceTo('array'),
-                   })))
-               .run(conn, reql_options);
-    }).then((remove_results) => {
-      done(writes.make_write_response(response_data, remove_results));
-    }).catch(done);
+              { returnChanges: 'always' }))
+          // Pretend like we deleted rows that didn't exist
+          .do((res) =>
+            res.merge({ changes:
+              r.range(row_data.count()).map((index) =>
+                r.branch(res('changes')(index)('old_val').eq(null),
+                         res('changes')(index).merge({ old_val: { id: row_data(index)('id') } }),
+                         res('changes')(index))).coerceTo('array'),
+            })))
+        .run(conn, reql_options)
+  ).then(done).catch(done);
 };
 
 module.exports = { run };

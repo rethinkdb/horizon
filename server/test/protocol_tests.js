@@ -5,7 +5,7 @@ const utils = require('./utils');
 const assert = require('assert');
 
 const all_tests = (collection) => {
-  beforeEach('Authenticate client', utils.horizon_default_auth);
+  beforeEach('Authenticate client', utils.horizon_admin_auth);
 
   it('unparseable', (done) => {
     const conn = utils.horizon_conn();
