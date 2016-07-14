@@ -9,11 +9,13 @@ const name_to_fields = require('@horizon/server/src/metadata/index').Index.name_
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const path = require('path');
 const r = require('rethinkdb');
+console.log("BEFORE SERVE");
 const serve = require('./serve');
+console.log(serve);
 const start_rdb_server = require('./utils/start_rdb_server');
 const toml = require('toml');
 
-const helpText = 'Get the schema from a horizon database';
+const helpText = 'Load and save the schema from a horizon database';
 
 const addArguments = (parser) => {
 
@@ -22,6 +24,7 @@ const addArguments = (parser) => {
     dest: 'subcommand_name'
   });
 
+  // HZ SCHEMA LOAD
   const load = subparsers.addParser('load', { addHelp: true });
 
   load.addArgument([ 'project_path' ], {
@@ -78,6 +81,7 @@ const addArguments = (parser) => {
     help: 'File to get the horizon schema from, use "-" for stdin.',
   });
 
+  // HZ SCHEMA SAVE
   const save = subparsers.addParser('save', { addHelp: true });
 
   save.addArgument([ 'project_path' ], {
@@ -124,8 +128,8 @@ const addArguments = (parser) => {
   save.addArgument([ '--out-file', '-o' ], {
     type: 'string',
     metavar: 'PATH',
-    defaultValue: '-',
-    help: 'File to write the horizon schema to, defaults to stdout.',
+    defaultValue: '.hz/schema.toml',
+    help: 'File to write the horizon schema to, defaults to .hz/schema.toml.',
   });
 };
 
@@ -172,268 +176,71 @@ const parse_schema = (schema_toml) => {
   return { groups, collections };
 };
 
-// const runCommand = (options, done) => {
-//   let schema, conn;
-//   let obsolete_collections = [ ];
-//
-//   const db = options.project_name;
-//   const internal_db = `${db}_internal`;
-//
-//   logger.level = 'error';
-//   interrupt.on_interrupt((done2) => {
-//     if (conn) {
-//       conn.close();
-//     }
-//     done2();
-//   });
-//
-//   if (options.start_rethinkdb) {
-//     serve.change_to_project_dir(options.project_path);
-//   }
-//
-//   return new Promise((resolve) => {
-//     let schema_toml = '';
-//     options.in_file.on('data', (buffer) => (schema_toml += buffer));
-//     options.in_file.on('end', () => resolve(schema_toml));
-//   }).then((schema_toml) => {
-//     schema = parse_schema(schema_toml);
-//
-//     return options.start_rethinkdb &&
-//       start_rdb_server().then((rdbOpts) => {
-//         options.rdb_port = rdbOpts.driverPort;
-//       });
-//   }).then(() =>
-//     // Connect to the database
-//     r.connect({ host: options.rdb_host,
-//                 port: options.rdb_port })
-//   ).then((rdb_conn) => {
-//     conn = rdb_conn;
-//     return initialize_metadata_reql(r, internal_db, db).run(conn);
-//   }).then((initialization_result) => {
-//     if (initialization_result.tables_created) {
-//       console.log('Initialized new application metadata.');
-//     }
-//     // Wait for metadata tables to be writable
-//     return r.db(internal_db)
-//      .wait({ waitFor: 'ready_for_writes', timeout: 30 })
-//      .run(conn);
-//   }).then(() => {
-//     // Error if any collections will be removed
-//     if (!options.update) {
-//       return r.db(internal_db).table('collections')('id')
-//         .coerceTo('array')
-//         .setDifference(schema.collections.map((c) => c.id))
-//         .run(conn)
-//         .then((res) => {
-//           if (!options.force && res.length > 0) {
-//             throw new Error('Run with "--force" to continue.\n' +
-//                             'These collections would be removed along with their data:\n' +
-//                             `${res.join(', ')}`);
-//           }
-//           obsolete_collections = res;
-//         });
-//     }
-//   }).then(() => {
-//     if (options.update) {
-//       // Update groups
-//       return Promise.all(schema.groups.map((group) => {
-//         const literal_group = JSON.parse(JSON.stringify(group));
-//         Object.keys(literal_group.rules).forEach((key) => {
-//           literal_group.rules[key] = r.literal(literal_group.rules[key]);
-//         });
-//
-//         return r.db(internal_db).table('groups')
-//           .get(group.id).replace((old_row) =>
-//             r.branch(old_row.eq(null),
-//                      group,
-//                      old_row.merge(literal_group)))
-//           .run(conn).then((res) => {
-//             if (res.errors) {
-//               throw new Error(`Failed to update group: ${res.first_error}`);
-//             }
-//           });
-//       }));
-//     } else {
-//       // Replace and remove groups
-//       const groups_obj = { };
-//       schema.groups.forEach((g) => { groups_obj[g.id] = g; });
-//
-//       return Promise.all([
-//         r.expr(groups_obj).do((groups) =>
-//           r.db(internal_db).table('groups')
-//             .replace((old_row) =>
-//               r.branch(groups.hasFields(old_row('id')),
-//                        old_row,
-//                        null))
-//           ).run(conn).then((res) => {
-//             if (res.errors) {
-//               throw new Error(`Failed to write groups: ${res.first_error}`);
-//             }
-//           }),
-//         r.db(internal_db).table('groups')
-//           .insert(schema.groups, { conflict: 'replace' })
-//           .run(conn).then((res) => {
-//             if (res.errors) {
-//               throw new Error(`Failed to write groups: ${res.first_error}`);
-//             }
-//           }),
-//       ]);
-//     }
-//   }).then(() => {
-//     // Ensure all collections exist and remove any obsolete collections
-//     const promises = [ ];
-//     for (const c of schema.collections) {
-//       promises.push(
-//         create_collection_reql(r, internal_db, db, c.id)
-//           .run(conn).then((res) => {
-//             if (res.error) {
-//               throw new Error(res.error);
-//             }
-//           }));
-//     }
-//
-//     for (const c of obsolete_collections) {
-//       promises.push(
-//         r.db(internal_db)
-//           .table('collections')
-//           .get(c)
-//           .delete({ returnChanges: 'always' })('changes')(0)
-//           .do((res) =>
-//             r.branch(res.hasFields('error'),
-//                      res,
-//                      res('old_val').eq(null),
-//                      res,
-//                      r.db(db).tableDrop(res('old_val')('table')).do(() => res)))
-//           .run(conn).then((res) => {
-//             if (res.error) {
-//               throw new Error(res.error);
-//             }
-//           }));
-//     }
-//
-//     return Promise.all(promises);
-//   }).then(() => {
-//     const promises = [ ];
-//
-//     // Determine the index fields of each index from the name
-//     for (const c of schema.collections) {
-//       c.index_fields = { };
-//       for (const index of c.indexes) {
-//         c.index_fields[index] = name_to_fields(index);
-//       }
-//     }
-//
-//     // Ensure all indexes exist
-//     promises.push(
-//       r.expr(schema.collections)
-//         .forEach((c) =>
-//           r.db(internal_db).table('collections')
-//             .get(c('id'))
-//             .do((collection) =>
-//               c('indexes')
-//                 .setDifference(r.db(db).table(collection('table')).indexList())
-//                 .forEach((index) =>
-//                   c('index_fields')(index).do((fields) =>
-//                     r.db(db).table(collection('table')).indexCreate(index, (row) =>
-//                       fields.map((key) => row(key)))))))
-//         .run(conn)
-//         .then((res) => {
-//           if (res.errors) {
-//             throw new Error(`Failed to create indexes: ${res.first_error}`);
-//           }
-//         }));
-//
-//     // Remove obsolete indexes
-//     if (!options.update) {
-//       promises.push(
-//         r.expr(schema.collections)
-//           .forEach((c) =>
-//             r.db(internal_db).table('collections')
-//               .get(c('id'))
-//               .do((row) =>
-//                 r.db(db).table(row('table')).indexList()
-//                   .setDifference(c('indexes'))
-//                   .forEach((index) =>
-//                     r.db(db).table(row('table')).indexDrop(index))))
-//         .run(conn)
-//         .then((res) => {
-//           if (res.errors) {
-//             throw new Error(`Failed to create indexes: ${res.first_error}`);
-//           }
-//         }));
-//     }
-//
-//     return Promise.all(promises);
-//   }).then(() => {
-//     conn.close();
-//     interrupt.shutdown();
-//   }).catch(done);
-// };
+const processLoadConfig = (parsed) => {
+  let config, in_file;
 
-// const processConfig = (parsed) => {
-  // let config, in_file;
-  //
-  // config = serve.make_default_config();
-  // config.start_rethinkdb = true;
-  //
-  // config = serve.merge_configs(config, serve.read_config_from_file(parsed.project_path,
-  //                                                                  parsed.config));
-  // config = serve.merge_configs(config, serve.read_config_from_env());
-  // config = serve.merge_configs(config, serve.read_config_from_flags(parsed));
-  //
-  // if (parsed.schema_file === '-') {
-  //   in_file = process.stdin;
-  // } else {
-  //   in_file = fs.createReadStream(null, { fd: fs.openSync(parsed.schema_file, 'r') });
-  // }
-  //
-  // if (config.project_name === null) {
-  //   config.project_name = path.basename(path.resolve(config.project_path));
-  // }
-  //
-  // return {
-  //   start_rethinkdb: config.start_rethinkdb,
-  //   rdb_host: config.rdb_host,
-  //   rdb_port: config.rdb_port,
-  //   project_name: config.project_name,
-  //   project_path: config.project_path,
-  //   debug: config.debug,
-  //   update: parse_yes_no_option(parsed.update),
-  //   force: parse_yes_no_option(parsed.force),
-  //   in_file,
-  // };
-// };
+  config = serve.make_default_config();
+  config.start_rethinkdb = true;
 
-const processConfig = (parsed) => {
-  // let config, out_file;
-  //
-  // config = serve.make_default_config();
-  // config.start_rethinkdb = true;
-  //
-  // config = serve.merge_configs(config, serve.read_config_from_file(parsed.project_path,
-  //                                                                  parsed.config));
-  // config = serve.merge_configs(config, serve.read_config_from_env());
-  // config = serve.merge_configs(config, serve.read_config_from_flags(parsed));
-  //
-  // if (parsed.out_file === '-') {
-  //   out_file = process.stdout;
-  // } else {
-  //   out_file = fs.createWriteStream(null, { fd: fs.openSync(parsed.out_file, 'w') });
-  // }
-  //
-  // if (config.project_name === null) {
-  //   config.project_name = path.basename(path.resolve(config.project_path));
-  // }
-  //
-  // return {
-  //   start_rethinkdb: config.start_rethinkdb,
-  //   rdb_host: config.rdb_host,
-  //   rdb_port: config.rdb_port,
-  //   project_name: config.project_name,
-  //   project_path: config.project_path,
-  //   debug: config.debug,
-  //   out_file,
-  // };
+  config = serve.merge_configs(config, serve.read_config_from_file(parsed.project_path,
+                                                                   parsed.config));
+  config = serve.merge_configs(config, serve.read_config_from_env());
+  config = serve.merge_configs(config, serve.read_config_from_flags(parsed));
+
+  if (parsed.schema_file === '-') {
+    in_file = process.stdin;
+  } else {
+    in_file = fs.createReadStream(null, { fd: fs.openSync(parsed.schema_file, 'r') });
+  }
+
+  if (config.project_name === null) {
+    config.project_name = path.basename(path.resolve(config.project_path));
+  }
+
+  return {
+    start_rethinkdb: config.start_rethinkdb,
+    rdb_host: config.rdb_host,
+    rdb_port: config.rdb_port,
+    project_name: config.project_name,
+    project_path: config.project_path,
+    debug: config.debug,
+    update: parse_yes_no_option(parsed.update),
+    force: parse_yes_no_option(parsed.force),
+    in_file,
+  };
+};
+
+const processSaveConfig = (parsed) => {
+  let config, out_file;
+
+  console.log(serve)
+  config = serve.make_default_config();
+  config.start_rethinkdb = true;
+
+  config = serve.merge_configs(config, serve.read_config_from_config_file(parsed.project_path,
+                                                                   parsed.config));
+  config = serve.merge_configs(config, serve.read_config_from_env());
+  config = serve.merge_configs(config, serve.read_config_from_flags(parsed));
+
+  if (parsed.out_file === '-') {
+    out_file = process.stdout;
+  } else {
+    out_file = fs.createWriteStream(null, { fd: fs.openSync(parsed.out_file, 'w') });
+  }
+
+  if (config.project_name === null) {
+    config.project_name = path.basename(path.resolve(config.project_path));
+  }
+
+  return {
+    start_rethinkdb: config.start_rethinkdb,
+    rdb_host: config.rdb_host,
+    rdb_port: config.rdb_port,
+    project_name: config.project_name,
+    project_path: config.project_path,
+    debug: config.debug,
+    out_file,
+  };
 };
 
 const config_to_toml = (collections, groups) => {
@@ -467,54 +274,268 @@ const config_to_toml = (collections, groups) => {
   return res.join('\n');
 };
 
-const runCommand = (options, done) => {
-  // const db = options.project_name;
-  // const internal_db = `${db}_internal`;
-  // let conn;
-  //
-  // logger.level = 'error';
-  // interrupt.on_interrupt((done2) => {
-  //   if (conn) {
-  //     conn.close();
-  //   }
-  //   done2();
-  // });
-  //
-  // if (options.start_rethinkdb) {
-  //   serve.change_to_project_dir(options.project_path);
-  // }
-  //
-  // return new Promise((resolve) => {
-  //   resolve(options.start_rethinkdb &&
-  //           start_rdb_server().then((rdbOpts) => {
-  //             options.rdb_host = 'localhost';
-  //             options.rdb_port = rdbOpts.driverPort;
-  //           }));
-  // }).then(() =>
-  //   r.connect({ host: options.rdb_host,
-  //               port: options.rdb_port })
-  // ).then((rdb_conn) => {
-  //   conn = rdb_conn;
-  //   return r.db(internal_db)
-  //     .wait({ waitFor: 'ready_for_reads', timeout: 30 })
-  //     .run(conn);
-  // }).then(() =>
-  //   r.object('collections',
-  //            r.db(internal_db).table('collections').coerceTo('array')
-  //              .map((row) =>
-  //                row.merge({ indexes: r.db(db).table(row('table')).indexList() })),
-  //            'groups', r.db(internal_db).table('groups').coerceTo('array'))
-  //     .run(conn)
-  // ).then((res) => {
-  //   conn.close();
-  //   const toml_str = config_to_toml(res.collections, res.groups);
-  //   options.out_file.write(toml_str);
-  // }).then(() => interrupt.shutdown()).catch(done);
+const runLoadCommand = (options, done) => {
+  let schema, conn;
+  let obsolete_collections = [ ];
+
+  const db = options.project_name;
+  const internal_db = `${db}_internal`;
+
+  logger.level = 'error';
+  interrupt.on_interrupt((done2) => {
+    if (conn) {
+      conn.close();
+    }
+    done2();
+  });
+
+  if (options.start_rethinkdb) {
+    serve.change_to_project_dir(options.project_path);
+  }
+
+  return new Promise((resolve) => {
+    let schema_toml = '';
+    options.in_file.on('data', (buffer) => (schema_toml += buffer));
+    options.in_file.on('end', () => resolve(schema_toml));
+  }).then((schema_toml) => {
+    schema = parse_schema(schema_toml);
+
+    return options.start_rethinkdb &&
+      start_rdb_server().then((rdbOpts) => {
+        options.rdb_port = rdbOpts.driverPort;
+      });
+  }).then(() =>
+    // Connect to the database
+    r.connect({ host: options.rdb_host,
+                port: options.rdb_port })
+  ).then((rdb_conn) => {
+    conn = rdb_conn;
+    return initialize_metadata_reql(r, internal_db, db).run(conn);
+  }).then((initialization_result) => {
+    if (initialization_result.tables_created) {
+      console.log('Initialized new application metadata.');
+    }
+    // Wait for metadata tables to be writable
+    return r.db(internal_db)
+     .wait({ waitFor: 'ready_for_writes', timeout: 30 })
+     .run(conn);
+  }).then(() => {
+    // Error if any collections will be removed
+    if (!options.update) {
+      return r.db(internal_db).table('collections')('id')
+        .coerceTo('array')
+        .setDifference(schema.collections.map((c) => c.id))
+        .run(conn)
+        .then((res) => {
+          if (!options.force && res.length > 0) {
+            throw new Error('Run with "--force" to continue.\n' +
+                            'These collections would be removed along with their data:\n' +
+                            `${res.join(', ')}`);
+          }
+          obsolete_collections = res;
+        });
+    }
+  }).then(() => {
+    if (options.update) {
+      // Update groups
+      return Promise.all(schema.groups.map((group) => {
+        const literal_group = JSON.parse(JSON.stringify(group));
+        Object.keys(literal_group.rules).forEach((key) => {
+          literal_group.rules[key] = r.literal(literal_group.rules[key]);
+        });
+
+        return r.db(internal_db).table('groups')
+          .get(group.id).replace((old_row) =>
+            r.branch(old_row.eq(null),
+                     group,
+                     old_row.merge(literal_group)))
+          .run(conn).then((res) => {
+            if (res.errors) {
+              throw new Error(`Failed to update group: ${res.first_error}`);
+            }
+          });
+      }));
+    } else {
+      // Replace and remove groups
+      const groups_obj = { };
+      schema.groups.forEach((g) => { groups_obj[g.id] = g; });
+
+      return Promise.all([
+        r.expr(groups_obj).do((groups) =>
+          r.db(internal_db).table('groups')
+            .replace((old_row) =>
+              r.branch(groups.hasFields(old_row('id')),
+                       old_row,
+                       null))
+          ).run(conn).then((res) => {
+            if (res.errors) {
+              throw new Error(`Failed to write groups: ${res.first_error}`);
+            }
+          }),
+        r.db(internal_db).table('groups')
+          .insert(schema.groups, { conflict: 'replace' })
+          .run(conn).then((res) => {
+            if (res.errors) {
+              throw new Error(`Failed to write groups: ${res.first_error}`);
+            }
+          }),
+      ]);
+    }
+  }).then(() => {
+    // Ensure all collections exist and remove any obsolete collections
+    const promises = [ ];
+    for (const c of schema.collections) {
+      promises.push(
+        create_collection_reql(r, internal_db, db, c.id)
+          .run(conn).then((res) => {
+            if (res.error) {
+              throw new Error(res.error);
+            }
+          }));
+    }
+
+    for (const c of obsolete_collections) {
+      promises.push(
+        r.db(internal_db)
+          .table('collections')
+          .get(c)
+          .delete({ returnChanges: 'always' })('changes')(0)
+          .do((res) =>
+            r.branch(res.hasFields('error'),
+                     res,
+                     res('old_val').eq(null),
+                     res,
+                     r.db(db).tableDrop(res('old_val')('table')).do(() => res)))
+          .run(conn).then((res) => {
+            if (res.error) {
+              throw new Error(res.error);
+            }
+          }));
+    }
+
+    return Promise.all(promises);
+  }).then(() => {
+    const promises = [ ];
+
+    // Determine the index fields of each index from the name
+    for (const c of schema.collections) {
+      c.index_fields = { };
+      for (const index of c.indexes) {
+        c.index_fields[index] = name_to_fields(index);
+      }
+    }
+
+    // Ensure all indexes exist
+    promises.push(
+      r.expr(schema.collections)
+        .forEach((c) =>
+          r.db(internal_db).table('collections')
+            .get(c('id'))
+            .do((collection) =>
+              c('indexes')
+                .setDifference(r.db(db).table(collection('table')).indexList())
+                .forEach((index) =>
+                  c('index_fields')(index).do((fields) =>
+                    r.db(db).table(collection('table')).indexCreate(index, (row) =>
+                      fields.map((key) => row(key)))))))
+        .run(conn)
+        .then((res) => {
+          if (res.errors) {
+            throw new Error(`Failed to create indexes: ${res.first_error}`);
+          }
+        }));
+
+    // Remove obsolete indexes
+    if (!options.update) {
+      promises.push(
+        r.expr(schema.collections)
+          .forEach((c) =>
+            r.db(internal_db).table('collections')
+              .get(c('id'))
+              .do((row) =>
+                r.db(db).table(row('table')).indexList()
+                  .setDifference(c('indexes'))
+                  .forEach((index) =>
+                    r.db(db).table(row('table')).indexDrop(index))))
+        .run(conn)
+        .then((res) => {
+          if (res.errors) {
+            throw new Error(`Failed to create indexes: ${res.first_error}`);
+          }
+        }));
+    }
+
+    return Promise.all(promises);
+  }).then(() => {
+    conn.close();
+    interrupt.shutdown();
+  }).catch(done);
+};
+
+const runSaveCommand = (options, done) => {
+  const db = options.project_name;
+  const internal_db = `${db}_internal`;
+  let conn;
+
+  logger.level = 'error';
+  interrupt.on_interrupt((done2) => {
+    if (conn) {
+      conn.close();
+    }
+    done2();
+  });
+
+  if (options.start_rethinkdb) {
+    serve.change_to_project_dir(options.project_path);
+  }
+
+  return new Promise((resolve) => {
+    resolve(options.start_rethinkdb &&
+            start_rdb_server().then((rdbOpts) => {
+              options.rdb_host = 'localhost';
+              options.rdb_port = rdbOpts.driverPort;
+            }));
+  }).then(() =>
+    r.connect({ host: options.rdb_host,
+                port: options.rdb_port })
+  ).then((rdb_conn) => {
+    conn = rdb_conn;
+    return r.db(internal_db)
+      .wait({ waitFor: 'ready_for_reads', timeout: 30 })
+      .run(conn);
+  }).then(() =>
+    r.object('collections',
+             r.db(internal_db).table('collections').coerceTo('array')
+               .map((row) =>
+                 row.merge({ indexes: r.db(db).table(row('table')).indexList() })),
+             'groups', r.db(internal_db).table('groups').coerceTo('array'))
+      .run(conn)
+  ).then((res) => {
+    conn.close();
+    const toml_str = config_to_toml(res.collections, res.groups);
+    options.out_file.write(toml_str);
+  }).then(() => interrupt.shutdown()).catch(done);
 };
 
 module.exports = {
   addArguments,
-  processConfig,
-  runCommand,
+  processConfig: (options) => {
+    // Determine if we are saving or loading and use appropriate config processing
+    if (options.hasOwnProperty('force') || options.hasOwnProperty('update')) {
+      return processLoadConfig(options);
+    } else {
+      return processSaveConfig(options);
+    }
+  },
+  runCommand: (options, done) => {
+    // Determine if we are saving or loading and use appropriate runCommand
+    if (options.hasOwnProperty('force') || options.hasOwnProperty('update')) {
+      return runLoadCommand(options, done);
+    } else {
+      return runSaveCommand(options, done);
+    }
+  },
   helpText,
+  processLoadConfig,
+  runLoadCommand,
 };

@@ -1,12 +1,11 @@
 'use strict';
 
 const chalk = require('chalk');
-const extend = require('util')._extend;
 const fs = require('fs');
 const getType = require('mime-types').contentType;
 const http = require('http');
 const https = require('https');
-const open = require("open");
+const open = require('open');
 const path = require('path');
 const toml = require('toml');
 const url = require('url');
@@ -16,6 +15,7 @@ const start_rdb_server = require('./utils/start_rdb_server');
 const interrupt = require('./utils/interrupt');
 const exitWithError = require('./utils/exit_with_error');
 const isDirectory = require('./utils/is_directory');
+const schema = require('./schema');
 
 const horizonServer = require('@horizon/server');
 const logger = horizonServer.logger;
@@ -23,9 +23,10 @@ const logger = horizonServer.logger;
 const TIMEOUT_30_SECONDS = 30 * 1000;
 
 const defaultConfigFile = '.hz/config.toml';
+const defaultSecretsFile = '.hz/secrets.toml';
 const defaultRDBPort = 28015;
 
-const helpText = 'Serve a horizon app';
+const helpText = 'Serve a Horizon app';
 
 const addArguments = (parser) => {
   parser.addArgument([ 'project_path' ],
@@ -108,11 +109,17 @@ const addArguments = (parser) => {
       '--start-rethinkdb=yes, ' +
       '--allow-unauthenticated=yes, ' +
       '--allow-anonymous=yes, ' +
+      '--schema-file=.hz/schema.toml' +
       'and --serve-static=./dist.' });
 
   parser.addArgument([ '--config' ],
     { type: 'string', metavar: 'PATH',
       help: 'Path to the config file to use, defaults to "${defaultConfigFile}".' });
+
+  parser.addArgument([ '--schema-file' ],
+    { type: 'string', metavar: 'SCHEMA_FILE_PATH',
+      help: 'Path to the schema file to use, ' +
+      'will attempt to load schema before starting Horizon server".' });
 
   parser.addArgument([ '--auth' ],
     { type: 'string', action: 'append', metavar: 'PROVIDER,ID,SECRET', defaultValue: [ ],
@@ -215,6 +222,22 @@ const fileServer = (distDir) => (req, res) => {
     serveFile(path.join(distDir, reqPath), res);
   }
   // Fall through otherwise. Should be handled by horizon server
+};
+
+// Ensure schema from schema.toml file is set
+const initalizeSchema = (opts) => {
+  console.info('Ensuring current schema is loaded')
+  return new Promise((reject, resolve) => {
+     schema.runLoadCommand({
+      project_name: opts.project_name,
+      in_file: opts.schema_file,
+      start_rethinkdb: false,
+      rdb_host: opts.rdb_host,
+      rdb_port: opts.rdb_port,
+      update: true,
+      force: false,
+    });
+  });
 };
 
 const initializeServers = (ctor, opts) => {
@@ -340,18 +363,18 @@ const read_config_from_config_file = (project_path, config_file) => {
 const read_config_from_secrets_file = (projectPath, secretsFile) => {
   const config = { auth: { } };
 
-  let fileData, configFilename;
+  let fileData, secretsFilename;
 
   if (secretsFile) {
     secretsFilename = secretsFile;
   } else if (projectPath && !secretsFile) {
-    configFilename = `${projectPath}/${defaultConfigFile}`;
+    secretsFilename = `${projectPath}/${defaultSecretsFile}`;
   } else {
-    configFilename = defaultConfigFile;
+    secretsFilename = defaultSecretsFile;
   }
 
   try {
-    fileData = fs.readFileSync(configFilename);
+    fileData = fs.readFileSync(secretsFilename);
   } catch (err) {
     return config;
   }
@@ -426,6 +449,7 @@ const read_config_from_flags = (parsed) => {
     config.auto_create_index = true;
     config.serveStatic = 'dist';
     config._dev_flag_used = true;
+    config.schema_file = '.hz/schema.toml'
 
     if (parsed.start_rethinkdb === null || parsed.start_rethinkdb === undefined) {
       config._start_rethinkdb_implicit = true;
@@ -526,10 +550,8 @@ const processConfig = (parsed) => {
   let config;
 
   config = make_default_config();
-  config = merge_configs(config,
-                  read_config_from_config_file(parsed.project_path, parsed.config));
-  config = merge_configs(config,
-                  read_config_from_secrets_file(parsed.project_path, parsed.config));
+  config = merge_configs(config, read_config_from_config_file(parsed.project_path, parsed.config));
+  config = merge_configs(config, read_config_from_secrets_file(parsed.project_path, parsed.config));
   config = merge_configs(config, read_config_from_env());
   config = merge_configs(config, read_config_from_flags(parsed));
 
@@ -554,7 +576,7 @@ const processConfig = (parsed) => {
 
 const startHorizonServer = (servers, opts) => {
   console.log('Starting Horizon...');
-  const hzServer = new horizon_server.Server(servers, {
+  const hzServer = new horizonServer.Server(servers, {
     auto_create_collection: opts.auto_create_collection,
     auto_create_index: opts.auto_create_index,
     permissions: opts.permissions,
@@ -643,11 +665,16 @@ const runCommand = (opts, done) => {
       });
     }
   }).then(() => {
+    // Just pass serve's opts since the relevant names are the same (I think)
+    if (opts.schema_file) {
+      initalizeSchema(opts);
+    }
+  }).then(() => {
     hz_instance = startHorizonServer(http_servers, opts);
   }).then(() => {
     if (opts.auth) {
       for (const name in opts.auth) {
-        const provider = horizon_server.auth[name];
+        const provider = horizonServer.auth[name];
         if (!provider) {
           throw new Error(`Unrecognized auth provider "${name}"`);
         }
