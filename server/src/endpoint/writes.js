@@ -30,7 +30,8 @@ const make_write_response = (data) => {
 //   null means no timeout
 // pre_validate -> function (rows):
 //   rows: all pending rows
-//   return: a (promise of an) array of info for those rows (which will be passed to the validate step)
+//   return: an array or the promise of an array of info for those rows
+//           (which will be passed to the validate callback)
 // validate_row -> function (row, info):
 //   row: The row from the original query
 //   info: The info returned by the pre_validate step for this row
@@ -39,13 +40,7 @@ const make_write_response = (data) => {
 //   rows: all pending rows
 //   return: a (promise of a) ReQL write result object
 const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row, do_write) => {
-  const response_data = Array(original_rows.length).fill(null);
-
-  // Save original version fields, which may get clobbered, so we don't have to copy everything
-  let row_data = original_rows.map((row, index) => ({ row, index, version: row[hz_v] }));
-  let deadline;
-
-  const iterate = () => {
+  const iterate = (row_data, response_data, deadline) => {
     if (row_data.length === 0) {
       return response_data;
     } else if (timeout !== null) {
@@ -118,14 +113,14 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
         }
       });
 
-      row_data = retry_rows;
-
       // Recurse, after which it will decide if there is more work to be done
-      return iterate();
+      return iterate(retry_rows, response_data, deadline);
     });
   };
 
-  return iterate().then(make_write_response);
+  return iterate(original_rows.map((row, index) => ({ row, index, version: row[hz_v] })),
+                 Array(original_rows.length).fill(null),
+                 null).then(make_write_response);
 };
 
 const validate_old_row_optional = (original, old_row, new_row, ruleset) => {
