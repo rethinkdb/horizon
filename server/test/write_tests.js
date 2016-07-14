@@ -46,10 +46,10 @@ const all_tests = (collection) => {
     return { id, new_field: 'a', old_field: [ ] };
   };
 
-  const make_request = (type, data) => ({
+  const make_request = (type, data, options) => ({
     request_id: crypto.randomBytes(4).readUInt32BE(),
     type,
-    options: { collection, data },
+    options: Object.assign({}, options || {}, { collection, data }),
   });
 
   const check_collection = (expected, done) => {
@@ -478,6 +478,22 @@ const all_tests = (collection) => {
       return writes[latest_index];
     };
 
+    // For some tests, we expect exactly one write to succeed and the others
+    // to fail.  Which write succeeds is not guaranteed to be deterministic,
+    // so we return the successful write data.
+    const check_one_successful_write = (res, error) => {
+      const success_index = res.findIndex((x) => x.error === undefined);
+      assert(success_index !== -1);
+      for (let i = 0; i < res.length; ++i) {
+        if (i === success_index) {
+          assert.deepStrictEqual(res[i], { id: 0, [hz_v]: 0 });
+        } else {
+          assert.deepStrictEqual(res[i], { error });
+        }
+      }
+      return writes[success_index];
+    };
+
     describe('Existing Row', () => {
       const test_data = [ { id: 0, value: 0 } ];
       beforeEach('Populate collection', (done) => utils.populate_collection(collection, test_data, done));
@@ -528,17 +544,8 @@ const all_tests = (collection) => {
       it('Insert', (done) => {
         utils.stream_test(make_request('insert', writes), (err, res) => {
           assert.ifError(err);
-          // Should be one successful write and two errors
-          const success_index = res.findIndex((x) => x[hz_v] === 0);
-          assert(success_index !== -1);
-          for (let i = 0; i < res.length; ++i) {
-            if (i === success_index) {
-              assert.deepStrictEqual(res[i], { id: 0, [hz_v]: 0 });
-            } else {
-              assert.deepStrictEqual(res[i], { error: 'The document already exists.' });
-            }
-          }
-          check_collection([ Object.assign({ [hz_v]: 0 }, writes[success_index]) ], done);
+          const success_write = check_one_successful_write(res, 'The document already exists.');
+          check_collection([ Object.assign({ [hz_v]: 0 }, success_write) ], done);
         });
       });
 
@@ -556,6 +563,48 @@ const all_tests = (collection) => {
           assert.deepStrictEqual(res.map((x) => x[hz_v]).sort(), [ 0, 1, 2 ]);
           assert.deepStrictEqual(res.map((x) => x.id), [ 0, 0, 0 ]);
           check_collection([ { id: 0, a: 1, b: 2, c: 3, [hz_v]: 2 } ], done);
+        });
+      });
+    });
+
+
+    // Because all the writes are to the same document, only one can succeed
+    // per iteration with the database.  In order to test timeouts, we use a
+    // timeout of zero, so the other rows should immediately error.
+    describe('Zero Timeout', () => {
+      const timeout = { timeout: 0 };
+      const test_data = [ { id: 0, value: 0 } ];
+      beforeEach('Populate collection', (done) => utils.populate_collection(collection, test_data, done));
+
+      it('Store', (done) => {
+        utils.stream_test(make_request('store', writes, timeout), (err, res) => {
+          assert.ifError(err);
+          const success_write = check_one_successful_write(res, 'Operation timed out.');
+          check_collection([ Object.assign({ [hz_v]: 0 }, success_write) ], done);
+        });
+      });
+
+      it('Replace', (done) => {
+        utils.stream_test(make_request('replace', writes, timeout), (err, res) => {
+          assert.ifError(err);
+          const success_write = check_one_successful_write(res, 'Operation timed out.');
+          check_collection([ Object.assign({ [hz_v]: 0 }, success_write) ], done);
+        });
+      });
+
+      it('Upsert', (done) => {
+        utils.stream_test(make_request('upsert', writes, timeout), (err, res) => {
+          assert.ifError(err);
+          const success_write = check_one_successful_write(res, 'Operation timed out.');
+          check_collection([ Object.assign({ [hz_v]: 0 }, test_data[0], success_write) ], done);
+        });
+      });
+
+      it('Update', (done) => {
+        utils.stream_test(make_request('update', writes, timeout), (err, res) => {
+          assert.ifError(err);
+          const success_write = check_one_successful_write(res, 'Operation timed out.');
+          check_collection([ Object.assign({ [hz_v]: 0 }, test_data[0], success_write) ], done);
         });
       });
     });

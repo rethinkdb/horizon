@@ -17,7 +17,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
 
   writes.retry_loop(parsed.value.data, ruleset, parsed.value.timeout,
     (rows) => // pre-validation, all rows
-      r.expr(rows.map((row) => (row.id || null)))
+      r.expr(rows.map((row) => (row.id === undefined ? null : row.id)))
         .map((id) => r.branch(id.eq(null), null, collection.table.get(id)))
         .run(conn, reql_options),
     (row, info) => writes.validate_old_row_optional(row, info, row, ruleset),
