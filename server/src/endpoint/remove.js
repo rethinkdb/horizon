@@ -20,24 +20,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
       r.expr(rows.map((row) => row.id))
         .map((id) => collection.table.get(id))
         .run(conn, reql_options),
-    (row, info) => { // validation, each row
-      if (info === null) {
-        return { id: row.id }; // Just pretend we deleted it
-      }
-
-      const old_version = info[hz_v];
-      const expected_version = row[hz_v];
-      if (expected_version !== undefined &&
-          expected_version !== old_version) {
-        return new Error(writes.invalidated_msg);
-      } else if (!ruleset.validate(context, info, null)) {
-        return new Error(writes.unauthorized_msg);
-      }
-
-      if (row[hz_v] === undefined) {
-        row[hz_v] = old_version === undefined ? -1 : old_version;
-      }
-    },
+    (row, info) => writes.validate_old_row_required(row, info, null, ruleset),
     (rows) => // write to database, all valid rows
       r.expr(rows).do((row_data) =>
         row_data.forEach((info) =>

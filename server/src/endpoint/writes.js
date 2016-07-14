@@ -128,6 +128,42 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
   return iterate().then(make_write_response);
 };
 
+const validate_old_row_optional = (original, old_row, new_row, ruleset) => {
+  const expected_version = original[hz_v];
+  if (expected_version !== undefined &&
+      (!old_row || expected_version !== old_row[hz_v])) {
+    return new Error(invalidated_msg);
+  } else if (!ruleset.validate(context, old_row, new_row)) {
+    return new Error(unauthorized_msg);
+  }
+
+  if (old_row) {
+    const old_version = old_row[hz_v];
+    if (expected_version === undefined) {
+      original[hz_v] = old_version === undefined ? -1 : old_version;
+    }
+  }
+};
+
+const validate_old_row_required = (original, old_row, new_row, ruleset) => {
+  if (old_row === null) {
+    return new Error(missing_msg);
+  }
+
+  const old_version = old_row[hz_v];
+  const expected_version = original[hz_v];
+  if (expected_version !== undefined &&
+      expected_version !== old_version) {
+    return new Error(invalidated_msg);
+  } else if (!ruleset.validate(context, old_row, new_row)) {
+    return new Error(unauthorized_msg);
+  }
+
+  if (expected_version === undefined) {
+    original[hz_v] = old_version === undefined ? -1 : old_version;
+  }
+};
+
 module.exports = {
   invalidated_msg,
   missing_msg,
@@ -137,4 +173,6 @@ module.exports = {
   version_field: hz_v,
   apply_version,
   retry_loop,
+  validate_old_row_required,
+  validate_old_row_optional,
 };

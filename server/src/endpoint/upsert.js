@@ -26,22 +26,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                               [ old_row, old_row.merge(new_row) ])),
                    [ null, new_row ]))
         .run(conn, reql_options),
-    (row, info) => { // validation, each row
-      const expected_version = row[hz_v];
-      if (expected_version !== undefined &&
-          (!info[0] || expected_version !== info[0][hz_v])) {
-        return new Error(writes.invalidated_msg);
-      } else if (!ruleset.validate(context, info[0], info[1])) {
-        return new Error(writes.unauthorized_msg);
-      }
-
-      if (info[0] !== null) {
-        const old_version = info[0][hz_v];
-        if (expected_version === undefined) {
-          row[hz_v] = old_version === undefined ? -1 : old_version;
-        }
-      }
-    },
+    (row, info) => writes.validate_old_row_optional(row, info[0], info[1], ruleset),
     (rows) => // write to database, all valid rows
       r.expr(rows)
         .forEach((new_row) =>

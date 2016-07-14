@@ -24,25 +24,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                      null,
                      [ old_row, old_row.merge(new_row) ])))
         .run(conn, reql_options),
-    (row, info) => { // validation, each row
-      if (info === null) {
-        return new Error(writes.missing_msg);
-      }
-
-      const old_version = info[0][hz_v];
-      const expected_version = row[hz_v];
-      if (expected_version !== undefined &&
-          expected_version !== old_version) {
-        return new Error(writes.invalidated_msg);
-      } else if (!ruleset.validate(context, info[0], info[1])) {
-        return new Error(writes.unauthorized_msg);
-      }
-
-      if (expected_version === undefined) {
-        row[hz_v] =
-          old_version === undefined ? -1 : old_version;
-      }
-    },
+    (row, info) => writes.validate_old_row_required(row, info[0], info[1], ruleset),
     (rows) => // write to database, all valid rows
       r.expr(rows)
         .forEach((new_row) =>
