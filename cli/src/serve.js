@@ -1,4 +1,5 @@
 'use strict';
+const serve = module.exports = {};
 
 const chalk = require('chalk');
 const fs = require('fs');
@@ -222,22 +223,6 @@ const fileServer = (distDir) => (req, res) => {
     serveFile(path.join(distDir, reqPath), res);
   }
   // Fall through otherwise. Should be handled by horizon server
-};
-
-// Ensure schema from schema.toml file is set
-const initalizeSchema = (opts) => {
-  console.info('Ensuring current schema is loaded')
-  return new Promise((reject, resolve) => {
-     schema.runLoadCommand({
-      project_name: opts.project_name,
-      in_file: opts.schema_file,
-      start_rethinkdb: false,
-      rdb_host: opts.rdb_host,
-      rdb_port: opts.rdb_port,
-      update: true,
-      force: false,
-    });
-  });
 };
 
 const initializeServers = (ctor, opts) => {
@@ -665,9 +650,18 @@ const runCommand = (opts, done) => {
       });
     }
   }).then(() => {
-    // Just pass serve's opts since the relevant names are the same (I think)
     if (opts.schema_file) {
-      initalizeSchema(opts);
+      // Ensure schema from schema.toml file is set
+      console.info('Ensuring current schema is loaded')
+      schema.runLoadCommand(schema.processLoadConfig({
+        project_name: opts.project_name,
+        schema_file: opts.schema_file,
+        start_rethinkdb: false,
+        rdb_host: opts.rdb_host,
+        rdb_port: opts.rdb_port,
+        update: true,
+        force: false,
+      }));
     }
   }).then(() => {
     hz_instance = startHorizonServer(http_servers, opts);
@@ -702,16 +696,14 @@ const runCommand = (opts, done) => {
   }).catch(done);
 };
 
-module.exports = {
-  addArguments,
-  processConfig,
-  runCommand,
-  helpText,
-  merge_configs,
-  make_default_config,
-  read_config_from_config_file,
-  read_config_from_secrets_file,
-  read_config_from_env,
-  read_config_from_flags,
-  change_to_project_dir,
-};
+serve.addArguments = addArguments;
+serve.processConfig = processConfig;
+serve.runCommand = runCommand;
+serve.helpText = helpText;
+serve.merge_configs = merge_configs;
+serve.make_default_config = make_default_config;
+serve.read_config_from_config_file = read_config_from_config_file;
+serve.read_config_from_secrets_file = read_config_from_secrets_file;
+serve.read_config_from_env = read_config_from_env;
+serve.read_config_from_flags = read_config_from_flags;
+serve.change_to_project_dir = change_to_project_dir;

@@ -46,7 +46,8 @@ module.exports = (raw_options) => {
                  '--cluster-port', '0',
                  '--driver-port', String(driverPort || 0),
                  '--cache-size', String(cacheSize),
-                 '--directory', dataDir ];
+                 '--directory', dataDir ,
+                 '--no-update-check'];
   bind.forEach((host) => args.push('--bind', host));
 
   return new Promise((resolve, reject) => {

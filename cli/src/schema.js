@@ -1,7 +1,9 @@
 'use strict';
+const schema = module.exports = {}
 
 const create_collection_reql = require('@horizon/server/src/metadata/metadata').create_collection_reql;
 const fs = require('fs');
+const initialize_metadata_reql = require('@horizon/server/src/metadata/metadata').initialize_metadata_reql;
 const interrupt = require('./utils/interrupt');
 const Joi = require('joi');
 const logger = require('@horizon/server').logger;
@@ -9,9 +11,7 @@ const name_to_fields = require('@horizon/server/src/metadata/index').Index.name_
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const path = require('path');
 const r = require('rethinkdb');
-console.log("BEFORE SERVE");
 const serve = require('./serve');
-console.log(serve);
 const start_rdb_server = require('./utils/start_rdb_server');
 const toml = require('toml');
 
@@ -182,7 +182,7 @@ const processLoadConfig = (parsed) => {
   config = serve.make_default_config();
   config.start_rethinkdb = true;
 
-  config = serve.merge_configs(config, serve.read_config_from_file(parsed.project_path,
+  config = serve.merge_configs(config, serve.read_config_from_config_file(parsed.project_path,
                                                                    parsed.config));
   config = serve.merge_configs(config, serve.read_config_from_env());
   config = serve.merge_configs(config, serve.read_config_from_flags(parsed));
@@ -213,7 +213,6 @@ const processLoadConfig = (parsed) => {
 const processSaveConfig = (parsed) => {
   let config, out_file;
 
-  console.log(serve)
   config = serve.make_default_config();
   config.start_rethinkdb = true;
 
@@ -517,25 +516,25 @@ const runSaveCommand = (options, done) => {
   }).then(() => interrupt.shutdown()).catch(done);
 };
 
-module.exports = {
-  addArguments,
-  processConfig: (options) => {
-    // Determine if we are saving or loading and use appropriate config processing
-    if (options.hasOwnProperty('force') || options.hasOwnProperty('update')) {
-      return processLoadConfig(options);
-    } else {
-      return processSaveConfig(options);
-    }
-  },
-  runCommand: (options, done) => {
-    // Determine if we are saving or loading and use appropriate runCommand
-    if (options.hasOwnProperty('force') || options.hasOwnProperty('update')) {
-      return runLoadCommand(options, done);
-    } else {
-      return runSaveCommand(options, done);
-    }
-  },
-  helpText,
-  processLoadConfig,
-  runLoadCommand,
+
+// Avoiding cylical depden
+schema.addArguments = addArguments;
+schema.processConfig = (options) => {
+  // Determine if we are saving or loading and use appropriate config processing
+  if (options.hasOwnProperty('force') || options.hasOwnProperty('update')) {
+    return processLoadConfig(options);
+  } else {
+    return processSaveConfig(options);
+  }
 };
+schema.runCommand = (options, done) => {
+  // Determine if we are saving or loading and use appropriate runCommand
+  if (options.hasOwnProperty('force') || options.hasOwnProperty('update')) {
+    return runLoadCommand(options, done);
+  } else {
+    return runSaveCommand(options, done);
+  }
+};
+schema.helpText = helpText;
+schema.processLoadConfig = processLoadConfig;
+schema.runLoadCommand = runLoadCommand;
