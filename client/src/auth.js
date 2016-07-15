@@ -15,7 +15,7 @@ export function authEndpoint(name) {
     }
   }
   if (!this._authMethods) {
-    return Observable.ajax(`${this._horizonPath}/auth_methods`)
+    return Observable.ajax(`${this._host}${this._horizonPath}/auth_methods`)
       .map(ajax => ajax.response)
       .do(authMethods => {
         this._authMethods = authMethods
