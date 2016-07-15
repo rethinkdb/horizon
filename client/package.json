@@ -16,13 +16,12 @@
   "dependencies": {
     "babel-runtime": "^6.6.1",
     "core-js": "^2.1.0",
-    "engine.io-client": "^1.6.9",
-    "engine.io-parser": "socketio/engine.io-parser#748144b50a1d10e8c7c9b8100f2e21f8ac424c7a",
     "exports-loader": "^0.6.3",
     "imports-loader": "^0.6.5",
     "isomorphic-fetch": "^2.2.1",
     "rxjs": "5.0.0-beta.7",
-    "snake-case": "^1.1.2"
+    "snake-case": "^1.1.2",
+    "ws": "^1.1.0"
   },
   "engines": {
     "node": ">=4.0.0"
