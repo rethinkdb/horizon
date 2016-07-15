@@ -113,7 +113,8 @@ class Server {
 
     const path_replace = new RegExp('^' + this._path + '/');
     const add_http_listener = (server) => {
-      // TODO: this doesn't play well with a user removing listeners (or maybe even `once`)
+      // TODO: this doesn't play well with a user removing listeners
+      // (or maybe even `once`)
       const extant_listeners = server.listeners('request').slice(0);
       server.removeAllListeners('request');
       server.on('request', (req, res) => {
