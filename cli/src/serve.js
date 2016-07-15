@@ -225,6 +225,9 @@ const serve_file = (file_path, res) => {
 const fileServer = (distDir) => (req, res) => {
   const req_path = url.parse(req.url).pathname;
   // Serve client files directly
+  // TODO: Here is where we will serve:
+  //    * either the static files if in /static
+  //    * index.html if any other route so the client-side router can take effect
   if (req_path === '/' || req_path === '') {
     serve_file(path.join(distDir, 'index.html'), res);
   } else if (!req_path.match(/\/horizon\/.*$/)) {
