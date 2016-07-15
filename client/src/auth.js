@@ -1,6 +1,5 @@
 import queryParse from './util/query-parse'
 import { Observable } from 'rxjs/Observable'
-import fetchJSON from './util/fetch.js'
 import 'rxjs/add/operator/do'
 import 'rxjs/add/operator/map'
 
@@ -16,7 +15,8 @@ export function authEndpoint(name) {
     }
   }
   if (!this._authMethods) {
-    return fetchJSON(`${this._horizonPath}/auth_methods`)
+    return Observable.ajax(`${this._horizonPath}/auth_methods`)
+      .map(ajax => ajax.response)
       .do(authMethods => {
         this._authMethods = authMethods
       }).map(endpointForName)

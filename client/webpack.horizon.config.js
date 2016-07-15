@@ -6,7 +6,7 @@ const DefinePlugin = require('webpack/lib/DefinePlugin')
 const OccurrenceOrderPlugin = require(
   'webpack/lib/optimize/OccurrenceOrderPlugin')
 const UglifyJsPlugin = require('webpack/lib/optimize/UglifyJsPlugin')
-const ProvidePlugin = require('webpack/lib/ProvidePlugin');
+const ProvidePlugin = require('webpack/lib/ProvidePlugin')
 
 module.exports = function(buildTarget) {
   const FILENAME = buildTarget.FILENAME
@@ -86,8 +86,7 @@ module.exports = function(buildTarget) {
         'process.env.NODE_ENV': (DEV_BUILD ? 'development' : 'production'),
       }),
       new ProvidePlugin({
-        'Promise': 'es6-promise',
-        'fetch': 'imports?this=>global!exports?global.fetch!whatwg-fetch'
+        Promise: 'es6-promise',
       }),
     ].concat(DEV_BUILD ? [] : [
       new DedupePlugin(),
