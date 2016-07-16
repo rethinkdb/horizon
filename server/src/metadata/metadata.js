@@ -65,9 +65,34 @@ class Metadata {
     this._group_feed = null;
     this._index_feed = null;
 
-    const make_feeds = () => {
-      logger.debug('running metadata sync');
-      const groups_ready =
+    this._ready_promise = Promise.resolve().then(() => {
+      logger.debug('checking for internal db/tables');
+      if (this._auto_create_collection) {
+        return initialize_metadata_reql(r, this._internal_db, this._db).run(this._conn)
+      } else {
+        return r.expr([ this._db, this._internal_db ])
+                 .concatMap((db) => r.branch(r.dbList().contains(db), [], [ db ]))
+                 .run(this._conn)
+                 .then((missing_dbs) => {
+          if (missing_dbs.length > 0) {
+            let err_msg;
+            if (missing_dbs.length === 1) {
+              err_msg = `The database ${missing_dbs[0]} does not exist.`;
+            } else {
+              err_msg = `The databases ${missing_dbs.join(' and ')} do not exist.`;
+            }
+            throw new Error(err_msg + '  Run `hz set-schema` to initialize the database, ' +
+                            'then start the Horizon server.');
+          }
+        });
+      }
+    }).then(() => {
+      logger.debug('waiting for internal db');
+      return r.db(this._internal_db).wait({ timeout: 30 }).run(this._conn)
+    }).then(() => {
+      logger.debug('syncing metadata changefeeds');
+      return Promise.all([
+        // Groups changefeed
         r.db(this._internal_db)
           .table('groups')
           .changes({ squash: true,
@@ -102,8 +127,9 @@ class Metadata {
                 }
               }).catch(reject);
             });
-          });
-      const collections_ready =
+          }),
+
+        // Collections changefeed
         r.db(this._internal_db)
           .table('collections')
           .changes({ squash: false,
@@ -154,8 +180,9 @@ class Metadata {
                 }
               }).catch(reject);
             });
-          });
-      const indexes_ready =
+          }),
+
+        // Indexes changefeed
         r.db('rethinkdb')
           .table('table_config')
           .filter({ db: this._db })
@@ -201,35 +228,8 @@ class Metadata {
                 }
               }).catch(reject);
             });
-          });
-      return Promise.all([ groups_ready, collections_ready, indexes_ready ]);
-    };
-
-    if (this._auto_create_collection) {
-      this._ready_promise =
-        initialize_metadata_reql(r, this._internal_db, this._db).run(this._conn).then(make_feeds);
-    } else {
-      this._ready_promise =
-        r.expr([ this._db, this._internal_db ])
-         .concatMap((db) => r.branch(r.dbList().contains(db), [], [ db ]))
-         .run(this._conn).then((missing_dbs) => {
-           logger.debug('checking for internal db/tables');
-           if (missing_dbs.length > 0) {
-             let err_msg;
-             if (missing_dbs.length === 1) {
-               err_msg = `The database ${missing_dbs[0]} does not exist.`;
-             } else {
-               err_msg = `The databases ${missing_dbs.join(' and ')} do not exist.`;
-             }
-             throw new Error(err_msg + 'Run `hz set-schema` to initialize the database, ' +
-                             'then start the Horizon server.');
-           } else {
-             return make_feeds();
-           }
-         });
-    }
-
-    this._ready_promise = this._ready_promise.then(() => {
+          }) ]);
+    }).then(() => {
       logger.debug('adding admin user');
       // Ensure that the admin user and group exists
       return Promise.all([

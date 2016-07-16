@@ -104,11 +104,7 @@ class ReqlConnection {
        this._ready = true;
        resolve(this);
      }).catch((err) => {
-       if (err instanceof r.Error.ReqlAvailabilityError) {
-         logger.debug(`Connection to RethinkDB terminated: ${err}`);
-       } else {
-         logger.error(`Connection to RethinkDB terminated: ${err}`);
-       }
+       logger.error(`Connection to RethinkDB terminated: ${err}`);
        logger.debug(`stack: ${err.stack}`);
        retry();
      });
