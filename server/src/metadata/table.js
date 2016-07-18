@@ -1,7 +1,7 @@
 'use strict';
 
 const error = require('../error');
-const Index = require('./index').Index;
+const index = require('./index');
 
 const r = require('rethinkdb');
 
@@ -53,12 +53,12 @@ class Table {
 
   update_indexes(indexes, conn) {
     // Initialize the primary index, which won't show up in the changefeed
-    indexes.push(Index.fields_to_name([ 'id' ]));
+    indexes.push(index.primary_index_name);
 
     const new_index_map = new Map();
     indexes.map((name) => {
       const old_index = this.indexes.get(name);
-      const new_index = new Index(name, this.table, conn);
+      const new_index = new index.Index(name, this.table, conn);
       if (old_index) {
         // Steal any waiters from the old index
         new_index._waiters = old_index._waiters;
@@ -71,16 +71,17 @@ class Table {
     this.indexes = new_index_map;
   }
 
+  // TODO: support geo and multi indexes
   create_index(fields, conn, done) {
-    const index_name = Index.fields_to_name(fields);
+    const index_name = index.info_to_name({ geo: false, multi: null, fields });
     error.check(!this.indexes.get(index_name), 'index already exists');
 
     const success = () => {
       // Create the Index object now so we don't try to create it again before the
       // feed notifies us of the index creation
-      const index = new Index(index_name, this.table, conn);
-      this.indexes.set(index_name, index);
-      return index.on_ready(done);
+      const new_index = new index.Index(index_name, this.table, conn);
+      this.indexes.set(index_name, new_index);
+      return new_index.on_ready(done);
     };
 
     this.table.indexCreate(index_name, (row) => fields.map((key) => row(key)))
@@ -100,16 +101,16 @@ class Table {
   // fuzzy_fields and ordered_fields should both be arrays
   get_matching_index(fuzzy_fields, ordered_fields) {
     if (fuzzy_fields.length === 0 && ordered_fields.length === 0) {
-      return this.indexes.get(Index.fields_to_name([ 'id' ]));
+      return this.indexes.get(index.primary_index_name);
     }
 
     let match;
-    for (const index of this.indexes.values()) {
-      if (index.is_match(fuzzy_fields, ordered_fields)) {
-        if (index.ready()) {
-          return index;
+    for (const i of this.indexes.values()) {
+      if (i.is_match(fuzzy_fields, ordered_fields)) {
+        if (i.ready()) {
+          return i;
         } else if (!match) {
-          match = index;
+          match = i;
         }
       }
     }
