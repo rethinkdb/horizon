@@ -61,7 +61,7 @@ const all_tests = () => {
       });
 
       it('localhost/horizon/horizon.js', (done) => {
-        require(transport).get({ host: "localhost",
+        require(transport).get({ host: 'localhost',
                                  port: http_server.address().port,
                                  path: '/horizon/horizon.js',
                                  rejectUnauthorized: false }, (res) => {

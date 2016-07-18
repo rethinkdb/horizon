@@ -221,7 +221,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versioned', value: 1, [hz_v]: 11 }), (err, res) => {
           const expected = [ { id: 'versioned', [hz_v]: 12 } ];
           assert.deepStrictEqual(res, expected);
-          check_collection([ { id: 'versioned', [hz_v]: 12, value: 1 } ], done)
+          check_collection([ { id: 'versioned', [hz_v]: 12, value: 1 } ], done);
         });
       });
 
@@ -229,7 +229,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
           const expected = [ { error: invalidated_error } ];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done)
+          check_collection(test_data, done);
         });
       });
     });
@@ -241,7 +241,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versioned', value: 1, [hz_v]: 11 }), (err, res) => {
           const expected = [ { id: 'versioned', [hz_v]: 12 } ];
           assert.deepStrictEqual(res, expected);
-          check_collection([ { id: 'versioned', [hz_v]: 12, value: 1 } ], done)
+          check_collection([ { id: 'versioned', [hz_v]: 12, value: 1 } ], done);
         });
       });
 
@@ -249,7 +249,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
           const expected = [ { error: invalidated_error } ];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done)
+          check_collection(test_data, done);
         });
       });
     });
@@ -261,7 +261,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versioned', value: 1, [hz_v]: 11 }), (err, res) => {
           const expected = [ { id: 'versioned', [hz_v]: 12 } ];
           assert.deepStrictEqual(res, expected);
-          check_collection([ { id: 'versioned', [hz_v]: 12, value: 1, foo: 'bar' } ], done)
+          check_collection([ { id: 'versioned', [hz_v]: 12, value: 1, foo: 'bar' } ], done);
         });
       });
 
@@ -269,7 +269,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
           const expected = [ { error: invalidated_error } ];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done)
+          check_collection(test_data, done);
         });
       });
     });
@@ -281,7 +281,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versioned', value: 1, [hz_v]: 11 }), (err, res) => {
           const expected = [ { id: 'versioned', [hz_v]: 12 } ];
           assert.deepStrictEqual(res, expected);
-          check_collection([ { id: 'versioned', [hz_v]: 12, value: 1, foo: 'bar' } ], done)
+          check_collection([ { id: 'versioned', [hz_v]: 12, value: 1, foo: 'bar' } ], done);
         });
       });
 
@@ -289,7 +289,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
           const expected = [ { error: invalidated_error } ];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done)
+          check_collection(test_data, done);
         });
       });
     });
@@ -301,7 +301,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versioned', value: 1, [hz_v]: 11 }), (err, res) => {
           const expected = [ { id: 'versioned', [hz_v]: 11 } ];
           assert.deepStrictEqual(res, expected);
-          check_collection([ ], done)
+          check_collection([ ], done);
         });
       });
 
@@ -309,7 +309,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versioned', value: 2, [hz_v]: 5 }), (err, res) => {
           const expected = [ { error: invalidated_error } ];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done)
+          check_collection(test_data, done);
         });
       });
     });
@@ -327,7 +327,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versionless', value: 3 }), (err, res) => {
           const expected = [ { id: 'versionless', [hz_v]: 0 } ];
           assert.deepStrictEqual(res, expected);
-          check_collection([ { id: 'versionless', [hz_v]: 0, value: 3 } ], done)
+          check_collection([ { id: 'versionless', [hz_v]: 0, value: 3 } ], done);
         });
       });
 
@@ -335,7 +335,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
           const expected = [ { error: invalidated_error } ];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done)
+          check_collection(test_data, done);
         });
       });
     });
@@ -347,7 +347,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versionless', value: 3 }), (err, res) => {
           const expected = [ { id: 'versionless', [hz_v]: 0 } ];
           assert.deepStrictEqual(res, expected);
-          check_collection([ { id: 'versionless', [hz_v]: 0, value: 3 } ], done)
+          check_collection([ { id: 'versionless', [hz_v]: 0, value: 3 } ], done);
         });
       });
 
@@ -355,7 +355,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
           const expected = [ { error: invalidated_error } ];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done)
+          check_collection(test_data, done);
         });
       });
     });
@@ -367,7 +367,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versionless', value: 3 }), (err, res) => {
           const expected = [ { id: 'versionless', [hz_v]: 0 } ];
           assert.deepStrictEqual(res, expected);
-          check_collection([ { id: 'versionless', [hz_v]: 0, value: 3, foo: 'bar' } ], done)
+          check_collection([ { id: 'versionless', [hz_v]: 0, value: 3, foo: 'bar' } ], done);
         });
       });
 
@@ -375,7 +375,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
           const expected = [ { error: invalidated_error } ];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done)
+          check_collection(test_data, done);
         });
       });
     });
@@ -387,7 +387,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versionless', value: 3 }), (err, res) => {
           const expected = [ { id: 'versionless', [hz_v]: 0 } ];
           assert.deepStrictEqual(res, expected);
-          check_collection([ { id: 'versionless', [hz_v]: 0, value: 3, foo: 'bar' } ], done)
+          check_collection([ { id: 'versionless', [hz_v]: 0, value: 3, foo: 'bar' } ], done);
         });
       });
 
@@ -395,7 +395,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
           const expected = [ { error: invalidated_error } ];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done)
+          check_collection(test_data, done);
         });
       });
     });
@@ -407,7 +407,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versionless', value: 3 }), (err, res) => {
           const expected = [ { id: 'versionless' } ];
           assert.deepStrictEqual(res, expected);
-          check_collection([ ], done)
+          check_collection([ ], done);
         });
       });
 
@@ -415,7 +415,7 @@ const all_tests = (collection) => {
         utils.stream_test(request({ id: 'versionless', value: 4, [hz_v]: 5 }), (err, res) => {
           const expected = [ { error: invalidated_error } ];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done)
+          check_collection(test_data, done);
         });
       });
     });
