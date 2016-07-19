@@ -2,6 +2,7 @@
 
 const error = require('../error');
 const index = require('./index');
+const logger = require('../logger');
 
 const r = require('rethinkdb');
 
@@ -56,15 +57,19 @@ class Table {
     indexes.push(index.primary_index_name);
 
     const new_index_map = new Map();
-    indexes.map((name) => {
-      const old_index = this.indexes.get(name);
-      const new_index = new index.Index(name, this.table, conn);
-      if (old_index) {
-        // Steal any waiters from the old index
-        new_index._waiters = old_index._waiters;
-        old_index._waiters = [ ];
+    indexes.forEach((name) => {
+      try {
+        const old_index = this.indexes.get(name);
+        const new_index = new index.Index(name, this.table, conn);
+        if (old_index) {
+          // Steal any waiters from the old index
+          new_index._waiters = old_index._waiters;
+          old_index._waiters = [ ];
+        }
+        new_index_map.set(name, new_index);
+      } catch (err) {
+        logger.warn(`${err}`);
       }
-      new_index_map.set(name, new_index);
     });
 
     this.indexes.forEach((i) => i.close());

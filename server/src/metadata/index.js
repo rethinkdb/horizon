@@ -22,7 +22,7 @@ const name_to_info = (name) => {
   const re = /^hz_(?:(geo)_)?(?:multi_([0-9])+_)?\[/;
 
   const matches = name.match(re);
-  check(matches !== null, `Unexpected index name (invalid prefix): "${name}"`);
+  check(matches !== null, `Unexpected index name (invalid format): "${name}"`);
 
   const json_offset = matches[0].length - 1;
 
