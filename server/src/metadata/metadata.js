@@ -91,8 +91,8 @@ class Metadata {
       return r.db(this._internal_db).wait({ timeout: 30 }).run(this._conn)
     }).then(() => {
       logger.debug('syncing metadata changefeeds');
-      return Promise.all([
-        // Groups changefeed
+
+      const group_changefeed =
         r.db(this._internal_db)
           .table('groups')
           .changes({ squash: true,
@@ -127,9 +127,9 @@ class Metadata {
                 }
               }).catch(reject);
             });
-          }),
+          });
 
-        // Collections changefeed
+      const collection_changefeed =
         r.db(this._internal_db)
           .table('collections')
           .changes({ squash: false,
@@ -180,9 +180,9 @@ class Metadata {
                 }
               }).catch(reject);
             });
-          }),
+          });
 
-        // Indexes changefeed
+      const index_changefeed =
         r.db('rethinkdb')
           .table('table_config')
           .filter({ db: this._db })
@@ -228,7 +228,9 @@ class Metadata {
                 }
               }).catch(reject);
             });
-          }) ]);
+          });
+
+      return Promise.all([ group_changefeed, collection_changefeed, index_changefeed ]);
     }).then(() => {
       logger.debug('adding admin user');
       // Ensure that the admin user and group exists

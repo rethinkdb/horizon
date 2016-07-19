@@ -99,7 +99,7 @@ class ReqlConnection {
                                      this._auto_create_index);
        return this._metadata.ready();
      }).then(() => {
-       logger.info('Metadata synced with database, ready for traffic.');
+       logger.info(`Connection to RethinkDB ready: ${this._user} @ ${this._host}:${this._port}`);
        this._reconnect_delay = 0;
        this._ready = true;
        resolve(this);
