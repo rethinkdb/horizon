@@ -14,26 +14,20 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   const collection = metadata.collection(parsed.value.collection);
   const conn = metadata.connection();
 
-  // TODO: shortcut if validation isn't needed (for all write request types)
-  const response_data = [ ];
-  const valid_rows = [ ];
-  for (let i = 0; i < parsed.value.data.length; ++i) {
-    if (!ruleset.validate(context, null, parsed.value.data[i])) {
-      response_data.push(new Error(writes.unauthorized_error));
-    } else {
-      valid_rows.push(parsed.value.data[i]);
-      response_data.push(null);
-    }
-  }
-
-  // TODO: shortcut if valid_rows is empty (for all write request types)
-  collection.table
-    .insert(valid_rows.map((row) => writes.apply_version(r.expr(row), 0)),
-            { returnChanges: 'always' })
-    .run(conn, reql_options)
-    .then((insert_results) => {
-      done(writes.make_write_response(response_data, insert_results));
-    }).catch(done);
+  writes.retry_loop(parsed.value.data, ruleset, parsed.value.timeout,
+    (rows) => // pre-validation, all rows
+      Array(rows.length).fill(null),
+    (row, info) => { // validation, each row
+      if (!ruleset.validate(context, info, row)) {
+        return new Error(writes.unauthorized_msg);
+      }
+    },
+    (rows) => // write to database, all valid rows
+      collection.table
+        .insert(rows.map((row) => writes.apply_version(r.expr(row), 0)),
+                { returnChanges: 'always' })
+        .run(conn, reql_options)
+  ).then(done).catch(done);
 };
 
 module.exports = { run };

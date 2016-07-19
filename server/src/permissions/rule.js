@@ -40,6 +40,16 @@ class Ruleset {
     this._rules = rules;
   }
 
+  validation_required() {
+    for (const rule of this._rules) {
+      if (!rule._validator) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   // Check that a query passes at least one rule in a set
   // Returns the matching rule or undefined if no rules match
   // Variadic - extra arguments are passed down to the validator

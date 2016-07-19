@@ -188,7 +188,7 @@ class Server {
   }
 
   ready() {
-    return this._reql_conn.ready();
+    return this._reql_conn.ready().then(() => this);
   }
 
   close() {
