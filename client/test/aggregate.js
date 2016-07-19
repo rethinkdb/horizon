@@ -1,9 +1,4 @@
-import { Observable } from 'rxjs/Observable'
-import { merge } from 'rxjs/observable/merge'
-import { of } from 'rxjs/observable/of'
-
-import { concat } from 'rxjs/operator/concat'
-import { _catch as rescue } from 'rxjs/operator/catch'
+import Rx from 'rxjs/Rx'
 
 import { assertCompletes,
          removeAllDataObs,
@@ -20,7 +15,7 @@ function arrayHasSameElements(a, b) {
   }
 }
 
-const aggregateSuite = window.aggregateSuite = (getData, getHorizon) => () => {
+const aggregateSuite = global.aggregateSuite = (getData, getHorizon) => () => {
   let data, horizon, hzA, hzB
   before(() => {
     data = getData()
@@ -30,8 +25,8 @@ const aggregateSuite = window.aggregateSuite = (getData, getHorizon) => () => {
   })
   afterEach(done => {
     removeAllDataObs(data)
-    ::concat(removeAllDataObs(hzA))
-    ::concat(removeAllDataObs(hzB))
+    .concat(removeAllDataObs(hzA))
+    .concat(removeAllDataObs(hzB))
       .subscribe({
         next() { },
         error(err) { done(err) },
@@ -47,7 +42,7 @@ const aggregateSuite = window.aggregateSuite = (getData, getHorizon) => () => {
          { id: 2 },
          { id: 3 },
          { id: 4 },
-       ])::concat(observableInterleave({
+       ]).concat(observableInterleave({
          query: horizon.aggregate(underlyingQuery).fetch(),
          operations: [],
          expected: [
@@ -69,10 +64,10 @@ const aggregateSuite = window.aggregateSuite = (getData, getHorizon) => () => {
        return hzA.insert([
          { id: 1 },
          { id: 3 },
-       ])::concat(hzB.insert([
+       ]).concat(hzB.insert([
          { id: 2 },
          { id: 4 },
-       ]))::concat(observableInterleave({
+       ])).concat(observableInterleave({
          query,
          operations: [],
          equality: arrayHasSameElements,
@@ -87,7 +82,7 @@ const aggregateSuite = window.aggregateSuite = (getData, getHorizon) => () => {
     return hzA.insert([
       { id: 1 },
       { id: 2 },
-    ])::concat(observableInterleave({
+    ]).concat(observableInterleave({
       query,
       operations: [],
       equality: arrayHasSameElements,
@@ -140,8 +135,8 @@ const aggregateSuite = window.aggregateSuite = (getData, getHorizon) => () => {
         { id: 7, g: 'G' },
       ],
     }
-    return hzA.insert(hzAContents)::concat(hzB.insert(hzBContents))
-    ::concat(observableInterleave({
+    return hzA.insert(hzAContents).concat(hzB.insert(hzBContents))
+    .concat(observableInterleave({
       query,
       operations: [],
       equality: assert.deepEqual,
@@ -153,8 +148,8 @@ const aggregateSuite = window.aggregateSuite = (getData, getHorizon) => () => {
     const hzAContents = [
       { id: 1, foo: true },
     ]
-    const constantObservable = Observable::of({ id: 2, foo: false })
-    assert.instanceOf(constantObservable, Observable)
+    const constantObservable = Rx.Observable.of({ id: 2, foo: false })
+    assert.instanceOf(constantObservable, Rx.Observable)
     const regularConstant = { id: 3, foo: true }
     const expectedResult = {
       a: { id: 1, foo: true },
@@ -162,7 +157,7 @@ const aggregateSuite = window.aggregateSuite = (getData, getHorizon) => () => {
       c: { id: 3, foo: true },
     }
     return hzA.insert(hzAContents)
-      ::concat(observableInterleave({
+      .concat(observableInterleave({
         query: horizon.aggregate({
           a: hzA.find(1),
           b: constantObservable,
@@ -207,8 +202,8 @@ const aggregateSuite = window.aggregateSuite = (getData, getHorizon) => () => {
          },
        }
        return hzA.insert(hzAContents)
-         ::concat(hzB.insert(hzBContents))
-         ::concat(observableInterleave({
+         .concat(hzB.insert(hzBContents))
+         .concat(observableInterleave({
            query,
            operations: [],
            equality: assert.deepEqual,

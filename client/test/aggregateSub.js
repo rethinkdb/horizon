@@ -1,21 +1,11 @@
 import { Observable } from 'rxjs/Observable'
-import { merge } from 'rxjs/observable/merge'
-import { of } from 'rxjs/observable/of'
-
-import { concat } from 'rxjs/operator/concat'
-import { ignoreElements } from 'rxjs/operator/ignoreElements'
-import { take } from 'rxjs/operator/take'
-import { _do as tap } from 'rxjs/operator/do'
 
 import { assertCompletes,
          removeAllDataObs,
          observableInterleave } from './utils'
 
-function andThen(obs) {
-  return this::ignoreElements()::concat(obs)
-}
-
-const aggregateSubSuite = window.aggregateSubSuite = (getData, getHorizon) => () => {
+const aggregateSubSuite = global.aggregateSubSuite =
+        (getData, getHorizon) => () => {
   let data, horizon, hzA, hzB
   before(() => {
     data = getData()
@@ -24,7 +14,7 @@ const aggregateSubSuite = window.aggregateSubSuite = (getData, getHorizon) => ()
     hzB = horizon('testB')
   })
   afterEach(done => {
-    Observable::merge(
+    Observable.merge(
       removeAllDataObs(hzA),
       removeAllDataObs(hzB),
       removeAllDataObs(data)).subscribe({
@@ -42,7 +32,7 @@ const aggregateSubSuite = window.aggregateSubSuite = (getData, getHorizon) => ()
          { id: 2 },
          { id: 3 },
          { id: 4 },
-       ])::concat(observableInterleave({
+       ]).concat(observableInterleave({
          query: horizon.aggregate(underlyingQuery).watch(),
          operations: [],
          expected: [
@@ -63,36 +53,34 @@ const aggregateSubSuite = window.aggregateSubSuite = (getData, getHorizon) => ()
     return hzA.insert([
       { id: 1 },
       { id: 3 },
-    ])::andThen(hzB.insert([
+    ]).ignoreElements().concat(hzB.insert([
       { id: 2 },
       { id: 4 },
-    ]))::andThen(query.watch())
-    ::take(1)
-    ::tap(obtained => {
-      console.log('Obtained:', obtained)
-      console.log('Query: ' + query)
-    }).subscribe({
-      next(x) {
-        assert.deepEqual(expected, x)
-      },
-      error(err) {
-        done(new Error(err))
-      },
-      complete() { done() }
-    })
+    ])).ignoreElements().concat(query.watch())
+      .take(1)
+      .subscribe({
+        next(x) {
+          assert.sameDeepMembers(expected, x)
+        },
+        error(err) {
+          done(new Error(err))
+        },
+        complete() { done() },
+      })
   })
 
   it('allows constants in an array spec', assertCompletes(() => {
-    const query = horizon.aggregate([ 1, hzA ]).watch()
+    const query = horizon.aggregate([ 1, hzA ])
     const expected = [ 1, { id: 1 }, { id: 2 } ]
     return hzA.insert([
       { id: 1 },
       { id: 2 },
-    ])::concat(observableInterleave({
-      query,
-      operations: [],
-      expected: [ expected ],
-    }))
+    ]).ignoreElements()
+      .concat(query.watch())
+      .take(1)
+      .do(x => {
+        assert.sameDeepMembers(expected, x)
+      })
   }))
 
   it('allows a fully constant aggregate of primitives', assertCompletes(() => {
@@ -140,8 +128,8 @@ const aggregateSubSuite = window.aggregateSubSuite = (getData, getHorizon) => ()
         { id: 7, g: 'G' },
       ],
     }
-    return hzA.insert(hzAContents)::concat(hzB.insert(hzBContents))
-    ::concat(observableInterleave({
+    return hzA.insert(hzAContents).concat(hzB.insert(hzBContents))
+    .concat(observableInterleave({
       query,
       operations: [],
       equality: assert.deepEqual,
@@ -153,7 +141,7 @@ const aggregateSubSuite = window.aggregateSubSuite = (getData, getHorizon) => ()
     const hzAContents = [
       { id: 1, foo: true },
     ]
-    const constantObservable = Observable::of({ id: 2, foo: false })
+    const constantObservable = Observable.of({ id: 2, foo: false })
     assert.instanceOf(constantObservable, Observable)
     const regularConstant = { id: 3, foo: true }
     const expectedResult = {
@@ -162,7 +150,7 @@ const aggregateSubSuite = window.aggregateSubSuite = (getData, getHorizon) => ()
       c: { id: 3, foo: true },
     }
     return hzA.insert(hzAContents)
-      ::concat(observableInterleave({
+      .concat(observableInterleave({
         query: horizon.aggregate({
           a: hzA.find(1),
           b: constantObservable,
@@ -207,8 +195,8 @@ const aggregateSubSuite = window.aggregateSubSuite = (getData, getHorizon) => ()
          },
        }
        return hzA.insert(hzAContents)
-         ::concat(hzB.insert(hzBContents))
-         ::concat(observableInterleave({
+         .concat(hzB.insert(hzBContents))
+         .concat(observableInterleave({
            query,
            operations: [],
            equality: assert.deepEqual,

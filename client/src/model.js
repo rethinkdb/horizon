@@ -1,13 +1,4 @@
 import { Observable } from 'rxjs/Observable'
-// Observable static methods
-import { merge } from 'rxjs/observable/merge'
-import { of } from 'rxjs/observable/of'
-import { forkJoin } from 'rxjs/observable/forkJoin'
-
-// Observable operators
-import { map } from 'rxjs/operator/map'
-import { _do as tap } from 'rxjs/operator/do'
-import { combineLatest } from 'rxjs/operator/combineLatest'
 
 // Other imports
 import isPlainObject from 'is-plain-object'
@@ -44,12 +35,12 @@ class PrimitiveTerm {
   }
 
   fetch() {
-    return Observable::of(this._value)
+    return Observable.of(this._value)
   }
 
-  watch() {
-    checkWatchArgs(arguments)
-    return Observable::of(this._value)
+  watch(...watchArgs) {
+    checkWatchArgs(watchArgs)
+    return Observable.of(this._value)
   }
 }
 
@@ -69,8 +60,8 @@ class ObservableTerm {
     return this._obs
   }
 
-  watch() {
-    checkWatchArgs(arguments)
+  watch(...watchArgs) {
+    checkWatchArgs(watchArgs)
     return this._obs
   }
 }
@@ -90,12 +81,12 @@ class ArrayTerm {
     // Convert each query to an observable
     const qs = this._subqueries.map(x => x.fetch())
     // Merge the results of all of the observables into one array
-    return Observable::forkJoin(...qs, (...args) =>
+    return Observable.forkJoin(...qs, (...args) =>
                                 Array.prototype.concat(...args))
   }
 
-  watch() {
-    checkWatchArgs(arguments)
+  watch(...watchArgs) {
+    checkWatchArgs(watchArgs)
     const qs = this._subqueries.map(x => x.watch())
     if (qs.length === 0) {
       return Observable.empty()
@@ -104,8 +95,7 @@ class ArrayTerm {
     } else {
       const headQuery = qs[0]
       const tailQueries = qs.slice(1)
-      return headQuery::combineLatest(...tailQueries, args => {
-        console.log('args', args)
+      return headQuery.combineLatest(...tailQueries, (...args) => {
         return Array.prototype.concat(...args)
       })
     }
@@ -131,9 +121,9 @@ class AggregateTerm {
     const observs = this._aggregateKeys.map(([ k, term ]) => {
       // We jam the key into the observable so when it emits we know
       // where to put it in the object
-      return term.fetch()::map(val => [ k, val ])
+      return term.fetch().map(val => [ k, val ])
     })
-    return Observable::forkJoin(...observs, (...keyVals) => {
+    return Observable.forkJoin(...observs, (...keyVals) => {
       // reconstruct the object
       const finalObject = {}
       for (const [ key, val ] of keyVals) {
@@ -143,12 +133,12 @@ class AggregateTerm {
     })
   }
 
-  watch() {
-    checkWatchArgs(arguments)
+  watch(...watchArgs) {
+    checkWatchArgs(watchArgs)
     const observs = this._aggregateKeys.map(([ k, term ]) => {
-      return term.watch()::map(val => [ k, val ])
+      return term.watch().map(val => [ k, val ])
     })
-    return Observable::combineLatest(...observs, (...keyVals) => {
+    return Observable.combineLatest(...observs, (...keyVals) => {
       const finalObject = {}
       for (const [ key, val ] of keyVals) {
         finalObject[key] = val
