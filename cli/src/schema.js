@@ -273,7 +273,7 @@ const config_to_toml = (collections, groups) => {
   return res.join('\n');
 };
 
-const runLoadCommand = (options, done) => {
+const runLoadCommand = (options, shutdown, done) => {
   let schema, conn;
   let obsolete_collections = [ ];
 
@@ -467,11 +467,13 @@ const runLoadCommand = (options, done) => {
     return Promise.all(promises);
   }).then(() => {
     conn.close();
-    interrupt.shutdown();
+    if(shutdown){ 
+      interrupt.shutdown();
+    } 
   }).catch(done);
 };
 
-const runSaveCommand = (options, done) => {
+const runSaveCommand = (options, done, shutdown) => {
   const db = options.project_name;
   const internal_db = `${db}_internal`;
   let conn;
@@ -513,7 +515,11 @@ const runSaveCommand = (options, done) => {
     conn.close();
     const toml_str = config_to_toml(res.collections, res.groups);
     options.out_file.write(toml_str);
-  }).then(() => interrupt.shutdown()).catch(done);
+  }).then(() => {
+    if (shutdown){
+      interrupt.shutdown()
+    }
+  }).catch(done);
 };
 
 
@@ -529,10 +535,11 @@ schema.processConfig = (options) => {
 };
 schema.runCommand = (options, done) => {
   // Determine if we are saving or loading and use appropriate runCommand
+  //  Also shutdown = true in this case since we are calling from the CLI. 
   if (options.hasOwnProperty('force') || options.hasOwnProperty('update')) {
-    return runLoadCommand(options, done);
+    return runLoadCommand(options, true, done);
   } else {
-    return runSaveCommand(options, done);
+    return runSaveCommand(options, true, done);
   }
 };
 schema.helpText = helpText;

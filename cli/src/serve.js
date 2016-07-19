@@ -3,7 +3,7 @@ const serve = module.exports = {};
 
 const chalk = require('chalk');
 const fs = require('fs');
-const getType = require('mime-types').contentType;
+const get_type = require('mime-types').contentType;
 const http = require('http');
 const https = require('https');
 const open = require('open');
@@ -11,21 +11,21 @@ const path = require('path');
 const toml = require('toml');
 const url = require('url');
 
-const parseYesNoOption = require('./utils/parse_yes_no_option');
+const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const start_rdb_server = require('./utils/start_rdb_server');
 const interrupt = require('./utils/interrupt');
-const exitWithError = require('./utils/exit_with_error');
-const isDirectory = require('./utils/is_directory');
+const exit_with_error = require('./utils/exit_with_error');
+const is_directory = require('./utils/is_directory');
 const schema = require('./schema');
 
-const horizonServer = require('@horizon/server');
-const logger = horizonServer.logger;
+const horizon_server = require('@horizon/server');
+const logger = horizon_server.logger;
 
 const TIMEOUT_30_SECONDS = 30 * 1000;
 
-const defaultConfigFile = '.hz/config.toml';
-const defaultSecretsFile = '.hz/secrets.toml';
-const defaultRDBPort = 28015;
+const default_config_file = '.hz/config.toml';
+const default_secrets_file = '.hz/secrets.toml';
+const default_rethinkdb_port = 28015;
 
 const helpText = 'Serve a Horizon app';
 
@@ -115,7 +115,7 @@ const addArguments = (parser) => {
 
   parser.addArgument([ '--config' ],
     { type: 'string', metavar: 'PATH',
-      help: 'Path to the config file to use, defaults to "${defaultConfigFile}".' });
+      help: 'Path to the config file to use, defaults to "${default_config_file}".' });
 
   parser.addArgument([ '--schema-file' ],
     { type: 'string', metavar: 'SCHEMA_FILE_PATH',
@@ -159,6 +159,7 @@ const make_default_config = () => ({
   permissions: true,
   key_file: './horizon-key.pem',
   cert_file: './horizon-cert.pem',
+  schema_file: null,
 
   auto_create_collection: false,
   auto_create_index: false,
@@ -180,7 +181,7 @@ const defaultConfig = make_default_config();
 
 // Simple file server. 404s if file not found, 500 if file error,
 // otherwise serve it with a mime-type suggested by its file extension.
-const serveFile = (filePath, res) => {
+const serve_file = (filePath, res) => {
   fs.access(filePath, fs.R_OK | fs.F_OK, (exists) => {
     if (exists) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -196,7 +197,7 @@ const serveFile = (filePath, res) => {
               res.writeHead(500, { 'Content-Type': 'text/plain' });
               res.end(`${err2}\n`);
             } else {
-              const type = getType(path.extname(filePath)) || false;
+              const type = get_type(path.extname(filePath)) || false;
               if (type) {
                 res.writeHead(200, { 'Content-Type': type });
               } else {
@@ -205,27 +206,27 @@ const serveFile = (filePath, res) => {
               res.end(file, 'binary');
             }
           });
-        } else if (stats.isDirectory()) {
-          serveFile(path.join(filePath, 'index.html'), res);
+        } else if (stats.is_directory()) {
+          serve_file(path.join(filePath, 'index.html'), res);
         }
       });
     }
   });
 };
 
-const fileServer = (distDir) => (req, res) => {
+const file_server = (distDir) => (req, res) => {
   const reqPath = url.parse(req.url).pathname;
   // Serve client files directly
   if (reqPath === '/' || reqPath === '') {
-    serveFile(path.join(distDir, 'index.html'), res);
+    serve_file(path.join(distDir, 'index.html'), res);
   } else if (!reqPath.match(/\/horizon\/.*$/)) {
     // All other static files come from the dist directory
-    serveFile(path.join(distDir, reqPath), res);
+    serve_file(path.join(distDir, reqPath), res);
   }
   // Fall through otherwise. Should be handled by horizon server
 };
 
-const initializeServers = (ctor, opts) => {
+const initialize_servers = (ctor, opts) => {
   const servers = new Set();
   let numReady = 0;
   return new Promise((resolve) => {
@@ -241,7 +242,7 @@ const initializeServers = (ctor, opts) => {
         } else {
           console.info(`Static files being served from ${opts.serveStatic}`);
         }
-        srv.on('request', fileServer(opts.serveStatic));
+        srv.on('request', file_server(opts.serveStatic));
       } else {
         srv.on('request', (req, res) => {
           res.writeHead(404);
@@ -257,20 +258,20 @@ const initializeServers = (ctor, opts) => {
         }
       });
       srv.on('error', (err) => {
-        exitWithError(`HTTP${opts.secure ? 'S' : ''} server: ${err}`);
+        exit_with_error(`HTTP${opts.secure ? 'S' : ''} server: ${err}`);
       });
     });
   });
 };
 
-const createInsecureServers = (opts) => {
+const create_insecure_servers = (opts) => {
   if (!opts._dev_flag_used) {
     console.error(chalk.red.bold('WARNING: Serving app insecurely.'));
   }
-  return initializeServers(() => new http.Server(), opts);
+  return initialize_servers(() => new http.Server(), opts);
 };
 
-const readCertFile = (file) => {
+const read_cert_file = (file) => {
   try {
     return fs.readFileSync(path.resolve(file));
   } catch (err) {
@@ -279,10 +280,10 @@ const readCertFile = (file) => {
   }
 };
 
-const createSecureServers = (opts) => {
-  const key = readCertFile(opts.key_file);
-  const cert = readCertFile(opts.cert_file);
-  return initializeServers(() => new https.Server({ key, cert }), opts);
+const create_secure_servers = (opts) => {
+  const key = read_cert_file(opts.key_file);
+  const cert = read_cert_file(opts.cert_file);
+  return initialize_servers(() => new https.Server({ key, cert }), opts);
 };
 
 const yesNoOptions = [ 'debug',
@@ -294,11 +295,11 @@ const yesNoOptions = [ 'debug',
                          'allow_unauthenticated',
                          'allow_anonymous' ];
 
-const parseConnect = (connect, config) => {
+const parse_connect = (connect, config) => {
   const hostPort = connect.split(':');
   if (hostPort.length === 1) {
     config.rdb_host = hostPort[0];
-    config.rdb_port = defaultRDBPort;
+    config.rdb_port = default_rethinkdb_port;
   } else if (hostPort.length === 2) {
     config.rdb_host = hostPort[0];
     config.rdb_port = parseInt(hostPort[1]);
@@ -313,35 +314,34 @@ const parseConnect = (connect, config) => {
 const read_config_from_config_file = (project_path, config_file) => {
   const config = { auth: { } };
 
-  let file_data, configFilename;
+  let fileData, configFilename;
 
   if (config_file) {
     configFilename = config_file;
   } else if (project_path && !config_file) {
-    configFilename = `${project_path}/${defaultConfigFile}`;
+    configFilename = `${project_path}/${default_config_file}`;
   } else {
-    configFilename = defaultConfigFile;
+    configFilename = default_config_file;
   }
 
   try {
-    file_data = fs.readFileSync(configFilename);
+    fileData = fs.readFileSync(configFilename);
   } catch (err) {
     return config;
   }
 
-  const file_config = toml.parse(file_data);
-  for (const field in file_config) {
+  const fileConfig = toml.parse(fileData);
+  for (const field in fileConfig) {
     if (field === 'connect') {
-      parseConnect(file_config.connect, config);
+      parse_connect(fileConfig.connect, config);
     } else if (yesNoOptions.indexOf(field) !== -1) {
-      config[field] = parseYesNoOption(file_config[field], field);
+      config[field] = parse_yes_no_option(fileConfig[field], field);
     } else if (defaultConfig[field] !== undefined) {
-      config[field] = file_config[field];
+      config[field] = fileConfig[field];
     } else {
       throw new Error(`Unknown config parameter: "${field}".`);
     }
   }
-
   return config;
 };
 
@@ -353,9 +353,9 @@ const read_config_from_secrets_file = (projectPath, secretsFile) => {
   if (secretsFile) {
     secretsFilename = secretsFile;
   } else if (projectPath && !secretsFile) {
-    secretsFilename = `${projectPath}/${defaultSecretsFile}`;
+    secretsFilename = `${projectPath}/${default_secrets_file}`;
   } else {
-    secretsFilename = defaultSecretsFile;
+    secretsFilename = default_secrets_file;
   }
 
   try {
@@ -367,9 +367,9 @@ const read_config_from_secrets_file = (projectPath, secretsFile) => {
   const fileConfig = toml.parse(fileData);
   for (const field in fileConfig) {
     if (field === 'connect') {
-      parseConnect(fileConfig.connect, config);
+      parse_connect(fileConfig.connect, config);
     } else if (yesNoOptions.indexOf(field) !== -1) {
-      config[field] = parseYesNoOption(fileConfig[field], field);
+      config[field] = parse_yes_no_option(fileConfig[field], field);
     } else if (defaultConfig[field] !== undefined) {
       config[field] = fileConfig[field];
     } else {
@@ -392,7 +392,7 @@ const read_config_from_env = () => {
       const value = process.env[envVar];
 
       if (destVarName === 'connect') {
-        parseConnect(value, config);
+        parse_connect(value, config);
       } else if (destVarName === 'bind') {
         config[destVarName] = value.split(',');
       } else if (varPath[0] === 'auth') {
@@ -409,7 +409,7 @@ const read_config_from_env = () => {
           }
         }
       } else if (yesNoOptions.indexOf(destVarName) !== -1) {
-        config[destVarName] = parseYesNoOption(value, destVarName);
+        config[destVarName] = parse_yes_no_option(value, destVarName);
       } else if (defaultConfig[destVarName] !== undefined) {
         config[destVarName] = value;
       }
@@ -419,6 +419,8 @@ const read_config_from_env = () => {
   return config;
 };
 
+// Handles reading configuration from the parsed flags 
+//  NOTE: New flags must be manually added here or they will not apply correctly
 const read_config_from_flags = (parsed) => {
   const config = { auth: { } };
 
@@ -432,7 +434,7 @@ const read_config_from_flags = (parsed) => {
     config.start_rethinkdb = true;
     config.auto_create_collection = true;
     config.auto_create_index = true;
-    config.serveStatic = 'dist';
+    config.serve_static = 'dist';
     config._dev_flag_used = true;
     config.schema_file = '.hz/schema.toml'
 
@@ -451,19 +453,23 @@ const read_config_from_flags = (parsed) => {
 
   // Normalize RethinkDB connection options
   if (parsed.connect !== null && parsed.connect !== undefined) {
-    parseConnect(parsed.connect, config);
+    parse_connect(parsed.connect, config);
   }
 
   // Simple 'yes' or 'no' (or 'true' or 'false') flags
   yesNoOptions.forEach((key) => {
-    const value = parseYesNoOption(parsed[key], key);
+    const value = parse_yes_no_option(parsed[key], key);
     if (value !== undefined) {
       config[key] = value;
     }
   });
 
-  if (parsed.serveStatic !== null && parsed.serveStatic !== undefined) {
-    config.serveStatic = parsed.serveStatic;
+  if (parsed.serve_static !== null && parsed.serve_static !== undefined) {
+    config.serve_static = parsed.serve_static;
+  }
+
+  if (parsed.schema_file !== null && parsed.schema_file !== undefined) {
+    config.schema_file = parsed.schema_file;
   }
 
   // Normalize horizon socket options
@@ -553,7 +559,7 @@ const processConfig = (parsed) => {
   }
 
   if (!config.rdb_port) {
-    config.rdb_port = defaultRDBPort;
+    config.rdb_port = default_rethinkdb_port;
   }
 
   return config;
@@ -561,7 +567,7 @@ const processConfig = (parsed) => {
 
 const startHorizonServer = (servers, opts) => {
   console.log('Starting Horizon...');
-  const hzServer = new horizonServer.Server(servers, {
+  const hzServer = new horizon_server.Server(servers, {
     auto_create_collection: opts.auto_create_collection,
     auto_create_index: opts.auto_create_index,
     permissions: opts.permissions,
@@ -593,15 +599,15 @@ const startHorizonServer = (servers, opts) => {
 };
 
 const change_to_project_dir = (project_path) => {
-  if (isDirectory(project_path)) {
+  if (is_directory(project_path)) {
     process.chdir(project_path);
   } else {
-    exitWithError(`${project_path} is not a directory`);
+    exit_with_error(`${project_path} is not a directory`);
   }
-  if (!isDirectory('.hz')) {
+  if (!is_directory('.hz')) {
     const nicePathName = project_path === '.' ?
             'this directory' : project_path;
-    exitWithError(`${nicePathName} doesn't contain an .hz directory`);
+    exit_with_error(`${nicePathName} doesn't contain an .hz directory`);
   }
 };
 
@@ -620,14 +626,14 @@ const runCommand = (opts, done) => {
 
   change_to_project_dir(opts.project_path);
 
-  let http_servers, hz_instance;
+  let httpServers, hzInstance;
 
   interrupt.on_interrupt((done2) => {
-    if (hz_instance) {
-      hz_instance.close();
+    if (hzInstance) {
+      hzInstance.close();
     }
-    if (http_servers) {
-      http_servers.forEach((serv) => {
+    if (httpServers) {
+      httpServers.forEach((serv) => {
         serv.close();
       });
     }
@@ -636,9 +642,9 @@ const runCommand = (opts, done) => {
 
   return (
     opts.secure ?
-      createSecureServers(opts) : createInsecureServers(opts)
+      create_secure_servers(opts) : create_insecure_servers(opts)
   ).then((servers) => {
-    http_servers = servers;
+    httpServers = servers;
     if (opts.start_rethinkdb) {
       return start_rdb_server().then((rdbOpts) => {
         // Don't need to check for host, always localhost.
@@ -650,39 +656,39 @@ const runCommand = (opts, done) => {
       });
     }
   }).then(() => {
+    // Ensure schema from schema.toml file is set
     if (opts.schema_file) {
-      // Ensure schema from schema.toml file is set
-      console.info('Ensuring current schema is loaded')
-      schema.runLoadCommand(schema.processLoadConfig({
+      console.log('Ensuring current schema is loaded');
+      const schemaOptions = schema.processLoadConfig({
         project_name: opts.project_name,
         schema_file: opts.schema_file,
         start_rethinkdb: false,
-        rdb_host: opts.rdb_host,
-        rdb_port: opts.rdb_port,
+        connect: `${opts.rdb_host}:${opts.rdb_port}`,
         update: true,
         force: false,
-      }));
+      });
+      schema.runLoadCommand(schemaOptions, false, (err) => { console.error(err)});
     }
   }).then(() => {
-    hz_instance = startHorizonServer(http_servers, opts);
+    hzInstance = startHorizonServer(httpServers, opts);
   }).then(() => {
     if (opts.auth) {
       for (const name in opts.auth) {
-        const provider = horizonServer.auth[name];
+        const provider = horizon_server.auth[name];
         if (!provider) {
           throw new Error(`Unrecognized auth provider "${name}"`);
         }
-        hz_instance.add_auth_provider(provider,
+        hzInstance.add_auth_provider(provider,
                                       Object.assign({}, { path: name }, opts.auth[name]));
       }
     }
   }).then(() => {
     // Automatically open up index.html in the `dist` directory only if
     //  `--open` flag specified and an index.html exists in the directory.
-    if (opts.open && opts.serveStatic) {
+    if (opts.open && opts.serve_static) {
       try {
         // Check if index.html exists and readable in serve static_static directory
-        fs.accessSync(`${opts.serveStatic}/index.html`, fs.R_OK | fs.F_OK);
+        fs.accessSync(`${opts.serve_static}/index.html`, fs.R_OK | fs.F_OK);
         // Determine scheme from options
         const scheme = opts.secure ? 'https://' : 'http://';
         // Open up index.html in default browser
