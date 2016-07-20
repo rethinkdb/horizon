@@ -10,6 +10,7 @@ import 'rxjs/add/operator/take'
 import 'rxjs/add/operator/defaultIfEmpty'
 
 import snakeCase from 'snake-case'
+import deepEqual from 'deep-equal'
 
 import checkArgs from './util/check-args'
 import validIndexValue from './util/valid-index-value.js'
@@ -186,7 +187,14 @@ export function applyChange(arr, change) {
     } else {
       // If we don't have an offset, find the old val and
       // replace it with the new val
-      const index = arr.findIndex(x => x.id === change.old_val.id)
+      const index = arr.findIndex(x => deepEqual(x.id, change.old_val.id))
+      if (index === -1) {
+        // indicates a programming bug. The server gives us the
+        // ordering, so if we don't find the id it means something is
+        // buggy.
+        throw new Error(
+          `change couldn't be applied: ${JSON.stringify(change)}`)
+      }
       arr[index] = change.new_val
     }
     break
