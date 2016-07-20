@@ -2,7 +2,7 @@ import { applyChange } from '../../src/ast'
 
 const unitAstSuite = global.unitAstSuite = () => {
   describe('applyChanges', () => {
-    it('correctly replaces an item with an array id', done => {
+    it('correctly changes an item with an array id in place', done => {
       const existingArray = [
         { id: [ 'A', 'B' ], val: 3 },
         { id: [ 'B', 'C' ], val: 4 },
@@ -23,6 +23,26 @@ const unitAstSuite = global.unitAstSuite = () => {
       const expected = [
         { id: [ 'A', 'B' ], val: 3 },
         { id: [ 'B', 'C' ], val: 5 },
+      ]
+      const obtained = applyChange(existingArray, change)
+      assert.deepEqual(obtained, expected)
+      done()
+    })
+
+    it('correctly deletes an uninitial item with an array id', done => {
+      const existingArray = [
+        { id: [ 'A', 'B' ], val: 3 },
+        { id: [ 'B', 'C' ], val: 4 },
+      ]
+      const change = {
+        type: 'uninitial',
+        old_val: {
+          id: [ 'B', 'C' ],
+          val: 4,
+        },
+      }
+      const expected = [
+        { id: [ 'A', 'B' ], val: 3 },
       ]
       const obtained = applyChange(existingArray, change)
       assert.deepEqual(obtained, expected)

@@ -184,7 +184,12 @@ export function applyChange(arr, change) {
     if (change.old_offset != null) {
       arr.splice(change.old_offset, 1)
     } else {
-      const index = arr.findIndex(x => x.id === change.old_val.id)
+      const index = arr.findIndex(x => deepEqual(x.id, change.old_val.id))
+      if (index === -1) {
+        // Programming error. This should not happen
+        throw new Error(
+          `change couldn't be applied: ${JSON.stringify(change)}`)
+      }
       arr.splice(index, 1)
     }
     break
