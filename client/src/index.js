@@ -7,7 +7,6 @@ import 'rxjs/add/operator/filter'
 
 import { Collection, UserDataTerm } from './ast'
 import { HorizonSocket } from './socket'
-import { log, logError, enableLogging } from './logging'
 import { authEndpoint, TokenStorage, clearAuthTokens } from './auth'
 import { aggregate, model } from './model'
 
@@ -135,9 +134,6 @@ function subscribeOrObservable(observable) {
   }
 }
 
-Horizon.log = log
-Horizon.logError = logError
-Horizon.enableLogging = enableLogging
 Horizon.Socket = HorizonSocket
 Horizon.clearAuthTokens = clearAuthTokens
 
