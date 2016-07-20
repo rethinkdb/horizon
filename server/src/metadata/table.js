@@ -11,7 +11,6 @@ class Table {
     this.collection = null; // This will be set when we are attached to a collection
     this.table = r.db(db).table(table_name);
     this.indexes = new Map();
-    this.update_indexes([ ]);
 
     this._waiters = [ ];
     this._result = null;
@@ -53,6 +52,8 @@ class Table {
   }
 
   update_indexes(indexes, conn) {
+    logger.debug(`${this.table} indexes changed, reevaluating`);
+
     // Initialize the primary index, which won't show up in the changefeed
     indexes.push(index.primary_index_name);
 
@@ -74,6 +75,7 @@ class Table {
 
     this.indexes.forEach((i) => i.close());
     this.indexes = new_index_map;
+    logger.debug(`${this.table} indexes updated`);
   }
 
   // TODO: support geo and multi indexes

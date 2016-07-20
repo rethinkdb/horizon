@@ -186,7 +186,10 @@ class Metadata {
         r.db('rethinkdb')
           .table('table_config')
           .filter({ db: this._db })
-          .pluck('name', 'indexes')
+          .map((row) => ({
+            name: row('name'),
+            indexes: row('indexes').filter((idx) => idx.match('^hz_'))
+          }))
           .changes({ squash: true,
                      includeInitial: true,
                      includeStates: true,
@@ -268,8 +271,9 @@ class Metadata {
       logger.debug('redirecting users table');
       // Redirect the 'users' table to the one in the internal db
       const users_table = new Table('users', this._internal_db, this._conn);
-      const users_collection = new Collection({ id: 'users', table: 'users' }, this._internal_db);
+      users_table.update_indexes([ ]);
 
+      const users_collection = new Collection({ id: 'users', table: 'users' }, this._internal_db);
       users_collection.set_table(users_table);
 
       this._tables.set('users', users_table);
