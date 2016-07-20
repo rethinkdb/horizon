@@ -12,6 +12,7 @@ module.exports.logger = logger;
 module.exports.utils = utils;
 module.exports.Server = server.Server;
 module.exports.auth = {
+  auth0: require('./auth/auth0'),
   facebook: require('./auth/facebook'),
   github: require('./auth/github'),
   google: require('./auth/google'),
