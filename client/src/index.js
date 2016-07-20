@@ -5,7 +5,6 @@ import 'rxjs/add/operator/concatMap'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/filter'
 
-import * as Rx from 'rxjs'
 import { Collection, UserDataTerm } from './ast'
 import { HorizonSocket } from './socket'
 import { log, logError, enableLogging } from './logging'
