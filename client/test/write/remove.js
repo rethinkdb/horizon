@@ -10,10 +10,11 @@ import { assertCompletes,
          assertErrors,
          removeAllData,
          compareWithoutVersion,
-         compareSetsWithoutVersion } from './utils'
+         compareSetsWithoutVersion } from '../utils'
 
-const removeSuite = global.removeSuite = getData => () => {
+export default function() {
   let data
+
   const testData = [
     { id: 1, a: 1 },
     { id: 2, a: 2 },
@@ -22,13 +23,8 @@ const removeSuite = global.removeSuite = getData => () => {
     { id: 'do_not_remove_2' },
   ]
 
-  before(() => {
-    data = getData()
-  })
-
-  // Drop all the existing data
-  before(done => {
-    removeAllData(data, done)
+  before(function() {
+    data = this.hz_data
   })
 
   // Insert the test data and make sure it's in

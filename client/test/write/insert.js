@@ -7,13 +7,13 @@ import { assertCompletes,
          assertThrows,
          assertErrors,
          compareWithoutVersion,
-         compareSetsWithoutVersion } from './utils'
+         compareSetsWithoutVersion } from '../utils'
 
-const insertSuite = global.insertSuite = getData => () => {
+export default function() {
   let data
 
-  before(() => {
-    data = getData()
+  before(function() {
+    data = this.hz_data
   })
 
   // The `insert` command stores documents in the database, and errors if
@@ -147,4 +147,4 @@ const insertSuite = global.insertSuite = getData => () => {
         assert.lengthOf(res, 0)
       })
   ))
-} // Testing `insert`
+}

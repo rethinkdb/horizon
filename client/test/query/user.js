@@ -2,11 +2,13 @@ import { _do as tap } from 'rxjs/operator/do'
 import { mergeMap } from 'rxjs/operator/mergeMap'
 import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
 
-const authSuite = global.authSuite = (getHorizon) => () => {
+export default function() {
   let horizon
-  before(() => {
-    horizon = getHorizon()
+
+  before(function() {
+    horizon = this.horizon
   })
+
   it('gets an empty object when unauthenticated', done => {
     horizon.currentUser().fetch().subscribe({
       next(user) {

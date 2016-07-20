@@ -66,22 +66,6 @@ require('./utils')
 // Testing the Horizon object
 require('./horizonObject.js')
 
-// Testing insertion/storage commands
-require('./store.js')
-require('./insert.js')
-require('./upsert.js')
-require('./update.js')
-require('./replace.js')
-
-// Test the removal commands
-require('./remove.js')
-require('./removeAll.js')
-
-// Times tests
-require('./times.js')
-// Authentication tests
-require('./auth.js')
-
 // Read API
 require('./collection.js')
 require('./find.js')

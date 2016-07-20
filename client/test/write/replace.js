@@ -6,13 +6,13 @@ import { assertCompletes,
          assertThrows,
          assertErrors,
          compareWithoutVersion,
-         compareSetsWithoutVersion } from './utils'
+         compareSetsWithoutVersion } from '../utils'
 
-const replaceSuite = global.replaceSuite = getData => () => {
+export default function() {
   let data
 
-  before(() => {
-    data = getData()
+  before(function() {
+    data = this.hz_data
   })
 
   // Let's store a document first, then replace it.
