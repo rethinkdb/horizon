@@ -1,4 +1,4 @@
-import { concat } from 'rxjs/operator/concat'
+import 'rxjs/add/operator/concat'
 
 import { assertCompletes, observableInterleave } from './utils'
 
@@ -44,14 +44,14 @@ const findSubscriptionSuite = global.findSubscriptionSuite = getData => () => {
   ))
 
   // Let's make sure we don't see events that aren't ours
-  it(`doesn't see events that don't belong to it`, assertCompletes(() =>
+  it("doesn't see events that don't belong to it", assertCompletes(() =>
     observableInterleave({
       query: data.find(1).watch(),
       operations: [ // only one operation
         data.store({ id: 2, a: 1 }) // irrelevant
-          ::concat(data.store({ id: 2, a: 2 })) // irrelevant
-          ::concat(data.insert({ id: 1, data: 'blep' })) // relevant
-          ::concat(data.remove(2)), // removing irrelevant
+          .concat(data.store({ id: 2, a: 2 })) // irrelevant
+          .concat(data.insert({ id: 1, data: 'blep' })) // relevant
+          .concat(data.remove(2)), // removing irrelevant
         data.remove(1), // triggered after relevant only
       ],
       expected: [
@@ -63,10 +63,10 @@ const findSubscriptionSuite = global.findSubscriptionSuite = getData => () => {
   ))
 
   // Let's make sure initial vals works correctly
-  it(`properly handles initial values`, assertCompletes(() =>
+  it('properly handles initial values', assertCompletes(() =>
     // before starting the feed, insert initial document
     data.store({ id: 1, a: 1 })
-      ::concat(observableInterleave({
+      .concat(observableInterleave({
         query: data.find(1).watch(),
         operations: [
           data.store({ id: 1, a: 2 }),
@@ -80,4 +80,12 @@ const findSubscriptionSuite = global.findSubscriptionSuite = getData => () => {
       })
     )
   ))
+
+  it('emits null when the document id is not found', assertCompletes(() => {
+    return observableInterleave({
+      query: data.find('does_not_exist').watch(),
+      operations: [],
+      expected: [ null ],
+    })
+  }))
 } // Testing `find` subscriptions

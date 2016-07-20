@@ -7,6 +7,7 @@ import 'rxjs/add/operator/filter'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/toArray'
 import 'rxjs/add/operator/take'
+import 'rxjs/add/operator/defaultIfEmpty'
 
 import snakeCase from 'snake-case'
 
@@ -21,7 +22,7 @@ import { serialize } from './serialization.js'
  Validation check to throw an exception if a method is chained onto a
  query that already has it. It belongs to TermBase, but we don't want
  to pollute the objects with it (since it isn't useful to api users),
- so it's dynamically bound with :: inside methods that use it.
+ so it's dynamically bound with .call inside methods that use it.
 */
 function checkIfLegalToChain(key) {
   if (this._legalMethods.indexOf(key) === -1) {
@@ -61,38 +62,38 @@ export class TermBase {
       return val
     })
     if (this._query.find) {
-      return raw
+      return raw.defaultIfEmpty(null)
     } else {
       return raw.toArray()
     }
   }
   findAll(...fieldValues) {
-    this::checkIfLegalToChain('findAll')
+    checkIfLegalToChain.call(this, 'findAll')
     checkArgs('findAll', arguments, { maxArgs: 100 })
     return new FindAll(this._sendRequest, this._query, fieldValues)
   }
   find(idOrObject) {
-    this::checkIfLegalToChain('find')
+    checkIfLegalToChain.call(this, 'find')
     checkArgs('find', arguments)
     return new Find(this._sendRequest, this._query, idOrObject)
   }
   order(fields, direction = 'ascending') {
-    this::checkIfLegalToChain('order')
+    checkIfLegalToChain.call(this, 'order')
     checkArgs('order', arguments, { minArgs: 1, maxArgs: 2 })
     return new Order(this._sendRequest, this._query, fields, direction)
   }
   above(aboveSpec, bound = 'closed') {
-    this::checkIfLegalToChain('above')
+    checkIfLegalToChain.call(this, 'above')
     checkArgs('above', arguments, { minArgs: 1, maxArgs: 2 })
     return new Above(this._sendRequest, this._query, aboveSpec, bound)
   }
   below(belowSpec, bound = 'open') {
-    this::checkIfLegalToChain('below')
+    checkIfLegalToChain.call(this, 'below')
     checkArgs('below', arguments, { minArgs: 1, maxArgs: 2 })
     return new Below(this._sendRequest, this._query, belowSpec, bound)
   }
   limit(size) {
-    this::checkIfLegalToChain('limit')
+    checkIfLegalToChain.call(this, 'limit')
     checkArgs('limit', arguments)
     return new Limit(this._sendRequest, this._query, size)
   }
@@ -261,24 +262,24 @@ export class Collection extends TermBase {
     this._lazyWrites = lazyWrites
   }
   store(documents) {
-    return this::writeOp('store', arguments, documents)
+    return writeOp.call(this, 'store', arguments, documents)
   }
   upsert(documents) {
-    return this::writeOp('upsert', arguments, documents)
+    return writeOp.call(this, 'upsert', arguments, documents)
   }
   insert(documents) {
-    return this::writeOp('insert', arguments, documents)
+    return writeOp.call(this, 'insert', arguments, documents)
   }
   replace(documents) {
-    return this::writeOp('replace', arguments, documents)
+    return writeOp.call(this, 'replace', arguments, documents)
   }
   update(documents) {
-    return this::writeOp('update', arguments, documents)
+    return writeOp.call(this, 'update', arguments, documents)
   }
   remove(documentOrId) {
     const wrapped = validIndexValue(documentOrId) ?
           { id: documentOrId } : documentOrId
-    return this::writeOp('remove', arguments, wrapped)
+    return writeOp.call(this, 'remove', arguments, wrapped)
   }
   removeAll(documentsOrIds) {
     if (!Array.isArray(documentsOrIds)) {
@@ -291,7 +292,7 @@ export class Collection extends TermBase {
         return item
       }
     })
-    return this::writeOp('removeAll', arguments, wrapped)
+    return writeOp.call(this, 'removeAll', arguments, wrapped)
   }
 }
 
