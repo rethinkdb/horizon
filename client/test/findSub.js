@@ -80,4 +80,12 @@ const findSubscriptionSuite = global.findSubscriptionSuite = getData => () => {
       })
     )
   ))
+
+  it('emits null when the document id is not found', assertCompletes(() => {
+    return observableInterleave({
+      query: data.find('does_not_exist').watch(),
+      operations: [],
+      expected: [ null ],
+    })
+  }))
 } // Testing `find` subscriptions

@@ -7,6 +7,7 @@ import 'rxjs/add/operator/filter'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/toArray'
 import 'rxjs/add/operator/take'
+import 'rxjs/add/operator/defaultIfEmpty'
 
 import snakeCase from 'snake-case'
 
@@ -61,7 +62,7 @@ export class TermBase {
       return val
     })
     if (this._query.find) {
-      return raw
+      return raw.defaultIfEmpty(null)
     } else {
       return raw.toArray()
     }
