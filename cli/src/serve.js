@@ -152,7 +152,7 @@ const make_default_config = () => ({
   port: 8181,
 
   start_rethinkdb: false,
-  serveStatic: null,
+  serve_static: null,
   open: false,
 
   secure: true,
@@ -227,22 +227,25 @@ const file_server = (distDir) => (req, res) => {
 };
 
 const initialize_servers = (ctor, opts) => {
+  console.log("CREATING SERVER")
+  console.log(opts)
   const servers = new Set();
   let numReady = 0;
   return new Promise((resolve) => {
     opts.bind.forEach((host) => {
+      console.log(host)
       const srv = ctor().listen(opts.port, host);
       servers.add(srv);
-      if (opts.serveStatic) {
-        if (opts.serveStatic === 'dist') {
+      if (opts.serve_static) {
+        if (opts.serve_static === 'dist') {
           // do nothing, this is the default
         } else if (opts.project_path !== '.') {
-          const pth = path.join(opts.project_path, opts.serveStatic);
+          const pth = path.join(opts.project_path, opts.serve_static);
           console.info(`Static files being served from ${pth}`);
         } else {
-          console.info(`Static files being served from ${opts.serveStatic}`);
+          console.info(`Static files being served from ${opts.serve_static}`);
         }
-        srv.on('request', file_server(opts.serveStatic));
+        srv.on('request', file_server(opts.serve_static));
       } else {
         srv.on('request', (req, res) => {
           res.writeHead(404);
@@ -667,7 +670,7 @@ const runCommand = (opts, done) => {
         update: true,
         force: false,
       });
-      schema.runLoadCommand(schemaOptions, false, (err) => { console.error(err)});
+      // schema.runLoadCommand(schemaOptions, false, (err) => { console.error(err)});
     }
   }).then(() => {
     hzInstance = startHorizonServer(httpServers, opts);
@@ -695,7 +698,7 @@ const runCommand = (opts, done) => {
         console.log('Attempting open of index.html in default browser');
         open(`${scheme}${opts.bind}:${opts.port}/index.html`);
       } catch (open_err) {
-        console.log(chalk.red(`Error occurred while trying to open ${opts.serveStatic}/index.html`));
+        console.log(chalk.red(`Error occurred while trying to open ${opts.serve_static}/index.html`));
         console.log(open_err);
       }
     }
