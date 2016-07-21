@@ -91,22 +91,22 @@ const aggregateSuite = global.aggregateSuite = (getData, getHorizon) => () => {
   }))
 
   it('allows a fully constant aggregate of primitives', assertCompletes(() => {
-    const aggregate = {
+    const agg = {
       a: 'Some string',
       b: [ true ],
       c: new Date(),
       d: {
         e: new ArrayBuffer(),
         f: 1.2,
-        g: [ 1.3, true, new Date(), { } ],
+        g: [ 1.3, true, new Date(), {} ],
       },
     }
-    const query = horizon.aggregate(aggregate).fetch()
+
     return observableInterleave({
-      query,
+      query: horizon.aggregate(agg).fetch(),
       operations: [],
       equality: assert.deepEqual,
-      expected: [ aggregate ],
+      expected: [ agg ],
     })
   }))
 
@@ -155,6 +155,7 @@ const aggregateSuite = global.aggregateSuite = (getData, getHorizon) => () => {
       a: { id: 1, foo: true },
       b: { id: 2, foo: false },
       c: { id: 3, foo: true },
+      d: { id: 4, foo: false },
     }
     return hzA.insert(hzAContents)
       .concat(observableInterleave({
@@ -162,6 +163,7 @@ const aggregateSuite = global.aggregateSuite = (getData, getHorizon) => () => {
           a: hzA.find(1),
           b: constantObservable,
           c: regularConstant,
+          d: Promise.resolve({ id: 4, foo: false }),
         }).fetch(),
         operations: [],
         equality: assert.deepEqual,
