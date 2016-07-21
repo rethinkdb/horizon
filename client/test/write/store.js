@@ -7,13 +7,13 @@ import { assertCompletes,
          assertThrows,
          assertErrors,
          compareWithoutVersion,
-         compareSetsWithoutVersion } from './utils'
+         compareSetsWithoutVersion } from '../utils'
 
-const storeSuite = global.storeSuite = getData => () => {
+export default function() {
   let data
 
-  before(() => {
-    data = getData()
+  before(function() {
+    data = this.hz_data
   })
 
   // The `store` command stores documents in the database, and overwrites
@@ -139,4 +139,4 @@ const storeSuite = global.storeSuite = getData => () => {
       ::mergeMap(id => data.find(id[0]).fetch())
       ::tap(result => assert.deepEqual(originalDate, result.date))
   }))
-} // Testing `store`
+}

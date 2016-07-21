@@ -7,13 +7,13 @@ import { assertCompletes,
          assertThrows,
          assertErrors,
          compareWithoutVersion,
-         compareSetsWithoutVersion } from './utils'
+         compareSetsWithoutVersion } from '../utils'
 
-const upsertSuite = global.upsertSuite = getData => () => {
+export default function() {
   let data
 
-  before(() => {
-    data = getData()
+  before(function() {
+    data = this.hz_data
   })
 
   // The `upsert` command stores documents in the database, and updates

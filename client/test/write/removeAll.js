@@ -10,34 +10,29 @@ import { assertCompletes,
          assertErrors,
          removeAllData,
          compareWithoutVersion,
-         compareSetsWithoutVersion } from './utils'
+         compareSetsWithoutVersion } from '../utils'
 
-const removeAllSuite = global.removeAllSuite = getData => () => {
+export default function() {
   let data
+
   const testData = [
     { id: 1, a: 1 },
     { id: 2, a: 2 },
     { id: 3, a: 3 },
-    { id: 4, a: 4 },
     { id: 'do_not_remove_1' },
     { id: 'do_not_remove_2' },
   ]
 
-  before(() => {
-    data = getData()
-  })
-
-  // Drop all the existing data
-  before(done => {
-    removeAllData(data, done)
+  before(function() {
+    data = this.hz_data
   })
 
   // Insert the test data and make sure it's in
   before(assertCompletes(() =>
     data.store(testData)::ignoreElements()
-     ::concat(data.fetch())
-     // Make sure it's there
-     ::tap(res => compareSetsWithoutVersion(res, testData))
+      ::concat(data.fetch())
+      // Make sure it's there
+      ::tap(res => compareSetsWithoutVersion(res, testData))
   ))
 
   // All right, let's remove a document. The promise resolves with no

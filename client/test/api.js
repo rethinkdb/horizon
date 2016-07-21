@@ -5,6 +5,18 @@ import { toArray } from 'rxjs/operator/toArray'
 
 import { assertCompletes, removeAllData, compareSetsWithoutVersion } from './utils'
 
+import store from './write/store'
+import insert from './write/insert'
+import upsert from './write/upsert'
+import update from './write/update'
+import replace from './write/replace'
+
+import remove from './write/remove'
+import removeAll from './write/removeAll'
+
+import time from './query/time'
+import user from './query/user'
+
 // This test suite covers various edge cases in the Horizon client library API.
 // It does not cover correctness of the full system in various circumstances.
 // The purpose of the API test suite is to act as a runnable, checkable spec for
@@ -23,18 +35,18 @@ describe('Core API tests', () => {
   const getData = () => data
 
   // Set up the horizon connection before running these tests.
-  before(done => {
+  before(function(done) {
     Horizon.clearAuthTokens()
-    horizon = Horizon({ secure: false, lazyWrites: true })
-    horizon.connect(err => done(err))
-    horizon.onReady(() => {
-      data = horizon('test_data')
+    this.horizon = Horizon({ secure: false, lazyWrites: true })
+    this.horizon.connect(err => done(err))
+    this.horizon.onReady(() => {
+      this.hz_data = this.horizon('test_data')
       done()
     })
   })
 
   // Kill the horizon connection after running these tests.
-  after(done => {
+  after(function(done) {
     let alreadyDone = false
     function wrappedDone(...args) {
       if (!alreadyDone) {
@@ -42,26 +54,35 @@ describe('Core API tests', () => {
         return done(...args)
       }
     }
-    horizon.disconnect()
-    horizon.onDisconnected(() => wrappedDone())
+    this.horizon.disconnect()
+    this.horizon.onDisconnected(wrappedDone)
   })
 
   // Test the mutation commands
-  describe('Storage API', () => {
+  describe('Write API', () => {
     // Drop all data after each test
-    afterEach(done => removeAllData(data, done))
+    afterEach(function(done) {
+      removeAllData(this.hz_data, done)
+    })
 
-    describe('Testing `store`', storeSuite(getData))
-    describe('Testing `insert`', insertSuite(getData))
-    describe('Testing `upsert`', upsertSuite(getData))
-    describe('Testing `update`', updateSuite(getData))
-    describe('Testing `replace`', replaceSuite(getData))
-  }) // Storage API
-  describe('Testing `remove`', removeSuite(getData))
-  describe('Testing `removeAll`', removeAllSuite(getData))
+    describe('Testing `store`', store)
+    describe('Testing `insert`', insert)
+    describe('Testing `upsert`', upsert)
+    describe('Testing `update`', update)
+    describe('Testing `replace`', replace)
+  })
 
-  describe('Testing `times`', timesSuite(getData))
-  describe('Testing authentication', authSuite(getHorizon))
+
+  describe('Remove API', () => {
+    describe('Testing `remove`', remove)
+    describe('Testing `removeAll`', removeAll)
+  })
+
+  describe('Query API', () => {
+    describe('Testing `date and time`', time)
+    describe('Testing `user`', user)
+  })
+
   // Test the lookup API
   describe('Lookup API', () => {
     const testData = [

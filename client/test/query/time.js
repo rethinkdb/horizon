@@ -1,13 +1,13 @@
 import { _do as tap } from 'rxjs/operator/do'
 import { toArray } from 'rxjs/operator/toArray'
 
-import { assertCompletes, compareWithoutVersion } from './utils'
+import { assertCompletes, compareWithoutVersion } from '../utils'
 
-const timesSuite = global.timesSuite = getData => () => {
+export default function() {
   let data
 
-  before(() => {
-    data = getData()
+  before(function() {
+    data = this.hz_data
   })
 
   let range = count => Array.from(Array(count).keys())
