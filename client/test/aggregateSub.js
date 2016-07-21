@@ -148,6 +148,7 @@ const aggregateSubSuite = global.aggregateSubSuite =
       a: { id: 1, foo: true },
       b: { id: 2, foo: false },
       c: { id: 3, foo: true },
+      d: { id: 4, foo: false },
     }
     return hzA.insert(hzAContents)
       .concat(observableInterleave({
@@ -155,6 +156,7 @@ const aggregateSubSuite = global.aggregateSubSuite =
           a: hzA.find(1),
           b: constantObservable,
           c: regularConstant,
+          d: Promise.resolve({ id: 4, foo: false }),
         }).watch(),
         operations: [],
         equality: assert.deepEqual,

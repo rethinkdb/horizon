@@ -16,14 +16,18 @@ function checkWatchArgs(args) {
   }
 }
 
-function hasTermInterface(possibleTerm) {
-  return typeof possibleTerm.fetch === 'function' &&
-         typeof possibleTerm.watch === 'function'
+function isTerm(term) {
+  return typeof term.fetch === 'function' &&
+         typeof term.watch === 'function'
 }
 
-function hasObservableInterface(possibleObservable) {
-  return typeof possibleObservable.subscribe === 'function' &&
-         typeof possibleObservable.lift === 'function'
+function isPromise(term) {
+  return typeof term.then === 'function'
+}
+
+function isObservable(term) {
+  return typeof term.subscribe === 'function' &&
+         typeof term.lift === 'function'
 }
 
 // Whether an object is primitive. We consider functions
@@ -80,12 +84,12 @@ class ObservableTerm {
   }
 
   fetch() {
-    return this._value
+    return Observable.from(this._value)
   }
 
   watch(...watchArgs) {
     checkWatchArgs(watchArgs)
-    return this._value
+    return Observable.from(this._value)
   }
 }
 
@@ -172,20 +176,24 @@ class AggregateTerm {
   }
 }
 
-export function aggregate(aggregateSpec) {
-  if (hasTermInterface(aggregateSpec)) {
-    return aggregateSpec
-  } else if (hasObservableInterface(aggregateSpec)) {
-    return new ObservableTerm(aggregateSpec)
-  } else if (isPrimitive(aggregateSpec)) {
-    return new PrimitiveTerm(aggregateSpec)
-  } else if (Array.isArray(aggregateSpec)) {
-    return new ArrayTerm(aggregateSpec)
-  } else if (isPlainObject(aggregateSpec)) {
-    return new AggregateTerm(aggregateSpec)
-  } else {
-    throw new Error(`Can't make an aggregate with ${aggregateSpec} in it`)
+export function aggregate(spec) {
+  if (isTerm(spec)) {
+    return spec
   }
+  if (isObservable(spec) || isPromise(spec)) {
+    return new ObservableTerm(spec)
+  }
+  if (isPrimitive(spec)) {
+    return new PrimitiveTerm(spec)
+  }
+  if (Array.isArray(spec)) {
+    return new ArrayTerm(spec)
+  }
+  if (isPlainObject(spec)) {
+    return new AggregateTerm(spec)
+  }
+
+  throw new Error(`Can't make an aggregate with ${spec} in it`)
 }
 
 export function model(constructor) {
