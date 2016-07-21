@@ -1,10 +1,12 @@
 import { Observable } from 'rxjs/Observable'
 
+import 'rxjs/add/observable/of'
+import 'rxjs/add/observable/forkJoin'
+import 'rxjs/add/observable/combineLatest'
+import 'rxjs/add/operator/map'
+
 // Other imports
 import isPlainObject from 'is-plain-object'
-
-// Project imports
-import { isRecursivelyPrimitive } from './util/is-recursively-primitive'
 
 // Unlike normal queries' .watch(), we don't support rawChanges: true
 // for aggregates
@@ -22,6 +24,27 @@ function hasTermInterface(possibleTerm) {
 function hasObservableInterface(possibleObservable) {
   return typeof possibleObservable.subscribe === 'function' &&
          typeof possibleObservable.lift === 'function'
+}
+
+// Whether an object is primitive. We consider functions
+// non-primitives, lump Dates and ArrayBuffers into primitives.
+function isPrimitive(value) {
+  if (value === null) {
+    return true
+  }
+  if (value === undefined) {
+    return false
+  }
+  if (typeof value === 'function') {
+    return false
+  }
+  if ([ 'boolean', 'number', 'string' ].indexOf(typeof value) !== -1) {
+    return true
+  }
+  if (value instanceof Date || value instanceof ArrayBuffer) {
+    return true
+  }
+  return false
 }
 
 // Simple wrapper for primitives. Just emits the primitive
@@ -119,7 +142,10 @@ class AggregateTerm {
       // We jam the key into the observable so when it emits we know
       // where to put it in the object
       term.fetch().map(val => [ k, val ]))
+    const invocation = btoa(Math.random()).slice(0, 5)
+    console.log(invocation, 'bout to forkJoin', observs)
     return Observable.forkJoin(...observs, (...keyVals) => {
+      console.log(invocation, 'forkJoin is joinin!', keyVals)
       // reconstruct the object
       const finalObject = {}
       for (const [ key, val ] of keyVals) {
@@ -148,7 +174,7 @@ export function aggregate(aggregateSpec) {
     return aggregateSpec
   } else if (hasObservableInterface(aggregateSpec)) {
     return new ObservableTerm(aggregateSpec)
-  } else if (isRecursivelyPrimitive(aggregateSpec)) {
+  } else if (isPrimitive(aggregateSpec)) {
     return new PrimitiveTerm(aggregateSpec)
   } else if (Array.isArray(aggregateSpec)) {
     return new ArrayTerm(aggregateSpec)
