@@ -92,17 +92,16 @@ const aggregateSuite = global.aggregateSuite = (getData, getHorizon) => () => {
 
   it('allows a fully constant aggregate of primitives', assertCompletes(() => {
     const agg = {
-      // a: 'Some string',
-      // b: [ true ],
-      // c: new Date(),
+      a: 'Some string',
+      b: [ true ],
+      c: new Date(),
       d: {
-        // e: new ArrayBuffer(),
-        // f: 1.2,
-        // g: [ 1.3, true, new Date(), { } ],
+        e: new ArrayBuffer(),
+        f: 1.2,
+        g: [ 1.3, true, new Date(), {} ],
       },
     }
-    horizon.aggregate(agg).fetch().subscribe(console.log.bind(console))
-    const query = horizon.aggregate(agg).fetch()
+
     return observableInterleave({
       query: horizon.aggregate(agg).fetch(),
       operations: [],

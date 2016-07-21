@@ -72,100 +72,103 @@ class PrimitiveTerm {
 // term-likes
 class ObservableTerm {
   constructor(value) {
-    this._obs = value
+    this._value = value
   }
 
   toString() {
-    return this._obs.toString()
+    return this._value.toString()
   }
 
   fetch() {
-    return this._obs
+    return this._value
   }
 
   watch(...watchArgs) {
     checkWatchArgs(watchArgs)
-    return this._obs
+    return this._value
   }
 }
 
 // Handles aggregate syntax like [ query1, query2 ]
 class ArrayTerm {
-  constructor(queries) {
-    // Ensure this._queries is an array of observables
-    this._subqueries = queries.map(x => aggregate(x))
+  constructor(value) {
+    // Ensure this._value is an array of Term
+    this._value = value.map(x => aggregate(x))
+  }
+
+  _reducer() {
+    return Array.prototype.concat(...arguments)
+  }
+
+  _query(operation) {
+    return this._value.map(x => x[operation]())
   }
 
   toString() {
-    return `[ ${this._subqueries.map(x => x.toString()).join(', ')} ]`
+    return `[ ${this._query('toString').join(', ')} ]`
   }
 
   fetch() {
-    // Convert each query to an observable
-    const qs = this._subqueries.map(x => x.fetch())
-    // Merge the results of all of the observables into one array
-    const concat = Array.prototype.concat.bind(Array.prototype)
-    return Observable.forkJoin(...qs, concat)
+    if (this._value.length === 0) {
+      return Observable.empty()
+    }
+
+    const qs = this._query('fetch')
+    return Observable.forkJoin(...qs, this._reducer)
   }
 
   watch(...watchArgs) {
     checkWatchArgs(watchArgs)
-    const qs = this._subqueries.map(x => x.watch())
-    if (qs.length === 0) {
+
+    if (this._value.length === 0) {
       return Observable.empty()
-    } else if (qs.length === 1) {
-      return qs[0]
-    } else {
-      return Observable.combineLatest(...qs, (...args) =>
-        Array.prototype.concat(...args))
     }
+
+    const qs = this._query('watch')
+    return Observable.combineLatest(...qs, this._reducer)
   }
 }
 
 class AggregateTerm {
-  constructor(aggregateObject) {
-    this._aggregateKeys = Object.keys(aggregateObject).map(key =>
-      [ key, aggregate(aggregateObject[key]) ])
+  constructor(value) {
+    // Ensure this._value is an array of [ key, Term ] pairs
+    this._value = Object.keys(value).map(k => [ k, aggregate(value[k]) ])
+  }
+
+  _reducer(...pairs) {
+    return pairs.reduce((prev, [k, x]) => {
+      prev[k] = x
+      return prev
+    }, {})
+  }
+
+  _query(operation) {
+    return this._value.map(([ k, term ]) => term[operation]().map(x => [ k, x ]))
   }
 
   toString() {
-    let string = '{'
-    this._aggregateKeys.forEach(([ k, v ]) => {
-      string += ` '${k}': ${v},`
-    })
-    string += ' }'
-    return string
+    let s = this._value.map(([ k, term ]) => `'${k}': ${term}`)
+    return `{ ${s.join(', ')} }`
   }
 
   fetch() {
-    const observs = this._aggregateKeys.map(([ k, term ]) =>
-      // We jam the key into the observable so when it emits we know
-      // where to put it in the object
-      term.fetch().map(val => [ k, val ]))
-    const invocation = btoa(Math.random()).slice(0, 5)
-    console.log(invocation, 'bout to forkJoin', observs)
-    return Observable.forkJoin(...observs, (...keyVals) => {
-      console.log(invocation, 'forkJoin is joinin!', keyVals)
-      // reconstruct the object
-      const finalObject = {}
-      for (const [ key, val ] of keyVals) {
-        finalObject[key] = val
-      }
-      return finalObject
-    })
+    if (this._value.length === 0) {
+      return Observable.of({})
+    }
+
+    const qs = this._query('fetch')
+    return Observable.forkJoin(...qs, this._reducer)
   }
 
   watch(...watchArgs) {
     checkWatchArgs(watchArgs)
-    const observs = this._aggregateKeys.map(([ k, term ]) =>
-      term.watch().map(val => [ k, val ]))
-    return Observable.combineLatest(...observs, (...keyVals) => {
-      const finalObject = {}
-      for (const [ key, val ] of keyVals) {
-        finalObject[key] = val
-      }
-      return finalObject
-    })
+
+    if (this._value.length === 0) {
+      return Observable.of({})
+    }
+
+    const qs = this._query('watch')
+    return Observable.combineLatest(...qs, this._reducer)
   }
 }
 
