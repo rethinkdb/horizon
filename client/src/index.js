@@ -105,7 +105,8 @@ function Horizon({
   Object.freeze(horizon.utensils)
 
   horizon._authMethods = null
-  horizon._horizonPath = `http${(secure) ? 's' : ''}://${host}/${path}`
+  horizon._root = `http${(secure) ? 's' : ''}://${host}`
+  horizon._horizonPath = `${horizon._root}/${path}`
   horizon.authEndpoint = authEndpoint
   horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
   horizon.aggregate = aggregate

@@ -9,13 +9,13 @@ const HORIZON_JWT = 'horizon-jwt'
 export function authEndpoint(name) {
   const endpointForName = methods => {
     if (methods.hasOwnProperty(name)) {
-      return methods[name]
+      return this._root + methods[name]
     } else {
       throw new Error(`Unconfigured auth type: ${name}`)
     }
   }
   if (!this._authMethods) {
-    return Observable.ajax(`${this._host}${this._horizonPath}/auth_methods`)
+    return Observable.ajax(`${this._horizonPath}/auth_methods`)
       .map(ajax => ajax.response)
       .do(authMethods => {
         this._authMethods = authMethods
