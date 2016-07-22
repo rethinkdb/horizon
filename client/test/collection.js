@@ -3,7 +3,8 @@ import 'rxjs/add/operator/toArray'
 
 import { assertCompletes, removeAllData, compareSetsWithoutVersion } from './utils'
 
-const collectionSuite = global.collectionSuite = (getHorizon, getData, getTestData) => () => {
+export default function collectionSuite(getHorizon, getData, getTestData) {
+  return () => {
   let horizon, data, testData, empty_collection
 
   before(() => {
@@ -43,4 +44,4 @@ const collectionSuite = global.collectionSuite = (getHorizon, getData, getTestDa
       }
     }).catch(err => done(err))
   })
-} // Testing full collection reads
+}}

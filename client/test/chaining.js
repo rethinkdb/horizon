@@ -3,7 +3,8 @@ import 'rxjs/add/operator/toArray'
 
 import { assertCompletes, assertThrows, compareWithoutVersion } from './utils'
 
-const chainingSuite = global.chainingSuite = getData => () => {
+export default function chainingSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -74,4 +75,4 @@ const chainingSuite = global.chainingSuite = getData => () => {
     'order cannot be called on the current query',
     () => data.findAll({ a: 20 }, { a: 50 }).order('id').fetch()
   ))
-} // Testing more advanced chaining
+}}

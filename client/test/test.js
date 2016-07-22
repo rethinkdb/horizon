@@ -60,54 +60,6 @@ describe('Waiting until server ready...', function() {
   })
 })
 
-// Load the test utilities
-require('./utils')
-
-// Testing the Horizon object
-require('./horizonObject.js')
-
-// Testing insertion/storage commands
-require('./store.js')
-require('./insert.js')
-require('./upsert.js')
-require('./update.js')
-require('./replace.js')
-
-// Test the removal commands
-require('./remove.js')
-require('./removeAll.js')
-
-// Times tests
-require('./times.js')
-// Authentication tests
-require('./auth.js')
-
-// Read API
-require('./collection.js')
-require('./find.js')
-require('./findAll.js')
-require('./order.js')
-require('./limit.js')
-require('./above.js')
-require('./below.js')
-require('./chaining.js')
-
-// Subscription APIs
-require('./findSub.js')
-require('./findAllSub.js')
-require('./aboveSub.js')
-require('./belowSub.js')
-require('./orderLimitSub.js')
-
-// Unit tests
-require('./unit/auth.js')
-require('./unit/utilsTest.js')
-require('./unit/ast.js')
-
-// Model tests
-require('./aggregate.js')
-require('./aggregateSub.js')
-
 // Load the suite runner
 require('./api.js')
 

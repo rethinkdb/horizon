@@ -9,7 +9,8 @@ import { assertCompletes,
          compareWithoutVersion,
          compareSetsWithoutVersion } from './utils'
 
-const storeSuite = global.storeSuite = getData => () => {
+export default function storeSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -139,4 +140,4 @@ const storeSuite = global.storeSuite = getData => () => {
       .mergeMap(id => data.find(id[0]).fetch())
       .do(result => assert.deepEqual(originalDate, result.date))
   }))
-} // Testing `store`
+}}

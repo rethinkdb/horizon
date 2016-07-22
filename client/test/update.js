@@ -8,7 +8,8 @@ import { assertCompletes,
          compareWithoutVersion,
          compareSetsWithoutVersion } from './utils'
 
-const updateSuite = global.updateSuite = getData => () => {
+export default function updateSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -110,4 +111,4 @@ const updateSuite = global.updateSuite = getData => () => {
         assert.lengthOf(res, 0)
       })
   ))
-} // Testing `update`
+}}

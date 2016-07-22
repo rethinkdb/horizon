@@ -12,7 +12,8 @@ import { assertCompletes,
          compareWithoutVersion,
          compareSetsWithoutVersion } from './utils'
 
-const removeAllSuite = global.removeAllSuite = getData => () => {
+export default function removeAllSuite(getData) {
+  return () => {
   let data
   const testData = [
     { id: 1, a: 1 },
@@ -123,4 +124,4 @@ const removeAllSuite = global.removeAllSuite = getData => () => {
       .do(res => assert.includeMembers(
         res, [ 'do_not_remove_1', 'do_not_remove_2' ]))
   ))
-} // Testing `removeAll`
+}}

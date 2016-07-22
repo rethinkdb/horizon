@@ -6,7 +6,8 @@ import { assertCompletes,
          assertErrors,
          compareWithoutVersion } from './utils'
 
-const belowSuite = global.belowSuite = getData => () => {
+export default function belowSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -134,4 +135,4 @@ const belowSuite = global.belowSuite = getData => () => {
     data.below({ id: 1 }, 1).fetch(),
     /"find" is required/
   ))
-} // Testing `below`
+}}

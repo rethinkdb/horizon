@@ -9,7 +9,8 @@ import { assertCompletes,
          compareWithoutVersion,
          compareSetsWithoutVersion } from './utils'
 
-const upsertSuite = global.upsertSuite = getData => () => {
+export default function upsertSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -127,4 +128,4 @@ const upsertSuite = global.upsertSuite = getData => () => {
         assert.lengthOf(res, 0)
       })
   ))
-} // Testing `upsert`
+}}

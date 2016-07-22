@@ -5,7 +5,8 @@ import { assertCompletes,
          compareWithoutVersion,
          removeAllData } from './utils'
 
-const timesSuite = global.timesSuite = getData => () => {
+export default function timesSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -90,4 +91,4 @@ const timesSuite = global.timesSuite = getData => () => {
         { id: 10, value: 2, time: new Date(2) },
       ]))
   ))
-} // Testing `find`
+}}

@@ -6,7 +6,8 @@ import { assertCompletes,
          assertErrors,
          compareWithoutVersion } from './utils'
 
-const limitSuite = global.limitSuite = getData => () => {
+export default function limitSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -81,4 +82,4 @@ const limitSuite = global.limitSuite = getData => () => {
     'order cannot be called on the current query',
     () => data.limit(1).order('id').fetch()
   ))
-} // Testing `limit`
+}}
