@@ -1,4 +1,4 @@
-import { concat } from 'rxjs/operator/concat'
+import 'rxjs/add/operator/concat'
 
 import { assertCompletes, observableInterleave } from './utils'
 
@@ -25,7 +25,7 @@ const orderLimitSubSuite = global.orderLimitSubSuite = getData => () => {
   ))
 
   it('will swap out a document that goes out of range', assertCompletes(() =>
-    data.store({ id: 1, score: 200 })::concat(
+    data.store({ id: 1, score: 200 }).concat(
       observableInterleave({
         query: data.order('score').limit(1).watch(),
         operations: [
@@ -70,9 +70,9 @@ const orderLimitSubSuite = global.orderLimitSubSuite = getData => () => {
       query: data.order('score').limit(1).watch(),
       operations: [
         data.store({ id: 1, score: 100 })
-          ::concat(data.store({ id: 2, score: 200 }))
-          ::concat(data.remove(2))
-          ::concat(data.remove(1)),
+          .concat(data.store({ id: 2, score: 200 }))
+          .concat(data.remove(2))
+          .concat(data.remove(1)),
       ],
       expected: [
         [],
@@ -113,7 +113,7 @@ const orderLimitSubSuite = global.orderLimitSubSuite = getData => () => {
         data.store({ id: 1, score: 100 }), // after 1, results in 2
         data.store({ id: 2, score: 200 }), // after 2, results in 3
         data.store({ id: 3, score: 300 })
-          ::concat(data.store({ id: 3, score: 50 })),  // after 3, results in 4
+          .concat(data.store({ id: 3, score: 50 })),  // after 3, results in 4
         data.remove(1), // after 4, results in 5
         data.store({ id: 2, score: 20 }), // after 5, results in 6
         data.remove(2), // after 6, results in 7

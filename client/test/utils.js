@@ -1,19 +1,19 @@
 import { Observable } from 'rxjs/Observable'
-import { empty } from 'rxjs/observable/empty'
-import { toArray } from 'rxjs/operator/toArray'
-import { _do as tap } from 'rxjs/operator/do'
-import { mergeMap } from 'rxjs/operator/mergeMap'
-import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
-import { take } from 'rxjs/operator/take'
-import { ignoreElements } from 'rxjs/operator/ignoreElements'
+import 'rxjs/add/observable/empty'
+import 'rxjs/add/operator/toArray'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/mergeMap'
+import 'rxjs/add/operator/mergeMapTo'
+import 'rxjs/add/operator/take'
+import 'rxjs/add/operator/ignoreElements'
 
 export function removeAllDataObs(collection) {
   // Read all elements from the collection
   return collection.fetch() // all documents in the collection
-    ::tap()
-    ::mergeMap(docs => collection.removeAll(docs))
-    ::mergeMapTo(collection.fetch())
-    ::tap(remaining => assert.deepEqual([], remaining))
+    .do()
+    .mergeMap(docs => collection.removeAll(docs))
+    .mergeMapTo(collection.fetch())
+    .do(remaining => assert.deepEqual([], remaining))
 }
 
 export function removeAllData(collection, done) {
@@ -34,7 +34,7 @@ function doneErrorObserver(done, regex) {
   return {
     next() {},
     error(err) {
-      this.finished = true;
+      this.finished = true
       if (regex && regex.test(err.message)) {
         done()
       } else {
@@ -60,7 +60,7 @@ export function assertThrows(message, callback) {
       if (err.message === message) {
         done()
       } else {
-        done(new Error(`Threw the wrong exception. ` +
+        done(new Error('Threw the wrong exception. ' +
                        `Expected "${message}", got "${err.message}"`))
       }
     }
@@ -98,17 +98,17 @@ export function observableInterleave(options) {
   const debug = options.debug || (() => {})
   const values = []
   return query
-    ::take(expected.length)
-    ::tap(debug)
-    ::mergeMap((val, i) => {
+    .take(expected.length)
+    .do(debug)
+    .mergeMap((val, i) => {
       values.push(val)
       if (i < operations.length) {
-        return operations[i]::ignoreElements()
+        return operations[i].ignoreElements()
       } else {
-        return Observable::empty()
+        return Observable.empty()
       }
     })
-    ::tap({ complete() { equality(expected, values) } })
+    .do({ complete() { equality(expected, values) } })
 }
 
 const withoutVersion = function withoutVersion(value) {

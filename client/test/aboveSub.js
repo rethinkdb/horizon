@@ -1,4 +1,4 @@
-import { concat } from 'rxjs/operator/concat'
+import 'rxjs/add/operator/concat'
 
 import { assertCompletes, observableInterleave } from './utils'
 
@@ -50,7 +50,7 @@ const aboveSubscriptionSuite = global.aboveSubscriptionSuite = getData => () => 
       query: data.above({a: 0}, 'open').watch(),
       operations: [
         data.store({ id: 1, a: 0 })
-          ::concat(data.store({ id: 1, a: 1 })),
+          .concat(data.store({ id: 1, a: 1 })),
         data.store({ id: 1, a: 2 }),
         data.remove(1),
       ],
@@ -69,9 +69,9 @@ const aboveSubscriptionSuite = global.aboveSubscriptionSuite = getData => () => 
       query: data.above({ id: 3 }).watch(),
       operations: [
         data.store({ id: 2, a: 1 })
-          ::concat(data.store({ id: 2, a: 2 }))
-          ::concat(data.store({ id: 3, val: 'foo' }))
-          ::concat(data.remove(2)),
+          .concat(data.store({ id: 2, a: 2 }))
+          .concat(data.store({ id: 3, val: 'foo' }))
+          .concat(data.remove(2)),
         data.remove(3),
       ],
       expected: [
@@ -89,13 +89,13 @@ const aboveSubscriptionSuite = global.aboveSubscriptionSuite = getData => () => 
       operations: [
         data.store({ id: 1, a: 1 }),
         data.store({ id: 2, a: 1 })
-          ::concat(data.store({ id: 3, a: 1 })),
+          .concat(data.store({ id: 3, a: 1 })),
         data.store({ id: 1, a: 2 }),
         data.store({ id: 2, a: 2 })
-          ::concat(data.store({ id: 3, a: 2 })),
+          .concat(data.store({ id: 3, a: 2 })),
         data.remove(1),
         data.remove(2)
-          ::concat(data.remove(3)),
+          .concat(data.remove(3)),
       ],
       expected: [
         [],
@@ -111,7 +111,7 @@ const aboveSubscriptionSuite = global.aboveSubscriptionSuite = getData => () => 
 
   // Let's make sure initial vals works correctly
   it('handles initial values correctly', assertCompletes(() =>
-    data.store({ id: 1, a: 1 })::concat(
+    data.store({ id: 1, a: 1 }).concat(
       observableInterleave({
         query: data.above({ id: 1 }).watch(),
         operations: [

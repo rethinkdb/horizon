@@ -1,7 +1,7 @@
-import { ignoreElements } from 'rxjs/operator/ignoreElements'
-import { concat } from 'rxjs/operator/concat'
-import { _do as tap } from 'rxjs/operator/do'
-import { toArray } from 'rxjs/operator/toArray'
+import 'rxjs/add/operator/ignoreElements'
+import 'rxjs/add/operator/concat'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/toArray'
 
 import { assertCompletes, removeAllData, compareSetsWithoutVersion } from './utils'
 
@@ -87,9 +87,9 @@ describe('Core API tests', () => {
     // Insert the test data and make sure it's in
     before(assertCompletes(() =>
       data.store(testData)
-       ::ignoreElements()
-       ::concat(data.fetch())
-       ::tap(res => compareSetsWithoutVersion(res, testData))
+       .ignoreElements()
+       .concat(data.fetch())
+       .do(res => compareSetsWithoutVersion(res, testData))
     ))
 
     describe('Testing full collection read',
