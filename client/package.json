@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "description": "RethinkDB Horizon is an open-source developer platform for building realtime, scalable web apps.",
   "scripts": {
-    "coverage": "istanbul cover _mocha test/test.js",
+    "coverage": "nyc --require babel-core/register mocha test/test.js",
     "dev": "webpack --watch --progress --colors",
     "devtest": "nodemon --watch dist --exec 'npm test -- --reporter dot && npm run lint -s'",
     "builddebug": "webpack --progress --colors --display-modules --display-reasons",
@@ -27,7 +27,6 @@
     "node": ">=4.0.0"
   },
   "devDependencies": {
-    "babel-cli": "^6.6.4",
     "babel-core": "^6.10.4",
     "babel-eslint": "^6.0.0-beta",
     "babel-loader": "^6.2.4",
@@ -44,6 +43,7 @@
     "lodash": "^4.6.1",
     "mocha": "^2.5.3",
     "nodemon": "^1.9.1",
+    "nyc": "^7.0.0",
     "shelljs": "^0.7.0",
     "source-map-support": "^0.4.0",
     "webpack": "^1.12.14"
