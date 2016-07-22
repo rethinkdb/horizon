@@ -26,7 +26,7 @@ if (BROWSER) {
   global.WebSocket = require('ws')
 
   if (__dirname.split(path.sep).pop(-1) === 'test') {
-    global.Horizon = require('../lib/index.js')
+    global.Horizon = require('../src/index.js')
   } else {
     global.Horizon = require('./horizon.js')
   }

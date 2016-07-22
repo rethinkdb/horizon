@@ -57,7 +57,7 @@ test:
     - touch $CIRCLE_TEST_REPORTS/xunit/server-tests.xml
   override:
     # Run client tests
-    - ./node_modules/.bin/mocha --timeout 100000 -R xunit dist/test.js > $CIRCLE_TEST_REPORTS/xunit/client-tests.xml:
+    - ./node_modules/.bin/mocha --compilers js:babel-register --timeout 100000 -R xunit test/test.js > $CIRCLE_TEST_REPORTS/xunit/client-tests.xml:
         pwd: client
         parallel: false
     # Run server tests
