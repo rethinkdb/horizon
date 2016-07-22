@@ -1,6 +1,6 @@
 import { applyChange } from '../../src/ast'
 
-const unitAstSuite = global.unitAstSuite = () => {
+export default function unitAstSuite() {
   describe('applyChanges', () => {
     it('correctly changes an item with an array id in place', done => {
       const existingArray = [

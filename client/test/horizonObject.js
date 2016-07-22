@@ -13,7 +13,7 @@ function doneWrap(done) {
   }
 }
 
-var horizonObjectSuite = global.horizonObjectSuite = () => {
+export default function horizonObjectSuite() {
   describe('Horizon', () => {
     it('connects and can track its status', done => {
       let oneDone = doneWrap(done)

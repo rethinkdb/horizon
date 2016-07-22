@@ -6,7 +6,8 @@ import { assertCompletes,
          assertErrors,
          compareSetsWithoutVersion } from './utils'
 
-const findAllSuite = global.findAllSuite = getData => () => {
+export default function findAllSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -119,4 +120,4 @@ const findAllSuite = global.findAllSuite = getData => () => {
     data.findAll(1, {}, { a: 20 }).fetch(),
     /"find" is required/
   ))
-} // Testing `findAll`
+}}

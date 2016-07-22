@@ -8,7 +8,8 @@ import { assertCompletes,
          compareWithoutVersion,
          compareSetsWithoutVersion } from './utils'
 
-const replaceSuite = global.replaceSuite = getData => () => {
+export default function replaceSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -113,4 +114,4 @@ const replaceSuite = global.replaceSuite = getData => () => {
         assert.lengthOf(res, 0)
       })
   ))
-} // Testing `replace`
+}}

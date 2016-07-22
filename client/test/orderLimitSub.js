@@ -2,7 +2,8 @@ import 'rxjs/add/operator/concat'
 
 import { assertCompletes, observableInterleave } from './utils'
 
-const orderLimitSubSuite = global.orderLimitSubSuite = getData => () => {
+export default function orderLimitSubSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -131,4 +132,4 @@ const orderLimitSubSuite = global.orderLimitSubSuite = getData => () => {
       ],
     })
   ))
-} // Testing `order.limit` subscriptions
+}}

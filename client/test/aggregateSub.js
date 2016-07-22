@@ -4,8 +4,8 @@ import { assertCompletes,
          removeAllDataObs,
          observableInterleave } from './utils'
 
-const aggregateSubSuite = global.aggregateSubSuite =
-        (getData, getHorizon) => () => {
+export default function aggregateSubSuite(getData, getHorizon) {
+  return () => {
   let data, horizon, hzA, hzB
   before(() => {
     data = getData()
@@ -262,4 +262,4 @@ const aggregateSubSuite = global.aggregateSubSuite =
                        expectedResultB ],
          }))
   }))
-}
+}}

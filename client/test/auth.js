@@ -2,7 +2,8 @@ import 'rxjs/add/operator/do'
 import 'rxjs/add/operator/mergeMap'
 import 'rxjs/add/operator/mergeMapTo'
 
-const authSuite = global.authSuite = (getHorizon) => () => {
+export default function authSuite(getHorizon) {
+  return () => {
   let horizon
   before(() => {
     horizon = getHorizon()
@@ -21,7 +22,7 @@ const authSuite = global.authSuite = (getHorizon) => () => {
     const myHorizon = Horizon({
       secure: false,
       lazyWrites: true,
-      authType: 'anonymous'
+      authType: 'anonymous',
     })
     Horizon.clearAuthTokens()
     myHorizon.connect()
@@ -53,4 +54,4 @@ const authSuite = global.authSuite = (getHorizon) => () => {
         complete: done,
       })
   })
-}
+}}

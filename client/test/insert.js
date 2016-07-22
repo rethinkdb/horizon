@@ -9,7 +9,8 @@ import { assertCompletes,
          compareWithoutVersion,
          compareSetsWithoutVersion } from './utils'
 
-const insertSuite = global.insertSuite = getData => () => {
+export default function insertSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -147,4 +148,4 @@ const insertSuite = global.insertSuite = getData => () => {
         assert.lengthOf(res, 0)
       })
   ))
-} // Testing `insert`
+}}

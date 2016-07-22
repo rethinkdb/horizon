@@ -6,7 +6,8 @@ import { assertCompletes,
          assertErrors,
          compareWithoutVersion } from './utils'
 
-const orderSuite = global.orderSuite = (getData, getTestData) => () => {
+export default function orderSuite(getData, getTestData) {
+  return () => {
   let data, testData
 
   before(() => {
@@ -100,4 +101,4 @@ const orderSuite = global.orderSuite = (getData, getTestData) => () => {
     'order accepts at most 2 arguments.',
     () => data.order('id', 'ascending', 1).fetch()
   ))
-} // Testing `order`
+}}

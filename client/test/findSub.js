@@ -2,7 +2,8 @@ import 'rxjs/add/operator/concat'
 
 import { assertCompletes, observableInterleave } from './utils'
 
-const findSubscriptionSuite = global.findSubscriptionSuite = getData => () => {
+export default function findSubscriptionSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -88,4 +89,4 @@ const findSubscriptionSuite = global.findSubscriptionSuite = getData => () => {
       expected: [ null ],
     })
   }))
-} // Testing `find` subscriptions
+}}

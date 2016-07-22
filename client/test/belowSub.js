@@ -2,7 +2,8 @@ import 'rxjs/add/operator/concat'
 
 import { assertCompletes, observableInterleave } from './utils'
 
-const belowSubscriptionSuite = global.belowSubscriptionSuite = getData => () => {
+export default function belowSubscriptionSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -125,4 +126,4 @@ const belowSubscriptionSuite = global.belowSubscriptionSuite = getData => () => 
       })
     )
   ))
-} // Testing 'below' subscriptions
+}}
