@@ -1,7 +1,7 @@
-import { _do as tap } from 'rxjs/operator/do'
-import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
-import { mergeMap } from 'rxjs/operator/mergeMap'
-import { toArray } from 'rxjs/operator/toArray'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/mergeMapTo'
+import 'rxjs/add/operator/mergeMap'
+import 'rxjs/add/operator/toArray'
 
 import { assertCompletes,
          assertThrows,
@@ -19,16 +19,16 @@ const insertSuite = global.insertSuite = getData => () => {
   // The `insert` command stores documents in the database, and errors if
   // the documents already exist.
   it('stores documents in db, errors if documents already exist', assertErrors(() =>
-    data.insert({ id: 1, a: 1, b: 1 })::toArray()
+    data.insert({ id: 1, a: 1, b: 1 }).toArray()
       // Should return an array with an ID of the inserted
       // document.
-      ::tap(res => compareWithoutVersion([ { id: 1 } ], res))
+      .do(res => compareWithoutVersion([ { id: 1 } ], res))
       // Let's make sure we get back the document that we put in.
-      ::mergeMapTo(data.find(1).fetch())
+      .mergeMapTo(data.find(1).fetch())
       // Check that we get back what we put in.
-      ::tap(res => compareWithoutVersion({ id: 1, a: 1, b: 1 }, res))
+      .do(res => compareWithoutVersion({ id: 1, a: 1, b: 1 }, res))
       // Let's attempt to overwrite the document now. This should error.
-      ::mergeMapTo(data.insert({ id: 1, c: 1 })),
+      .mergeMapTo(data.insert({ id: 1, c: 1 })),
       /The document already exists/
   ))
 
@@ -38,20 +38,20 @@ const insertSuite = global.insertSuite = getData => () => {
   it(`generates ids if documents don't already have one`, assertErrors(() => {
     let new_id
 
-    return data.insert({ a: 1, b: 1 })::toArray()
+    return data.insert({ a: 1, b: 1 }).toArray()
       // should return an array with an ID of the inserted document.
-      ::tap(res => {
+      .do(res => {
         assert.isArray(res)
         assert.lengthOf(res, 1)
         assert.isString(res[0].id)
         new_id = res[0].id
       })
       // Let's make sure we get back the document that we put in.
-      ::mergeMap(() => data.find(new_id).fetch())
+      .mergeMap(() => data.find(new_id).fetch())
       // Check that we get back what we put in.
-      ::tap(res => compareWithoutVersion({ id: new_id, a: 1, b: 1 }, res))
+      .do(res => compareWithoutVersion({ id: new_id, a: 1, b: 1 }, res))
       // Let's attempt to overwrite the document now
-      ::mergeMap(() => data.insert({ id: new_id, c: 1 }))
+      .mergeMap(() => data.insert({ id: new_id, c: 1 }))
     }, /The document already exists/
   ))
 
@@ -79,8 +79,8 @@ const insertSuite = global.insertSuite = getData => () => {
         {},
         { a: 1 },
         { id: 1, a: 1 },
-    ])::toArray()
-      ::tap(res => {
+    ]).toArray()
+      .do(res => {
         // should return an array with the IDs of the documents in
         // order, including the generated IDS.
         assert.isArray(res)
@@ -93,10 +93,10 @@ const insertSuite = global.insertSuite = getData => () => {
         new_id_1 = res[1].id
       })
       // Make sure we get what we put in.
-      ::mergeMap(() =>
+      .mergeMap(() =>
                data.findAll(new_id_0, new_id_1, 1).fetch())
       // We're supposed to get an array of documents we put in
-      ::tap(res => compareSetsWithoutVersion(res, [
+      .do(res => compareSetsWithoutVersion(res, [
         { id: new_id_0 },
         { id: new_id_1, a: 1 },
         { id: 1, a: 1 },
@@ -110,19 +110,19 @@ const insertSuite = global.insertSuite = getData => () => {
     // attempt to reinsert it
     data.insert({ id: 2, a: 2 })
       // should return an array with an ID of the inserted document.
-      ::tap(res => compareWithoutVersion(res, { id: 2 }))
+      .do(res => compareWithoutVersion(res, { id: 2 }))
       // Let's make sure we get back the document that we put in.
-      ::mergeMap(() => data.find(2).fetch())
+      .mergeMap(() => data.find(2).fetch())
       // Check that we get back what we put in.
-      ::tap(res => compareWithoutVersion(res, { id: 2, a: 2 }))
+      .do(res => compareWithoutVersion(res, { id: 2, a: 2 }))
       // One of the documents in the batch already exists
-      ::mergeMap(() => data.insert([
+      .mergeMap(() => data.insert([
         { id: 1, a: 1 },
         { id: 2, a: 2 },
         { id: 3, a: 3 },
       ]))
-      ::toArray()
-      ::tap(results => {
+      .toArray()
+      .do(results => {
         assert.equal(results[0].id, 1)
         assert.instanceOf(results[1], Error)
         assert.equal(results[2].id, 3)
@@ -140,7 +140,7 @@ const insertSuite = global.insertSuite = getData => () => {
   // array.
   it('can store empty batches', assertCompletes(() =>
     data.insert([])
-      ::tap(res => {
+      .do(res => {
         // should return an array with the IDs of the documents
         // in order, including the generated IDS.
         assert.isArray(res)

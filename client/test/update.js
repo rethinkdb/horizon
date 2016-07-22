@@ -1,7 +1,6 @@
-'use strict'
-import { _do as tap } from 'rxjs/operator/do'
-import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
-import { toArray } from 'rxjs/operator/toArray'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/mergeMapTo'
+import 'rxjs/add/operator/toArray'
 
 import { assertCompletes,
          assertThrows,
@@ -18,21 +17,21 @@ const updateSuite = global.updateSuite = getData => () => {
 
   // Let's store a document first, then update it.
   it('allows updating an existing document', assertCompletes(() =>
-    data.store({ id: 1, a: { b: 1, c: 1 }, d: 1 })::toArray()
+    data.store({ id: 1, a: { b: 1, c: 1 }, d: 1 }).toArray()
       // should return an array with an ID of the inserted document.
-      ::tap(res => compareWithoutVersion([ { id: 1 } ], res))
+      .do(res => compareWithoutVersion([ { id: 1 } ], res))
       // Let's make sure we get back the document that we put in.
-      ::mergeMapTo(data.find(1).fetch())
+      .mergeMapTo(data.find(1).fetch())
       // Check that we get back what we put in.
-      ::tap(res => compareWithoutVersion(res, { id: 1, a: { b: 1, c: 1 }, d: 1 }))
+      .do(res => compareWithoutVersion(res, { id: 1, a: { b: 1, c: 1 }, d: 1 }))
       // Let's update the document now
-      ::mergeMapTo(data.update({ id: 1, a: { c: 2 } }))::toArray()
+      .mergeMapTo(data.update({ id: 1, a: { c: 2 } })).toArray()
       // We should have gotten the ID back again
-      ::tap((res) => compareWithoutVersion([ { id: 1 } ], res))
+      .do((res) => compareWithoutVersion([ { id: 1 } ], res))
       // Make sure `upsert` updated the original document
-      ::mergeMapTo(data.find(1).fetch())
+      .mergeMapTo(data.find(1).fetch())
       // Check that the document was updated correctly
-      ::tap(res => compareWithoutVersion(res, { id: 1, a: { b: 1, c: 2 }, d: 1 }))
+      .do(res => compareWithoutVersion(res, { id: 1, a: { b: 1, c: 2 }, d: 1 }))
   ))
 
   // The `update` command updates documents already in the database. It
@@ -71,25 +70,25 @@ const updateSuite = global.updateSuite = getData => () => {
     data.store([
       { id: 1, a: { b: 1, c: 1 }, d: 1 },
       { id: 2, a: { b: 2, c: 2 }, d: 2 },
-    ])::toArray()
+    ]).toArray()
       // should return an array with an ID of the inserted document.
-      ::tap(res => compareWithoutVersion([ { id: 1 }, { id: 2 } ], res))
+      .do(res => compareWithoutVersion([ { id: 1 }, { id: 2 } ], res))
       // Let's make sure we get back the documents that we put in.
-      ::mergeMapTo(data.findAll(1, 2).fetch())
+      .mergeMapTo(data.findAll(1, 2).fetch())
       // Check that we get back what we put in.
-      ::tap(res => compareSetsWithoutVersion(res, [
+      .do(res => compareSetsWithoutVersion(res, [
         { id: 1, a: { b: 1, c: 1 }, d: 1 },
-        { id: 2, a: { b: 2, c: 2 }, d: 2 }
+        { id: 2, a: { b: 2, c: 2 }, d: 2 },
       ]))
       // All right. Let's update the documents now
-      ::mergeMapTo(data.update([ { id: 1, a: { c: 2 } }, { id: 2, d: 3 } ]))
-      ::toArray()
+      .mergeMapTo(data.update([ { id: 1, a: { c: 2 } }, { id: 2, d: 3 } ]))
+      .toArray()
       // We should have gotten the ID back again
-      ::tap(res => compareWithoutVersion(res, [ { id: 1 }, { id: 2 } ]))
+      .do(res => compareWithoutVersion(res, [ { id: 1 }, { id: 2 } ]))
       // Make sure `update` updated the documents properly
-      ::mergeMapTo(data.findAll(1, 2).fetch())
+      .mergeMapTo(data.findAll(1, 2).fetch())
       // Check that we get back what we put in.
-      ::tap(res => compareSetsWithoutVersion(res, [
+      .do(res => compareSetsWithoutVersion(res, [
         { id: 1, a: { b: 1, c: 2 }, d: 1 },
         { id: 2, a: { b: 2, c: 2 }, d: 3 },
       ]))
@@ -104,7 +103,7 @@ const updateSuite = global.updateSuite = getData => () => {
   // array.
   it('allows updating an empty batch', assertCompletes(() =>
     data.update([])
-      ::tap(res => {
+      .do(res => {
         // should return an array with the IDs of the documents in
         // order, including the generated IDS.
         assert.isArray(res)

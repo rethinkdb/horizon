@@ -1,5 +1,5 @@
-import { _do as tap } from 'rxjs/operator/do'
-import { toArray } from 'rxjs/operator/toArray'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/toArray'
 
 import { assertCompletes,
          assertThrows,
@@ -16,7 +16,7 @@ const aboveSuite = global.aboveSuite = (getData) => () => {
   // By default `above` is closed
   it('is a closed bound by default', assertCompletes(() =>
     data.order('id').above({ id: 5 }).fetch()
-      ::tap(res => compareWithoutVersion(res, [
+      .do(res => compareWithoutVersion(res, [
         { id: 5, a: 60 },
         { id: 6, a: 50 },
       ]))
@@ -25,7 +25,7 @@ const aboveSuite = global.aboveSuite = (getData) => () => {
   // We can also pass that explicitly
   it('allows "closed" to be passed explicitly', assertCompletes(() =>
     data.order('id').above({ id: 5 }, 'closed').fetch()
-      ::tap(res => compareWithoutVersion(res, [
+      .do(res => compareWithoutVersion(res, [
         { id: 5, a: 60 },
         { id: 6, a: 50 },
       ]))
@@ -34,20 +34,20 @@ const aboveSuite = global.aboveSuite = (getData) => () => {
   // But we can make it open
   it('can return an open bounded result', assertCompletes(() =>
     data.order('id').above({ id: 5 }, 'open').fetch()
-      ::tap(([ res ]) => compareWithoutVersion(res, { id: 6, a: 50 }))
+      .do(([ res ]) => compareWithoutVersion(res, { id: 6, a: 50 }))
   ))
 
   // Let's try something that returns no values
   it('returns no results if bound eliminates all documents',
      assertCompletes(() =>
     data.order('id').above({ id: 7 }).fetch()
-      ::tap(res => compareWithoutVersion(res, []))
+      .do(res => compareWithoutVersion(res, []))
   ))
 
   // We can chain `above` off a collection
   it('can be chained from a collection directly', assertCompletes(() =>
     data.above({ id: 5 }).fetch()
-      ::tap(res => {
+      .do(res => {
         assert.isArray(res)
         assert.lengthOf(res, 2)
       })
@@ -56,7 +56,7 @@ const aboveSuite = global.aboveSuite = (getData) => () => {
   // Or off other things
   it('can be chained from a findAll', assertCompletes(() =>
     data.findAll({ a: 20 }).above({ id: 3 }).fetch()
-      ::tap(res => {
+      .do(res => {
         assert.isArray(res)
         assert.lengthOf(res, 2)
       })
@@ -71,7 +71,7 @@ const aboveSuite = global.aboveSuite = (getData) => () => {
   // Let's try it on a non-primary key
   it('can be used on a non-primary key', assertCompletes(() =>
     data.order([ 'a', 'id' ]).above({ a: 20 }).fetch()
-      ::tap(res => compareWithoutVersion(res, [
+      .do(res => compareWithoutVersion(res, [
         { id: 2, a: 20, b: 1 },
         { id: 3, a: 20, b: 2 },
         { id: 4, a: 20, b: 3 },
@@ -83,7 +83,7 @@ const aboveSuite = global.aboveSuite = (getData) => () => {
   // Let's try it on a non-primary key, but open
   it('can be used on non-primary key with open bound', assertCompletes(() =>
     data.order([ 'a', 'id' ]).above({ a: 20 }, 'open').fetch()
-      ::tap(res => compareWithoutVersion(res, [
+      .do(res => compareWithoutVersion(res, [
         { id: 6, a: 50 },
         { id: 5, a: 60 },
       ]))

@@ -1,5 +1,5 @@
-import { _do as tap } from 'rxjs/operator/do'
-import { toArray } from 'rxjs/operator/toArray'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/toArray'
 
 import { assertCompletes, assertThrows, compareWithoutVersion } from './utils'
 
@@ -17,7 +17,7 @@ const chainingSuite = global.chainingSuite = getData => () => {
       .above({ id: 2 })
       .below({ id: 4 })
       .fetch()
-      ::tap(res => compareWithoutVersion(res, [
+      .do(res => compareWithoutVersion(res, [
         { id: 2, a: 20, b: 1 },
         { id: 3, a: 20, b: 2 },
       ]))
@@ -30,7 +30,7 @@ const chainingSuite = global.chainingSuite = getData => () => {
       .above({ id: 2 })
       .order('id', 'descending')
       .fetch()
-      ::tap(res => compareWithoutVersion(res, [
+      .do(res => compareWithoutVersion(res, [
         { id: 3, a: 20, b: 2 },
         { id: 2, a: 20, b: 1 },
       ]))
@@ -42,7 +42,7 @@ const chainingSuite = global.chainingSuite = getData => () => {
       .above({ id: 2 })
       .order('id').below({ id: 4 }).limit(1)
       .fetch()
-      ::tap(res => compareWithoutVersion(res, [ { id: 2, a: 20, b: 1 } ]))
+      .do(res => compareWithoutVersion(res, [ { id: 2, a: 20, b: 1 } ]))
   ))
 
   // Let's do it on the collection
@@ -52,7 +52,7 @@ const chainingSuite = global.chainingSuite = getData => () => {
       .above({ id: 2 })
       .limit(1)
       .fetch()
-      ::tap(res => compareWithoutVersion(res, [ { id: 2, a: 20, b: 1 } ]))
+      .do(res => compareWithoutVersion(res, [ { id: 2, a: 20, b: 1 } ]))
   ))
 
   // Let's try a big compound example
@@ -63,7 +63,7 @@ const chainingSuite = global.chainingSuite = getData => () => {
       .below({ id: 4 }, 'closed')
       .limit(2)
       .fetch()
-      ::tap(res => compareWithoutVersion(res, [
+      .do(res => compareWithoutVersion(res, [
         { id: 2, a: 20, b: 1 },
         { id: 3, a: 20, b: 2 },
       ]))

@@ -1,5 +1,5 @@
-import { _do as tap } from 'rxjs/operator/do'
-import { toArray } from 'rxjs/operator/toArray'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/toArray'
 
 import { assertCompletes,
          assertThrows,
@@ -16,7 +16,7 @@ const limitSuite = global.limitSuite = getData => () => {
   // Limit returns an array of documents
   it('can return an array of documents', assertCompletes(() =>
     data.order('id').limit(2).fetch()
-      ::tap(res => compareWithoutVersion(res, [
+      .do(res => compareWithoutVersion(res, [
         { id: 1, a: 10 },
         { id: 2, a: 20, b: 1 },
       ]))
@@ -25,7 +25,7 @@ const limitSuite = global.limitSuite = getData => () => {
   // We can chain `limit` off a collection
   it('can be called on a collection directly', assertCompletes(() =>
     data.limit(2).fetch()
-      ::tap(res => {
+      .do(res => {
         assert.isArray(res)
         assert.lengthOf(res, 2)
       })
@@ -34,7 +34,7 @@ const limitSuite = global.limitSuite = getData => () => {
   // Or off other things
   it('can be called on findAll', assertCompletes(() =>
     data.findAll({ a: 20 }).limit(2).fetch()
-      ::tap(res => {
+      .do(res => {
         assert.isArray(res)
         assert.lengthOf(res, 2)
       })
@@ -43,7 +43,7 @@ const limitSuite = global.limitSuite = getData => () => {
   // `limit(0)` is ok
   it('can accept an argument of 0', assertCompletes(() =>
     data.limit(0).fetch()
-      ::tap(res => compareWithoutVersion(res, []))
+      .do(res => compareWithoutVersion(res, []))
   ))
 
   // `limit(null)` is an error

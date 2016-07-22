@@ -1,5 +1,5 @@
-import { _do as tap } from 'rxjs/operator/do'
-import { toArray } from 'rxjs/operator/toArray'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/toArray'
 
 import { assertCompletes,
          assertThrows,
@@ -17,25 +17,25 @@ const orderSuite = global.orderSuite = (getData, getTestData) => () => {
   // We can order by a field (default order is ascending)
   it('orders results by a field', assertCompletes(() =>
     data.order('id').fetch()
-      ::tap(res => compareWithoutVersion(res, testData))
+      .do(res => compareWithoutVersion(res, testData))
   ))
 
   // That's the same as passing `ascending` explicitly
   it('orders results ascending implicitly', assertCompletes(() =>
     data.order('id', 'ascending').fetch()
-      ::tap(res => compareWithoutVersion(res, testData))
+      .do(res => compareWithoutVersion(res, testData))
   ))
 
   // We can also sort in descending order
   it('can order results in descending order', assertCompletes(() =>
     data.order('id', 'descending').fetch()
-      ::tap(res => compareWithoutVersion(res, _.cloneDeep(testData).reverse()))
+      .do(res => compareWithoutVersion(res, _.cloneDeep(testData).reverse()))
   ))
 
   // Let's try ordering by a different field.
   it('can order results by a field other than id', assertCompletes(() =>
     data.order('b').fetch()
-      ::tap(res => compareWithoutVersion(res.slice(0, 3), [
+      .do(res => compareWithoutVersion(res.slice(0, 3), [
         { id: 2, a: 20, b: 1 },
         { id: 3, a: 20, b: 2 },
         { id: 4, a: 20, b: 3 },
@@ -45,7 +45,7 @@ const orderSuite = global.orderSuite = (getData, getTestData) => () => {
   // Let's try ordering by a different field descneding.
   it('can order results by another field in descending order', assertCompletes(() =>
     data.order('b', 'descending').fetch()
-      ::tap(res => compareWithoutVersion(res.slice(0, 3), [
+      .do(res => compareWithoutVersion(res.slice(0, 3), [
         { id: 4, a: 20, b: 3 },
         { id: 3, a: 20, b: 2 },
         { id: 2, a: 20, b: 1 },
@@ -55,20 +55,20 @@ const orderSuite = global.orderSuite = (getData, getTestData) => () => {
   // Let's try to order by a missing field
   it('returns no documents if a bad field is given', assertCompletes(() =>
     data.order('abracadabra').fetch()
-      ::tap(res => compareWithoutVersion(res, []))
+      .do(res => compareWithoutVersion(res, []))
   ))
 
   // We can pass multiple fields to `order` to disambiguate.
   it('can order by multiple fields', assertCompletes(() =>
     data.order([ 'a', 'id' ]).fetch()
-      ::tap(res => compareWithoutVersion(res, _.sortBy(testData, [ 'a', 'id' ])))
+      .do(res => compareWithoutVersion(res, _.sortBy(testData, [ 'a', 'id' ])))
   ))
 
   // We can pass multiple fields to `order` to disambiguate. Let's do it in
   // descending order.
   it('can order by multiple fields descending', assertCompletes(() =>
     data.order([ 'a', 'id' ], 'descending').fetch()
-      ::tap(res => compareWithoutVersion(res, _.sortBy(testData, ['a', 'id']).reverse()))
+      .do(res => compareWithoutVersion(res, _.sortBy(testData, ['a', 'id']).reverse()))
   ))
 
   // `order` cannot accept any keys that are present in `findAll`
