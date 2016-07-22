@@ -63,7 +63,7 @@ export class TermBase {
                        `${JSON.stringify(this.query.below[1])})`
     }
     if (this._query.limit) {
-      string += `.limit(this._query.limit))`
+      string += '.limit(this._query.limit))'
     }
     return string
   }
@@ -263,11 +263,12 @@ function writeOp(name, args, documents) {
   if (isBatch) {
     // If this is a batch writeOp, each document may succeed or fail
     // individually.
-    observable = observable.map(resp => resp.error? new Error(resp.error) : resp)
+    observable = observable.map(
+      resp => resp.error ? new Error(resp.error) : resp)
   } else {
     // If this is a single writeOp, the entire operation should fail
     // if any fails.
-    let _prevOb = observable
+    const _prevOb = observable
     observable = Observable.create(subscriber => {
       _prevOb.subscribe({
         next(resp) {

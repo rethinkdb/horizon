@@ -140,18 +140,19 @@ class AggregateTerm {
   }
 
   _reducer(...pairs) {
-    return pairs.reduce((prev, [k, x]) => {
+    return pairs.reduce((prev, [ k, x ]) => {
       prev[k] = x
       return prev
     }, {})
   }
 
   _query(operation) {
-    return this._value.map(([ k, term ]) => term[operation]().map(x => [ k, x ]))
+    return this._value.map(
+      ([ k, term ]) => term[operation]().map(x => [ k, x ]))
   }
 
   toString() {
-    let s = this._value.map(([ k, term ]) => `'${k}': ${term}`)
+    const s = this._value.map(([ k, term ]) => `'${k}': ${term}`)
     return `{ ${s.join(', ')} }`
   }
 
