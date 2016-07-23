@@ -51,9 +51,9 @@ module.exports = {
           cacheDirectory: true,
           presets: [
             'babel-preset-es2015-loose',
-            { plugins: [[
-              'babel-plugin-transform-runtime', { polyfill: false }
-            ]] },
+            { plugins: [
+              [ 'babel-plugin-transform-runtime', { polyfill: false } ],
+            ] },
           ],
         },
       },
