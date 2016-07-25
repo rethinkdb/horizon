@@ -1,6 +1,6 @@
 import { TokenStorage, FakeStorage } from '../../src/auth'
 
-const unitAuthSuite = global.unitAuthSuite = () => {
+export default function unitAuthSuite() {
   describe('TokenStorage', () => {
     let fakeStorage
     let tokenStore

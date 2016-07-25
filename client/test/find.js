@@ -6,7 +6,8 @@ import { assertCompletes,
          assertErrors,
          compareWithoutVersion } from './utils'
 
-const findSuite = global.findSuite = getData => () => {
+export default function findSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -123,4 +124,4 @@ const findSuite = global.findSuite = getData => () => {
       },
     })
   })
-} // Testing `find`
+}}

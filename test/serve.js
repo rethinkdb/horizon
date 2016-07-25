@@ -78,8 +78,11 @@ const serve_file = (file_path, res) => {
   });
 };
 
+// On Windows, `npm` is actually `npm.cmd`
+const npm_cmd = process.platform === "win32" ? "npm.cmd" : "npm";
+
 // Run the client build
-const build_proc = child_process.spawn('npm', [ 'run', 'dev'],
+const build_proc = child_process.spawn(npm_cmd, [ 'run', 'dev'],
                                       { cwd: test_dist_dir });
 
 build_proc.on('exit', () => process.exit(1));

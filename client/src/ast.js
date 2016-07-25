@@ -41,6 +41,32 @@ export class TermBase {
     this._query = query
     this._legalMethods = legalMethods
   }
+
+  toString() {
+    let string = `Collection('${this._query.collection}')`
+    if (this._query.find) {
+      string += `.find(${JSON.stringify(this._query.find)})`
+    }
+    if (this._query.find_all) {
+      string += `.findAll(${JSON.stringify(this._query.find_all)})`
+    }
+    if (this._query.order) {
+      string += `.order(${JSON.stringify(this._query.order[0])}, ` +
+                       `${JSON.stringify(this._query.order[1])})`
+    }
+    if (this._query.above) {
+      string += `.above(${JSON.stringify(this.query.above[0])}, ` +
+                       `${JSON.stringify(this.query.above[1])})`
+    }
+    if (this._query.below) {
+      string += `.below(${JSON.stringify(this.query.below[0])}, ` +
+                       `${JSON.stringify(this.query.below[1])})`
+    }
+    if (this._query.limit) {
+      string += '.limit(this._query.limit))'
+    }
+    return string
+  }
   // Returns a sequence of the result set. Every time it changes the
   // updated sequence will be emitted. If raw change objects are
   // needed, pass the option 'rawChanges: true'. An observable is
@@ -158,7 +184,12 @@ export function applyChange(arr, change) {
     if (change.old_offset != null) {
       arr.splice(change.old_offset, 1)
     } else {
-      const index = arr.findIndex(x => x.id === change.old_val.id)
+      const index = arr.findIndex(x => deepEqual(x.id, change.old_val.id))
+      if (index === -1) {
+        // Programming error. This should not happen
+        throw new Error(
+          `change couldn't be applied: ${JSON.stringify(change)}`)
+      }
       arr.splice(index, 1)
     }
     break
@@ -232,11 +263,12 @@ function writeOp(name, args, documents) {
   if (isBatch) {
     // If this is a batch writeOp, each document may succeed or fail
     // individually.
-    observable = observable.map(resp => resp.error? new Error(resp.error) : resp)
+    observable = observable.map(
+      resp => resp.error ? new Error(resp.error) : resp)
   } else {
     // If this is a single writeOp, the entire operation should fail
     // if any fails.
-    let _prevOb = observable
+    const _prevOb = observable
     observable = Observable.create(subscriber => {
       _prevOb.subscribe({
         next(resp) {
@@ -265,7 +297,7 @@ export class Collection extends TermBase {
   constructor(sendRequest, collectionName, lazyWrites) {
     const query = { collection: collectionName }
     const legalMethods = [
-      'find', 'findAll', 'justInitial', 'order', 'above', 'below', 'limit' ]
+      'find', 'findAll', 'order', 'above', 'below', 'limit' ]
     super(sendRequest, query, legalMethods)
     this._lazyWrites = lazyWrites
   }

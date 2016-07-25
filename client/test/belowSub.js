@@ -1,8 +1,9 @@
-import { concat } from 'rxjs/operator/concat'
+import 'rxjs/add/operator/concat'
 
 import { assertCompletes, observableInterleave } from './utils'
 
-const belowSubscriptionSuite = global.belowSubscriptionSuite = getData => () => {
+export default function belowSubscriptionSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -68,10 +69,10 @@ const belowSubscriptionSuite = global.belowSubscriptionSuite = getData => () => 
       query: data.below({ id: 1 }).watch(),
       operations: [
         data.store({ id: 2, a: 1 })
-          ::concat(data.store({ id: 2, a: 2 }))
-          ::concat(data.store({ id: 0, val: 'foo' })),
+          .concat(data.store({ id: 2, a: 2 }))
+          .concat(data.store({ id: 0, val: 'foo' })),
         data.remove(2)
-          ::concat(data.remove(0)),
+          .concat(data.remove(0)),
       ],
       expected: [
         [],
@@ -88,13 +89,13 @@ const belowSubscriptionSuite = global.belowSubscriptionSuite = getData => () => 
       operations: [
         data.store({ id: 1, a: 1 }),
         data.store({ id: 2, a: 1 })
-        ::concat(data.store({ id: 3, a: 1 })),
+        .concat(data.store({ id: 3, a: 1 })),
         data.store({ id: 1, a: 2 }),
         data.store({ id: 2, a: 2 })
-          ::concat(data.store({ id: 3, a: 2 })),
+          .concat(data.store({ id: 3, a: 2 })),
         data.remove(1),
         data.remove(2)
-          ::concat(data.remove(3)),
+          .concat(data.remove(3)),
       ],
       expected: [
         [],
@@ -110,7 +111,7 @@ const belowSubscriptionSuite = global.belowSubscriptionSuite = getData => () => 
 
   // Let's make sure initial vals works correctly
   it('handles initial values correctly', assertCompletes(() =>
-    data.store({ id: 1, a: 1 })::concat(
+    data.store({ id: 1, a: 1 }).concat(
       observableInterleave({
         query: data.below({ id: 2 }).watch(),
         operations: [
@@ -125,4 +126,4 @@ const belowSubscriptionSuite = global.belowSubscriptionSuite = getData => () => 
       })
     )
   ))
-} // Testing 'below' subscriptions
+}}
