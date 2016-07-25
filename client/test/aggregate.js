@@ -15,7 +15,8 @@ function arrayHasSameElements(a, b) {
   }
 }
 
-const aggregateSuite = global.aggregateSuite = (getData, getHorizon) => () => {
+export default function aggregateSuite(getData, getHorizon) {
+  return () => {
   let data, horizon, hzA, hzB
   before(() => {
     data = getData()
@@ -256,4 +257,4 @@ const aggregateSuite = global.aggregateSuite = (getData, getHorizon) => () => {
            expected: [ expectedResult ],
          }))
   }))
-}
+}}

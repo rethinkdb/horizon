@@ -1,9 +1,9 @@
-import { _do as tap } from 'rxjs/operator/do'
-import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
-import { toArray } from 'rxjs/operator/toArray'
-import { concat } from 'rxjs/operator/concat'
-import { map } from 'rxjs/operator/map'
-import { ignoreElements } from 'rxjs/operator/ignoreElements'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/mergeMapTo'
+import 'rxjs/add/operator/toArray'
+import 'rxjs/add/operator/concat'
+import 'rxjs/add/operator/map'
+import 'rxjs/add/operator/ignoreElements'
 
 import { assertCompletes,
          assertThrows,
@@ -12,7 +12,8 @@ import { assertCompletes,
          compareWithoutVersion,
          compareSetsWithoutVersion } from './utils'
 
-const removeSuite = global.removeSuite = getData => () => {
+export default function removeSuite(getData) {
+  return () => {
   let data
   const testData = [
     { id: 1, a: 1 },
@@ -33,32 +34,32 @@ const removeSuite = global.removeSuite = getData => () => {
 
   // Insert the test data and make sure it's in
   before(assertCompletes(() =>
-    data.store(testData)::ignoreElements()
-      ::concat(data.fetch())
+    data.store(testData).ignoreElements()
+      .concat(data.fetch())
       // Make sure it's there
-      ::tap(res => compareSetsWithoutVersion(res, testData))
+      .do(res => compareSetsWithoutVersion(res, testData))
   ))
 
   it('removes a document when passed an id', assertCompletes(() =>
     data.remove(1)
-      ::tap(res => compareWithoutVersion(res, { id: 1 }))
+      .do(res => compareWithoutVersion(res, { id: 1 }))
       // Let's make sure the removed document isn't there
-      ::mergeMapTo(data.find(1).fetch())
+      .mergeMapTo(data.find(1).fetch())
       // Let's make sure the removed document isn't there
-      ::tap(res => assert.isNull(res))
+      .do(res => assert.isNull(res))
   ))
 
   it('removes a document with an id field', assertCompletes(() =>
     data.remove({ id: 2 })
-      ::tap(res => compareWithoutVersion(res, { id: 2 }))
+      .do(res => compareWithoutVersion(res, { id: 2 }))
       // Let's make sure the removed document isn't there
-      ::mergeMapTo(data.find(2).fetch())
+      .mergeMapTo(data.find(2).fetch())
       // Let's make sure the removed document isn't there
-      ::tap(res => assert.isNull(res))
+      .do(res => assert.isNull(res))
   ))
 
   it(`removing a document that doesn't exist doesn't error`, assertCompletes(() =>
-    data.remove('abracadabra')::tap(res => assert.deepEqual(res, { id: 'abracadabra' }))
+    data.remove('abracadabra').do(res => assert.deepEqual(res, { id: 'abracadabra' }))
   ))
 
   it('fails when called with no arguments', assertThrows(
@@ -81,8 +82,8 @@ const removeSuite = global.removeSuite = getData => () => {
   // Check that the remaining documents are there
   it(`doesn't remove documents we didn't ask it to`, assertCompletes(() =>
     data.fetch()
-      ::map(docs => docs.map(x => x.id))
-      ::tap(res => assert.includeMembers(
+      .map(docs => docs.map(x => x.id))
+      .do(res => assert.includeMembers(
         res, [ 'do_not_remove_1', 'do_not_remove_2' ]))
   ))
-} // Testing `remove`
+}}

@@ -1,9 +1,46 @@
-import { ignoreElements } from 'rxjs/operator/ignoreElements'
-import { concat } from 'rxjs/operator/concat'
-import { _do as tap } from 'rxjs/operator/do'
-import { toArray } from 'rxjs/operator/toArray'
+import 'rxjs/add/operator/ignoreElements'
+import 'rxjs/add/operator/concat'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/toArray'
 
-import { assertCompletes, removeAllData, compareSetsWithoutVersion } from './utils'
+import { assertCompletes,
+         removeAllData,
+         compareSetsWithoutVersion } from './utils'
+
+import horizonObjectSuite from './horizonObject'
+
+import storeSuite from './store'
+import insertSuite from './insert'
+import updateSuite from './update'
+import upsertSuite from './upsert'
+import replaceSuite from './replace'
+
+import removeSuite from './remove'
+import removeAllSuite from './removeAll'
+
+import timesSuite from './times'
+import authSuite from './auth'
+import collectionSuite from './collection'
+import findSuite from './find'
+import findAllSuite from './findAll'
+import orderSuite from './order'
+import limitSuite from './limit'
+import aboveSuite from './above'
+import belowSuite from './below'
+import chainingSuite from './chaining'
+
+import findSubscriptionSuite from './findSub'
+import findAllSubscriptionSuite from './findAllSub'
+import aboveSubscriptionSuite from './aboveSub'
+import belowSubscriptionSuite from './belowSub'
+import orderLimitSubSuite from './orderLimitSub'
+
+import aggregateSuite from './aggregate'
+import aggregateSubSuite from './aggregateSub'
+
+import unitUtilsSuite from './unit/utilsTest'
+import unitAuthSuite from './unit/auth'
+import unitAstSuite from './unit/ast'
 
 // This test suite covers various edge cases in the Horizon client library API.
 // It does not cover correctness of the full system in various circumstances.
@@ -87,9 +124,9 @@ describe('Core API tests', () => {
     // Insert the test data and make sure it's in
     before(assertCompletes(() =>
       data.store(testData)
-       ::ignoreElements()
-       ::concat(data.fetch())
-       ::tap(res => compareSetsWithoutVersion(res, testData))
+       .ignoreElements()
+       .concat(data.fetch())
+       .do(res => compareSetsWithoutVersion(res, testData))
     ))
 
     describe('Testing full collection read',
