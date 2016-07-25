@@ -25,7 +25,7 @@ pushd ../client
 green 'Unlinking existing client'
 npm unlink
 green 'Linking client'
-npm link --unsafe-perm
+npm link --unsafe-perm --cache-min 9999999
 popd
 
 pushd ../server
@@ -33,7 +33,7 @@ green 'Unlinking existing server'
 npm unlink
 green 'Linking server'
 npm link @horizon/client
-npm link
+npm link --cache-min 9999999
 popd
 
 pushd ../cli
@@ -41,7 +41,7 @@ green 'Unlinking existing horizon cli'
 npm unlink
 green 'Linking horizon cli'
 npm link @horizon/server
-npm link
+npm link --cache-min 9999999
 popd
 
 green 'Dev environment set up'
