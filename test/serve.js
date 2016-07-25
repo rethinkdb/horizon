@@ -169,6 +169,7 @@ new Promise((resolve) => {
     auto_create_index: true,
     rdb_port: info.driverPort,
     permissions: parse_yes_no_option(options.permissions),
+    project_name: 'test',
     auth: {
       allow_unauthenticated: true,
       allow_anonymous: true,
