@@ -1,13 +1,13 @@
 ## Customize the test machine
 machine:
 
-  timezone:
-    America/Los_Angeles # Set the timezone
+  #timezone:
+  #  America/Los_Angeles # Set the timezone
 
   # Set version of node to use
-  node:
-    version:
-      5.7.0
+  #node:
+  #  version:
+  #    5.7.0
 
   post:
     - source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
@@ -31,18 +31,18 @@ dependencies:
     - cli/node_modules
   override:
     # Stop default services
-    - sudo service redis-server stop
-    - sudo service postgresql stop
-    - sudo service mysql stop
+    #- sudo service redis-server stop
+    #- sudo service postgresql stop
+    #- sudo service mysql stop
 
     # Prepare for client tests
-    - npm prune --production:
-        pwd: client
+    #- npm prune --production:
+    #    pwd: client
     # Prepare for server tests
-    - npm prune --production:
-        pwd: server
-    - npm prune --production:
-        pwd: cli
+    #- npm prune --production:
+    #    pwd: server
+    #- npm prune --production:
+    #    pwd: cli
     - ./setupDev.sh:
         pwd: test
 
