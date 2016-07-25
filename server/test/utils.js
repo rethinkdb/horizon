@@ -12,7 +12,7 @@ const http = require('http');
 const r = require('rethinkdb');
 const websocket = require('ws');
 
-const db = 'horizon';
+const project_name = 'unittest';
 const data_dir = './rethinkdb_data_test';
 
 const log_file = `./horizon_test_${process.pid}.log`;
@@ -35,9 +35,11 @@ const test_db_server = (done) => {
     rdb_http_port = info.httpPort;
     logger.info('server created, connecting');
 
-    const conn_promise = r.connect({ db, port: rdb_port });
+    const user_db = `hz_${project_name}`;
+
+    const conn_promise = r.connect({ db: user_db, port: rdb_port });
     conn_promise.then((c) => { rdb_conn = c; logger.info('connected'); });
-    conn_promise.then((c) => r.dbCreate(db).run(c)).then((res) => {
+    conn_promise.then((c) => r.dbCreate(user_db).run(c)).then((res) => {
       assert.strictEqual(res.dbs_created, 1);
       done();
     });
@@ -47,13 +49,13 @@ const test_db_server = (done) => {
 // Used to prefix reql queries with the underlying table of a given collection
 const table = (collection) =>
   r.table(
-    r.db('horizon_internal')
+    r.db(`hzinternal_${project_name}`)
       .table('collections')
       .get(collection)
       .do((row) =>
         r.branch(row.eq(null),
                  r.error('Collection does not exist.'),
-                 row('table'))));
+                 row('id'))));
 
 const make_admin_token = () => {
   const jwt = horizon_server && horizon_server._auth && horizon_server._auth._jwt;
@@ -123,7 +125,8 @@ const start_horizon_server = (done) => {
     logger.info('creating horizon server');
     horizon_port = http_server.address().port;
     horizon_server = new horizon.Server(http_server,
-      { rdb_port,
+      { project_name,
+        rdb_port,
         auto_create_collection: true,
         auto_create_index: true,
         permissions: true,
@@ -256,7 +259,7 @@ const check_error = (err, msg) => {
 
 const set_group = (group, done) => {
   assert(horizon_server && rdb_conn);
-  r.db('horizon_internal')
+  r.db(`hzinternal_${project_name}`)
     .table('groups')
     .get(group.id)
     .replace(group)

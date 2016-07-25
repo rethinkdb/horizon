@@ -24,9 +24,11 @@ class Collection {
   changed(data, db) {
     error.check(this.name === data.id, 'Collections cannot be renamed.');
 
-    this.table = r.db(db).table(data.table); // This is the ReQL `Table` object
-    this._table_name = data.table;
-    this._table = null; // This is the Horizon `Table` object
+    // This is the ReQL `Table` object
+    this.table = r.db(db).table(this.name);
+
+    // This is the Horizon `Table` object
+    this._table = null;
   }
 
   on_ready(done) {

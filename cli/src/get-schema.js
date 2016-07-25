@@ -3,11 +3,13 @@
 const interrupt = require('./utils/interrupt');
 const start_rdb_server = require('./utils/start_rdb_server');
 const serve = require('./serve');
-const logger = require('@horizon/server').logger;
+const horizon_server = require('@horizon/server');
 
 const fs = require('fs');
 const path = require('path');
-const r = require('rethinkdb');
+
+const r = horizon_server.r;
+const logger = horizon_server.logger;
 
 const helpText = 'Get the schema from a horizon database';
 

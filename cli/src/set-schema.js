@@ -4,16 +4,18 @@ const interrupt = require('./utils/interrupt');
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const start_rdb_server = require('./utils/start_rdb_server');
 const serve = require('./serve');
-const logger = require('@horizon/server').logger;
+const horizon_server = require('@horizon/server');
 const create_collection_reql = require('@horizon/server/src/metadata/metadata').create_collection_reql;
 const initialize_metadata_reql = require('@horizon/server/src/metadata/metadata').initialize_metadata_reql;
-const name_to_fields = require('@horizon/server/src/metadata/index').Index.name_to_fields;
+const name_to_fields = require('@horizon/server/src/metadata/index').Index.name_to_info;
 
 const fs = require('fs');
 const Joi = require('joi');
 const path = require('path');
-const r = require('rethinkdb');
 const toml = require('toml');
+
+const r = horizon_server.r;
+const logger = horizon_server.logger;
 
 const helpText = 'Set the schema in a horizon database';
 
@@ -136,8 +138,8 @@ const runCommand = (options, done) => {
   let schema, conn;
   let obsolete_collections = [ ];
 
-  const db = options.project_name;
-  const internal_db = `${db}_internal`;
+  const db = `hz_${options.project_name}`;
+  const internal_db = `hzinternal_${options.project_name}`;
 
   logger.level = 'error';
   interrupt.on_interrupt((done2) => {
@@ -168,7 +170,7 @@ const runCommand = (options, done) => {
                 port: options.rdb_port })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    return initialize_metadata_reql(r, internal_db, db).run(conn);
+    return initialize_metadata_reql(internal_db, db).run(conn);
   }).then((initialization_result) => {
     if (initialization_result.tables_created) {
       console.log('Initialized new application metadata.');
@@ -244,7 +246,7 @@ const runCommand = (options, done) => {
     const promises = [ ];
     for (const c of schema.collections) {
       promises.push(
-        create_collection_reql(r, internal_db, db, c.id)
+        create_collection_reql(internal_db, db, c.id)
           .run(conn).then((res) => {
             if (res.error) {
               throw new Error(res.error);
@@ -279,7 +281,7 @@ const runCommand = (options, done) => {
     for (const c of schema.collections) {
       c.index_fields = { };
       for (const index of c.indexes) {
-        c.index_fields[index] = name_to_fields(index);
+        c.index_fields[index] = name_to_info(index).fields;
       }
     }
 
@@ -287,14 +289,14 @@ const runCommand = (options, done) => {
     promises.push(
       r.expr(schema.collections)
         .forEach((c) =>
-          r.db(internal_db).table('collections')
-            .get(c('id'))
-            .do((collection) =>
+          r.db(db).table(r.db(internal_db).table('collections').get(c('id'))('table'),
+                         { identifierFormat: 'uuid' })
+            .do((table) =>
               c('indexes')
-                .setDifference(r.db(db).table(collection('table')).indexList())
+                .setDifference(table.indexList())
                 .forEach((index) =>
                   c('index_fields')(index).do((fields) =>
-                    r.db(db).table(collection('table')).indexCreate(index, (row) =>
+                    table.indexCreate(index, (row) =>
                       fields.map((key) => row(key)))))))
         .run(conn)
         .then((res) => {

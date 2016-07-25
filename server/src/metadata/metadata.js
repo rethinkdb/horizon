@@ -11,38 +11,37 @@ const r = require('rethinkdb');
 
 // These are exported for use by the CLI. They accept 'R' as a parameter because of
 // https://github.com/rethinkdb/rethinkdb/issues/3263
-const create_collection_reql = (R, internal_db, user_db, collection) => {
-  const do_create = (table) =>
-    R.db(user_db).tableCreate(table).do(() =>
-      R.db(internal_db)
-        .table('collections')
-        .get(collection)
-        .replace((old_row) =>
-          R.branch(old_row.eq(null),
-                   { id: collection, table },
-                   old_row),
-          { returnChanges: 'always' })('changes')(0)
-        .do((res) =>
-          R.branch(R.or(res.hasFields('error'),
-                        res('new_val')('table').ne(table)),
-                   R.db(user_db).tableDrop(table).do(() => res),
-                   res)));
+const create_collection_reql = (internal_db, user_db, collection) => {
+  const do_create = (collection) =>
+    r.db(user_db).tableCreate(collection).do((create_res) =>
+      r.branch(create_res.hasFields('error'),
+               r.error(create_res('error')),
+               create_res('config_changes')(0)('new_val')('id').do((table_id) =>
+                 r.db(internal_db).table('collections').get(collection)
+                   .replace((old_row) =>
+                     r.branch(old_row.eq(null),
+                              { id: collection, table_id },
+                              old_row),
+                     { returnChanges: 'always' })('changes')(0)
+                   .do((res) =>
+                     r.branch(r.or(res.hasFields('error'),
+                                   res('new_val')('table_id').ne(table_id)),
+                              r.db('rethinkdb').table('table_config').get(table_id).delete().do(() => res),
+                              res)))));
 
-  return R.uuid().split('-')(-1)
-           .do((id) => R.expr(collection).add('_').add(id)).do((table) =>
-             R.db(internal_db).table('collections').get(collection).do((row) =>
-               R.branch(row.eq(null),
-                        do_create(table),
-                        { old_val: row, new_val: row })));
+  return r.db(internal_db).table('collections').get(collection).do((row) =>
+           r.branch(row.eq(null),
+                    do_create(collection),
+                    { old_val: row, new_val: row }));
 };
 
-const initialize_metadata_reql = (R, internal_db, user_db) =>
-  R.expr([ user_db, internal_db ])
-    .forEach((db) => R.branch(R.dbList().contains(db), [], R.dbCreate(db)))
+const initialize_metadata_reql = (internal_db, user_db) =>
+  r.expr([ user_db, internal_db ])
+    .forEach((db) => r.branch(r.dbList().contains(db), [], r.dbCreate(db)))
     .do(() =>
-      R.expr([ 'collections', 'users_auth', 'users', 'groups' ])
-        .forEach((table) => R.branch(R.db(internal_db).tableList().contains(table),
-                                     [], R.db(internal_db).tableCreate(table))));
+      r.expr([ 'collections', 'users_auth', 'users', 'groups' ])
+        .forEach((table) => r.branch(r.db(internal_db).tableList().contains(table),
+                                     [], r.db(internal_db).tableCreate(table))));
 
 class Metadata {
   constructor(project_name,
@@ -50,8 +49,8 @@ class Metadata {
               clients,
               auto_create_collection,
               auto_create_index) {
-    this._db = project_name;
-    this._internal_db = `${this._db}_internal`;
+    this._db = `hz_${project_name}`;
+    this._internal_db = `hzinternal_${project_name}`;
     this._conn = conn;
     this._clients = clients;
     this._auto_create_collection = auto_create_collection;
@@ -68,7 +67,7 @@ class Metadata {
     this._ready_promise = Promise.resolve().then(() => {
       logger.debug('checking for internal db/tables');
       if (this._auto_create_collection) {
-        return initialize_metadata_reql(r, this._internal_db, this._db).run(this._conn)
+        return initialize_metadata_reql(this._internal_db, this._db).run(this._conn)
       } else {
         return r.expr([ this._db, this._internal_db ])
                  .concatMap((db) => r.branch(r.dbList().contains(db), [], [ db ]))
@@ -186,7 +185,7 @@ class Metadata {
         r.db('rethinkdb')
           .table('table_config')
           .filter({ db: this._db })
-          .pluck('name', 'indexes')
+          .pluck('name', 'id', 'indexes')
           .changes({ squash: true,
                      includeInitial: true,
                      includeStates: true,
@@ -216,7 +215,7 @@ class Metadata {
                   table.update_indexes(change.new_val.indexes, this._conn);
 
                   this._collections.forEach((c) => {
-                    if (c._table_name === table_name) {
+                    if (c.name === table_name) {
                       c.set_table(table);
                     }
                   });
@@ -356,7 +355,7 @@ class Metadata {
     const collection = new Collection({ id: name, table: null }, this._db);
     this._collections.set(name, collection);
 
-    create_collection_reql(r, this._internal_db, this._db, name)
+    create_collection_reql(this._internal_db, this._db, name)
       .run(this._conn)
       .then((res) => {
         error.check(!res.error, `Collection creation failed (dev mode): "${name}", ${res.error}`);

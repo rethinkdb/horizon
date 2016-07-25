@@ -1,16 +1,17 @@
 'use strict';
 
 const server = require('./server');
-const logger = require('./logger');
-const utils = require('./utils');
 
 const create_server = (http_servers, options) =>
   new server.Server(http_servers, options);
 
 module.exports = create_server;
-module.exports.logger = logger;
-module.exports.utils = utils;
 module.exports.Server = server.Server;
+
+module.exports.r = require('rethinkdb');
+module.exports.logger = require('./logger');
+module.exports.utils = require('./utils');
+
 module.exports.auth = {
   auth0: require('./auth/auth0'),
   facebook: require('./auth/facebook'),
