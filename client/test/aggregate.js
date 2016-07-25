@@ -57,10 +57,8 @@ export default function aggregateSuite(getData, getHorizon) {
      assertCompletes(() => {
        const query = horizon.aggregate([ hzA, hzB ]).fetch()
        const expected = [
-         { id: 1 },
-         { id: 2 },
-         { id: 3 },
-         { id: 4 },
+         [ { id: 1 }, { id: 3 } ],
+         [ { id: 2 }, { id: 4 } ],
        ]
        return hzA.insert([
          { id: 1 },
@@ -79,7 +77,7 @@ export default function aggregateSuite(getData, getHorizon) {
 
   it('allows constants in an array spec', assertCompletes(() => {
     const query = horizon.aggregate([ 1, hzA ]).fetch()
-    const expected = [ 1, { id: 1 }, { id: 2 } ]
+    const expected = [ 1, [ { id: 1 }, { id: 2 } ] ]
     return hzA.insert([
       { id: 1 },
       { id: 2 },

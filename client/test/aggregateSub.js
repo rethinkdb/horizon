@@ -45,10 +45,8 @@ export default function aggregateSubSuite(getData, getHorizon) {
   it('combines multiple queries in an array into one', done => {
     const query = horizon.aggregate([ hzA, hzB ])
     const expected = [
-      { id: 1 },
-      { id: 2 },
-      { id: 3 },
-      { id: 4 },
+      [ { id: 1 }, { id: 3 } ],
+      [ { id: 2 }, { id: 4 } ],
     ]
     return hzA.insert([
       { id: 1 },
@@ -60,7 +58,9 @@ export default function aggregateSubSuite(getData, getHorizon) {
       .take(1)
       .subscribe({
         next(x) {
-          assert.sameDeepMembers(expected, x)
+          for (let i = 0; i < x.length; i++) {
+            assert.sameDeepMembers(expected[i], x[i])
+          }
         },
         error(err) {
           done(new Error(err))
@@ -71,7 +71,7 @@ export default function aggregateSubSuite(getData, getHorizon) {
 
   it('allows constants in an array spec', assertCompletes(() => {
     const query = horizon.aggregate([ 1, hzA ])
-    const expected = [ 1, { id: 1 }, { id: 2 } ]
+    const expected = [ 1, [ { id: 1 }, { id: 2 } ] ]
     return hzA.insert([
       { id: 1 },
       { id: 2 },
@@ -79,7 +79,8 @@ export default function aggregateSubSuite(getData, getHorizon) {
       .concat(query.watch())
       .take(1)
       .do(x => {
-        assert.sameDeepMembers(expected, x)
+        assert.equal(x[0], 1)
+        assert.sameDeepMembers(x[1], expected[1])
       })
   }))
 
