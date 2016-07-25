@@ -5,7 +5,7 @@ green () {
     echo -e "\033[1;32m== $1 \033[0m"
 }
 
-if [ $1 == '--clean' ]; then
+if [ "$1" == '--clean' ]; then
  green 'Removing old node_modules dirs if present'
  if [ -d ../client/node_modules ]; then
    echo Removing client/node_modules
