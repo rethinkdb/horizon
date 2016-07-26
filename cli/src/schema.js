@@ -186,17 +186,15 @@ const processLoadConfig = (parsed) => {
                                                                    parsed.config));
   config = serve.merge_configs(config, serve.read_config_from_env());
   config = serve.merge_configs(config, serve.read_config_from_flags(parsed));
-
   if (parsed.schema_file === '-') {
     in_file = process.stdin;
   } else {
-    in_file = fs.createReadStream(null, { fd: fs.openSync(parsed.schema_file, 'r') });
+    in_file = fs.createReadStream(parsed.schema_file, {flags: 'r'});
   }
 
   if (config.project_name === null) {
     config.project_name = path.basename(path.resolve(config.project_path));
   }
-
   return {
     start_rethinkdb: config.start_rethinkdb,
     rdb_host: config.rdb_host,
@@ -224,7 +222,7 @@ const processSaveConfig = (parsed) => {
   if (parsed.out_file === '-') {
     out_file = process.stdout;
   } else {
-    out_file = fs.createWriteStream(null, { fd: fs.openSync(parsed.out_file, 'w') });
+    out_file = fs.createWriteStream(parsed.out_file, { flags: 'w', defaultEncoding: 'utf8',});
   }
 
   if (config.project_name === null) {
@@ -515,15 +513,19 @@ const runSaveCommand = (options, done, shutdown) => {
     conn.close();
     const toml_str = config_to_toml(res.collections, res.groups);
     options.out_file.write(toml_str);
+    options.out_file.close();
   }).then(() => {
     if (shutdown){
       interrupt.shutdown()
     }
-  }).catch(done);
+  }).catch( (err) => {
+    console.log(err);
+    done(err);
+  });
 };
 
 
-// Avoiding cylical depden
+// Avoiding cylical depdendencies
 schema.addArguments = addArguments;
 schema.processConfig = (options) => {
   // Determine if we are saving or loading and use appropriate config processing
@@ -545,3 +547,5 @@ schema.runCommand = (options, done) => {
 schema.helpText = helpText;
 schema.processLoadConfig = processLoadConfig;
 schema.runLoadCommand = runLoadCommand;
+schema.runSaveCommand = runSaveCommand;
+schema.parse_schema = parse_schema;

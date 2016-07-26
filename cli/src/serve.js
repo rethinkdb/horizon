@@ -227,8 +227,6 @@ const file_server = (distDir) => (req, res) => {
 };
 
 const initialize_servers = (ctor, opts) => {
-  console.log("CREATING SERVER")
-  console.log(opts)
   const servers = new Set();
   let numReady = 0;
   return new Promise((resolve) => {
@@ -670,7 +668,7 @@ const runCommand = (opts, done) => {
         update: true,
         force: false,
       });
-      // schema.runLoadCommand(schemaOptions, false, (err) => { console.error(err)});
+      schema.runLoadCommand(schemaOptions, false, (err) => { console.error(err)});
     }
   }).then(() => {
     hzInstance = startHorizonServer(httpServers, opts);

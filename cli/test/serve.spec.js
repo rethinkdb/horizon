@@ -19,8 +19,6 @@ describe('hz serve', () => {
   });
   afterEach(() => {
     mockFs.restore();
-    process.exit.restore();
-    console.error.restore();
   });
   describe('given a project path,', () => {
     const currentOpts = Object.assign({
