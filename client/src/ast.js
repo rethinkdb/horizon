@@ -55,15 +55,15 @@ export class TermBase {
                        `${JSON.stringify(this._query.order[1])})`
     }
     if (this._query.above) {
-      string += `.above(${JSON.stringify(this.query.above[0])}, ` +
-                       `${JSON.stringify(this.query.above[1])})`
+      string += `.above(${JSON.stringify(this._query.above[0])}, ` +
+                       `${JSON.stringify(this._query.above[1])})`
     }
     if (this._query.below) {
-      string += `.below(${JSON.stringify(this.query.below[0])}, ` +
-                       `${JSON.stringify(this.query.below[1])})`
+      string += `.below(${JSON.stringify(this._query.below[0])}, ` +
+                       `${JSON.stringify(this._query.below[1])})`
     }
     if (this._query.limit) {
-      string += '.limit(this._query.limit))'
+      string += `.limit(${this._query.limit})`
     }
     return string
   }
@@ -77,7 +77,7 @@ export class TermBase {
     if (rawChanges) {
       return raw
     } else {
-      return makePresentable(raw, this._query)
+      return TermBase.makePresentable(raw, this._query)
     }
   }
   // Grab a snapshot of the current query (non-changefeed). Emits an
@@ -124,56 +124,57 @@ export class TermBase {
     checkArgs('limit', arguments)
     return new Limit(this._sendRequest, this._query, size)
   }
-}
 
-// Turn a raw observable of server responses into user-presentable events
-//
-// `observable` is the base observable with full responses coming from
-//              the HorizonSocket
-// `query` is the value of `options` in the request
-function makePresentable(observable, query) {
-  // Whether the entire data structure is in each change
-  const pointQuery = Boolean(query.find)
+  // Turn a raw observable of server responses into user-presentable events
+  //
+  // `observable` is the base observable with full responses coming from
+  //              the HorizonSocket
+  // `query` is the value of `options` in the request
+  static makePresentable(observable, query) {
+    // Whether the entire data structure is in each change
+    const pointQuery = Boolean(query.find)
 
-  if (pointQuery) {
-    let hasEmitted = false
-    const seedVal = null
-    // Simplest case: just pass through new_val
-    return observable
-      .filter(change => !hasEmitted || change.type !== 'state')
-      .scan((previous, change) => {
-        hasEmitted = true
-        if (change.new_val != null) {
-          delete change.new_val.$hz_v$
-        }
-        if (change.old_val != null) {
-          delete change.old_val.$hz_v$
-        }
-        if (change.state === 'synced') {
-          return previous
-        } else {
-          return change.new_val
-        }
-      }, seedVal)
-  } else {
-    const seedVal = { emitted: false, val: [] }
-    return observable
-      .scan((state, change) => {
-        if (change.new_val != null) {
-          delete change.new_val.$hz_v$
-        }
-        if (change.old_val != null) {
-          delete change.old_val.$hz_v$
-        }
-        if (change.state === 'synced') {
-          state.emitted = true
-        }
-        state.val = applyChange(state.val.slice(), change)
-        return state
-      }, seedVal)
-      .filter(state => state.emitted)
-      .map(x => x.val)
+    if (pointQuery) {
+      let hasEmitted = false
+      const seedVal = null
+      // Simplest case: just pass through new_val
+      return observable
+        .filter(change => !hasEmitted || change.type !== 'state')
+        .scan((previous, change) => {
+          hasEmitted = true
+          if (change.new_val != null) {
+            delete change.new_val.$hz_v$
+          }
+          if (change.old_val != null) {
+            delete change.old_val.$hz_v$
+          }
+          if (change.state === 'synced') {
+            return previous
+          } else {
+            return change.new_val
+          }
+        }, seedVal)
+    } else {
+      const seedVal = { emitted: false, val: [] }
+      return observable
+        .scan((state, change) => {
+          if (change.new_val != null) {
+            delete change.new_val.$hz_v$
+          }
+          if (change.old_val != null) {
+            delete change.old_val.$hz_v$
+          }
+          if (change.state === 'synced') {
+            state.emitted = true
+          }
+          state.val = applyChange(state.val.slice(), change)
+          return state
+        }, seedVal)
+        .filter(state => state.emitted)
+        .map(x => x.val)
+    }
   }
+
 }
 
 export function applyChange(arr, change) {

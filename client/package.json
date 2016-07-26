@@ -50,6 +50,7 @@
     "nodemon": "^1.9.1",
     "nyc": "^7.0.0",
     "shelljs": "^0.7.0",
+    "sinon": "^1.17.5",
     "source-map-support": "^0.4.0",
     "webpack": "^1.12.14"
   },

@@ -1,6 +1,13 @@
 import { assert } from 'chai'
+import { stub } from 'sinon'
+import { assertCompletes } from '../utils'
 
-import { applyChange } from '../../src/ast'
+import { Observable } from 'rxjs/Observable'
+
+import { applyChange,
+         TermBase } from '../../src/ast'
+
+const noop = () => {}
 
 export default function unitAstSuite() {
   describe('applyChanges', () => {
@@ -96,6 +103,58 @@ export default function unitAstSuite() {
       assert.deepEqual(result, expected)
       done()
     })
+  })
+
+  describe('TermBase', () => {
+    describe('toString', () => {
+      it("should handle empty queries", () => {
+        const query = {} // bogus query
+        const legalMethods = []
+        const term = new TermBase(noop, query, legalMethods)
+        assert.typeOf(term.toString(), 'string')
+      })
+      it('should handle fully loaded (impossible) queries', () => {
+        const query = {
+          collection: 'foo',
+          find: { id: 1 },
+          find_all: [ { id: 1 }, { id: 2 } ],
+          order: [ [ 'foo', 'bar' ], 'ascending' ],
+          above: [ { foo: 'bar' }, 'open' ],
+          below: [ { bar: 'foo' }, 'closed' ],
+          limit: 10,
+        }
+        const term = new TermBase(noop, query, [])
+        assert.typeOf(term.toString(), 'string')
+      })
+    }) // toString
+
+    describe('watch', () => {
+      beforeEach(() => {
+        stub(TermBase, 'makePresentable')
+      })
+      afterEach(() => {
+        TermBase.makePresentable.restore()
+      })
+      it('wont process results if rawChanges is true', () => {
+        const randomResult = Math.random()
+        const fakeSendRequest = () => randomResult // chosen by fair dice roll
+        const term = new TermBase(fakeSendRequest, {}, [])
+        const result = term.watch({ rawChanges: true })
+        assert.equal(result, randomResult)
+      })
+      it('calls makePresentable if rawChanges is false', () => {
+        const presentableResult = Math.random()
+        TermBase.makePresentable.returns(presentableResult)
+        const rawResult = Math.random()
+        const fakeSendRequest = () => rawResult
+        const term = new TermBase(fakeSendRequest, {}, [])
+        const resultA = term.watch({ rawChanges: false })
+        assert.equal(resultA, presentableResult)
+        // check that default is rawChanges: false
+        const resultB = term.watch()
+        assert.equal(resultB, presentableResult)
+      })
+    }) // watch
   })
 }
 
