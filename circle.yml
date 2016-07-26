@@ -1,13 +1,13 @@
 ## Customize the test machine
 machine:
 
-  timezone:
-    America/Los_Angeles # Set the timezone
+  #timezone:
+  #  America/Los_Angeles # Set the timezone
 
   # Set version of node to use
-  node:
-    version:
-      5.7.0
+  #node:
+  #  version:
+  #    5.7.0
 
   post:
     - source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
@@ -16,11 +16,11 @@ machine:
     - sudo apt-get install rethinkdb
 
 ## Set artifacts
-general:
-  artifacts:
-    - "client/npm-debug.log"
-    - "server/npm-debug.log"
-    - "cli/npm-debug.log"
+# general:
+#   artifacts:
+#     - "client/npm-debug.log"
+#     - "server/npm-debug.log"
+#     - "cli/npm-debug.log"
 
 ## Customize dependencies
 dependencies:
@@ -31,18 +31,18 @@ dependencies:
     - cli/node_modules
   override:
     # Stop default services
-    - sudo service redis-server stop
-    - sudo service postgresql stop
-    - sudo service mysql stop
+    #- sudo service redis-server stop
+    #- sudo service postgresql stop
+    #- sudo service mysql stop
 
     # Prepare for client tests
-    - npm prune --production:
-        pwd: client
+    #- npm prune --production:
+    #    pwd: client
     # Prepare for server tests
-    - npm prune --production:
-        pwd: server
-    - npm prune --production:
-        pwd: cli
+    #- npm prune --production:
+    #    pwd: server
+    #- npm prune --production:
+    #    pwd: cli
     - ./setupDev.sh:
         pwd: test
 
@@ -51,20 +51,20 @@ test:
   pre:
     - ./test/serve.js:
         background: true
-    - mkdir -p $CIRCLE_TEST_REPORTS/xunit
-    - touch $CIRCLE_TEST_REPORTS/xunit/cli-tests.xml
-    - touch $CIRCLE_TEST_REPORTS/xunit/client-tests.xml
-    - touch $CIRCLE_TEST_REPORTS/xunit/server-tests.xml
+    # - mkdir -p $CIRCLE_TEST_REPORTS/xunit
+    # - touch $CIRCLE_TEST_REPORTS/xunit/cli-tests.xml
+    # - touch $CIRCLE_TEST_REPORTS/xunit/client-tests.xml
+    # - touch $CIRCLE_TEST_REPORTS/xunit/server-tests.xml
   override:
     # Run client tests
-    - ./node_modules/.bin/mocha --timeout 100000 -R xunit dist/test.js > $CIRCLE_TEST_REPORTS/xunit/client-tests.xml:
+    - ./node_modules/.bin/mocha --timeout 100000 dist/test.js:
         pwd: client
         parallel: false
     # Run server tests
-    - ./node_modules/.bin/mocha --timeout 100000 -R xunit test/test.js test/schema.js > $CIRCLE_TEST_REPORTS/xunit/server-tests.xml:
+    - ./node_modules/.bin/mocha --timeout 100000 test/test.js test/schema.js:
         pwd: server
         parallel: false
     # Run cli tests
-    - ./node_modules/.bin/mocha --timeout 100000 -R xunit test > $CIRCLE_TEST_REPORTS/xunit/cli-tests.xml:
+    - ./node_modules/.bin/mocha --timeout 100000 test:
         pwd: cli
         parallel: false
