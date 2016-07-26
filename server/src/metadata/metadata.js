@@ -11,29 +11,29 @@ const r = require('rethinkdb');
 
 // These are exported for use by the CLI. They accept 'R' as a parameter because of
 // https://github.com/rethinkdb/rethinkdb/issues/3263
-const create_collection_reql = (internal_db, user_db, collection) => {
-  const do_create = (collection) =>
-    r.db(user_db).tableCreate(collection).do((create_res) =>
-      r.branch(create_res.hasFields('error'),
-               r.error(create_res('error')),
-               create_res('config_changes')(0)('new_val')('id').do((table_id) =>
-                 r.db(internal_db).table('collections').get(collection)
-                   .replace((old_row) =>
-                     r.branch(old_row.eq(null),
-                              { id: collection, table_id },
-                              old_row),
-                     { returnChanges: 'always' })('changes')(0)
-                   .do((res) =>
-                     r.branch(r.or(res.hasFields('error'),
-                                   res('new_val')('table_id').ne(table_id)),
-                              r.db('rethinkdb').table('table_config').get(table_id).delete().do(() => res),
-                              res)))));
-
-  return r.db(internal_db).table('collections').get(collection).do((row) =>
-           r.branch(row.eq(null),
-                    do_create(collection),
-                    { old_val: row, new_val: row }));
-};
+const create_collection_reql = (internal_db, user_db, collection) =>
+  r.db(internal_db).table('collections').get(collection).do((row) =>
+    r.branch(
+      row.eq(null),
+      r.db(user_db).tableCreate(collection).do((create_res) =>
+        r.branch(
+          create_res.hasFields('error'),
+          r.error(create_res('error')),
+          create_res('config_changes')(0)('new_val')('id').do((table_id) =>
+            r.db(internal_db).table('collections').get(collection)
+              .replace((old_row) =>
+                r.branch(
+                  old_row.eq(null),
+                  { id: collection, table_id },
+                  old_row),
+                { returnChanges: 'always' })('changes')(0)
+                  .do((res) =>
+                    r.branch(
+                      r.or(res.hasFields('error'),
+                           res('new_val')('table_id').ne(table_id)),
+                      r.db('rethinkdb').table('table_config').get(table_id).delete().do(() => res),
+                      res))))),
+      { old_val: row, new_val: row }));
 
 const initialize_metadata_reql = (internal_db, user_db) =>
   r.expr([ user_db, internal_db ])
@@ -67,27 +67,27 @@ class Metadata {
     this._ready_promise = Promise.resolve().then(() => {
       logger.debug('checking for internal db/tables');
       if (this._auto_create_collection) {
-        return initialize_metadata_reql(this._internal_db, this._db).run(this._conn)
+        return initialize_metadata_reql(this._internal_db, this._db).run(this._conn);
       } else {
         return r.expr([ this._db, this._internal_db ])
-                 .concatMap((db) => r.branch(r.dbList().contains(db), [], [ db ]))
-                 .run(this._conn)
-                 .then((missing_dbs) => {
-          if (missing_dbs.length > 0) {
-            let err_msg;
-            if (missing_dbs.length === 1) {
-              err_msg = `The database ${missing_dbs[0]} does not exist.`;
-            } else {
-              err_msg = `The databases ${missing_dbs.join(' and ')} do not exist.`;
+          .concatMap((db) => r.branch(r.dbList().contains(db), [], [ db ]))
+          .run(this._conn)
+          .then((missing_dbs) => {
+            if (missing_dbs.length > 0) {
+              let err_msg;
+              if (missing_dbs.length === 1) {
+                err_msg = `The database ${missing_dbs[0]} does not exist.`;
+              } else {
+                err_msg = `The databases ${missing_dbs.join(' and ')} do not exist.`;
+              }
+              throw new Error(err_msg + '  Run `hz set-schema` to initialize the database, ' +
+                              'then start the Horizon server.');
             }
-            throw new Error(err_msg + '  Run `hz set-schema` to initialize the database, ' +
-                            'then start the Horizon server.');
-          }
-        });
+          });
       }
     }).then(() => {
       logger.debug('waiting for internal db');
-      return r.db(this._internal_db).wait({ timeout: 30 }).run(this._conn)
+      return r.db(this._internal_db).wait({ timeout: 30 }).run(this._conn);
     }).then(() => {
       logger.debug('syncing metadata changefeeds');
 
@@ -157,7 +157,7 @@ class Metadata {
                     const table_id = change.new_val.table_id;
                     let collection = this._collections.get(collection_name);
                     if (!collection) {
-                      collection = new Collection(collection_name, table_id, this._db);
+                      collection = new Collection(collection_name, table_id);
                       this._collections.set(collection_name, collection);
                     }
 
@@ -273,7 +273,7 @@ class Metadata {
       logger.debug('redirecting users table');
       // Redirect the 'users' table to the one in the internal db
       const users_table = new Table('users', table_id, this._internal_db, this._conn);
-      const users_collection = new Collection('users', table_id, this._internal_db);
+      const users_collection = new Collection('users', table_id);
 
       users_collection.set_table(users_table);
 
@@ -358,7 +358,7 @@ class Metadata {
     error.check(this._collections.get(name) === undefined,
                 `Collection "${name}" already exists.`);
 
-    const collection = new Collection(name, null, this._db);
+    const collection = new Collection(name, null);
     this._collections.set(name, collection);
 
     create_collection_reql(this._internal_db, this._db, name)

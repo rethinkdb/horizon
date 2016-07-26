@@ -2,10 +2,8 @@
 
 const error = require('../error');
 
-const r = require('rethinkdb');
-
 class Collection {
-  constructor(name, table_id, db) {
+  constructor(name, table_id) {
     this.name = name;
     this._waiters = [ ];
     this.table = null; // This is the ReQL Table object
@@ -31,9 +29,9 @@ class Collection {
   }
 
   set_table(table) {
-    table.collection = this;
-    this.table = table.table;
     if (table) {
+      table.collection = this;
+      this.table = table.table;
       this._table = table;
       this._waiters.forEach((done) => this._table.on_ready(done));
       this._waiters = [ ];
