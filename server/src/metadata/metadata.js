@@ -153,17 +153,17 @@ class Metadata {
                            change.type === 'change') {
                   // Ignore special collections
                   if (change.new_val.id !== 'users') {
-                    let collection = this._collections.get(change.new_val.id);
+                    const collection_name = change.new_val.id;
+                    const table_id = change.new_val.table_id;
+                    let collection = this._collections.get(collection_name);
                     if (!collection) {
-                      collection = new Collection(change.new_val, this._db);
-                      this._collections.set(change.new_val.id, collection);
-                    } else {
-                      collection.changed(change.new_val, this._db);
+                      collection = new Collection(collection_name, table_id, this._db);
+                      this._collections.set(collection_name, collection);
                     }
 
                     // Check if we already have a table object for this collection
                     // TODO: timer-supervise this state - if we don't have a table after x seconds, delete the collection row
-                    const table = this._tables.get(collection._table_name);
+                    const table = this._tables.get(table_id);
                     if (table) {
                       collection.set_table(table);
                     }
@@ -207,22 +207,22 @@ class Metadata {
                            change.type === 'add' ||
                            change.type === 'change') {
                   const table_name = change.new_val.name;
-                  let table = this._tables.get(table_name);
+                  const table_id = change.new_val.id;
+                  let table = this._tables.get(table_id);
                   if (!table) {
-                    table = new Table(table_name, this._db, this._conn);
-                    this._tables.set(table_name, table);
+                    table = new Table(table_name, table_id, this._db, this._conn);
+                    this._tables.set(table_id, table);
                   }
                   table.update_indexes(change.new_val.indexes, this._conn);
 
-                  this._collections.forEach((c) => {
-                    if (c.name === table_name) {
-                      c.set_table(table);
-                    }
-                  });
+                  const collection = this._collections.get(table_name);
+                  if (collection) {
+                    collection.set_table(table);
+                  }
                 } else if (change.type === 'uninitial' ||
                            change.type === 'remove') {
-                  const table = this._tables.get(change.old_val.name);
-                  this._tables.delete(change.old_val.name);
+                  const table = this._tables.get(change.old_val.id);
+                  this._tables.delete(change.old_val.id);
                   table.close();
                 }
               }).catch(reject);
@@ -263,15 +263,21 @@ class Metadata {
                      r.error(res('error')),
                      res('new_val'))).run(this._conn),
       ]);
-    }).then(() => {
+    }).then(() =>
+      // Get the table_id of the users table
+      r.db('rethinkdb').table('table_config')
+        .filter({ db: this._internal_db, name: 'users' })
+        .nth(0)('id')
+        .run(this._conn)
+    ).then((table_id) => {
       logger.debug('redirecting users table');
       // Redirect the 'users' table to the one in the internal db
-      const users_table = new Table('users', this._internal_db, this._conn);
-      const users_collection = new Collection({ id: 'users', table: 'users' }, this._internal_db);
+      const users_table = new Table('users', table_id, this._internal_db, this._conn);
+      const users_collection = new Collection('users', table_id, this._internal_db);
 
       users_collection.set_table(users_table);
 
-      this._tables.set('users', users_table);
+      this._tables.set(table_id, users_table);
       this._collections.set('users', users_collection);
     }).then(() => {
       logger.debug('metadata sync complete');
@@ -352,7 +358,7 @@ class Metadata {
     error.check(this._collections.get(name) === undefined,
                 `Collection "${name}" already exists.`);
 
-    const collection = new Collection({ id: name, table: null }, this._db);
+    const collection = new Collection(name, null, this._db);
     this._collections.set(name, collection);
 
     create_collection_reql(this._internal_db, this._db, name)

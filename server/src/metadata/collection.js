@@ -5,10 +5,11 @@ const error = require('../error');
 const r = require('rethinkdb');
 
 class Collection {
-  constructor(data, db) {
-    this.name = data.id;
+  constructor(name, table_id, db) {
+    this.name = name;
     this._waiters = [ ];
-    this.changed(data, db);
+    this.table = null; // This is the ReQL Table object
+    this._table = null; // This is the Horizon Table object
   }
 
   close() {
@@ -21,16 +22,6 @@ class Collection {
     }
   }
 
-  changed(data, db) {
-    error.check(this.name === data.id, 'Collections cannot be renamed.');
-
-    // This is the ReQL `Table` object
-    this.table = r.db(db).table(this.name);
-
-    // This is the Horizon `Table` object
-    this._table = null;
-  }
-
   on_ready(done) {
     if (this._table) {
       this._table.on_ready(done);
@@ -41,9 +32,22 @@ class Collection {
 
   set_table(table) {
     table.collection = this;
-    this._table = table;
-    this._waiters.forEach((done) => this._table.on_ready(done));
-    this._waiters = [ ];
+    this.table = table.table;
+    if (table) {
+      this._table = table;
+      this._waiters.forEach((done) => this._table.on_ready(done));
+      this._waiters = [ ];
+    } else {
+      const old_table = this._table;
+      this.table = null;
+      this._table = null;
+
+      if (old_table) {
+        // Take back any waiters from the old Table
+        old_table._waiters.forEach((done) => this.on_ready(done));
+        old_table._waiters = [ ];
+      }
+    }
   }
 
   create_index() {
