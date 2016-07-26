@@ -1,5 +1,7 @@
 import { TokenStorage, FakeStorage } from '../../src/auth'
 
+import { assert } from 'chai'
+
 export default function unitAuthSuite() {
   describe('TokenStorage', () => {
     let fakeStorage
@@ -62,4 +64,8 @@ export default function unitAuthSuite() {
       done()
     })
   })
+}
+
+if (process.env.NODE_ENV === 'test') {
+  describe('auth', unitAuthSuite)
 }

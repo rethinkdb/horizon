@@ -185,6 +185,7 @@ export function applyChange(arr, change) {
       arr.splice(change.old_offset, 1)
     } else {
       const index = arr.findIndex(x => deepEqual(x.id, change.old_val.id))
+      /* istanbul ignore next */
       if (index === -1) {
         // Programming error. This should not happen
         throw new Error(

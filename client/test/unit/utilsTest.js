@@ -1,5 +1,7 @@
 import validIndexValue from '../../src/util/valid-index-value'
 
+import { assert } from 'chai'
+
 export default function unitUtilsSuite() {
   describe('validIndexValue', () => {
     function assertValid(value) {
@@ -76,4 +78,8 @@ export default function unitUtilsSuite() {
       done()
     })
   })
+}
+
+if (process.env.NODE_ENV === 'test') {
+  describe('utils', unitUtilsSuite)
 }

@@ -1,3 +1,5 @@
+import { assert } from 'chai'
+
 import { applyChange } from '../../src/ast'
 
 export default function unitAstSuite() {
@@ -48,5 +50,55 @@ export default function unitAstSuite() {
       assert.deepEqual(obtained, expected)
       done()
     })
+
+    it('removes an old val from an array with type remove', done => {
+      const existingArray = [
+        { id: 21, val: 'A' },
+        { id: 33, val: 'B' },
+        { id: 16, val: 'C' },
+      ]
+      const change = {
+        type: 'remove',
+        new_val: null,
+        old_val: { id: 2, val: 'B' },
+        old_offset: 1,
+        new_offset: null,
+      }
+      const expected = [
+        { id: 21, val: 'A' },
+        { id: 16, val: 'C' },
+      ]
+      const result = applyChange(existingArray, change)
+      assert.deepEqual(result, expected)
+      done()
+    })
+
+    it('adds a new item at the correct index with type add', done => {
+      const existingArray = [
+        { id: 21, val: 'A' },
+        { id: 33, val: 'B' },
+        { id: 16, val: 'C' },
+      ]
+      const change = {
+        type: 'add',
+        new_val: { id: 45, val: 'B.2' },
+        new_offset: 2,
+        old_val: null,
+        old_offset: null,
+      }
+      const expected = [
+        { id: 21, val: 'A' },
+        { id: 33, val: 'B' },
+        { id: 45, val: 'B.2' },
+        { id: 16, val: 'C' },
+      ]
+      const result = applyChange(existingArray, change)
+      assert.deepEqual(result, expected)
+      done()
+    })
   })
+}
+
+if (process.env.NODE_ENV === 'test') {
+  describe('ast', unitAstSuite)
 }
