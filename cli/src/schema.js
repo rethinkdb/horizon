@@ -25,7 +25,7 @@ const addArguments = (parser) => {
   });
 
   // HZ SCHEMA LOAD
-  const load = subparsers.addParser('load', { addHelp: true });
+  const load = subparsers.addParser('apply', { addHelp: true });
 
   load.addArgument([ 'project_path' ], {
     type: 'string',
