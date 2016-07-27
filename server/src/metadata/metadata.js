@@ -68,12 +68,12 @@ class Metadata {
         return initialize_metadata_reql(this._db).run(this._conn);
       } else {
         return r.dbList().contains(this._db).run(this._conn).then((is_missing_db) => {
-            if (is_missing_db) {
-              throw new Error(`The database ${this._db} does not exist.  ` +
-                              'Run `hz set-schema` to initialize the database, ' +
-                              'then start the Horizon server.');
-            }
-          });
+          if (is_missing_db) {
+            throw new Error(`The database ${this._db} does not exist.  ` +
+                            'Run `hz set-schema` to initialize the database, ' +
+                            'then start the Horizon server.');
+          }
+        });
       }
     }).then(() => {
       logger.debug('waiting for internal tables');
