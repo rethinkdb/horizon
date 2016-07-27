@@ -139,3 +139,52 @@ export function compareSetsWithoutVersion(actual, expected, message) {
                                 withoutVersion(expected),
                                 message)
 }
+
+class TestSpec {
+  constructor(done) {
+    this._done = done
+    this._expectedLength = 0
+    this._numPassed = 0
+  }
+
+  plan(length) {
+    this._expectedLength = length
+  }
+
+  pass() {
+    this._numPassed += 1
+  }
+
+  fail(msg = 'Error is failed') {
+    this._done(new Error(msg))
+  }
+
+  end() {
+    const expected = this._expectedLength
+    const passed = this._numPassed
+    if (expected < passed) {
+      this._done(new Error(
+        `Expected only ${expected} passes, but got ${passed}`))
+    } else if (expected > passed) {
+      this._done(new Error(
+        `Expected ${expected} passes but got only ${passed}`))
+    } else {
+      this._done()
+    }
+  }
+}
+
+export function observableTest(func) {
+  return done => {
+    const t = new TestSpec(done)
+    const result = func(t)
+    result.subscribe({
+      error(e) {
+        done(e)
+      },
+      complete() {
+        t.end()
+      },
+    })
+  }
+}
