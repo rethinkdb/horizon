@@ -216,8 +216,13 @@ function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
     console.info(`Created ${niceDir}.hz directory`);
   }
 
-  // Owner read/write only
-  let permission = {
+  // Default permissions
+  let permissionGeneral = {
+    encoding: 'utf8',
+    mode: 0o666, 
+  };
+
+  let permissionSecret = {
     encoding: 'utf8',
     mode: 0o600, // Secrets are put in this config, so set it user
     // read/write only
@@ -228,7 +233,7 @@ function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
     fs.appendFileSync(
       '.hz/config.toml',
       makeDefaultConfig(projectName),
-      permission
+      permissionGeneral
     );
     console.info(`Created ${niceDir}.hz/config.toml`);
   } else {
@@ -240,7 +245,7 @@ function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
     fs.appendFileSync(
       '.hz/schema.toml',
       makeDefaultSchema(),
-      permission
+      permissionGeneral
     );
     console.info(`Created ${niceDir}.hz/schema.toml`);
   } else {
@@ -252,7 +257,7 @@ function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
     fs.appendFileSync(
       '.hz/secrets.toml',
       makeDefaultSecrets(),
-      permission
+      permissionSecret
     );
     console.info(`Created ${niceDir}.hz/secrets.toml`);
   } else {
