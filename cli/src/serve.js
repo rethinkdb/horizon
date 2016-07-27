@@ -432,7 +432,7 @@ const read_config_from_env = () => {
     if (matches && matches[1]) {
       const destVarName = matches[1].toLowerCase();
       const varPath = destVarName.split('_');
-      const value = process.env[envVar];
+      const value = process.env[env_var];
 
       if (destVarName === 'connect') {
         parse_connect(value, config);
@@ -440,7 +440,7 @@ const read_config_from_env = () => {
         config[destVarName] = value.split(',');
       } else if (varPath[0] === 'auth') {
         if (varPath.length !== 3) {
-          console.log(`Ignoring malformed Horizon environment variable: "${envVar}", ` +
+          console.log(`Ignoring malformed Horizon environment variable: "${env_var}", ` +
                       'should be HZ_AUTH_{PROVIDER}_ID or HZ_AUTH_{PROVIDER}_SECRET.');
         } else {
           config.auth[varPath[1]] = config.auth[varPath[1]] || { };
@@ -614,7 +614,7 @@ const processConfig = (parsed) => {
   }
 
   if (!config.rdb_port) {
-    config.rdb_port = default_rethinkdb_port;
+    config.rdb_port = default_rdb_port;
   }
 
   if (!config.rdb_timeout) {
