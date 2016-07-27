@@ -525,7 +525,7 @@ const runSaveCommand = (options, done, shutdown) => {
 };
 
 
-// Avoiding cylical depdendencies
+// Avoiding cyclical depdendencies
 schema.addArguments = addArguments;
 schema.processConfig = (options) => {
   // Determine if we are saving or loading and use appropriate config processing
