@@ -248,7 +248,6 @@ const initialize_servers = (ctor, opts) => {
   let numReady = 0;
   return new Promise((resolve) => {
     opts.bind.forEach((host) => {
-      console.log(host)
       const srv = ctor().listen(opts.port, host);
       servers.add(srv);
       if (opts.serve_static) {
