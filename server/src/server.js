@@ -7,6 +7,8 @@ const logger = require('./logger');
 const options_schema = require('./schema/server_options').server;
 const getType = require('mime-types').contentType;
 
+const r = require('rethinkdb');
+
 // TODO: dynamically serve different versions of the horizon
 // library. Minified, Rx included etc.
 const horizon_client_path = require.resolve('@horizon/client/dist/horizon');
@@ -67,6 +69,7 @@ const serve_file = (file_path, res) => {
 class Server {
   constructor(http_servers, user_opts) {
     const opts = Joi.attempt(user_opts || { }, options_schema);
+    this._r = r;
     this._path = opts.path;
     this._name = opts.project_name;
     this._permissions_enabled = opts.permissions;
@@ -78,7 +81,10 @@ class Server {
                                          opts.rdb_port,
                                          opts.project_name,
                                          opts.auto_create_collection,
-                                         opts.auto_create_index);
+                                         opts.auto_create_index,
+                                         opts.rdb_user || null,
+                                         opts.rdb_password || null,
+                                         opts.rdb_timeout || null);
     this._auth = new Auth(this, opts.auth);
     for (const key in endpoints) {
       this.add_request_handler(key, endpoints[key].run);
@@ -185,7 +191,7 @@ class Server {
   }
 
   ready() {
-    return this._reql_conn.ready();
+    return this._reql_conn.ready().then(() => this);
   }
 
   close() {

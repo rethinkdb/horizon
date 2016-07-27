@@ -40,6 +40,7 @@ const read = Joi.alternatives().try(
 );
 
 const write_id_optional = Joi.object({
+  timeout: Joi.number().integer().greater(-1).optional().default(null),
   collection: Joi.string().token().required(),
   data: Joi.array().min(1).items(Joi.object({
     id: Joi.any().optional(),
@@ -47,6 +48,7 @@ const write_id_optional = Joi.object({
 }).unknown(false);
 
 const write_id_required = Joi.object({
+  timeout: Joi.number().integer().greater(-1).optional().default(null),
   collection: Joi.string().token().required(),
   data: Joi.array().min(1).items(Joi.object({
     id: Joi.any().required(),

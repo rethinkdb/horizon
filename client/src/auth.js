@@ -1,6 +1,5 @@
 import queryParse from './util/query-parse'
 import { Observable } from 'rxjs/Observable'
-import fetchJSON from './util/fetch.js'
 import 'rxjs/add/operator/do'
 import 'rxjs/add/operator/map'
 
@@ -10,13 +9,14 @@ const HORIZON_JWT = 'horizon-jwt'
 export function authEndpoint(name) {
   const endpointForName = methods => {
     if (methods.hasOwnProperty(name)) {
-      return methods[name]
+      return this._root + methods[name]
     } else {
       throw new Error(`Unconfigured auth type: ${name}`)
     }
   }
   if (!this._authMethods) {
-    return fetchJSON(`${this._horizonPath}/auth_methods`)
+    return Observable.ajax(`${this._horizonPath}/auth_methods`)
+      .map(ajax => ajax.response)
       .do(authMethods => {
         this._authMethods = authMethods
       }).map(endpointForName)
@@ -101,7 +101,8 @@ export class TokenStorage {
   }
 
   setAuthFromQueryParams() {
-    const parsed = typeof window !== 'undefined' ? queryParse(window.location.search) : {}
+    const parsed = typeof window !== 'undefined' ?
+            queryParse(window.location.search) : {}
 
     if (parsed.horizon_token != null) {
       this.set(parsed.horizon_token)

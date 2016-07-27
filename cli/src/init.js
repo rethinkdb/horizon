@@ -107,7 +107,6 @@ project_name = "${projectName}"
 # auth_redirect = "/"
 # access_control_allow_origin = ""
 #
-
 `;
 
 const makeDefaultSchema = () => `\
@@ -118,6 +117,13 @@ template = "any()"
 
 const makeDefaultSecrets = () => `\
 token_secret = "${crypto.randomBytes(64).toString('base64')}"
+
+# [auth.auth0]
+# host = "0000.00.auth0.com"
+# id = "0000000000000000000000000"
+# secret = "00000000000000000000000000000000000000000000000000"
+# redirect_url = ""
+#
 # [auth.facebook]
 # id = "000000000000000"
 # secret = "00000000000000000000000000000000"

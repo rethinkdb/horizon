@@ -55,6 +55,12 @@ const table = (collection) =>
                  r.error('Collection does not exist.'),
                  row('table'))));
 
+const make_admin_token = () => {
+  const jwt = horizon_server && horizon_server._auth && horizon_server._auth._jwt;
+  assert(jwt);
+  return jwt.sign({ id: 'admin', provider: null }).token;
+};
+
 // Creates a collection, no-op if it already exists, uses horizon server prereqs
 const create_collection = (collection, done) => {
   assert.notStrictEqual(horizon_server, undefined);
@@ -64,13 +70,13 @@ const create_collection = (collection, done) => {
                              { rejectUnauthorized: false })
     .once('error', (err) => assert.ifError(err))
     .on('open', () => {
-      conn.send(JSON.stringify({ request_id: 123, method: 'unauthenticated' }));
+      conn.send(JSON.stringify({ request_id: 123, method: 'token', token: make_admin_token() }));
       conn.once('message', (data) => {
         const res = JSON.parse(data);
         assert.strictEqual(res.request_id, 123);
         assert.strictEqual(typeof res.token, 'string');
-        assert.strictEqual(res.id, null);
-        assert.strictEqual(res.provider, 'unauthenticated');
+        assert.strictEqual(res.id, 'admin');
+        assert.strictEqual(res.provider, null);
 
         // This query should auto-create the collection if it's missing
         conn.send(JSON.stringify({
@@ -120,7 +126,7 @@ const start_horizon_server = (done) => {
       { rdb_port,
         auto_create_collection: true,
         auto_create_index: true,
-        permissions: false,
+        permissions: true,
         auth: {
           token_secret: 'hunter2',
           allow_unauthenticated: true,
@@ -197,6 +203,17 @@ const horizon_auth = (req, cb) => {
   });
 };
 
+// Create a token for the admin user and use that to authenticate
+const horizon_admin_auth = (done) => {
+  horizon_auth({ request_id: -1, method: 'token', token: make_admin_token() }, (res) => {
+    assert.strictEqual(res.request_id, -1);
+    assert.strictEqual(typeof res.token, 'string');
+    assert.strictEqual(res.id, 'admin');
+    assert.strictEqual(res.provider, null);
+    done();
+  });
+};
+
 const horizon_default_auth = (done) => {
   horizon_auth({ request_id: -1, method: 'unauthenticated' }, (res) => {
     assert.strictEqual(res.request_id, -1);
@@ -237,6 +254,20 @@ const check_error = (err, msg) => {
   assert(err.message.indexOf(msg) !== -1, err.message);
 };
 
+const set_group = (group, done) => {
+  assert(horizon_server && rdb_conn);
+  r.db('horizon_internal')
+    .table('groups')
+    .get(group.id)
+    .replace(group)
+    .run(rdb_conn)
+    .then((res, err) => {
+      assert.ifError(err);
+      assert(res && res.errors === 0);
+      done();
+    });
+};
+
 module.exports = {
   rdb_conn: () => rdb_conn,
   rdb_http_port: () => rdb_http_port,
@@ -252,8 +283,10 @@ module.exports = {
 
   start_horizon_server, close_horizon_server,
   open_horizon_conn, close_horizon_conn,
-  horizon_auth, horizon_default_auth,
+  horizon_auth, horizon_admin_auth, horizon_default_auth,
   add_horizon_listener, remove_horizon_listener,
+
+  set_group,
 
   stream_test,
   check_error,

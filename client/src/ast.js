@@ -7,8 +7,10 @@ import 'rxjs/add/operator/filter'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/toArray'
 import 'rxjs/add/operator/take'
+import 'rxjs/add/operator/defaultIfEmpty'
 
 import snakeCase from 'snake-case'
+import deepEqual from 'deep-equal'
 
 import checkArgs from './util/check-args'
 import validIndexValue from './util/valid-index-value.js'
@@ -21,7 +23,7 @@ import { serialize } from './serialization.js'
  Validation check to throw an exception if a method is chained onto a
  query that already has it. It belongs to TermBase, but we don't want
  to pollute the objects with it (since it isn't useful to api users),
- so it's dynamically bound with :: inside methods that use it.
+ so it's dynamically bound with .call inside methods that use it.
 */
 function checkIfLegalToChain(key) {
   if (this._legalMethods.indexOf(key) === -1) {
@@ -38,6 +40,32 @@ export class TermBase {
     this._sendRequest = sendRequest
     this._query = query
     this._legalMethods = legalMethods
+  }
+
+  toString() {
+    let string = `Collection('${this._query.collection}')`
+    if (this._query.find) {
+      string += `.find(${JSON.stringify(this._query.find)})`
+    }
+    if (this._query.find_all) {
+      string += `.findAll(${JSON.stringify(this._query.find_all)})`
+    }
+    if (this._query.order) {
+      string += `.order(${JSON.stringify(this._query.order[0])}, ` +
+                       `${JSON.stringify(this._query.order[1])})`
+    }
+    if (this._query.above) {
+      string += `.above(${JSON.stringify(this.query.above[0])}, ` +
+                       `${JSON.stringify(this.query.above[1])})`
+    }
+    if (this._query.below) {
+      string += `.below(${JSON.stringify(this.query.below[0])}, ` +
+                       `${JSON.stringify(this.query.below[1])})`
+    }
+    if (this._query.limit) {
+      string += '.limit(this._query.limit))'
+    }
+    return string
   }
   // Returns a sequence of the result set. Every time it changes the
   // updated sequence will be emitted. If raw change objects are
@@ -61,38 +89,38 @@ export class TermBase {
       return val
     })
     if (this._query.find) {
-      return raw
+      return raw.defaultIfEmpty(null)
     } else {
       return raw.toArray()
     }
   }
   findAll(...fieldValues) {
-    this::checkIfLegalToChain('findAll')
+    checkIfLegalToChain.call(this, 'findAll')
     checkArgs('findAll', arguments, { maxArgs: 100 })
     return new FindAll(this._sendRequest, this._query, fieldValues)
   }
   find(idOrObject) {
-    this::checkIfLegalToChain('find')
+    checkIfLegalToChain.call(this, 'find')
     checkArgs('find', arguments)
     return new Find(this._sendRequest, this._query, idOrObject)
   }
   order(fields, direction = 'ascending') {
-    this::checkIfLegalToChain('order')
+    checkIfLegalToChain.call(this, 'order')
     checkArgs('order', arguments, { minArgs: 1, maxArgs: 2 })
     return new Order(this._sendRequest, this._query, fields, direction)
   }
   above(aboveSpec, bound = 'closed') {
-    this::checkIfLegalToChain('above')
+    checkIfLegalToChain.call(this, 'above')
     checkArgs('above', arguments, { minArgs: 1, maxArgs: 2 })
     return new Above(this._sendRequest, this._query, aboveSpec, bound)
   }
   below(belowSpec, bound = 'open') {
-    this::checkIfLegalToChain('below')
+    checkIfLegalToChain.call(this, 'below')
     checkArgs('below', arguments, { minArgs: 1, maxArgs: 2 })
     return new Below(this._sendRequest, this._query, belowSpec, bound)
   }
   limit(size) {
-    this::checkIfLegalToChain('limit')
+    checkIfLegalToChain.call(this, 'limit')
     checkArgs('limit', arguments)
     return new Limit(this._sendRequest, this._query, size)
   }
@@ -156,7 +184,12 @@ export function applyChange(arr, change) {
     if (change.old_offset != null) {
       arr.splice(change.old_offset, 1)
     } else {
-      const index = arr.findIndex(x => x.id === change.old_val.id)
+      const index = arr.findIndex(x => deepEqual(x.id, change.old_val.id))
+      if (index === -1) {
+        // Programming error. This should not happen
+        throw new Error(
+          `change couldn't be applied: ${JSON.stringify(change)}`)
+      }
       arr.splice(index, 1)
     }
     break
@@ -185,7 +218,14 @@ export function applyChange(arr, change) {
     } else {
       // If we don't have an offset, find the old val and
       // replace it with the new val
-      const index = arr.findIndex(x => x.id === change.old_val.id)
+      const index = arr.findIndex(x => deepEqual(x.id, change.old_val.id))
+      if (index === -1) {
+        // indicates a programming bug. The server gives us the
+        // ordering, so if we don't find the id it means something is
+        // buggy.
+        throw new Error(
+          `change couldn't be applied: ${JSON.stringify(change)}`)
+      }
       arr[index] = change.new_val
     }
     break
@@ -223,11 +263,12 @@ function writeOp(name, args, documents) {
   if (isBatch) {
     // If this is a batch writeOp, each document may succeed or fail
     // individually.
-    observable = observable.map(resp => resp.error? new Error(resp.error) : resp)
+    observable = observable.map(
+      resp => resp.error ? new Error(resp.error) : resp)
   } else {
     // If this is a single writeOp, the entire operation should fail
     // if any fails.
-    let _prevOb = observable
+    const _prevOb = observable
     observable = Observable.create(subscriber => {
       _prevOb.subscribe({
         next(resp) {
@@ -256,29 +297,29 @@ export class Collection extends TermBase {
   constructor(sendRequest, collectionName, lazyWrites) {
     const query = { collection: collectionName }
     const legalMethods = [
-      'find', 'findAll', 'justInitial', 'order', 'above', 'below', 'limit' ]
+      'find', 'findAll', 'order', 'above', 'below', 'limit' ]
     super(sendRequest, query, legalMethods)
     this._lazyWrites = lazyWrites
   }
   store(documents) {
-    return this::writeOp('store', arguments, documents)
+    return writeOp.call(this, 'store', arguments, documents)
   }
   upsert(documents) {
-    return this::writeOp('upsert', arguments, documents)
+    return writeOp.call(this, 'upsert', arguments, documents)
   }
   insert(documents) {
-    return this::writeOp('insert', arguments, documents)
+    return writeOp.call(this, 'insert', arguments, documents)
   }
   replace(documents) {
-    return this::writeOp('replace', arguments, documents)
+    return writeOp.call(this, 'replace', arguments, documents)
   }
   update(documents) {
-    return this::writeOp('update', arguments, documents)
+    return writeOp.call(this, 'update', arguments, documents)
   }
   remove(documentOrId) {
     const wrapped = validIndexValue(documentOrId) ?
           { id: documentOrId } : documentOrId
-    return this::writeOp('remove', arguments, wrapped)
+    return writeOp.call(this, 'remove', arguments, wrapped)
   }
   removeAll(documentsOrIds) {
     if (!Array.isArray(documentsOrIds)) {
@@ -291,7 +332,7 @@ export class Collection extends TermBase {
         return item
       }
     })
-    return this::writeOp('removeAll', arguments, wrapped)
+    return writeOp.call(this, 'removeAll', arguments, wrapped)
   }
 }
 

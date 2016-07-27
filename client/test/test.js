@@ -26,7 +26,11 @@ if (BROWSER) {
   global.WebSocket = require('ws')
 
   if (__dirname.split(path.sep).pop(-1) === 'test') {
-    global.Horizon = require('../lib/index.js')
+    if (process.env.NODE_ENV === 'test') {
+      global.Horizon = require('../src/index.js')
+    } else {
+      global.Horizon = require('../lib/index.js')
+    }
   } else {
     global.Horizon = require('./horizon.js')
   }
@@ -52,56 +56,13 @@ describe('Waiting until server ready...', function() {
         done()
       })
       horizon.connect(() => {
-        // Clients dispose by themselves on failure
+        // Clients disconnect by themselves on failure
       })
     }
     const connectInterval = setInterval(tryConnecting, 5000)
     tryConnecting()
   })
 })
-
-// Load the test utilities
-require('./utils')
-
-// Testing the Horizon object
-require('./horizonObject.js')
-
-// Testing insertion/storage commands
-require('./store.js')
-require('./insert.js')
-require('./upsert.js')
-require('./update.js')
-require('./replace.js')
-
-// Test the removal commands
-require('./remove.js')
-require('./removeAll.js')
-
-// Times tests
-require('./times.js')
-// Authentication tests
-require('./auth.js')
-
-// Read API
-require('./collection.js')
-require('./find.js')
-require('./findAll.js')
-require('./order.js')
-require('./limit.js')
-require('./above.js')
-require('./below.js')
-require('./chaining.js')
-
-// Subscription APIs
-require('./findSub.js')
-require('./findAllSub.js')
-require('./aboveSub.js')
-require('./belowSub.js')
-require('./orderLimitSub.js')
-
-// Unit tests
-require('./unit/auth.js')
-require('./unit/utilsTest.js')
 
 // Load the suite runner
 require('./api.js')
