@@ -40,11 +40,14 @@ const make_write_response = (data) => {
 //   rows: all pending rows
 //   return: a (promise of a) ReQL write result object
 const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row, do_write) => {
-  const iterate = (row_data, response_data, deadline) => {
+  const iterate = (row_data, response_data, deadline_optional) => {
+    let deadline = deadline_optional;
     if (row_data.length === 0) {
       return response_data;
     } else if (timeout !== null) {
-      if (deadline && (Date.now() > deadline)) {
+      if (!deadline) {
+        deadline = Date.now() + timeout;
+      } else if (Date.now() > deadline) {
         response_data.forEach((data, index) => {
           if (data === null) {
             response_data[index] = new Error(timeout_msg);
@@ -53,6 +56,7 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
         return response_data;
       }
     }
+
 
     return Promise.resolve().then(() => {
       // The validate callback may clobber the original version field in the row,
@@ -118,7 +122,7 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
       });
 
       // Recurse, after which it will decide if there is more work to be done
-      return iterate(retry_rows, response_data, deadline || (Date.now() + timeout));
+      return iterate(retry_rows, response_data, deadline);
     });
   };
 
