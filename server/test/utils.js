@@ -35,11 +35,9 @@ const test_db_server = (done) => {
     rdb_http_port = info.httpPort;
     logger.info('server created, connecting');
 
-    const user_db = `hz_${project_name}`;
-
-    const conn_promise = r.connect({ db: user_db, port: rdb_port });
+    const conn_promise = r.connect({ db: project_name, port: rdb_port });
     conn_promise.then((c) => { rdb_conn = c; logger.info('connected'); });
-    conn_promise.then((c) => r.dbCreate(user_db).run(c)).then((res) => {
+    conn_promise.then((c) => r.dbCreate(project_name).run(c)).then((res) => {
       assert.strictEqual(res.dbs_created, 1);
       done();
     });
@@ -49,8 +47,8 @@ const test_db_server = (done) => {
 // Used to prefix reql queries with the underlying table of a given collection
 const table = (collection) =>
   r.table(
-    r.db(`hzinternal_${project_name}`)
-      .table('collections')
+    r.db(project_name)
+      .table('hz_collections')
       .get(collection)
       .do((row) =>
         r.branch(row.eq(null),
@@ -259,8 +257,8 @@ const check_error = (err, msg) => {
 
 const set_group = (group, done) => {
   assert(horizon_server && rdb_conn);
-  r.db(`hzinternal_${project_name}`)
-    .table('groups')
+  r.db(project_name)
+    .table('hz_groups')
     .get(group.id)
     .replace(group)
     .run(rdb_conn)

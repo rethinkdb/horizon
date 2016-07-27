@@ -11,16 +11,16 @@ const r = require('rethinkdb');
 
 // These are exported for use by the CLI. They accept 'R' as a parameter because of
 // https://github.com/rethinkdb/rethinkdb/issues/3263
-const create_collection_reql = (internal_db, user_db, collection) =>
-  r.db(internal_db).table('collections').get(collection).do((row) =>
+const create_collection_reql = (db, collection) =>
+  r.db(db).table('hz_collections').get(collection).do((row) =>
     r.branch(
       row.eq(null),
-      r.db(user_db).tableCreate(collection).do((create_res) =>
+      r.db(db).tableCreate(collection).do((create_res) =>
         r.branch(
           create_res.hasFields('error'),
           r.error(create_res('error')),
           create_res('config_changes')(0)('new_val')('id').do((table_id) =>
-            r.db(internal_db).table('collections').get(collection)
+            r.db(db).table('hz_collections').get(collection)
               .replace((old_row) =>
                 r.branch(
                   old_row.eq(null),
@@ -35,13 +35,12 @@ const create_collection_reql = (internal_db, user_db, collection) =>
                       res))))),
       { old_val: row, new_val: row }));
 
-const initialize_metadata_reql = (internal_db, user_db) =>
-  r.expr([ user_db, internal_db ])
-    .forEach((db) => r.branch(r.dbList().contains(db), [], r.dbCreate(db)))
+const initialize_metadata_reql = (db) =>
+  r.branch(r.dbList().contains(db), null, r.dbCreate(db))
     .do(() =>
-      r.expr([ 'collections', 'users_auth', 'users', 'groups' ])
-        .forEach((table) => r.branch(r.db(internal_db).tableList().contains(table),
-                                     [], r.db(internal_db).tableCreate(table))));
+      r.expr([ 'hz_collections', 'hz_users_auth', 'hz_groups', 'users' ])
+        .forEach((table) => r.branch(r.db(db).tableList().contains(table),
+                                     [], r.db(db).tableCreate(table))));
 
 class Metadata {
   constructor(project_name,
@@ -49,8 +48,7 @@ class Metadata {
               clients,
               auto_create_collection,
               auto_create_index) {
-    this._db = `hz_${project_name}`;
-    this._internal_db = `hzinternal_${project_name}`;
+    this._db = project_name;
     this._conn = conn;
     this._clients = clients;
     this._auto_create_collection = auto_create_collection;
@@ -67,33 +65,26 @@ class Metadata {
     this._ready_promise = Promise.resolve().then(() => {
       logger.debug('checking for internal db/tables');
       if (this._auto_create_collection) {
-        return initialize_metadata_reql(this._internal_db, this._db).run(this._conn);
+        return initialize_metadata_reql(this._db).run(this._conn);
       } else {
-        return r.expr([ this._db, this._internal_db ])
-          .concatMap((db) => r.branch(r.dbList().contains(db), [], [ db ]))
-          .run(this._conn)
-          .then((missing_dbs) => {
-            if (missing_dbs.length > 0) {
-              let err_msg;
-              if (missing_dbs.length === 1) {
-                err_msg = `The database ${missing_dbs[0]} does not exist.`;
-              } else {
-                err_msg = `The databases ${missing_dbs.join(' and ')} do not exist.`;
-              }
-              throw new Error(err_msg + '  Run `hz set-schema` to initialize the database, ' +
+        return r.dbList().contains(this._db).run(this._conn).then((is_missing_db) => {
+            if (is_missing_db) {
+              throw new Error(`The database ${this._db} does not exist.  ` +
+                              'Run `hz set-schema` to initialize the database, ' +
                               'then start the Horizon server.');
             }
           });
       }
     }).then(() => {
-      logger.debug('waiting for internal db');
-      return r.db(this._internal_db).wait({ timeout: 30 }).run(this._conn);
+      logger.debug('waiting for internal tables');
+      return r.expr([ 'hz_collections', 'hz_users_auth', 'hz_groups', 'users' ])
+        .forEach((table) => r.db(this._db).table(table).wait({ timeout: 30 })).run(this._conn);
     }).then(() => {
       logger.debug('syncing metadata changefeeds');
 
       const group_changefeed =
-        r.db(this._internal_db)
-          .table('groups')
+        r.db(this._db)
+          .table('hz_groups')
           .changes({ squash: true,
                      includeInitial: true,
                      includeStates: true,
@@ -129,8 +120,8 @@ class Metadata {
           });
 
       const collection_changefeed =
-        r.db(this._internal_db)
-          .table('collections')
+        r.db(this._db)
+          .table('hz_collections')
           .changes({ squash: false,
                      includeInitial: true,
                      includeStates: true,
@@ -184,7 +175,8 @@ class Metadata {
       const index_changefeed =
         r.db('rethinkdb')
           .table('table_config')
-          .filter({ db: this._db })
+          .filter((row) => r.and(row('db').eq(this._db),
+                                 row('name').match('^hz_').not()))
           .pluck('name', 'id', 'indexes')
           .changes({ squash: true,
                      includeInitial: true,
@@ -234,7 +226,7 @@ class Metadata {
       logger.debug('adding admin user');
       // Ensure that the admin user and group exists
       return Promise.all([
-        r.db(this._internal_db).table('users').get('admin')
+        r.db(this._db).table('users').get('admin')
           .replace((old_row) =>
             r.branch(old_row.eq(null),
               {
@@ -248,7 +240,7 @@ class Metadata {
             r.branch(res('new_val').eq(null),
                      r.error(res('error')),
                      res('new_val'))).run(this._conn),
-        r.db(this._internal_db).table('groups').get('admin')
+        r.db(this._db).table('hz_groups').get('admin')
           .replace((old_row) =>
             r.branch(old_row.eq(null),
               {
@@ -266,13 +258,13 @@ class Metadata {
     }).then(() =>
       // Get the table_id of the users table
       r.db('rethinkdb').table('table_config')
-        .filter({ db: this._internal_db, name: 'users' })
+        .filter({ db: this._db, name: 'users' })
         .nth(0)('id')
         .run(this._conn)
     ).then((table_id) => {
       logger.debug('redirecting users table');
       // Redirect the 'users' table to the one in the internal db
-      const users_table = new Table('users', table_id, this._internal_db, this._conn);
+      const users_table = new Table('users', table_id, this._db, this._conn);
       const users_collection = new Collection('users', table_id);
 
       users_collection.set_table(users_table);
@@ -320,6 +312,11 @@ class Metadata {
   }
 
   collection(name) {
+    if (name.indexOf('hz_') === 0) {
+      throw new Error(`Collection "${name}" is reserved for internal use ` +
+                      'and cannot be used in requests.');
+    }
+
     const res = this._collections.get(name);
     if (res === undefined) { throw new error.CollectionMissing(name); }
     if (res.promise) { throw new error.CollectionNotReady(res); }
@@ -332,7 +329,7 @@ class Metadata {
     try {
       if (this._auto_create_collection) {
         if (err instanceof error.CollectionMissing) {
-          logger.warn(`Auto-creating collection (dev mode): ${err.name}`);
+          logger.warn(`Auto-creating collection: ${err.name}`);
           return this.create_collection(err.name, done);
         } else if (err instanceof error.CollectionNotReady) {
           return err.collection.on_ready(done);
@@ -340,8 +337,8 @@ class Metadata {
       }
       if (this._auto_create_index) {
         if (err instanceof error.IndexMissing) {
-          logger.warn(`Auto-creating index on collection "${err.collection.name}" ` +
-                      `(dev mode): ${JSON.stringify(err.fields)}`);
+          logger.warn(`Auto-creating index on collection "${err.collection.name}": ` +
+                      `${JSON.stringify(err.fields)}`);
           return err.collection.create_index(err.fields, this._conn, done);
         } else if (err instanceof error.IndexNotReady) {
           return err.index.on_ready(done);
@@ -361,11 +358,11 @@ class Metadata {
     const collection = new Collection(name, null);
     this._collections.set(name, collection);
 
-    create_collection_reql(this._internal_db, this._db, name)
+    create_collection_reql(this._db, name)
       .run(this._conn)
       .then((res) => {
-        error.check(!res.error, `Collection creation failed (dev mode): "${name}", ${res.error}`);
-        logger.warn(`Collection created (dev mode): "${name}"`);
+        error.check(!res.error, `Collection creation failed: "${name}", ${res.error}`);
+        logger.warn(`Collection created: "${name}"`);
         collection.on_ready(done);
       }).catch((err) => {
         // If an error occurred we should clean up this proto-collection - but only if
@@ -379,9 +376,7 @@ class Metadata {
   }
 
   get_user_feed(id) {
-    return r.db(this._internal_db)
-      .table('users')
-      .get(id)
+    return r.db(this._db).table('users').get(id)
       .changes({ includeInitial: true, squash: true })
       .run(this._conn);
   }
