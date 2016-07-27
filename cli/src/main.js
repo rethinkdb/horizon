@@ -10,8 +10,7 @@ const initCommand = require('./init');
 const serveCommand = require('./serve');
 const versionCommand = require('./version');
 const createCertCommand = require('./create-cert');
-const getSchemaCommand = require('./get-schema');
-const setSchemaCommand = require('./set-schema');
+const schemaCommand = require('./schema');
 const makeTokenCommand = require('./make-token');
 
 // Mapping from command line strings to modules. To add a new command,
@@ -26,9 +25,8 @@ const commands = {
   serve: serveCommand,
   version: versionCommand,
   'create-cert': createCertCommand,
-  'get-schema': getSchemaCommand,
-  'set-schema': setSchemaCommand,
   'make-token': makeTokenCommand,
+  schema: schemaCommand,
 };
 
 function parseArgs() {

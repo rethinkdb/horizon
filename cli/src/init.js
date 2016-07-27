@@ -102,12 +102,22 @@ project_name = "${projectName}"
 # 'auth_redirect' specifies where users will be redirected to after login
 # 'access_control_allow_origin' sets a host that can access auth settings (typically your frontend host)
 #------------------------------------------------------------------------------
-token_secret = "${crypto.randomBytes(64).toString('base64')}"
 # allow_anonymous = false
 # allow_unauthenticated = false
 # auth_redirect = "/"
 # access_control_allow_origin = ""
 #
+`;
+
+const makeDefaultSchema = () => `\
+[groups.admin]
+[groups.admin.rules.carte_blanche]
+template = "any()"
+`
+
+const makeDefaultSecrets = () => `\
+token_secret = "${crypto.randomBytes(64).toString('base64')}"
+
 # [auth.auth0]
 # host = "0000.00.auth0.com"
 # id = "0000000000000000000000000"
@@ -133,7 +143,11 @@ token_secret = "${crypto.randomBytes(64).toString('base64')}"
 # [auth.twitch]
 # id = "0000000000000000000000000000000"
 # secret = "0000000000000000000000000000000"
-`;
+#
+# [auth.slack]
+# id = "0000000000000000000000000000000"
+# secret = "0000000000000000000000000000000"
+`
 
 const addArguments = (parser) => {
   parser.addArgument([ 'projectName' ],
@@ -201,20 +215,55 @@ function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
     fs.mkdirSync('.hz');
     console.info(`Created ${niceDir}.hz directory`);
   }
+
+  // Default permissions
+  let permissionGeneral = {
+    encoding: 'utf8',
+    mode: 0o666, 
+  };
+
+  let permissionSecret = {
+    encoding: 'utf8',
+    mode: 0o600, // Secrets are put in this config, so set it user
+    // read/write only
+  };
+
+  // Create .hz/config.toml if it doesn't exist
   if (!fileExists('.hz/config.toml')) {
     fs.appendFileSync(
       '.hz/config.toml',
       makeDefaultConfig(projectName),
-      {
-        encoding: 'utf8',
-        mode: 0o600, // Secrets are put in this config, so set it user
-        // read/write only
-      }
+      permissionGeneral
     );
     console.info(`Created ${niceDir}.hz/config.toml`);
   } else {
     console.info('.hz/config.toml already exists, not touching it.');
   }
+
+  // Create .hz/schema.toml if it doesn't exist
+  if (!fileExists('.hz/schema.toml')) {
+    fs.appendFileSync(
+      '.hz/schema.toml',
+      makeDefaultSchema(),
+      permissionGeneral
+    );
+    console.info(`Created ${niceDir}.hz/schema.toml`);
+  } else {
+    console.info('.hz/schema.toml already exists, not touching it.');
+  }
+
+  // Create .hz/secrets.toml if it doesn't exist
+  if (!fileExists('.hz/secrets.toml')) {
+    fs.appendFileSync(
+      '.hz/secrets.toml',
+      makeDefaultSecrets(),
+      permissionSecret
+    );
+    console.info(`Created ${niceDir}.hz/secrets.toml`);
+  } else {
+    console.info('.hz/secrets.toml already exists, not touching it.');
+  }
+
 }
 
 const runCommand = (parsed) => {
