@@ -177,7 +177,11 @@ class Metadata {
           .table('table_config')
           .filter((row) => r.and(row('db').eq(this._db),
                                  row('name').match('^hz_').not()))
-          .pluck('name', 'id', 'indexes')
+          .map((row) => ({
+            id: row('id'),
+            name: row('name'),
+            indexes: row('indexes').filter((idx) => idx.match('^hz_'))
+          }))
           .changes({ squash: true,
                      includeInitial: true,
                      includeStates: true,
@@ -265,8 +269,9 @@ class Metadata {
       logger.debug('redirecting users table');
       // Redirect the 'users' table to the one in the internal db
       const users_table = new Table('users', table_id, this._db, this._conn);
-      const users_collection = new Collection('users', table_id);
+      users_table.update_indexes([ ]);
 
+      const users_collection = new Collection({ id: 'users', table: 'users' }, this._internal_db);
       users_collection.set_table(users_table);
 
       this._tables.set(table_id, users_table);

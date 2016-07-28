@@ -1,63 +1,92 @@
 'use strict';
 
 const check = require('../error').check;
+const logger = require('../logger');
 
-// Index names are of the format "field1_field2_field3", where the fields
-// are given in order of use in a compound index.  If the field names contain
-// the characters '\' or '_', they will be escaped with a '\'.
-// TODO: what about empty field names?
+// Index names are of the format "hz_[<flags>_]<JSON>" where <flags> may be
+// omitted or "multi_<offset>" or "geo" (at the moment).  <JSON> is a JSON array
+// specifying which fields are indexed in which order.  The value at each index
+// in the array is either a nested array (for indexing nested fields) or a string
+// for a root-level field name.
+//
+// Example:
+//  Fields indexed: foo.bar, baz
+//  Index name: hz_[["foo","bar"],"baz"]
+const primary_index_name = 'id';
 
-const name_to_fields = (name) => {
-  let escaped = false;
-  let field = '';
-  const fields = [ ];
-  for (const c of name) {
-    if (escaped) {
-      check(c === '\\' || c === '_', `Unexpected index name: "${name}"`);
-      escaped = false;
-      field += c;
-    } else if (c === '\\') {
-      escaped = true;
-    } else if (c === '_') {
-      fields.push(field);
-      field = '';
-    } else {
-      field += c;
-    }
+const name_to_info = (name) => {
+  if (name === primary_index_name) {
+    return { geo: false, multi: false, fields: [ 'id' ] };
   }
-  check(!escaped, `Unexpected index name: "${name}"`);
-  fields.push(field);
-  return fields;
+
+  const re = /^hz_(?:(geo)_)?(?:multi_([0-9])+_)?\[/;
+
+  const matches = name.match(re);
+  check(matches !== null, `Unexpected index name (invalid format): "${name}"`);
+
+  const json_offset = matches[0].length - 1;
+
+  const info = { name, geo: Boolean(matches[1]), multi: isNaN(matches[2]) ? false : Number(matches[2]) };
+
+  // Parse remainder as JSON
+  try {
+    info.fields = JSON.parse(name.slice(json_offset));
+  } catch (err) {
+    check(false, `Unexpected index name (invalid JSON): "${name}"`);
+  }
+
+  // Sanity check fields
+  const validate_field = (f) => {
+    if (Array.isArray(f)) {
+      f.forEach((s) => check(typeof s === 'string',
+                             `Unexpected index name (invalid field): "${name}"`));
+    } else {
+      check(typeof f === 'string',
+            `Unexpected index name (field is not a string or array): "${name}"`);
+    }
+  };
+
+  check(Array.isArray(info.fields),
+        `Unexpected index name (fields are not an array): "${name}"`);
+  check((info.multi === null) || info.multi < info.fields.length,
+        `Unexpected index name (multi index out of bounds): "${name}"`);
+  info.fields.forEach(validate_field);
+  return info;
 };
 
-const fields_to_name = (fields) => {
-  let res = '';
-  for (const field of fields) {
-    if (res.length > 0) {
-      res += '_';
-    }
-    for (const c of field) {
-      if (c === '\\' || c === '_') {
-        res += '\\';
-      }
-      res += c;
-    }
+const info_to_name = (info) => {
+  let res = 'hz_';
+  if (info.geo) {
+    res += 'geo_';
   }
+  if (info.multi !== null) {
+    res += 'multi_' + info.multi + '_';
+  }
+  res += JSON.stringify(info.fields);
   return res;
 };
 
-const primary_index_name = fields_to_name([ 'id' ]);
-
 class Index {
   constructor(name, table, conn) {
+    logger.debug(`${table} index registered: ${name}`);
+    const info = name_to_info(name);
     this.name = name;
-    this.fields = Index.name_to_fields(name);
+    this.geo = info.geo; // true or false
+    this.multi = info.multi; // false or the offset of the multi field
+    this.fields = info.fields; // array of fields or nested field paths
 
     this._waiters = [ ];
     this._result = null;
 
+    if (this.geo) {
+      logger.warn(`Unsupported index (geo): ${this.name}`);
+    } else if (this.multi !== false) {
+      logger.warn(`Unsupported index (multi): ${this.name}`);
+    }
+
     if (name !== primary_index_name) {
       table.indexWait(name).run(conn).then(() => {
+        logger.debug(`${table} index ready: ${name}`);
         this._result = true;
         this._waiters.forEach((w) => w());
         this._waiters = [ ];
@@ -67,6 +96,7 @@ class Index {
         this._waiters = [ ];
       });
     } else {
+      logger.debug(`${table} index ready: ${name}`);
       this._result = true;
     }
   }
@@ -92,29 +122,31 @@ class Index {
 
   // `fuzzy_fields` may be in any order at the beginning of the index.
   // These must be immediately followed by `ordered_fields` in the exact
-  // order given.  There may be no other fields present in the index until
-  // after all of `fuzzy_fields` and `ordered_fields` are present.
+  // order given.  There may be no other fields present in the index
+  // (because the absence of a field would mean that row is not indexed).
   // `fuzzy_fields` may overlap with `ordered_fields`.
   is_match(fuzzy_fields, ordered_fields) {
+    // TODO: multi index matching
+    if (this.geo || this.multi !== false) {
+      return false;
+    }
+
+    if (this.fields.length > fuzzy_fields.length + ordered_fields.length) {
+      return false;
+    }
+
     for (let i = 0; i < fuzzy_fields.length; ++i) {
       const pos = this.fields.indexOf(fuzzy_fields[i]);
       if (pos < 0 || pos >= fuzzy_fields.length) { return false; }
     }
 
-    outer: // eslint-disable-line no-labels
-    for (let i = 0; i <= fuzzy_fields.length && i + ordered_fields.length <= this.fields.length; ++i) {
-      for (let j = 0; j < ordered_fields.length; ++j) {
-        if (this.fields[i + j] !== ordered_fields[j]) {
-          continue outer; // eslint-disable-line no-labels
-        }
-      }
-      return true;
+    for (let i = 0; i < ordered_fields.length; ++i) {
+      const pos = this.fields.length - ordered_fields.length + i;
+      if (pos < 0 || this.fields[pos] !== ordered_fields[i]) { return false; }
     }
-    return false;
+
+    return true;
   }
 }
 
-Index.name_to_fields = name_to_fields;
-Index.fields_to_name = fields_to_name;
-
-module.exports = { Index };
+module.exports = { Index, primary_index_name, name_to_info, info_to_name };
