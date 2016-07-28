@@ -66,6 +66,6 @@ export default function unitAuthSuite() {
   })
 }
 
-if (process.env.NODE_ENV === 'test') {
+if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
   describe('auth', unitAuthSuite)
 }

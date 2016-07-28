@@ -80,6 +80,6 @@ export default function unitUtilsSuite() {
   })
 }
 
-if (process.env.NODE_ENV === 'test') {
+if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
   describe('utils', unitUtilsSuite)
 }

@@ -1,6 +1,7 @@
 import 'rxjs/add/operator/concat'
 
 import { assertCompletes, observableInterleave } from './utils'
+import { oit } from './observableUtils'
 
 export default function findSubscriptionSuite(getData) {
   return () => {
@@ -62,7 +63,16 @@ export default function findSubscriptionSuite(getData) {
       ],
     })
   ))
-
+  oit('properly handles initial values', t => {
+    t.setup(data.store([ { id: 1, a: 1 } ]))
+      .query(data.find(1).watch())
+      .expect({ id: 1, a: 1 })
+      .then(data.store({ id: 1, a: 2 }))
+      .expect({ id: 1, a: 2 })
+      .then(data.remove(1))
+      .expect(null)
+      .done()
+  })
   // Let's make sure initial vals works correctly
   it('properly handles initial values', assertCompletes(() =>
     // before starting the feed, insert initial document
@@ -81,12 +91,8 @@ export default function findSubscriptionSuite(getData) {
       })
     )
   ))
-
-  it('emits null when the document id is not found', assertCompletes(() => {
-    return observableInterleave({
-      query: data.find('does_not_exist').watch(),
-      operations: [],
-      expected: [ null ],
-    })
-  }))
+  oit('emits null when the document id is not found', t => {
+    t.expect([ 1 ])
+    return data.find('does_not_exist').watch().take(1)
+  })
 }}

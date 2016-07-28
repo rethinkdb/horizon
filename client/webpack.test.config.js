@@ -41,6 +41,7 @@ module.exports = {
       /lodash\/lodash\.js/,
       /source-map-support/,
       /rxjs\/bundles\/Rx\.umd\.js/,
+      /sinon/,
     ],
     loaders: [
       {

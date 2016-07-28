@@ -158,6 +158,6 @@ export default function unitAstSuite() {
   })
 }
 
-if (process.env.NODE_ENV === 'test') {
+if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
   describe('ast', unitAstSuite)
 }
