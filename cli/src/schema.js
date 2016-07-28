@@ -201,6 +201,7 @@ const processApplyConfig = (parsed) => {
     config.project_name = path.basename(path.resolve(config.project_path));
   }
   return {
+    subcommand_name: 'apply',
     start_rethinkdb: config.start_rethinkdb,
     rdb_host: config.rdb_host,
     rdb_port: config.rdb_port,
@@ -235,6 +236,7 @@ const processSaveConfig = (parsed) => {
   }
 
   return {
+    subcommand_name: 'save',
     start_rethinkdb: config.start_rethinkdb,
     rdb_host: config.rdb_host,
     rdb_port: config.rdb_port,
@@ -284,10 +286,7 @@ const runApplyCommand = (options, shutdown, done) => {
 
   logger.level = 'error';
   interrupt.on_interrupt((done2) => {
-    if (conn) {
-      conn.close();
-    }
-    done2();
+    return conn ? conn.close(done2) : done2();
   });
 
   if (options.start_rethinkdb) {
