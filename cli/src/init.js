@@ -149,6 +149,12 @@ token_secret = "${crypto.randomBytes(64).toString('base64')}"
 # secret = "0000000000000000000000000000000"
 `
 
+const gitignore = () => `\
+rethinkdb_data
+**/*.log
+.hz/secrets.toml
+`
+
 const addArguments = (parser) => {
   parser.addArgument([ 'projectName' ],
     { action: 'store',
@@ -232,10 +238,7 @@ function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
   if (!fileExists('.gitignore')) {
     fs.appendFileSync(
       '.gitignore',
-      `rethinkdb_data
-      **/*.log
-      .hz/secrets.toml
-      `,
+      gitignore(),
       permissionGeneral
     );
     console.info(`Created ${niceDir}.gitignore`);
