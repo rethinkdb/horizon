@@ -129,26 +129,25 @@ export class HorizonSocket extends WebSocketSubject {
   // the handshake requestId. It also starts the keepalive observable
   // and cleans up after it when the handshake is cleaned up.
   sendHandshake() {
-    if (this._handshakeSub) {
-      // If we already have a handshake subscription, just bail
-      return
-    }
-    this._handshakeSub = this.makeRequest(this._handshakeMsg)
-      .subscribe({
-        next: n => {
-          this.status.next(STATUS_READY)
-          this.handshake.next(n)
-          this.handshake.complete()
-        },
-        error: e => {
-          this.status.next(STATUS_ERROR)
-          this.handshake.error(e)
-        },
-      })
+    if (!this._handshakeSub) {
+      this._handshakeSub = this.makeRequest(this._handshakeMsg)
+        .subscribe({
+          next: n => {
+            this.status.next(STATUS_READY)
+            this.handshake.next(n)
+            this.handshake.complete()
+          },
+          error: e => {
+            this.status.next(STATUS_ERROR)
+            this.handshake.error(e)
+          },
+        })
 
-    // Start the keepalive and make sure it's
-    // killed when the handshake is cleaned up
-    this._handshakeSub.add(this.keepalive.connect())
+      // Start the keepalive and make sure it's
+      // killed when the handshake is cleaned up
+      this._handshakeSub.add(this.keepalive.connect())
+    }
+    return this.handshake
   }
 
   // Incorporates shared logic between the inital handshake request and
@@ -174,7 +173,7 @@ export class HorizonSocket extends WebSocketSubject {
   // * Emits `state: synced` as a separate document for easy filtering
   // * Reference counts subscriptions
   hzRequest(rawRequest) {
-    return this.handshake.ignoreElements()
+    return this.sendHandshake().ignoreElements()
       .concat(this.makeRequest(rawRequest))
       .concatMap(resp => {
         if (resp.error !== undefined) {

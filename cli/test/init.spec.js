@@ -53,8 +53,12 @@ function assertValidConfig(filepath) {
   const configObject = readToml(filepath);
   // Need an uncommented project name
   assert.property(configObject, 'project_name');
+}
+
+function assertValidSecrets(filepath) {
+  const secretsObject = readToml(filepath);
   // Need an uncommented token_secret
-  assert.property(configObject, 'token_secret');
+  assert.property(secretsObject, 'token_secret');
 }
 
 function assertConfigProjectName(filepath, expectedName) {
@@ -122,6 +126,16 @@ describe('hz init', () => {
         assertFileExists(`${projectDir}/.hz`, 'config.toml');
         done();
       });
+      it('creates the .hz/secrets.toml file', (done) => {
+        initCommand.runCommand(runOptions);
+        assertFileExists(`${projectDir}/.hz`, 'secrets.toml');
+        done();
+      });
+      it('creates the .hz/schema.toml file', (done) => {
+        initCommand.runCommand(runOptions);
+        assertFileExists(`${projectDir}/.hz`, 'schema.toml');
+        done();
+      });
     });
     describe('when the project dir is not empty,', () => {
       beforeEach(() => {
@@ -167,9 +181,47 @@ describe('hz init', () => {
         assertValidConfig(`${projectDir}/.hz/config.toml`);
         done();
       });
+      it("creates a valid secrets.toml if it doesn't exist", (done) => {
+        fs.mkdirSync(`${projectDir}/.hz`);
+        initCommand.runCommand(runOptions);
+        assertFileExists(`${projectDir}/.hz`, 'secrets.toml');
+        assertValidSecrets(`${projectDir}/.hz/secrets.toml`);
+        done();
+      });
+      it("creates a valid schema.toml if it doesn't exist", (done) => {
+        fs.mkdirSync(`${projectDir}/.hz`);
+        initCommand.runCommand(runOptions);
+        assertFileExists(`${projectDir}/.hz`, 'schema.toml');
+        // assertValidSchema(`${projectDir}/.hz/schema.toml`);
+        done();
+      });
       it("doesn't touch the config.toml if it already exists", (done) => {
         fs.mkdirSync(`${projectDir}/.hz`);
         const filename = `${projectDir}/.hz/config.toml`;
+        fs.appendFileSync(filename, '#Hoo\n');
+        const beforeMtime = fs.statSync(filename).mtime.getTime();
+        initCommand.runCommand(runOptions);
+        const afterMtime = fs.statSync(filename).mtime.getTime();
+        assert.equal(beforeMtime, afterMtime);
+        const afterContents = getFileString(filename);
+        assert.equal('#Hoo\n', afterContents);
+        done();
+      });
+      it("doesn't touch the secrets.toml if it already exists", (done) => {
+        fs.mkdirSync(`${projectDir}/.hz`);
+        const filename = `${projectDir}/.hz/secrets.toml`;
+        fs.appendFileSync(filename, '#Hoo\n');
+        const beforeMtime = fs.statSync(filename).mtime.getTime();
+        initCommand.runCommand(runOptions);
+        const afterMtime = fs.statSync(filename).mtime.getTime();
+        assert.equal(beforeMtime, afterMtime);
+        const afterContents = getFileString(filename);
+        assert.equal('#Hoo\n', afterContents);
+        done();
+      });
+      it("doesn't touch the schema.toml if it already exists", (done) => {
+        fs.mkdirSync(`${projectDir}/.hz`);
+        const filename = `${projectDir}/.hz/schema.toml`;
         fs.appendFileSync(filename, '#Hoo\n');
         const beforeMtime = fs.statSync(filename).mtime.getTime();
         initCommand.runCommand(runOptions);

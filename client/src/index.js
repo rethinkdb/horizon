@@ -5,12 +5,10 @@ import 'rxjs/add/operator/concatMap'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/filter'
 
-import * as Rx from 'rxjs'
 import { Collection, UserDataTerm } from './ast'
 import { HorizonSocket } from './socket'
-import { log, logError, enableLogging } from './logging'
 import { authEndpoint, TokenStorage, clearAuthTokens } from './auth'
-
+import { aggregate, model } from './model'
 
 const defaultHost = typeof window !== 'undefined' && window.location &&
         `${window.location.host}` || 'localhost:8181'
@@ -107,9 +105,12 @@ function Horizon({
   Object.freeze(horizon.utensils)
 
   horizon._authMethods = null
-  horizon._horizonPath = `http${(secure) ? 's' : ''}://${host}/${path}`
+  horizon._root = `http${(secure) ? 's' : ''}://${host}`
+  horizon._horizonPath = `${horizon._root}/${path}`
   horizon.authEndpoint = authEndpoint
   horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
+  horizon.aggregate = aggregate
+  horizon.model = model
 
   return horizon
 
@@ -134,9 +135,6 @@ function subscribeOrObservable(observable) {
   }
 }
 
-Horizon.log = log
-Horizon.logError = logError
-Horizon.enableLogging = enableLogging
 Horizon.Socket = HorizonSocket
 Horizon.clearAuthTokens = clearAuthTokens
 

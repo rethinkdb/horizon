@@ -53,8 +53,6 @@ module.exports = {
             'babel-preset-es2015-loose',
             { plugins: [
               [ 'babel-plugin-transform-runtime', { polyfill: false } ],
-              'babel-plugin-transform-function-bind',
-              'babel-plugin-transform-async-to-generator', // for async await
             ] },
           ],
         },

@@ -1,7 +1,7 @@
-import { _do as tap } from 'rxjs/operator/do'
-import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
-import { mergeMap } from 'rxjs/operator/mergeMap'
-import { toArray } from 'rxjs/operator/toArray'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/mergeMapTo'
+import 'rxjs/add/operator/mergeMap'
+import 'rxjs/add/operator/toArray'
 
 import { assertCompletes,
          assertThrows,
@@ -9,7 +9,8 @@ import { assertCompletes,
          compareWithoutVersion,
          compareSetsWithoutVersion } from './utils'
 
-const storeSuite = global.storeSuite = getData => () => {
+export default function storeSuite(getData) {
+  return () => {
   let data
 
   before(() => {
@@ -22,19 +23,19 @@ const storeSuite = global.storeSuite = getData => () => {
       data.store({ id: 1, a: 1, b: 1 })
       // The promise should return an array with an ID of the inserted
       // document.
-      ::tap(res => compareWithoutVersion(res, { id: 1 }))
+      .do(res => compareWithoutVersion(res, { id: 1 }))
       // Let's make sure we get back the document that we put in.
-      ::mergeMapTo(data.find(1).fetch())
+      .mergeMapTo(data.find(1).fetch())
       // Check that we get back what we put in.
-      ::tap(res => compareWithoutVersion(res, { id: 1, a: 1, b: 1 }))
+      .do(res => compareWithoutVersion(res, { id: 1, a: 1, b: 1 }))
       // Let's overwrite the document now
-      ::mergeMapTo(data.store({ id: 1, c: 1 }))
+      .mergeMapTo(data.store({ id: 1, c: 1 }))
       // We should have gotten the ID back again
-      ::tap(res => compareWithoutVersion(res, { id: 1 }))
+      .do(res => compareWithoutVersion(res, { id: 1 }))
       // Make sure `store` overwrote the original document
-      ::mergeMapTo(data.find(1).fetch())
+      .mergeMapTo(data.find(1).fetch())
       // Check that we get back what we put in.
-      ::tap(res => compareWithoutVersion(res, { id: 1, c: 1 }))
+      .do(res => compareWithoutVersion(res, { id: 1, c: 1 }))
   ))
 
   // If we store a document without an ID, the ID is generated for us.
@@ -43,8 +44,8 @@ const storeSuite = global.storeSuite = getData => () => {
   it('generates ids for documents without them', assertCompletes(() => {
     let new_id
 
-    return data.store({ a: 1, b: 1 })::toArray()
-      ::tap(res => {
+    return data.store({ a: 1, b: 1 }).toArray()
+      .do(res => {
         // The promise should return an array with an ID of the
         // inserted document.
         assert.lengthOf(res, 1)
@@ -53,17 +54,17 @@ const storeSuite = global.storeSuite = getData => () => {
         new_id = res[0].id
       })
       // Let's make sure we get back the document that we put in.
-      ::mergeMap(() => data.find(new_id).fetch())
+      .mergeMap(() => data.find(new_id).fetch())
       // Check that we get back what we put in.
-      ::tap(res => compareWithoutVersion({ id: new_id, a: 1, b: 1 }, res))
+      .do(res => compareWithoutVersion({ id: new_id, a: 1, b: 1 }, res))
       // Let's overwrite the document now
-      ::mergeMap(() => data.store({ id: new_id, c: 1 }))
+      .mergeMap(() => data.store({ id: new_id, c: 1 }))
       // We should have gotten the ID back again
-      ::tap(res => assert.deepEqual(new_id, res.id))
+      .do(res => assert.deepEqual(new_id, res.id))
       // Make sure `store` overwrote the original document
-      ::mergeMap(() => data.find(new_id).fetch())
+      .mergeMap(() => data.find(new_id).fetch())
       // Check that we get back what we put in.
-      ::tap(res => compareWithoutVersion({ id: new_id, c: 1 }, res))
+      .do(res => compareWithoutVersion({ id: new_id, c: 1 }, res))
   }))
 
   // Storing `null` is an error.
@@ -90,8 +91,8 @@ const storeSuite = global.storeSuite = getData => () => {
     let new_id_0, new_id_1
 
     return data.store([ {}, { a: 1 }, { id: 1, a: 1 } ])
-      ::toArray()
-      ::tap(res => {
+      .toArray()
+      .do(res => {
         // The promise should return an array with the IDs of the documents
         // in order, including the generated IDS.
         assert.isArray(res)
@@ -104,10 +105,10 @@ const storeSuite = global.storeSuite = getData => () => {
         new_id_1 = res[1].id
       })
       // Make sure we get what we put in.
-      ::mergeMap(() => data.findAll(new_id_0, new_id_1, 1)
+      .mergeMap(() => data.findAll(new_id_0, new_id_1, 1)
                .fetch())
       // We're supposed to get an array of documents we put in
-      ::tap(res => compareSetsWithoutVersion(res, [
+      .do(res => compareSetsWithoutVersion(res, [
         { id: new_id_0 },
         { id: new_id_1, a: 1 },
         { id: 1, a: 1 },
@@ -124,8 +125,8 @@ const storeSuite = global.storeSuite = getData => () => {
   // Storing an empty batch of documents is ok, and returns an empty
   // array.
   it('allows storing empty batches', assertCompletes(() =>
-    data.store([])::toArray()
-      ::tap(res => {
+    data.store([]).toArray()
+      .do(res => {
         // The promise should return an array with the IDs of the documents
         // in order, including the generated IDS.
         assert.isArray(res)
@@ -135,8 +136,8 @@ const storeSuite = global.storeSuite = getData => () => {
 
   it('stores date objects and retrieves them again', assertCompletes(() => {
     const originalDate = new Date()
-    return data.store({ date: originalDate })::toArray()
-      ::mergeMap(id => data.find(id[0]).fetch())
-      ::tap(result => assert.deepEqual(originalDate, result.date))
+    return data.store({ date: originalDate }).toArray()
+      .mergeMap(id => data.find(id[0]).fetch())
+      .do(result => assert.deepEqual(originalDate, result.date))
   }))
-} // Testing `store`
+}}

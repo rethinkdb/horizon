@@ -10,7 +10,7 @@ const runCommand = () => {
 
 const processConfig = () => ({});
 
-const addArguments = () => {}
+const addArguments = () => {};
 
 module.exports = {
   addArguments,

@@ -1,8 +1,9 @@
-import { _do as tap } from 'rxjs/operator/do'
-import { mergeMap } from 'rxjs/operator/mergeMap'
-import { mergeMapTo } from 'rxjs/operator/mergeMapTo'
+import 'rxjs/add/operator/do'
+import 'rxjs/add/operator/mergeMap'
+import 'rxjs/add/operator/mergeMapTo'
 
-const authSuite = global.authSuite = (getHorizon) => () => {
+export default function authSuite(getHorizon) {
+  return () => {
   let horizon
   before(() => {
     horizon = getHorizon()
@@ -21,7 +22,7 @@ const authSuite = global.authSuite = (getHorizon) => () => {
     const myHorizon = Horizon({
       secure: false,
       lazyWrites: true,
-      authType: 'anonymous'
+      authType: 'anonymous',
     })
     Horizon.clearAuthTokens()
     myHorizon.connect()
@@ -41,9 +42,9 @@ const authSuite = global.authSuite = (getHorizon) => () => {
     Horizon.clearAuthTokens()
     myHorizon.connect()
     myHorizon.currentUser().fetch()
-      ::tap() // TODO: why does this only work with a `tap`?
-      ::mergeMap(user => myHorizon('users').update({ id: user.id, groups: [ 'admin', 'superuser', 'default' ] }))
-      ::mergeMapTo(myHorizon.currentUser().fetch()).subscribe({
+      .do() // TODO: why does this only work with a `tap`?
+      .mergeMap(user => myHorizon('users').update({ id: user.id, groups: [ 'admin', 'superuser', 'default' ] }))
+      .mergeMapTo(myHorizon.currentUser().fetch()).subscribe({
         next(user) {
           assert.isObject(user)
           assert.isString(user.id)
@@ -53,4 +54,4 @@ const authSuite = global.authSuite = (getHorizon) => () => {
         complete: done,
       })
   })
-}
+}}
