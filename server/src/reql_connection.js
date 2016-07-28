@@ -6,7 +6,7 @@ const Metadata = require('./metadata/metadata').Metadata;
 const r = require('rethinkdb');
 const utils = require('./utils');
 
-const default_user = 'admin'
+const default_user = 'admin';
 const default_pass = '';
 
 class ReqlConnection {
@@ -68,11 +68,11 @@ class ReqlConnection {
     }
     let rdb_conn = { host: this._host, port: this._port, db: this._project_name };
     if (this._user) {
-        rdb_conn.user = this._user;
-        rdb_conn.password = this._pass;
+      rdb_conn.user = this._user;
+      rdb_conn.password = this._pass;
     }
     if (this._connect_timeout) {
-        rdb_conn.timeout = this._connect_timeout;
+      rdb_conn.timeout = this._connect_timeout;
     }
     r.connect(rdb_conn)
      .then((conn) => {

@@ -100,7 +100,8 @@ project_name = "${projectName}"
 # 'allow_anonymous' issues new accounts to users without an auth provider
 # 'allow_unauthenticated' allows connections that are not tied to a user id
 # 'auth_redirect' specifies where users will be redirected to after login
-# 'access_control_allow_origin' sets a host that can access auth settings (typically your frontend host)
+# 'access_control_allow_origin' sets a host that can access auth settings
+#   (typically your frontend host)
 #------------------------------------------------------------------------------
 # allow_anonymous = false
 # allow_unauthenticated = false
@@ -113,7 +114,7 @@ const makeDefaultSchema = () => `\
 [groups.admin]
 [groups.admin.rules.carte_blanche]
 template = "any()"
-`
+`;
 
 const makeDefaultSecrets = () => `\
 token_secret = "${crypto.randomBytes(64).toString('base64')}"
@@ -147,7 +148,7 @@ token_secret = "${crypto.randomBytes(64).toString('base64')}"
 # [auth.slack]
 # id = "0000000000000000000000000000000"
 # secret = "0000000000000000000000000000000"
-`
+`;
 
 const addArguments = (parser) => {
   parser.addArgument([ 'projectName' ],
@@ -217,15 +218,14 @@ function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
   }
 
   // Default permissions
-  let permissionGeneral = {
+  const permissionGeneral = {
     encoding: 'utf8',
-    mode: 0o666, 
+    mode: 0o666,
   };
 
-  let permissionSecret = {
+  const permissionSecret = {
     encoding: 'utf8',
-    mode: 0o600, // Secrets are put in this config, so set it user
-    // read/write only
+    mode: 0o600, // Secrets are put in this config, so set it user, read/write only
   };
 
   // Create .hz/config.toml if it doesn't exist
@@ -263,7 +263,6 @@ function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
   } else {
     console.info('.hz/secrets.toml already exists, not touching it.');
   }
-
 }
 
 const runCommand = (parsed) => {

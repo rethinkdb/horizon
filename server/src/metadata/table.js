@@ -6,9 +6,9 @@ const Index = require('./index').Index;
 const r = require('rethinkdb');
 
 class Table {
-  constructor(table_name, db, conn) {
+  constructor(table, table_id, db, conn) {
     this.collection = null; // This will be set when we are attached to a collection
-    this.table = r.db(db).table(table_name);
+    this.table = r.db(db).table(table);
     this.indexes = new Map();
     this.update_indexes([ ]);
 

@@ -5,14 +5,13 @@ const logger = require('../logger');
 
 const https = require('https');
 const Joi = require('joi');
-const querystring = require('querystring');
 const url = require('url');
 
 const options_schema = Joi.object().keys({
   path: Joi.string().required(),
   id: Joi.string().required(),
   secret: Joi.string().required(),
-  host: Joi.string().required()
+  host: Joi.string().required(),
 }).unknown(false);
 
 function auth0(horizon, raw_options) {
@@ -21,9 +20,9 @@ function auth0(horizon, raw_options) {
   const client_id = options.id;
   const client_secret = options.secret;
   const provider = options.path;
-  const return_url = horizon._auth._success_redirect.href.slice(0,-1);
+  const return_url = horizon._auth._success_redirect.href.slice(0, -1);
   const host = options.host;
-  
+
   const self_url = (self_host, path) =>
     url.format({ protocol: 'https', host: self_host, pathname: path });
 
@@ -36,7 +35,7 @@ function auth0(horizon, raw_options) {
   const make_inspect_request = (access_token) =>
     https.request({ host: host,
                     path: '/userinfo',
-                    headers: { 'Authorization': `Bearer ${access_token}` } });
+                    headers: { Authorization: `Bearer ${access_token}` } });
 
   const extract_id = (user_info) => user_info && user_info.identities[0].user_id;
 

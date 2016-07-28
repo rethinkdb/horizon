@@ -99,19 +99,19 @@ class Auth {
   // TODO: maybe we should write something into the user data to track open sessions/tokens
   generate(provider, info) {
     const key = this.auth_key(provider, info);
-    const internal_db = r.db(this._parent._reql_conn.metadata()._internal_db);
+    const db = r.db(this._parent._reql_conn.metadata()._db);
 
     const insert = (table, row) =>
-      internal_db.table(table)
+      db.table(table)
         .insert(row, { conflict: 'error', returnChanges: 'always' })
         .bracket('changes')(0)('new_val');
 
-    let query = internal_db.table('users')
-                           .get(internal_db.table('users_auth').get(key)('user_id'))
-                           .default(r.error('User not found and new user creation is disabled.'));
+    let query = db.table('users')
+                  .get(db.table('hz_users_auth').get(key)('user_id'))
+                  .default(r.error('User not found and new user creation is disabled.'));
 
     if (this._create_new_users) {
-      query = insert('users_auth', { id: key, user_id: r.uuid() })
+      query = insert('hz_users_auth', { id: key, user_id: r.uuid() })
         .do((auth_user) => insert('users', this.new_user_row(auth_user('user_id'))));
     }
 

@@ -134,7 +134,7 @@ const addArguments = (parser) => {
   parser.addArgument([ '--schema-file' ],
     { type: 'string', metavar: 'SCHEMA_FILE_PATH',
       help: 'Path to the schema file to use, ' +
-      'will attempt to load schema before starting Horizon server".' });
+      'will attempt to apply schema before starting Horizon server".' });
 
   parser.addArgument([ '--auth' ],
     { type: 'string', action: 'append', metavar: 'PROVIDER,ID,SECRET', defaultValue: [ ],
@@ -317,20 +317,20 @@ const parse_connect = (connect, config) => {
   // expects rethinkdb://host:port` at a minimum but can optionally take a user:pass and db
   // e.g. rethinkdb://user:pass@host:port/db
   const rdb_uri = url.parse(connect);
-  if (rdb_uri.protocol === "rethinkdb:"){
+  if (rdb_uri.protocol === 'rethinkdb:') {
     if (rdb_uri.hostname) {
       config.rdb_host = rdb_uri.hostname;
       config.rdb_port = rdb_uri.port || default_rdb_port;
 
       // check for user/pass
       if (rdb_uri.auth) {
-        const user_pass = rdb_uri.auth.split(':')
+        const user_pass = rdb_uri.auth.split(':');
         config.rdb_user = user_pass[0];
         config.rdb_password = user_pass[1];
       }
 
       // set the project name based on the db
-      if (rdb_uri.path && rdb_uri.path.replace('/', '') != '') {
+      if (rdb_uri.path && rdb_uri.path.replace('/', '') !== '') {
         config.project_name = rdb_uri.path.replace('/', '');
       }
     } else {
@@ -423,11 +423,11 @@ const read_config_from_secrets_file = (projectPath, secretsFile) => {
   return config;
 };
 
-const envRegex = /^HZ_([A-Z]+([_]?[A-Z]+)*)$/;
+const env_regex = /^HZ_([A-Z]+([_]?[A-Z]+)*)$/;
 const read_config_from_env = () => {
   const config = { auth: { } };
   for (const env_var in process.env) {
-    const matches = envRegex.exec(env_var);
+    const matches = env_regex.exec(env_var);
     if (matches && matches[1]) {
       const destVarName = matches[1].toLowerCase();
       const varPath = destVarName.split('_');
@@ -461,7 +461,7 @@ const read_config_from_env = () => {
   return config;
 };
 
-// Handles reading configuration from the parsed flags 
+// Handles reading configuration from the parsed flags
 //  NOTE: New flags must be manually added here or they will not apply correctly
 const read_config_from_flags = (parsed) => {
   const config = { auth: { } };
@@ -478,7 +478,7 @@ const read_config_from_flags = (parsed) => {
     config.auto_create_index = true;
     config.serve_static = 'dist';
     config._dev_flag_used = true;
-    config.schema_file = '.hz/schema.toml'
+    config.schema_file = '.hz/schema.toml';
 
     if (parsed.start_rethinkdb === null || parsed.start_rethinkdb === undefined) {
       config._start_rethinkdb_implicit = true;
@@ -538,7 +538,8 @@ const read_config_from_flags = (parsed) => {
     config.token_secret = parsed.token_secret;
   }
 
-  if (parsed.access_control_allow_origin !== null && parsed.access_control_allow_origin !== undefined) {
+  if (parsed.access_control_allow_origin !== null &&
+      parsed.access_control_allow_origin !== undefined) {
     config.access_control_allow_origin = parsed.access_control_allow_origin;
   }
 
@@ -642,7 +643,7 @@ const startHorizonServer = (servers, opts) => {
     rdb_port: opts.rdb_port,
     rdb_user: opts.rdb_user || null,
     rdb_password: opts.rdb_password || null,
-    rdb_timeout: opts.rdb_timeout || null
+    rdb_timeout: opts.rdb_timeout || null,
   });
   const timeoutObject = setTimeout(() => {
     console.log(chalk.red.bold('Horizon failed to start after 30 seconds'));
@@ -719,8 +720,8 @@ const runCommand = (opts, done) => {
   }).then(() => {
     // Ensure schema from schema.toml file is set
     if (opts.schema_file) {
-      console.log('Ensuring current schema is loaded');
-      const schemaOptions = schema.processLoadConfig({
+      console.log(`Ensuring schema "${opts.schema_file}" is applied`);
+      const schemaOptions = schema.processApplyConfig({
         project_name: opts.project_name,
         schema_file: opts.schema_file,
         start_rethinkdb: false,
@@ -728,7 +729,7 @@ const runCommand = (opts, done) => {
         update: true,
         force: false,
       });
-      return schema.runLoadCommand(schemaOptions, false, (err) => { console.error(err)});
+      return schema.runApplyCommand(schemaOptions, false, (err) => { console.error(err); });
     }
   }).then(() => {
     hzInstance = startHorizonServer(httpServers, opts);
@@ -756,7 +757,8 @@ const runCommand = (opts, done) => {
         console.log('Attempting open of index.html in default browser');
         open(`${scheme}${opts.bind}:${opts.port}/index.html`);
       } catch (open_err) {
-        console.log(chalk.red(`Error occurred while trying to open ${opts.serve_static}/index.html`));
+        console.log(chalk.red('Error occurred while trying to open ' +
+                              `${opts.serve_static}/index.html`));
         console.log(open_err);
       }
     }

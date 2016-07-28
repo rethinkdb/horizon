@@ -2,7 +2,7 @@
 'use strict';
 
 // To support `pidof horizon`, by default it shows in `pidof node`
-process.title = 'horizon'
+process.title = 'horizon';
 
 const argparse = require('argparse');
 const chalk = require('chalk');
@@ -53,7 +53,7 @@ function runCommand(command, parsedOptions) {
   const done = (err) => {
     if (err) {
       console.log(chalk.red.bold(
-        `${parsed.command_name} failed ` +
+        `${parsedOptions.command_name} failed ` +
           `with ${options.debug ? err.stack : err}`));
       process.exit(1);
     }

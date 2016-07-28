@@ -1,81 +1,86 @@
 'use strict';
-const schema = module.exports = {}
 
-const create_collection_reql = require('@horizon/server/src/metadata/metadata').create_collection_reql;
+// next
+const horizon_server = require('@horizon/server');
+const horizon_index = require('@horizon/server/src/metadata/index');
+const horizon_metadata = require('@horizon/server/src/metadata/metadata');
+
 const fs = require('fs');
-const initialize_metadata_reql = require('@horizon/server/src/metadata/metadata').initialize_metadata_reql;
 const interrupt = require('./utils/interrupt');
 const Joi = require('joi');
-const logger = require('@horizon/server').logger;
-const name_to_fields = require('@horizon/server/src/metadata/index').Index.name_to_fields;
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const path = require('path');
-const r = require('rethinkdb');
+
 const serve = require('./serve');
 const start_rdb_server = require('./utils/start_rdb_server');
 const toml = require('toml');
 
-const helpText = 'Load and save the schema from a horizon database';
+const r = horizon_server.r;
+const logger = horizon_server.logger;
+const create_collection_reql = horizon_metadata.create_collection_reql;
+const initialize_metadata_reql = horizon_metadata.initialize_metadata_reql;
+const name_to_info = horizon_index.name_to_info;
+
+const helpText = 'Apply and save the schema from a horizon database';
 
 const addArguments = (parser) => {
-
   const subparsers = parser.addSubparsers({
     title: 'subcommands',
-    dest: 'subcommand_name'
+    dest: 'subcommand_name',
   });
 
-  // HZ SCHEMA LOAD
-  const load = subparsers.addParser('apply', { addHelp: true });
+  // HZ SCHEMA APPLY
+  const apply = subparsers.addParser('apply', { addHelp: true });
 
-  load.addArgument([ 'project_path' ], {
+  apply.addArgument([ 'project_path' ], {
     type: 'string',
     nargs: '?',
-    help: 'Change to this directory before serving'
+    help: 'Change to this directory before serving',
   });
 
-  load.addArgument([ '--project-name', '-n' ], {
+  apply.addArgument([ '--project-name', '-n' ], {
     type: 'string',
     action: 'store', metavar: 'NAME',
     help: 'Name of the Horizon Project server',
   });
 
-  load.addArgument([ '--connect', '-c' ], {
+  apply.addArgument([ '--connect', '-c' ], {
     type: 'string',
     metavar: 'HOST:PORT',
     help: 'Host and port of the RethinkDB server to connect to.',
   });
 
-  load.addArgument([ '--start-rethinkdb' ], {
+  apply.addArgument([ '--start-rethinkdb' ], {
     type: 'string',
     metavar: 'yes|no', constant: 'yes', nargs: '?',
     help: 'Start up a RethinkDB server in the current directory',
   });
 
-  load.addArgument([ '--config' ], {
+  apply.addArgument([ '--config' ], {
     type: 'string',
     metavar: 'PATH',
     help: 'Path to the config file to use, defaults to ".hz/config.toml".',
   });
 
-  load.addArgument([ '--debug' ], {
+  apply.addArgument([ '--debug' ], {
     type: 'string',
     metavar: 'yes|no', constant: 'yes', nargs: '?',
     help: 'Enable debug logging.',
   });
 
-  load.addArgument([ '--update' ], {
+  apply.addArgument([ '--update' ], {
     type: 'string',
     metavar: 'yes|no', constant: 'yes', nargs: '?',
     help: 'Only add new items and update existing, no removal.',
   });
 
-  load.addArgument([ '--force' ], {
+  apply.addArgument([ '--force' ], {
     type: 'string',
     metavar: 'yes|no', constant: 'yes', nargs: '?',
     help: 'Allow removal of existing collections.',
   });
 
-  load.addArgument([ 'schema_file' ], {
+  apply.addArgument([ 'schema_file' ], {
     type: 'string',
     metavar: 'SCHEMA_FILE_PATH',
     help: 'File to get the horizon schema from, use "-" for stdin.',
@@ -176,7 +181,7 @@ const parse_schema = (schema_toml) => {
   return { groups, collections };
 };
 
-const processLoadConfig = (parsed) => {
+const processApplyConfig = (parsed) => {
   let config, in_file;
 
   config = serve.make_default_config();
@@ -189,13 +194,14 @@ const processLoadConfig = (parsed) => {
   if (parsed.schema_file === '-') {
     in_file = process.stdin;
   } else {
-    in_file = fs.createReadStream(parsed.schema_file, {flags: 'r'});
+    in_file = fs.createReadStream(parsed.schema_file, { flags: 'r' });
   }
 
   if (config.project_name === null) {
     config.project_name = path.basename(path.resolve(config.project_path));
   }
   return {
+    subcommand_name: 'apply',
     start_rethinkdb: config.start_rethinkdb,
     rdb_host: config.rdb_host,
     rdb_port: config.rdb_port,
@@ -222,7 +228,7 @@ const processSaveConfig = (parsed) => {
   if (parsed.out_file === '-') {
     out_file = process.stdout;
   } else {
-    out_file = fs.createWriteStream(parsed.out_file, { flags: 'w', defaultEncoding: 'utf8',});
+    out_file = fs.createWriteStream(parsed.out_file, { flags: 'w', defaultEncoding: 'utf8' });
   }
 
   if (config.project_name === null) {
@@ -230,6 +236,7 @@ const processSaveConfig = (parsed) => {
   }
 
   return {
+    subcommand_name: 'save',
     start_rethinkdb: config.start_rethinkdb,
     rdb_host: config.rdb_host,
     rdb_port: config.rdb_port,
@@ -271,19 +278,15 @@ const config_to_toml = (collections, groups) => {
   return res.join('\n');
 };
 
-const runLoadCommand = (options, shutdown, done) => {
+const runApplyCommand = (options, shutdown, done) => {
   let schema, conn;
   let obsolete_collections = [ ];
 
   const db = options.project_name;
-  const internal_db = `${db}_internal`;
 
   logger.level = 'error';
   interrupt.on_interrupt((done2) => {
-    if (conn) {
-      conn.close();
-    }
-    done2();
+    return conn ? conn.close(done2) : done2();
   });
 
   if (options.start_rethinkdb) {
@@ -307,19 +310,21 @@ const runLoadCommand = (options, shutdown, done) => {
                 port: options.rdb_port })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    return initialize_metadata_reql(r, internal_db, db).run(conn);
+    return initialize_metadata_reql(db).run(conn);
   }).then((initialization_result) => {
     if (initialization_result.tables_created) {
       console.log('Initialized new application metadata.');
     }
     // Wait for metadata tables to be writable
-    return r.db(internal_db)
-     .wait({ waitFor: 'ready_for_writes', timeout: 30 })
-     .run(conn);
+    return r.expr([ 'hz_collections', 'hz_groups' ])
+      .forEach((table) =>
+        r.db(db).table(table)
+          .wait({ waitFor: 'ready_for_writes', timeout: 30 }))
+      .run(conn);
   }).then(() => {
     // Error if any collections will be removed
     if (!options.update) {
-      return r.db(internal_db).table('collections')('id')
+      return r.db(db).table('hz_collections')('id')
         .coerceTo('array')
         .setDifference(schema.collections.map((c) => c.id))
         .run(conn)
@@ -341,7 +346,7 @@ const runLoadCommand = (options, shutdown, done) => {
           literal_group.rules[key] = r.literal(literal_group.rules[key]);
         });
 
-        return r.db(internal_db).table('groups')
+        return r.db(db).table('hz_groups')
           .get(group.id).replace((old_row) =>
             r.branch(old_row.eq(null),
                      group,
@@ -359,7 +364,7 @@ const runLoadCommand = (options, shutdown, done) => {
 
       return Promise.all([
         r.expr(groups_obj).do((groups) =>
-          r.db(internal_db).table('groups')
+          r.db(db).table('hz_groups')
             .replace((old_row) =>
               r.branch(groups.hasFields(old_row('id')),
                        old_row,
@@ -369,7 +374,7 @@ const runLoadCommand = (options, shutdown, done) => {
               throw new Error(`Failed to write groups: ${res.first_error}`);
             }
           }),
-        r.db(internal_db).table('groups')
+        r.db(db).table('hz_groups')
           .insert(schema.groups, { conflict: 'replace' })
           .run(conn).then((res) => {
             if (res.errors) {
@@ -383,7 +388,7 @@ const runLoadCommand = (options, shutdown, done) => {
     const promises = [ ];
     for (const c of schema.collections) {
       promises.push(
-        create_collection_reql(r, internal_db, db, c.id)
+        create_collection_reql(db, c.id)
           .run(conn).then((res) => {
             if (res.error) {
               throw new Error(res.error);
@@ -393,8 +398,8 @@ const runLoadCommand = (options, shutdown, done) => {
 
     for (const c of obsolete_collections) {
       promises.push(
-        r.db(internal_db)
-          .table('collections')
+        r.db(db)
+          .table('hz_collections')
           .get(c)
           .delete({ returnChanges: 'always' })('changes')(0)
           .do((res) =>
@@ -402,7 +407,7 @@ const runLoadCommand = (options, shutdown, done) => {
                      res,
                      res('old_val').eq(null),
                      res,
-                     r.db(db).tableDrop(res('old_val')('table')).do(() => res)))
+                     r.db(db).tableDrop(res('old_val')('id')).do(() => res)))
           .run(conn).then((res) => {
             if (res.error) {
               throw new Error(res.error);
@@ -418,7 +423,7 @@ const runLoadCommand = (options, shutdown, done) => {
     for (const c of schema.collections) {
       c.index_fields = { };
       for (const index of c.indexes) {
-        c.index_fields[index] = name_to_fields(index);
+        c.index_fields[index] = name_to_info(index).fields;
       }
     }
 
@@ -426,15 +431,14 @@ const runLoadCommand = (options, shutdown, done) => {
     promises.push(
       r.expr(schema.collections)
         .forEach((c) =>
-          r.db(internal_db).table('collections')
-            .get(c('id'))
-            .do((collection) =>
-              c('indexes')
-                .setDifference(r.db(db).table(collection('table')).indexList())
-                .forEach((index) =>
-                  c('index_fields')(index).do((fields) =>
-                    r.db(db).table(collection('table')).indexCreate(index, (row) =>
-                      fields.map((key) => row(key)))))))
+          r.db(db).table('hz_collections').get(c('id')).do((collection) =>
+            // TODO: disambiguate using 'table' field once ReQL supports it
+            c('indexes')
+              .setDifference(r.db(db).table(collection('id')).indexList())
+              .forEach((index) =>
+                c('index_fields')(index).do((fields) =>
+                  r.db(db).table(collection('id')).indexCreate(index, (row) =>
+                    fields.map((key) => row(key)))))))
         .run(conn)
         .then((res) => {
           if (res.errors) {
@@ -447,17 +451,16 @@ const runLoadCommand = (options, shutdown, done) => {
       promises.push(
         r.expr(schema.collections)
           .forEach((c) =>
-            r.db(internal_db).table('collections')
-              .get(c('id'))
-              .do((row) =>
-                r.db(db).table(row('table')).indexList()
-                  .setDifference(c('indexes'))
-                  .forEach((index) =>
-                    r.db(db).table(row('table')).indexDrop(index))))
+            r.db(db).table('hz_collections').get(c('id')).do((collection) =>
+              // TODO: disambiguate using 'table' field once ReQL supports it
+              r.db(db).table(collection('id')).indexList()
+                .setDifference(c('indexes'))
+                .forEach((index) =>
+                  r.db(db).table(collection('id')).indexDrop(index))))
         .run(conn)
         .then((res) => {
           if (res.errors) {
-            throw new Error(`Failed to create indexes: ${res.first_error}`);
+            throw new Error(`Failed to remove old indexes: ${res.first_error}`);
           }
         }));
     }
@@ -465,9 +468,9 @@ const runLoadCommand = (options, shutdown, done) => {
     return Promise.all(promises);
   }).then(() => {
     conn.close();
-    if(shutdown){ 
+    if (shutdown) {
       interrupt.shutdown();
-    } 
+    }
   }).catch(done);
 };
 
@@ -504,10 +507,10 @@ const runSaveCommand = (options, done, shutdown) => {
       .run(conn);
   }).then(() =>
     r.object('collections',
-             r.db(internal_db).table('collections').coerceTo('array')
+             r.db(internal_db).table('hz_collections').coerceTo('array')
                .map((row) =>
-                 row.merge({ indexes: r.db(db).table(row('table')).indexList() })),
-             'groups', r.db(internal_db).table('groups').coerceTo('array'))
+                 row.merge({ indexes: r.db(db).table(row('id')).indexList() })),
+             'groups', r.db(internal_db).table('hz_groups').coerceTo('array'))
       .run(conn)
   ).then((res) => {
     conn.close();
@@ -515,10 +518,10 @@ const runSaveCommand = (options, done, shutdown) => {
     options.out_file.write(toml_str);
     options.out_file.close();
   }).then(() => {
-    if (shutdown){
-      interrupt.shutdown()
+    if (shutdown) {
+      interrupt.shutdown();
     }
-  }).catch( (err) => {
+  }).catch((err) => {
     console.log(err);
     done(err);
   });
@@ -526,26 +529,34 @@ const runSaveCommand = (options, done, shutdown) => {
 
 
 // Avoiding cyclical depdendencies
-schema.addArguments = addArguments;
-schema.processConfig = (options) => {
-  // Determine if we are saving or loading and use appropriate config processing
-  if (options.hasOwnProperty('force') || options.hasOwnProperty('update')) {
-    return processLoadConfig(options);
-  } else {
-    return processSaveConfig(options);
-  }
+module.exports = {
+  addArguments,
+  processConfig: (options) => {
+    // Determine if we are saving or applying and use appropriate config processing
+    switch (options.subcommand_name) {
+    case 'apply':
+      return processApplyConfig(options);
+    case 'save':
+      return processSaveConfig(options);
+    default:
+      throw new Error(`Unrecognized schema subcommand: "${options.subcommand_name}"`);
+    }
+  },
+  runCommand: (options, done) => {
+    // Determine if we are saving or applying and use appropriate runCommand
+    //  Also shutdown = true in this case since we are calling from the CLI.
+    switch (options.subcommand_name) {
+    case 'apply':
+      return runApplyCommand(options, true, done);
+    case 'save':
+      return runSaveCommand(options, true, done);
+    default:
+      done(new Error(`Unrecognized schema subcommand: "${options.subcommand_name}"`));
+    }
+  },
+  helpText,
+  processApplyConfig,
+  runApplyCommand,
+  runSaveCommand,
+  parse_schema,
 };
-schema.runCommand = (options, done) => {
-  // Determine if we are saving or loading and use appropriate runCommand
-  //  Also shutdown = true in this case since we are calling from the CLI. 
-  if (options.hasOwnProperty('force') || options.hasOwnProperty('update')) {
-    return runLoadCommand(options, true, done);
-  } else {
-    return runSaveCommand(options, true, done);
-  }
-};
-schema.helpText = helpText;
-schema.processLoadConfig = processLoadConfig;
-schema.runLoadCommand = runLoadCommand;
-schema.runSaveCommand = runSaveCommand;
-schema.parse_schema = parse_schema;
