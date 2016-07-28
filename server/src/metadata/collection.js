@@ -29,22 +29,22 @@ class Collection {
   }
 
   set_table(table) {
+    const old_table = this._table;
+    this.table = null;
+    this._table = null;
+
+    if (old_table) {
+      // Take back any waiters from the old Table
+      old_table._waiters.forEach((done) => this.on_ready(done));
+      old_table._waiters = [ ];
+    }
+
     if (table) {
       table.collection = this;
       this.table = table.table;
       this._table = table;
       this._waiters.forEach((done) => this._table.on_ready(done));
       this._waiters = [ ];
-    } else {
-      const old_table = this._table;
-      this.table = null;
-      this._table = null;
-
-      if (old_table) {
-        // Take back any waiters from the old Table
-        old_table._waiters.forEach((done) => this.on_ready(done));
-        old_table._waiters = [ ];
-      }
     }
   }
 

@@ -355,6 +355,8 @@ class Metadata {
     error.check(this._collections.get(name) === undefined,
                 `Collection "${name}" already exists.`);
 
+    // We don't have the collection's table id yet, so pass null down until we get
+    // notified by the index_changefeed about the new table.
     const collection = new Collection(name, null);
     this._collections.set(name, collection);
 
