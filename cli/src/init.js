@@ -100,7 +100,8 @@ project_name = "${projectName}"
 # 'allow_anonymous' issues new accounts to users without an auth provider
 # 'allow_unauthenticated' allows connections that are not tied to a user id
 # 'auth_redirect' specifies where users will be redirected to after login
-# 'access_control_allow_origin' sets a host that can access auth settings (typically your frontend host)
+# 'access_control_allow_origin' sets a host that can access auth settings
+#   (typically your frontend host)
 #------------------------------------------------------------------------------
 token_secret = "${crypto.randomBytes(64).toString('base64')}"
 # allow_anonymous = false

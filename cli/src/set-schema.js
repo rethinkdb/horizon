@@ -5,9 +5,8 @@ const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const start_rdb_server = require('./utils/start_rdb_server');
 const serve = require('./serve');
 const horizon_server = require('@horizon/server');
-const create_collection_reql = require('@horizon/server/src/metadata/metadata').create_collection_reql;
-const initialize_metadata_reql = require('@horizon/server/src/metadata/metadata').initialize_metadata_reql;
-const name_to_fields = require('@horizon/server/src/metadata/index').Index.name_to_info;
+const horizon_metadata = require('@horizon/server/src/metadata/metadata');
+const horizon_index = require('@horizon/server/src/metadata/index');
 
 const fs = require('fs');
 const Joi = require('joi');
@@ -16,6 +15,10 @@ const toml = require('toml');
 
 const r = horizon_server.r;
 const logger = horizon_server.logger;
+
+const create_collection_reql = horizon_metadata.create_collection_reql;
+const initialize_metadata_reql = horizon_metadata.initialize_metadata_reql;
+const name_to_info = horizon_index.name_to_info;
 
 const helpText = 'Set the schema in a horizon database';
 
@@ -138,8 +141,7 @@ const runCommand = (options, done) => {
   let schema, conn;
   let obsolete_collections = [ ];
 
-  const db = `hz_${options.project_name}`;
-  const internal_db = `hzinternal_${options.project_name}`;
+  const db = options.project_name;
 
   logger.level = 'error';
   interrupt.on_interrupt((done2) => {
@@ -170,19 +172,21 @@ const runCommand = (options, done) => {
                 port: options.rdb_port })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    return initialize_metadata_reql(internal_db, db).run(conn);
+    return initialize_metadata_reql(db).run(conn);
   }).then((initialization_result) => {
     if (initialization_result.tables_created) {
       console.log('Initialized new application metadata.');
     }
     // Wait for metadata tables to be writable
-    return r.db(internal_db)
-     .wait({ waitFor: 'ready_for_writes', timeout: 30 })
-     .run(conn);
+    return r.expr([ 'hz_collections', 'hz_groups' ])
+      .forEach((table) =>
+        r.db(db).table(table)
+          .wait({ waitFor: 'ready_for_writes', timeout: 30 }))
+      .run(conn);
   }).then(() => {
     // Error if any collections will be removed
     if (!options.update) {
-      return r.db(internal_db).table('collections')('id')
+      return r.db(db).table('hz_collections')('id')
         .coerceTo('array')
         .setDifference(schema.collections.map((c) => c.id))
         .run(conn)
@@ -204,7 +208,7 @@ const runCommand = (options, done) => {
           literal_group.rules[key] = r.literal(literal_group.rules[key]);
         });
 
-        return r.db(internal_db).table('groups')
+        return r.db(db).table('hz_groups')
           .get(group.id).replace((old_row) =>
             r.branch(old_row.eq(null),
                      group,
@@ -222,7 +226,7 @@ const runCommand = (options, done) => {
 
       return Promise.all([
         r.expr(groups_obj).do((groups) =>
-          r.db(internal_db).table('groups')
+          r.db(db).table('hz_groups')
             .replace((old_row) =>
               r.branch(groups.hasFields(old_row('id')),
                        old_row,
@@ -232,7 +236,7 @@ const runCommand = (options, done) => {
               throw new Error(`Failed to write groups: ${res.first_error}`);
             }
           }),
-        r.db(internal_db).table('groups')
+        r.db(db).table('hz_groups')
           .insert(schema.groups, { conflict: 'replace' })
           .run(conn).then((res) => {
             if (res.errors) {
@@ -246,7 +250,7 @@ const runCommand = (options, done) => {
     const promises = [ ];
     for (const c of schema.collections) {
       promises.push(
-        create_collection_reql(internal_db, db, c.id)
+        create_collection_reql(db, c.id)
           .run(conn).then((res) => {
             if (res.error) {
               throw new Error(res.error);
@@ -256,8 +260,8 @@ const runCommand = (options, done) => {
 
     for (const c of obsolete_collections) {
       promises.push(
-        r.db(internal_db)
-          .table('collections')
+        r.db(db)
+          .table('hz_collections')
           .get(c)
           .delete({ returnChanges: 'always' })('changes')(0)
           .do((res) =>
@@ -289,15 +293,15 @@ const runCommand = (options, done) => {
     promises.push(
       r.expr(schema.collections)
         .forEach((c) =>
-          r.db(db).table(r.db(internal_db).table('collections').get(c('id'))('table'),
-                         { identifierFormat: 'uuid' })
-            .do((table) =>
+          r.db(db).table('hz_collections').get(c('id')).do((collection) =>
+            // TODO: disambiguate using 'table' field once ReQL supports it
+            r.db(db).table(collection('id')).do((table) =>
               c('indexes')
                 .setDifference(table.indexList())
                 .forEach((index) =>
                   c('index_fields')(index).do((fields) =>
                     table.indexCreate(index, (row) =>
-                      fields.map((key) => row(key)))))))
+                      fields.map((key) => row(key))))))))
         .run(conn)
         .then((res) => {
           if (res.errors) {
@@ -310,17 +314,17 @@ const runCommand = (options, done) => {
       promises.push(
         r.expr(schema.collections)
           .forEach((c) =>
-            r.db(internal_db).table('collections')
-              .get(c('id'))
-              .do((row) =>
-                r.db(db).table(row('table')).indexList()
+            r.db(db).table('hz_collections').get(c('id')).do((collection) =>
+              // TODO: disambiguate using 'table' field once ReQL supports it
+              r.db(db).table(collection('id')).do((table) =>
+                table.indexList()
                   .setDifference(c('indexes'))
                   .forEach((index) =>
-                    r.db(db).table(row('table')).indexDrop(index))))
+                    table.indexDrop(index)))))
         .run(conn)
         .then((res) => {
           if (res.errors) {
-            throw new Error(`Failed to create indexes: ${res.first_error}`);
+            throw new Error(`Failed to remove old indexes: ${res.first_error}`);
           }
         }));
     }

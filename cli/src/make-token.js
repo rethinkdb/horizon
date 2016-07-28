@@ -3,11 +3,13 @@
 const interrupt = require('./utils/interrupt');
 const start_rdb_server = require('./utils/start_rdb_server');
 const serve = require('./serve');
-const logger = require('@horizon/server').logger;
+const horizon_server = require('@horizon/server');
 
 const path = require('path');
 const jwt = require('jsonwebtoken');
-const r = require('rethinkdb');
+
+const r = horizon_server.r;
+const logger = horizon_server.logger;
 
 const helpText = 'Generate a token to log in as a user';
 
@@ -65,7 +67,6 @@ const processConfig = (parsed) => {
 
 const runCommand = (options, done) => {
   const db = options.project_name;
-  const internal_db = `${db}_internal`;
   let conn;
 
   if (options.token_secret === null) {
@@ -95,11 +96,11 @@ const runCommand = (options, done) => {
                 port: options.rdb_port })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    return r.db(internal_db).table('users')
+    return r.db(db).table('users')
       .wait({ waitFor: 'ready_for_reads', timeout: 30 })
       .run(conn);
   }).then(() =>
-    r.db(internal_db).table('users').get(options.user).run(conn)
+    r.db(db).table('users').get(options.user).run(conn)
   ).then((res) => {
     conn.close();
 

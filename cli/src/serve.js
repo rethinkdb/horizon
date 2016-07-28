@@ -1,12 +1,11 @@
 'use strict';
 
 const chalk = require('chalk');
-const extend = require('util')._extend;
 const fs = require('fs');
 const getType = require('mime-types').contentType;
 const http = require('http');
 const https = require('https');
-const open = require("open");
+const open = require('open');
 const path = require('path');
 const toml = require('toml');
 const url = require('url');
@@ -135,7 +134,7 @@ const addArguments = (parser) => {
   parser.addArgument([ '--auth-redirect' ],
     { type: 'string', metavar: 'URL',
       help: 'The URL to redirect to upon completed authentication, defaults to "/".' });
-      
+
   parser.addArgument([ '--access-control-allow-origin' ],
     { type: 'string', metavar: 'URL',
       help: 'The URL of the host that can access auth settings, defaults to "".' });
@@ -308,20 +307,20 @@ const parse_connect = (connect, config) => {
   // expects rethinkdb://host:port` at a minimum but can optionally take a user:pass and db
   // e.g. rethinkdb://user:pass@host:port/db
   const rdb_uri = url.parse(connect);
-  if (rdb_uri.protocol === "rethinkdb:"){
+  if (rdb_uri.protocol === 'rethinkdb:') {
     if (rdb_uri.hostname) {
       config.rdb_host = rdb_uri.hostname;
       config.rdb_port = rdb_uri.port || default_rdb_port;
 
       // check for user/pass
       if (rdb_uri.auth) {
-        const user_pass = rdb_uri.auth.split(':')
+        const user_pass = rdb_uri.auth.split(':');
         config.rdb_user = user_pass[0];
         config.rdb_password = user_pass[1];
       }
 
       // set the project name based on the db
-      if (rdb_uri.path && rdb_uri.path.replace('/', '') != '') {
+      if (rdb_uri.path && rdb_uri.path.replace('/', '') !== '') {
         config.project_name = rdb_uri.path.replace('/', '');
       }
     } else {
@@ -385,7 +384,6 @@ const read_config_from_env = () => {
   const config = { auth: { } };
 
   for (const env_var in process.env) {
-
     const matches = env_regex.exec(env_var);
     if (matches && matches[1]) {
       const dest_var_name = matches[1].toLowerCase();
@@ -489,8 +487,9 @@ const read_config_from_flags = (parsed) => {
   if (parsed.token_secret !== null && parsed.token_secret !== undefined) {
     config.token_secret = parsed.token_secret;
   }
-  
-  if (parsed.access_control_allow_origin !== null && parsed.access_control_allow_origin !== undefined) {
+
+  if (parsed.access_control_allow_origin !== null &&
+      parsed.access_control_allow_origin !== undefined) {
     config.access_control_allow_origin = parsed.access_control_allow_origin;
   }
 
@@ -594,7 +593,7 @@ const startHorizonServer = (servers, opts) => {
     rdb_port: opts.rdb_port,
     rdb_user: opts.rdb_user || null,
     rdb_password: opts.rdb_password || null,
-    rdb_timeout: opts.rdb_timeout || null
+    rdb_timeout: opts.rdb_timeout || null,
   });
   const timeoutObject = setTimeout(() => {
     console.log(chalk.red.bold('Horizon failed to start after 30 seconds'));
@@ -694,7 +693,8 @@ const runCommand = (opts, done) => {
         console.log('Attempting open of index.html in default browser');
         open(`${scheme}${opts.bind}:${opts.port}/index.html`);
       } catch (open_err) {
-        console.log(chalk.red(`Error occurred while trying to open ${opts.serve_static}/index.html`));
+        console.log(chalk.red('Error occurred while trying to open ' +
+                              `${opts.serve_static}/index.html`));
         console.log(open_err);
       }
     }

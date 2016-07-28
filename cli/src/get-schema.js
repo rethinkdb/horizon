@@ -108,7 +108,6 @@ const config_to_toml = (collections, groups) => {
 
 const runCommand = (options, done) => {
   const db = options.project_name;
-  const internal_db = `${db}_internal`;
   let conn;
 
   logger.level = 'error';
@@ -134,15 +133,17 @@ const runCommand = (options, done) => {
                 port: options.rdb_port })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    return r.db(internal_db)
-      .wait({ waitFor: 'ready_for_reads', timeout: 30 })
+    return r.expr([ 'hz_collections', 'hz_groups' ])
+      .forEach((table) =>
+        r.db(db).table(table)
+          .wait({ waitFor: 'ready_for_reads', timeout: 30 }))
       .run(conn);
   }).then(() =>
     r.object('collections',
-             r.db(internal_db).table('collections').coerceTo('array')
+             r.db(db).table('hz_collections').coerceTo('array')
                .map((row) =>
-                 row.merge({ indexes: r.db(db).table(row('table')).indexList() })),
-             'groups', r.db(internal_db).table('groups').coerceTo('array'))
+                 row.merge({ indexes: r.db(db).table(row('id')).indexList() })),
+             'groups', r.db(db).table('hz_groups').coerceTo('array'))
       .run(conn)
   ).then((res) => {
     conn.close();
