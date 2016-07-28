@@ -4,7 +4,6 @@
 // To support `pidof horizon`, by default it shows in `pidof node`
 process.title = 'horizon';
 
-const argparse = require('argparse');
 const chalk = require('chalk');
 const path = require('path');
 
@@ -21,28 +20,15 @@ const makeTokenCommand = require('./make-token');
 // - runCommand: main function for the command
 // - helpText: a string to display in the hz help text
 const commands = {
+  init: initCommand,
+  serve: serveCommand,
+  version: versionCommand,
+  'create-cert': createCertCommand,
+  'make-token': makeTokenCommand,
+  schema: schemaCommand,
 };
 
 const programName = path.basename(process.argv[1]);
-
-function attachOldCommand(name, cmd) {
-  const newCmd = Object.assign({}, cmd, {
-    runCommand: function (args, done) {
-      const parser = new argparse.ArgumentParser({prog: `${programName} ${name}`});
-      cmd.addArguments(parser);
-      const opts = cmd.processConfig(parser.parseArgs(args));
-      cmd.runCommand(opts, done);
-    },
-  });
-  commands[name] = newCmd;
-}
-
-attachOldCommand("init", initCommand);
-attachOldCommand("serve", serveCommand);
-attachOldCommand("version", versionCommand);
-attachOldCommand("create-cert", createCertCommand);
-attachOldCommand("make-token", makeTokenCommand);
-attachOldCommand("schema", schemaCommand);
 
 function help() {
   console.log(`Usage: ${programName} subcommand [args...]`);

@@ -10,10 +10,13 @@ const jwt = require('jsonwebtoken');
 
 const r = horizon_server.r;
 const logger = horizon_server.logger;
+const argparse = require('argparse');
 
 const helpText = 'Generate a token to log in as a user';
 
-const addArguments = (parser) => {
+function parseArguments(args) {
+  const parser = new argparse.ArgumentParser({prog: "hz make-token"});
+
   parser.addArgument([ 'project_path' ],
     { type: 'string', nargs: '?',
       help: 'Change to this directory before serving' });
@@ -45,7 +48,9 @@ const addArguments = (parser) => {
   parser.addArgument([ 'user' ],
     { type: 'string', metavar: 'USER_ID',
       help: 'The ID of the user to issue a token for.' });
-};
+
+  return parser.parseArgs(args);
+}
 
 const processConfig = (parsed) => {
   let config;
@@ -65,7 +70,9 @@ const processConfig = (parsed) => {
   return Object.assign(config, { user: parsed.user });
 };
 
-const runCommand = (options, done) => {
+const runCommand = (args, done) => {
+  const options = processConfig(parseArguments(args));
+
   const db = options.project_name;
   let conn;
 
@@ -116,8 +123,6 @@ const runCommand = (options, done) => {
 };
 
 module.exports = {
-  addArguments,
-  processConfig,
   runCommand,
   helpText,
 };

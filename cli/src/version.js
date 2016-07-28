@@ -8,13 +8,7 @@ const runCommand = () => {
   console.info(package_json.version);
 };
 
-const processConfig = () => ({});
-
-const addArguments = () => {};
-
 module.exports = {
-  addArguments,
-  processConfig,
   runCommand,
   helpText,
 };

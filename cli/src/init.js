@@ -5,6 +5,7 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const process = require('process');
+const argparse = require('argparse');
 const checkProjectName = require('./utils/check-project-name');
 const rethrow = require('./utils/rethrow');
 
@@ -156,13 +157,15 @@ rethinkdb_data
 .hz/secrets.toml
 `
 
-const addArguments = (parser) => {
+function parseArguments(args) {
+  const parser = new argparse.ArgumentParser({prog: 'hz init'});
   parser.addArgument([ 'projectName' ],
     { action: 'store',
       help: 'Name of directory to create. Defaults to current directory',
       nargs: '?',
     }
   );
+  return parser.parseArgs(args);
 };
 
 const fileExists = (pathName) => {
@@ -173,8 +176,6 @@ const fileExists = (pathName) => {
     return false;
   }
 };
-
-const processConfig = (parsed) => parsed;
 
 function maybeMakeDir(createDir, dirName) {
   if (createDir) {
@@ -283,7 +284,8 @@ function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
   }
 }
 
-const runCommand = (parsed) => {
+function runCommand(args) {
+  const parsed = parseArguments(args);
   const check = checkProjectName(
     parsed.projectName,
     process.cwd(),
@@ -303,8 +305,6 @@ const runCommand = (parsed) => {
 
 
 module.exports = {
-  addArguments,
   runCommand,
-  processConfig,
   helpText,
 };
