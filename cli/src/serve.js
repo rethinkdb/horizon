@@ -729,7 +729,7 @@ const runCommand = (opts, done) => {
         update: true,
         force: false,
       });
-      schema.runApplyCommand(schemaOptions, false, (err) => { console.error(err); });
+      return schema.runApplyCommand(schemaOptions, false, (err) => { console.error(err); });
     }
   }).then(() => {
     hzInstance = startHorizonServer(httpServers, opts);
