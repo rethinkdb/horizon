@@ -150,6 +150,12 @@ token_secret = "${crypto.randomBytes(64).toString('base64')}"
 # secret = "0000000000000000000000000000000"
 `;
 
+const gitignore = () => `\
+rethinkdb_data
+**/*.log
+.hz/secrets.toml
+`
+
 const addArguments = (parser) => {
   parser.addArgument([ 'projectName' ],
     { action: 'store',
@@ -227,6 +233,18 @@ function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
     encoding: 'utf8',
     mode: 0o600, // Secrets are put in this config, so set it user, read/write only
   };
+
+  // Create .gitignore if it doesn't exist
+  if (!fileExists('.gitignore')) {
+    fs.appendFileSync(
+      '.gitignore',
+      gitignore(),
+      permissionGeneral
+    );
+    console.info(`Created ${niceDir}.gitignore`);
+  } else {
+    console.info('.gitignore already exists, not touching it.');
+  }
 
   // Create .hz/config.toml if it doesn't exist
   if (!fileExists('.hz/config.toml')) {
