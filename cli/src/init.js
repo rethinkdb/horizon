@@ -228,6 +228,21 @@ function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
     // read/write only
   };
 
+  // Create .gitignore if it doesn't exist
+  if (!fileExists('.gitignore')) {
+    fs.appendFileSync(
+      '.gitignore',
+      `rethinkdb_data
+      **/*.log
+      .hz/secrets.toml
+      `,
+      permissionGeneral
+    );
+    console.info(`Created ${niceDir}.gitignore`);
+  } else {
+    console.info('.gitignore already exists, not touching it.');
+  }
+
   // Create .hz/config.toml if it doesn't exist
   if (!fileExists('.hz/config.toml')) {
     fs.appendFileSync(
