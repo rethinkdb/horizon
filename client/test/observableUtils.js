@@ -114,22 +114,37 @@ export class ObservableTestPlan {
     return this
   }
 
-  do(action) {
-    this._plan.push([ 'do', action ])
+  execute(action) {
+    this._plan.push([ 'execute', action ])
     return this
   }
 
-  complete() {
-    this._plan.push([ 'complete' ])
+  expectComplete() {
+    this._plan.push([ 'expect_complete' ])
     return this
   }
 
-  error(regex) {
-    this._plan.push([ 'error', regex ])
+  expectError(regex) {
+    this._plan.push([ 'expect_error', regex ])
     return this
+  }
+
+  done() {
+    this._plan.push([ 'done' ])
   }
 }
 
 export function buildTestObservable(query, plan) {
+  query
+  for (const instruction of plan) {
+
+  }
+  query.subscribe({
+    next(x) {
+    },
+    error(e) {
+      if(this.ops.next({
+    },
+    complete(c)
 
 }
