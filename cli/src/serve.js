@@ -728,7 +728,7 @@ const runCommand = (opts, done) => {
         update: true,
         force: false,
       });
-      schema.runLoadCommand(schemaOptions, false, (err) => { console.error(err)});
+      return schema.runLoadCommand(schemaOptions, false, (err) => { console.error(err)});
     }
   }).then(() => {
     hzInstance = startHorizonServer(httpServers, opts);
