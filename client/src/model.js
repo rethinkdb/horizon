@@ -100,8 +100,8 @@ class ArrayTerm {
     this._value = value.map(x => aggregate(x))
   }
 
-  _reducer() {
-    return Array.prototype.concat(...arguments)
+  _reducer(...args) {
+    return args
   }
 
   _query(operation) {
