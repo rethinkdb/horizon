@@ -121,6 +121,11 @@ describe('hz init', () => {
         assertDirExists(projectDir, '.hz');
         done();
       });
+      it('creates the .gitignore file', (done) => {
+        initCommand.runCommand(runOptions);
+        assertFileExists(`${projectDir}`, '.gitignore');
+        done();
+      });
       it('creates the .hz/config.toml file', (done) => {
         initCommand.runCommand(runOptions);
         assertFileExists(`${projectDir}/.hz`, 'config.toml');
