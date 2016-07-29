@@ -1,5 +1,6 @@
 'use strict';
 
+const gae = require('./gae');
 const Auth = require('./auth').Auth;
 const Client = require('./client').Client;
 const ReqlConnection = require('./reql_connection').ReqlConnection;
@@ -147,6 +148,16 @@ class Server {
     this.add_http_handler('auth_methods', (req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': opts.access_control_allow_origin });
       res.end(JSON.stringify(this._auth_methods));
+    });
+
+    this.add_http_handler('gae', (req, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': opts.access_control_allow_origin });
+      gae.get_ips((err, ips) => {
+        if (err) {
+          res.statusCode = 500;
+        }
+        res.end(JSON.stringify(ips || {}));
+      });
     });
 
     if (http_servers.forEach === undefined) {
