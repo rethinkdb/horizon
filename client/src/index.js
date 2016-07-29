@@ -4,6 +4,7 @@ import 'rxjs/add/operator/catch'
 import 'rxjs/add/operator/concatMap'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/filter'
+import { Observable } from 'rxjs/Observable'
 
 import { Collection, UserDataTerm } from './ast'
 import { HorizonSocket } from './socket'
@@ -22,15 +23,25 @@ function Horizon({
   lazyWrites = false,
   authType = 'unauthenticated',
   keepalive = 60,
+  gaeInstanceIp = undefined, // undefined, 'external', 'internal'
   WebSocketCtor = WebSocket,
 } = {}) {
   // If we're in a redirection from OAuth, store the auth token for
   // this user in localStorage.
 
+  let wsHost = host
+  if (gaeInstanceIp) {
+    Observable.ajax(`http${(secure) ? 's' : ''}://${host}/${path}/gae`)
+      .map(ajax => ajax.response)
+      .subscribe(ips => {
+        wsHost = ips && ips[`${gaeInstanceIp}_ip`] || host
+      })
+  }
+
   const tokenStorage = new TokenStorage({ authType, path })
   tokenStorage.setAuthFromQueryParams()
 
-  const url = `ws${secure ? 's' : ''}:\/\/${host}\/${path}`
+  const url = `ws${secure ? 's' : ''}:\/\/${wsHost}\/${path}`
   const socket = new HorizonSocket({
     url,
     handshakeMessage: tokenStorage.handshake(),
