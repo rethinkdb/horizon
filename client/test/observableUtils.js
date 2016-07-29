@@ -98,6 +98,11 @@ export class ObservableTestPlan {
     this._query = null
   }
 
+  beforeHand(action) {
+    this._plan.push([ 'before', action ])
+    return this
+  }
+
   subscribeTo(query) {
     this._plan.push([ 'subscribe' ])
     this._query = query
@@ -109,42 +114,109 @@ export class ObservableTestPlan {
     return this
   }
 
-  beforeHand(action) {
-    this._plan.push([ 'before_hand', action ])
-    return this
-  }
-
   execute(action) {
     this._plan.push([ 'execute', action ])
     return this
   }
 
   expectComplete() {
-    this._plan.push([ 'expect_complete' ])
+    this._plan.push([ 'complete' ])
     return this
   }
 
   expectError(regex) {
-    this._plan.push([ 'expect_error', regex ])
+    this._plan.push([ 'error', regex ])
     return this
-  }
-
-  done() {
-    this._plan.push([ 'done' ])
   }
 }
 
 export function buildTestObservable(query, plan) {
-  query
-  for (const instruction of plan) {
+  // First, put all beforehand observables concatted and
+  // .ignoreElements() onto the start of the query
 
+  // Next, subscribe to the query with our observer
+  // Next,
+}
+
+class TestObserver {
+
+  constructor(plan, done) {
+    this.plan = plan
+    this._done = done
   }
-  query.subscribe({
-    next(x) {
-    },
-    error(e) {
-      if(this.ops.next({
-    },
-    complete(c)
 
+  // Check out the type of the next instruction
+  peekType() {
+    if (this.plan[0] !== undefined) {
+      return this.plan[0][0]
+    } else {
+      return undefined
+    }
+  }
+
+  expect(val) {
+    const [ t, expected, compare ] = this.plan.shift()
+    compare(val, expected)
+  }
+
+  execute() {
+    const [ t, action ] = this.plan.shift()
+    action.subscribe()
+  }
+
+  errorMatch(e) {
+    const [ t, regex ] = this.plan.shift()
+    if (e.message.match(regex)) {
+      this.done()
+    } else {
+      this.done(`Expected error to match ${regex}. Got: "${e.message}"`)
+    }
+  }
+
+  // Calls the test's done method with a user error if provided. If
+  // it's not provided, the test will pass successfully as long as the
+  // test plan is empty (we've hit all the milestones)
+  done(msg) {
+    if (msg instanceof Error) {
+      this._done(msg)
+    } else if (typeof 'msg' === 'string') {
+      this._done(new Error(msg))
+    } else if (this.plan.length === 0) {
+      this._done(new Error(`Test plan wasn't empty. Next was: ${this.plan[0]}`))
+    } else {
+      this._done()
+    }
+  }
+
+  // Observer methods below
+
+  next(val) {
+    let peek = this.peekType()
+    if (peek === 'expect') {
+      this.expect(val)
+    } else {
+    }
+    while (this.peekType('execute')) {
+      this.execute()
+    }
+    if (this.plan.length === 0) {
+      this.done()
+    }
+  }
+
+  error(e) {
+    if (this.peekType('error')) {
+      this.errorMatch(e)
+    } else {
+      this.done(e)
+    }
+  }
+
+  complete() {
+    if (this.peekType('complete')) {
+      this.done()
+    } else {
+      this.done(`Planned ${this.plan[0][0]} but completed instead`)
+    }
+  }
 }
