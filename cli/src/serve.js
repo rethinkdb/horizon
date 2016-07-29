@@ -8,6 +8,7 @@ const http = require('http');
 const https = require('https');
 const open = require('open');
 const path = require('path');
+const argparse = require('argparse');
 const toml = require('toml');
 const url = require('url');
 
@@ -31,7 +32,9 @@ const default_rdb_timeout = 20;
 
 const helpText = 'Serve a Horizon app';
 
-const addArguments = (parser) => {
+function parseArguments(args) {
+  const parser = new argparse.ArgumentParser({prog: "hz serve"});
+
   parser.addArgument([ 'project_path' ],
     { type: 'string', nargs: '?',
       help: 'Change to this directory before serving' });
@@ -152,7 +155,9 @@ const addArguments = (parser) => {
     { action: 'storeTrue',
       help: 'Open index.html in the static files folder once Horizon is ready to' +
       ' receive connections' });
-};
+
+  return parser.parseArgs(args);
+}
 
 const make_default_config = () => ({
   config: null,
@@ -674,7 +679,9 @@ const change_to_project_dir = (project_path) => {
 };
 
 // Actually serve based on the already validated options
-const runCommand = (opts, done) => {
+const runCommand = (args, done) => {
+  const opts = processConfig(parseArguments(args));
+
   if (opts.debug) {
     logger.level = 'debug';
   } else {
@@ -765,8 +772,6 @@ const runCommand = (opts, done) => {
   }).catch(done);
 };
 
-serve.addArguments = addArguments;
-serve.processConfig = processConfig;
 serve.runCommand = runCommand;
 serve.helpText = helpText;
 serve.merge_configs = merge_configs;

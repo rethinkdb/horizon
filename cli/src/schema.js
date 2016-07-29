@@ -11,6 +11,7 @@ const Joi = require('joi');
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const path = require('path');
 
+const argparse = require('argparse');
 const serve = require('./serve');
 const start_rdb_server = require('./utils/start_rdb_server');
 const toml = require('toml');
@@ -23,7 +24,9 @@ const name_to_info = horizon_index.name_to_info;
 
 const helpText = 'Apply and save the schema from a horizon database';
 
-const addArguments = (parser) => {
+function parseArguments(args) {
+  const parser = new argparse.ArgumentParser({prog: 'hz schema'});
+
   const subparsers = parser.addSubparsers({
     title: 'subcommands',
     dest: 'subcommand_name',
@@ -136,7 +139,9 @@ const addArguments = (parser) => {
     defaultValue: '.hz/schema.toml',
     help: 'File to write the horizon schema to, defaults to .hz/schema.toml.',
   });
-};
+
+  return parser.parseArgs(args);
+}
 
 const schema_schema = Joi.object().unknown(false).keys({
   collections: Joi.object().unknown(true).pattern(/.*/,
@@ -527,22 +532,22 @@ const runSaveCommand = (options, done, shutdown) => {
   });
 };
 
+function processConfig(options) {
+  // Determine if we are saving or applying and use appropriate config processing
+  switch (options.subcommand_name) {
+  case 'apply':
+    return processApplyConfig(options);
+  case 'save':
+    return processSaveConfig(options);
+  default:
+    throw new Error(`Unrecognized schema subcommand: "${options.subcommand_name}"`);
+  }
+}
 
 // Avoiding cyclical depdendencies
 module.exports = {
-  addArguments,
-  processConfig: (options) => {
-    // Determine if we are saving or applying and use appropriate config processing
-    switch (options.subcommand_name) {
-    case 'apply':
-      return processApplyConfig(options);
-    case 'save':
-      return processSaveConfig(options);
-    default:
-      throw new Error(`Unrecognized schema subcommand: "${options.subcommand_name}"`);
-    }
-  },
-  runCommand: (options, done) => {
+  runCommand: (args, done) => {
+    const options = processConfig(parseArguments(args));
     // Determine if we are saving or applying and use appropriate runCommand
     //  Also shutdown = true in this case since we are calling from the CLI.
     switch (options.subcommand_name) {

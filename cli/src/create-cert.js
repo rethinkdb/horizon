@@ -1,10 +1,16 @@
 'use strict';
 const hasbin = require('hasbin');
 const spawn = require('child_process').spawn;
+const process = require('process');
 
 const helpText = 'Generate a certificate';
 
-const runCommand = () => {
+const runCommand = (args) => {
+  if (args.length) {
+    console.error("create-cert takes no arguments");
+    process.exit(1);
+  }
+
   // TODO: user configuration?
   const settings = {
     binaryName: 'openssl',
@@ -56,13 +62,7 @@ const runCommand = () => {
   });
 };
 
-const processConfig = () => ({});
-
-const addArguments = () => {};
-
 module.exports = {
-  addArguments,
-  processConfig,
   runCommand,
   helpText,
 };
