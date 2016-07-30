@@ -2,92 +2,83 @@
 
 const assert = require('chai').assert;
 const mockFs = require('mock-fs');
-const sinon = require('sinon');
-const serveCommand = require('../src/serve');
+const serve = require('../src/serve');
 
+const global_args = [ '--secure=false' ];
+const make_args = (args) => global_args.concat(args);
 
-const globalTestOpts = {
-  insecure: true,
-  bind: [],
+const valid_project_data = {
+  '.hz': {
+    'config.toml': 'project_name = "projectName"\n',
+  },
 };
-Object.freeze(globalTestOpts);
 
 describe('hz serve', () => {
-  beforeEach(() => {
-    sinon.stub(console, 'error');
-    sinon.stub(process, 'exit');
+  let rdb_server;
+
+  before('start rethinkdb', () =>
+    start_rdb_server({
+      bind: ["127.0.0.1"],
+      dataDir: tmpdir() + "/horizon-test",
+    }).then((server) => {
+      rdb_server = server;
+    })
+  );
+
+  after('stop rethinkdb', () => rdb_server.close());
+  afterEach('restore mockfs', () => mockFs.restore());
+
+  describe('with a project path', () => {
+    const args = make_args([ 'test-app' ]);
+
+    beforeEach('initialize mockfs', () => mockFs({ 'test-app': valid_project_data }));
+
+    it('changes to the project directory', () => {
+      const before_dir = process.cwd();
+      console.log(`running with args: ${args}`);
+      return serve.run(args).then(() =>
+        assert.strictEqual(`${before_dir}/test-app`, process.cwd(),
+                           'directory should have changed')
+      );
+    });
+
+    it("fails if the .hz dir doesn't exist", () => {
+      mockFs({ 'test-app': {} });
+      return serve.run(args).then(() =>
+        assert(false, 'should have failed because the .hz directory is missing')
+      ).catch((err) =>
+        assert.throws(() => { throw err; }, /doesn't contain an .hz directory/)
+      );
+    });
+
+    it('continues if .hz dir does exist', () =>
+      serve.run(args)
+    );
   });
-  afterEach(() => {
-    mockFs.restore();
-    process.exit.restore();
-    console.error.restore();
-  });
-  describe('given a project path,', () => {
-    const currentOpts = Object.assign({
-      project_path: 'test-app',
-    }, globalTestOpts);
-    beforeEach(() => {
-      mockFs({
-        'test-app': {
-          '.hz': {
-            'config.toml': 'project_name = "projectName"\n',
-          },
-        },
-      });
+
+  describe('without a project path', () => {
+    const args = make_args([ '.' ]);
+
+    beforeEach('initialize mockfs', () => mockFs(valid_project_data));
+
+    it("doesn't change directories", () => {
+      const before_dir = process.cwd();
+      return serve.run(args).then(() =>
+        assert.strictEqual(before_dir, process.cwd(), 'directory should not have changed')
+      );
     });
-    it('switches to the path', (done) => {
-      const topDir = process.cwd();
-      serveCommand.runCommand(currentOpts, () => {});
-      const afterDir = process.cwd();
-      assert.equal(`${topDir}/test-app`, afterDir);
-      done();
+
+    it("fails if the .hz dir doesn't exist", (done) => {
+      mockFs({ });
+      return serve.run(args).then(() =>
+        assert(false, 'should have failed because the .hz directory is missing')
+      ).catch((err) =>
+        assert.throws(() => { throw err; }, /doesn't contain an .hz directory/)
+      );
     });
-    it("exits if the .hz dir doesn't exist", (done) => {
-      mockFs({
-        'test-app': {},
-      });
-      serveCommand.runCommand(currentOpts, () => {});
-      assert.isTrue(console.error
-                    .calledWithMatch(/doesn't contain an .hz directory/));
-      assert.isTrue(process.exit.calledWith(1));
-      done();
-    });
-    it('continues if .hz dir does exist', (done) => {
-      serveCommand.runCommand(currentOpts, () => {});
-      assert.isTrue(process.exit.neverCalledWith(1));
-      done();
-    });
-  });
-  describe('not given a project path', () => {
-    const currentOpts = Object.assign({
-      project_path: '.',
-    }, globalTestOpts);
-    beforeEach(() => {
-      mockFs({
-        '.hz': {
-          'config.toml': 'project_name = "projectName"\n',
-        },
-      });
-    });
-    it("doesn't change directories", (done) => {
-      const beforeDir = process.cwd();
-      serveCommand.runCommand(currentOpts, () => {});
-      const afterDir = process.cwd();
-      assert.equal(beforeDir, afterDir, 'directory changed');
-      done();
-    });
-    it("exits if the .hz dir doesn't exist", (done) => {
-      mockFs({});
-      serveCommand.runCommand(currentOpts, () => {});
-      assert.isTrue(console.error
-                    .calledWithMatch(/doesn't contain an .hz directory/));
-      assert.isTrue(process.exit.calledWith(1));
-      done();
-    });
-    it('continues if .hz dir does exist', (done) => {
-      serveCommand.runCommand(currentOpts, () => {});
-      assert.isTrue(process.exit.neverCalledWith(1));
-      done();
-    });
+
+    it('continues if .hz dir does exist', () =>
+      serve.run(args)
+    );
   });
 });

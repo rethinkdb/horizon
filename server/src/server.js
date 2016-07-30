@@ -195,8 +195,10 @@ class Server {
   }
 
   close() {
-    this._ws_servers.forEach((s) => s.close());
-    this._reql_conn.close();
+    return Promise.all([
+      Promise.all(this._ws_servers.map((s) => new Promise((resolve) => s.close(resolve)))),
+      this._reql_conn.close()
+    ]);
   }
 }
 

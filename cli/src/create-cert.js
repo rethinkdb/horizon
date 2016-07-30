@@ -1,14 +1,10 @@
 'use strict';
 const hasbin = require('hasbin');
 const spawn = require('child_process').spawn;
-const process = require('process');
 
-const helpText = 'Generate a certificate';
-
-const runCommand = (args) => {
+const run = (args) => {
   if (args.length) {
-    console.error("create-cert takes no arguments");
-    process.exit(1);
+    throw new Error('create-cert takes no arguments');
   }
 
   // TODO: user configuration?
@@ -29,40 +25,39 @@ const runCommand = (args) => {
     '-days', settings.days,
   ];
 
-  hasbin(settings.binaryName, function(hasOpenSSL) {
-    // show the invocation that's about to be run
-    console.log(`> ${settings.binaryName} ${binArgs.join(' ')}`);
-    // if we don't have openssl, bail
-    if (!hasOpenSSL) {
-      return console.error(`Missing ${settings.binaryName}. Make sure it is on the path.`);
-    }
+  return new Promise((resolve, reject) => {
+    hasbin(settings.binaryName, (hasOpenSSL) => {
+      // show the invocation that's about to be run
+      console.log(`> ${settings.binaryName} ${binArgs.join(' ')}`);
 
-    // otherwise start openssl
-    const sslProc = spawn(settings.binaryName, binArgs);
-
-    // pipe output appropriately
-    sslProc.stdout.pipe(process.stdout, { end: false });
-    sslProc.stderr.pipe(process.stderr, { end: false });
-
-    // and say nice things to the user when it's done
-    sslProc.on('close', (code) => {
-      console.log(`OpenSSL exited with code ${code}.`);
-      if (code) {
-        return console.error(
-          'Something seems to have gone wrong; ' +
-          'check the output above for details.'
-        );
-      } else {
-        return console.log(
-          'Everything seems to be fine. ' +
-          'Remember to add your shiny new certificates to your Horizon config!'
-        );
+      // if we don't have openssl, bail
+      if (!hasOpenSSL) {
+        reject(new Error(`Missing ${settings.binaryName}. Make sure it is on the path.`));
       }
+
+      // otherwise start openssl
+      const sslProc = spawn(settings.binaryName, binArgs);
+
+      // pipe output appropriately
+      sslProc.stdout.pipe(process.stdout, { end: false });
+      sslProc.stderr.pipe(process.stderr, { end: false });
+
+      // say nice things to the user when it's done
+      sslProc.on('error', reject);
+      sslProc.on('close', (code) => {
+        if (code) {
+          reject(new Error(`OpenSSL failed with code ${code}.`));
+        } else {
+          console.log('Everything seems to be fine. ' +
+                      'Remember to add your shiny new certificates to your Horizon config!');
+          resolve();
+        }
+      });
     });
   });
 };
 
 module.exports = {
-  runCommand,
-  helpText,
+  run,
+  description: 'Generate a certificate',
 };
