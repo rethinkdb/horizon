@@ -9,6 +9,7 @@ const interrupt = require('./utils/interrupt');
 const start_rdb_server = require('./utils/start_rdb_server');
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const change_to_project_dir = require('./utils/change_to_project_dir');
+const initialize_joi = require('./utils/initialize_joi');
 
 const fs = require('fs');
 const Joi = require('joi');
@@ -18,10 +19,11 @@ const argparse = require('argparse');
 const toml = require('toml');
 
 const r = horizon_server.r;
-const logger = horizon_server.logger;
 const create_collection_reql = horizon_metadata.create_collection_reql;
 const initialize_metadata = horizon_metadata.initialize_metadata;
 const name_to_info = horizon_index.name_to_info;
+
+initialize_joi(Joi);
 
 const parseArguments = (args) => {
   const parser = new argparse.ArgumentParser({ prog: 'hz schema' });
@@ -239,12 +241,11 @@ const runApplyCommand = (options) => {
   let obsolete_collections = [ ];
   const db = options.project_name;
 
-  const cleanup = () => {
-    return Promise.all([
+  const cleanup = () =>
+    Promise.all([
       conn ? conn.close() : Promise.resolve(),
       rdb_server ? rdb_server.close() : Promise.resolve(),
     ]);
-  };
 
   interrupt.on_interrupt(() => cleanup());
 
@@ -440,12 +441,11 @@ const runSaveCommand = (options) => {
   let conn, rdb_server;
   const db = options.project_name;
 
-  const cleanup = () => {
-    return Promise.all([
+  const cleanup = () =>
+    Promise.all([
       conn ? conn.close() : Promise.resolve(),
       rdb_server ? rdb_server.close() : Promise.resolve(),
     ]);
-  };
 
   interrupt.on_interrupt(() => cleanup());
 
