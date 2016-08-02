@@ -84,20 +84,8 @@ const processConfig = (parsed) => {
 };
 
 const run = (args) => {
-  const options = processConfig(parseArguments(args));
-  const db = options.project_name;
-  let conn, rdb_server;
-
-  if (options.token_secret === null) {
-    throw new Error('No token secret specified, unable to sign the token.');
-  }
-
-  if (options.start_rethinkdb) {
-    change_to_project_dir(options.project_path);
-  }
-
+  let db, options, conn, rdb_server;
   const old_log_level = logger.level;
-  logger.level = 'error';
 
   const cleanup = () => {
     logger.level = old_log_level;
@@ -110,13 +98,25 @@ const run = (args) => {
 
   interrupt.on_interrupt(() => cleanup());
 
-  return Promise.resolve().then(() =>
-    options.start_rethinkdb && start_rdb_server().then((server) => {
-      rdb_server = server;
-      options.rdb_host = 'localhost';
-      options.rdb_port = server.driver_port;
-    })
-  ).then(() =>
+  return Promise.resolve().then(() => {
+    options = processConfig(parseArguments(args));
+    db = options.project_name;
+    logger.level = 'error';
+
+    if (options.token_secret === null) {
+      throw new Error('No token secret specified, unable to sign the token.');
+    }
+
+    if (options.start_rethinkdb) {
+      change_to_project_dir(options.project_path);
+
+      return start_rdb_server().then((server) => {
+        rdb_server = server;
+        options.rdb_host = 'localhost';
+        options.rdb_port = server.driver_port;
+      });
+    }
+  }).then(() =>
     r.connect({ host: options.rdb_host,
                 port: options.rdb_port,
                 user: options.rdb_user,

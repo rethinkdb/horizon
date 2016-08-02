@@ -36,12 +36,13 @@ const create_collection_reql = (db, collection) =>
                       res))))),
       { old_val: row, new_val: row }));
 
-const initialize_metadata_reql = (db) =>
-  r.branch(r.dbList().contains(db), null, r.dbCreate(db))
-    .do(() =>
-      r.expr([ 'hz_collections', 'hz_users_auth', 'hz_groups', 'users' ])
-        .forEach((table) => r.branch(r.db(db).tableList().contains(table),
-                                     [], r.db(db).tableCreate(table))));
+const initialize_metadata = (db, conn) =>
+  r.branch(r.dbList().contains(db), null, r.dbCreate(db)).run(conn).then(() =>
+    Promise.all([ 'hz_collections', 'hz_users_auth', 'hz_groups', 'users' ].map((table) =>
+      r.branch(r.db(db).tableList().contains(table),
+               { },
+               r.db(db).tableCreate(table))
+        .run(conn))));
 
 class Metadata {
   constructor(project_name,
@@ -70,7 +71,7 @@ class Metadata {
     }).then(() => {
       logger.debug('checking for internal db/tables');
       if (this._auto_create_collection) {
-        return initialize_metadata_reql(this._db).run(this._conn);
+        return initialize_metadata(this._db, this._conn);
       } else {
         return r.dbList().contains(this._db).run(this._conn).then((is_missing_db) => {
           if (is_missing_db) {
@@ -402,4 +403,4 @@ class Metadata {
   }
 }
 
-module.exports = { Metadata, create_collection_reql, initialize_metadata_reql };
+module.exports = { Metadata, create_collection_reql, initialize_metadata };

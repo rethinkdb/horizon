@@ -322,19 +322,10 @@ const start_horizon_server = (http_servers, opts) =>
     rdb_timeout: opts.rdb_timeout || null,
   });
 
-const run = (args) => {
-  const opts = processConfig(parseArguments(args));
-  let http_servers, hz_server, rdb_server;
-
+// `interruptor` is meant for use by tests to stop the server without relying on SIGINT
+const run = (args, interruptor) => {
+  let opts, http_servers, hz_server, rdb_server;
   const old_log_level = logger.level;
-  logger.level = opts.debug ? 'debug' : 'warn';
-
-  if (!opts.secure && opts.auth && Array.from(Object.keys(opts.auth)).length > 0) {
-    logger.warn('Authentication requires that the server be accessible via HTTPS. ' +
-                'Either specify "secure=true" or use a reverse proxy.');
-  }
-
-  change_to_project_dir(opts.project_path);
 
   const cleanup = () => {
     logger.level = old_log_level;
@@ -342,15 +333,29 @@ const run = (args) => {
     return Promise.all([
       hz_server ? hz_server.close() : Promise.resolve(),
       rdb_server ? rdb_server.close() : Promise.resolve(),
-      Promise.all(http_servers.map((s) => new Promise((resolve) => s.close(resolve)))),
+      http_servers ? Promise.all(http_servers.map((s) => new Promise((resolve) => s.close(resolve)))) : Promise.resolve(),
     ]);
   };
 
   interrupt.on_interrupt(() => cleanup());
 
-  return Promise.resolve().then(() =>
-    (opts.secure ? create_secure_servers(opts) : create_insecure_servers(opts))
-  ).then((servers) => {
+  return Promise.resolve().then(() => {
+    opts = processConfig(parseArguments(args));
+    logger.level = opts.debug ? 'debug' : 'warn';
+
+    if (!opts.secure && opts.auth && Array.from(Object.keys(opts.auth)).length > 0) {
+      logger.warn('Authentication requires that the server be accessible via HTTPS. ' +
+                  'Either specify "secure=true" or use a reverse proxy.');
+    }
+
+    change_to_project_dir(opts.project_path);
+  
+    if (opts.secure) {
+      return create_secure_servers(opts);
+    } else {
+      return create_insecure_servers(opts);
+    }
+  }).then((servers) => {
     http_servers = servers;
 
     if (opts.start_rethinkdb) {
@@ -425,7 +430,11 @@ const run = (args) => {
         console.log(open_err);
       }
     }
-    return hz_server._interruptor.catch(() => { });
+
+    return Promise.race([
+      hz_server._interruptor.catch(() => { }),
+      interruptor ? interruptor.catch(() => { }) : new Promise(() => { }),
+    ]);
   }).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
 

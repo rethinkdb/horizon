@@ -17,6 +17,7 @@ const version_check = horizon_server.utils.rethinkdb_version_check;
 
 class RethinkdbServer {
   constructor(options) {
+    const quiet = Boolean(options.quiet);
     const bind = options.bind || [ '127.0.0.1' ];
     const dataDir = options.dataDir || defaultDatadir;
     const driverPort = options.rdbPort;
@@ -65,10 +66,12 @@ class RethinkdbServer {
       };
 
       each_line_in_pipe(this.proc.stdout, (line) => {
-        if (infoLevelLog(line)) {
-          logger.info('RethinkDB', line);
-        } else {
-          logger.debug('RethinkDB stdout:', line);
+        if (!quiet) {
+          if (infoLevelLog(line)) {
+            logger.info('RethinkDB', line);
+          } else {
+            logger.debug('RethinkDB stdout:', line);
+          }
         }
         if (this.driver_port === undefined) {
           const matches = line.match(
@@ -125,6 +128,7 @@ class RethinkdbServer {
 
 // start_rdb_server
 // Options:
+// quiet: boolean, suppresses rethinkdb log messages
 // bind: array of ip addresses to bind to, or 'all'
 // dataDir: name of rethinkdb data directory. Defaults to `rethinkdb_data`
 // driverPort: port number for rethinkdb driver connections. Auto-assigned by default.

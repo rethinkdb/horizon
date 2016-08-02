@@ -20,7 +20,7 @@ const toml = require('toml');
 const r = horizon_server.r;
 const logger = horizon_server.logger;
 const create_collection_reql = horizon_metadata.create_collection_reql;
-const initialize_metadata_reql = horizon_metadata.initialize_metadata_reql;
+const initialize_metadata = horizon_metadata.initialize_metadata;
 const name_to_info = horizon_index.name_to_info;
 
 const parseArguments = (args) => {
@@ -141,8 +141,6 @@ const processApplyConfig = (parsed) => {
   let options, in_file;
 
   options = config.default_options();
-  options.start_rethinkdb = true;
-
   options = config.merge_options(options,
     config.read_from_config_file(parsed.project_path, parsed.config));
   options = config.merge_options(options, config.read_from_env());
@@ -237,17 +235,10 @@ const schema_to_toml = (collections, groups) => {
 };
 
 const runApplyCommand = (options) => {
-  const db = options.project_name;
   let conn, schema, rdb_server;
   let obsolete_collections = [ ];
-
-  if (options.start_rethinkdb) {
-    change_to_project_dir(options.project_path);
-  }
-
-  // Use the 'error' level so RethinkDB output doesn't pollute the console
   const old_log_level = logger.level;
-  logger.level = 'error';
+  const db = options.project_name;
 
   const cleanup = () => {
     logger.level = old_log_level;
@@ -261,6 +252,9 @@ const runApplyCommand = (options) => {
   interrupt.on_interrupt(() => cleanup());
 
   return Promise.resolve().then(() => {
+    // Use the 'error' level so RethinkDB output doesn't pollute the console
+    logger.level = 'error';
+
     if (options.start_rethinkdb) {
       change_to_project_dir(options.project_path);
     }
@@ -289,7 +283,7 @@ const runApplyCommand = (options) => {
                 timeout: options.rdb_timeout })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    return initialize_metadata_reql(db).run(conn);
+    return initialize_metadata(db, conn);
   }).then((initialization_result) => {
     if (initialization_result.tables_created) {
       console.log('Initialized new application metadata.');
@@ -449,16 +443,9 @@ const runApplyCommand = (options) => {
 };
 
 const runSaveCommand = (options) => {
-  const db = options.project_name;
   let conn, rdb_server;
-
-  if (options.start_rethinkdb) {
-    change_to_project_dir(options.project_path);
-  }
-
-  // Use the 'error' level so RethinkDB output doesn't pollute the console
+  const db = options.project_name;
   const old_log_level = logger.level;
-  logger.level = 'error';
 
   const cleanup = () => {
     logger.level = old_log_level;
@@ -471,7 +458,14 @@ const runSaveCommand = (options) => {
 
   interrupt.on_interrupt(() => cleanup());
 
-  return new Promise.resolve().then(() => {
+  return Promise.resolve().then(() => {
+    // Use the 'error' level so RethinkDB output doesn't pollute the console
+    logger.level = 'error';
+
+    if (options.start_rethinkdb) {
+      change_to_project_dir(options.project_path);
+    }
+  }).then(() => {
     if (options.start_rethinkdb) {
       return start_rdb_server().then((server) => {
         rdb_server = server;
@@ -517,18 +511,19 @@ const processConfig = (options) => {
 
 // Avoiding cyclical depdendencies
 module.exports = {
-  run: (args) => {
-    const options = processConfig(parseArguments(args));
-    // Determine if we are saving or applying and use appropriate run function
-    switch (options.subcommand_name) {
-    case 'apply':
-      return runApplyCommand(options);
-    case 'save':
-      return runSaveCommand(options);
-    default:
-      throw new Error(`Unrecognized schema subcommand: "${options.subcommand_name}"`);
-    }
-  },
+  run: (args) =>
+    Promise.resolve().then(() => {
+      const options = processConfig(parseArguments(args));
+      // Determine if we are saving or applying and use appropriate run function
+      switch (options.subcommand_name) {
+      case 'apply':
+        return runApplyCommand(options);
+      case 'save':
+        return runSaveCommand(options);
+      default:
+        throw new Error(`Unrecognized schema subcommand: "${options.subcommand_name}"`);
+      }
+    }),
   description: 'Apply and save the schema from a horizon database',
   processApplyConfig,
   runApplyCommand,
