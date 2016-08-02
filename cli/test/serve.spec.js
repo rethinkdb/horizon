@@ -5,7 +5,6 @@ const schema = require('../src/schema');
 const start_rdb_server = require('../src/utils/start_rdb_server');
 const rm_sync_recursive = require('../src/utils/rm_sync_recursive');
 
-const stream = require('stream');
 const tmpdir = require('os').tmpdir;
 
 const assert = require('chai').assert;
@@ -16,7 +15,7 @@ const serve_args = [
   '--secure=false',
   '--port=0',
   '--auto-create-collection',
-  `--project-name=${project_name}`
+  `--project-name=${project_name}`,
 ];
 const make_args = (args) => serve_args.concat(args);
 
@@ -27,13 +26,12 @@ const valid_project_data = {
 };
 
 describe('hz serve', () => {
-  const rdb_data_dir = tmpdir() + "/horizon-test-${process.pid}";
-  let rdb_server, old_stdin;
+  const rdb_data_dir = `${tmpdir()}/horizon-test-${process.pid}`;
+  let rdb_server;
 
   before('start rethinkdb', () =>
     start_rdb_server({
       quiet: true,
-      bind: ["127.0.0.1"],
       dataDir: rdb_data_dir,
     }).then((server) => {
       rdb_server = server;
@@ -41,7 +39,7 @@ describe('hz serve', () => {
     })
   );
 
-  after('stop rethinkdb', () => rdb_server.close());
+  after('stop rethinkdb', () => rdb_server && rdb_server.close());
 
   // Run schema apply with a blank schema
   before('initialize rethinkdb', () => {
@@ -67,7 +65,7 @@ describe('hz serve', () => {
       );
     });
 
-    it("fails if the .hz dir doesn't exist", () => {
+    it('fails if the .hz dir does not exist', () => {
       mockFs({ [project_name]: {} });
       return serve.run(make_args([ project_name ]), Promise.resolve()).then(() =>
         assert(false, 'should have failed because the .hz directory is missing')
@@ -84,14 +82,14 @@ describe('hz serve', () => {
   describe('without a project path', () => {
     beforeEach('initialize mockfs', () => mockFs(valid_project_data));
 
-    it("doesn't change directories", () => {
+    it('does not change directories', () => {
       const before_dir = process.cwd();
       return serve.run(make_args([ '.' ]), Promise.resolve()).then(() =>
         assert.strictEqual(before_dir, process.cwd(), 'directory should not have changed')
       );
     });
 
-    it("fails if the .hz dir doesn't exist", () => {
+    it('fails if the .hz dir does not exist', () => {
       mockFs({ });
       return serve.run(make_args([ '.' ]), Promise.resolve()).then(() =>
         assert(false, 'should have failed because the .hz directory is missing')

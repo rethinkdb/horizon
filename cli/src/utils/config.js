@@ -9,9 +9,7 @@ const toml = require('toml');
 
 const default_config_file = '.hz/config.toml';
 const default_secrets_file = '.hz/secrets.toml';
-const default_rdb_host = 'localhost';
 const default_rdb_port = 28015;
-const default_rdb_timeout = 20;
 
 const make_default_options = () => ({
   config: null,

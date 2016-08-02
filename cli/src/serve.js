@@ -333,7 +333,8 @@ const run = (args, interruptor) => {
     return Promise.all([
       hz_server ? hz_server.close() : Promise.resolve(),
       rdb_server ? rdb_server.close() : Promise.resolve(),
-      http_servers ? Promise.all(http_servers.map((s) => new Promise((resolve) => s.close(resolve)))) : Promise.resolve(),
+      http_servers ? Promise.all(http_servers.map((s) =>
+        new Promise((resolve) => s.close(resolve)))) : Promise.resolve(),
     ]);
   };
 
@@ -349,7 +350,7 @@ const run = (args, interruptor) => {
     }
 
     change_to_project_dir(opts.project_path);
-  
+
     if (opts.secure) {
       return create_secure_servers(opts);
     } else {

@@ -41,9 +41,8 @@ const assertFileDoesntExist = (baseDir, fileName) => {
   assertNameDoesntExist(baseDir, fileName);
 };
 
-const getFileString = (filepath) => {
-  return fs.readFileSync(filepath, { encoding: 'utf8' });
-};
+const getFileString = (filepath) =>
+  fs.readFileSync(filepath, { encoding: 'utf8' });
 
 const readToml = (filepath) => {
   const tomlData = getFileString(filepath);
@@ -60,11 +59,6 @@ const assertValidSecrets = (filepath) => {
   const secretsObject = readToml(filepath);
   // Need an uncommented token_secret
   assert.property(secretsObject, 'token_secret');
-};
-
-const assertConfigProjectName = (filepath, expectedName) => {
-  const configObject = readToml(filepath);
-  assert.propertyVal(configObject, 'project_name', expectedName);
 };
 
 describe('hz init', () => {

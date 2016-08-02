@@ -1,7 +1,7 @@
 'use strict';
 
-const start_rdb_server = require("../src/utils/start_rdb_server");
-const processApplyConfig = require("../src/schema").processApplyConfig;
+const start_rdb_server = require('../src/utils/start_rdb_server');
+const processApplyConfig = require('../src/schema').processApplyConfig;
 const runApplyCommand = require('../src/schema').runApplyCommand;
 const runSaveCommand = require('../src/schema').runSaveCommand;
 const parse_schema = require('../src/schema').parse_schema;
@@ -23,7 +23,7 @@ indexes = ["hz_[\\\"datetime\\\"]"]
 [groups.admin]
 [groups.admin.rules.carte_blanche]
 template = "any()"
-`
+`;
 
 const brokenTestSchema = `
 [collectiosfklajsfns.test_messages]
@@ -32,7 +32,7 @@ indexes = ["datetime"]
 [groups.adminasklfjasf]
 [groups.admin.rules.carte_blanche]
 template = "any()a;lkdfjlakjf;ladkfjal;kfj"
-`
+`;
 
 const valid_file_system = {
   '.hz': {
@@ -40,15 +40,13 @@ const valid_file_system = {
   },
 };
 
-describe("hz schema", () => {
-  const rdb_data_dir = tmpdir() + `/horizon-test-${process.pid}`;
-  let rdb_server;
-  let rdb_conn;
+describe('hz schema', () => {
+  const rdb_data_dir = `${tmpdir()}/horizon-test-${process.pid}`;
+  let rdb_conn, rdb_server;
 
   before('start rethinkdb', () =>
     start_rdb_server({
       quiet: true,
-      bind: ["127.0.0.1"],
       dataDir: rdb_data_dir,
     }).then((server) => {
       rdb_server = server;
@@ -66,13 +64,13 @@ describe("hz schema", () => {
   beforeEach('initialize mockfs', () => mockFs(valid_file_system));
   afterEach('restore fs', () => mockFs.restore());
 
-  describe("save", () => {
+  describe('save', () => {
     beforeEach('initialize database', () =>
       runApplyCommand(processApplyConfig({
         start_rethinkdb: false,
-        schema_file: `.hz/schema.toml`,
+        schema_file: '.hz/schema.toml',
         project_name,
-        connect: `127.0.0.1:${rdb_server.driver_port}`,
+        connect: `localhost:${rdb_server.driver_port}`,
       }))
     );
 
@@ -84,10 +82,10 @@ describe("hz schema", () => {
       ).run(rdb_conn)
     );
 
-    it("saves schema to schema.toml from rdb", () =>
+    it('saves schema to schema.toml from rdb', () =>
       runSaveCommand({
         start_rethinkdb: false,
-        rdb_host: '127.0.0.1',
+        rdb_host: 'localhost',
         rdb_port: rdb_server.driver_port,
         out_file: fs.createWriteStream('out.toml', { flags: 'w' }),
         project_name,
@@ -97,12 +95,12 @@ describe("hz schema", () => {
     );
   });
 
-  describe("apply", () => {
-    it("should apply schema to rdb from schema.toml", () => {
+  describe('apply', () => {
+    it('should apply schema to rdb from schema.toml', () => {
       const config = processApplyConfig({
         connect: `localhost:${rdb_server.driver_port}`,
         schema_file: '.hz/schema.toml',
-        start_rethinkdb: false, 
+        start_rethinkdb: false,
         update: true,
         force: true,
         secure: false,
@@ -126,8 +124,8 @@ describe("hz schema", () => {
       );
     });
   });
-  
-  describe("given a schema.toml file", () => {
+
+  describe('given a schema.toml file', () => {
     it('can parse a valid schema.toml file', () => {
       parse_schema(testSchema);
     });
@@ -138,13 +136,13 @@ describe("hz schema", () => {
       }, /"collectiosfklajsfns" is not allowed/);
     });
 
-    it('can read a vaild schema.toml file', () => {
-      const createdConfig = processApplyConfig({
-        start_rethinkdb: true, 
+    it('can read a vaild schema.toml file', () =>
+      processApplyConfig({
+        start_rethinkdb: true,
         schema_file: '.hz/schema.toml',
         update: true,
         force: true,
-      });
-    });
+      })
+    );
   });
 });
