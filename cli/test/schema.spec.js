@@ -1,10 +1,11 @@
 'use strict';
 
-const start_rdb_server = require('../src/utils/start_rdb_server');
 const processApplyConfig = require('../src/schema').processApplyConfig;
 const runApplyCommand = require('../src/schema').runApplyCommand;
 const runSaveCommand = require('../src/schema').runSaveCommand;
 const parse_schema = require('../src/schema').parse_schema;
+const start_rdb_server = require('../src/utils/start_rdb_server');
+const rm_sync_recursive = require('../src/utils/rm_sync_recursive');
 
 const assert = require('assert');
 const fs = require('fs');
@@ -54,6 +55,7 @@ describe('hz schema', () => {
   );
 
   after('stop rethinkdb', () => rdb_server && rdb_server.close());
+  after('delete rethinkdb data directory', () => rm_sync_recursive(rdb_data_dir));
 
   before('connect to rethinkdb', () =>
     rdb_server.connect().then((conn) => {

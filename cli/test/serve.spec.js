@@ -39,8 +39,6 @@ describe('hz serve', () => {
     })
   );
 
-  after('stop rethinkdb', () => rdb_server && rdb_server.close());
-
   // Run schema apply with a blank schema
   before('initialize rethinkdb', () => {
     mockFs({ 'schema.toml': '' });
@@ -50,7 +48,8 @@ describe('hz serve', () => {
       .then(() => mockFs.restore());
   });
 
-  after('clean rethinkdb data', () => rm_sync_recursive(rdb_data_dir));
+  after('stop rethinkdb', () => rdb_server && rdb_server.close());
+  after('delete rethinkdb data directory', () => rm_sync_recursive(rdb_data_dir));
 
   afterEach('restore mockfs', () => mockFs.restore());
 
