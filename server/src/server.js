@@ -73,12 +73,11 @@ class Server {
     this._auth_methods = { };
     this._request_handlers = new Map();
     this._http_handlers = new Map();
-    this._ws_servers = new Set();
+    this._ws_servers = [ ];
+    this._close_promise = null;
     this._interruptor = new Promise((resolve, reject) => {
       this._interrupt = reject;
     });
-
-    this._interruptor.then(() => console.log('interruptor then')).catch(() => console.log('interruptor catch'));
 
     try {
       this._reql_conn = new ReqlConnection(opts.rdb_host,
@@ -113,7 +112,7 @@ class Server {
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
         .on('connection', (socket) => new Client(socket, this));
 
-        this._ws_servers.add(ws_server);
+        this._ws_servers.push(ws_server);
       };
 
       const path_replace = new RegExp('^' + this._path + '/');
@@ -207,12 +206,16 @@ class Server {
   }
 
   close() {
-    console.log('hz instance close');
-    this._interrupt(new Error('Horizon server is shutting down.'));
-    return Promise.all([
-      Promise.all(this._ws_servers.map((s) => new Promise((resolve) => s.close(resolve)))),
-      this._reql_conn.ready().catch(() => { }),
-    ]);
+    if (!this._close_promise) {
+      this._interrupt(new Error('Horizon server is shutting down.'));
+      this._close_promise = Promise.all([
+        Promise.all(this._ws_servers.map((s) => new Promise((resolve) => {
+          s.close(resolve);
+        }))),
+        this._reql_conn.ready().catch(() => { }),
+      ]);
+    }
+    return this._close_promise;
   }
 }
 

@@ -97,8 +97,9 @@ class RethinkdbServer {
     return this.ready_promise;
   }
 
+  // This is only used by tests - cli commands use a more generic method as
+  // the database may be launched elsewhere.
   connect() {
-    console.log(`connecting to localhost:${this.driver_port}`);
     return r.connect({ host: 'localhost', port: this.driver_port });
   }
 

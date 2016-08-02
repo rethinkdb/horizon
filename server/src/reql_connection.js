@@ -13,7 +13,6 @@ class ReqlConnection {
               auto_create_collection, auto_create_index,
               user, pass, connect_timeout,
               interruptor) {
-    console.log(`log level: ${logger.level}`);
     this._rdb_options = {
       host,
       port,
@@ -30,7 +29,6 @@ class ReqlConnection {
     this._retry_timer = null;
 
     interruptor.catch((err) => {
-      console.log(`HZ interruptor pulsed: ${err}`);
       if (this._retry_timer) {
         clearTimeout(this._retry_timer);
       }
@@ -51,7 +49,6 @@ class ReqlConnection {
   _reconnect() {
     if (this._conn) {
       this._conn.removeAllListeners('close');
-      this._conn.removeAllListeners('error');
       this._conn.close();
     }
     if (this._metadata) {
@@ -64,7 +61,6 @@ class ReqlConnection {
       client.close({ error: 'Connection to the database was lost.' }));
     this._clients.clear();
 
-    console.log(`reconnect, interrupted: ${this._interrupted_err}`);
     if (this._interrupted_err) {
       return Promise.reject(this._interrupted_err);
     } else if (!this._retry_timer) {
@@ -77,7 +73,6 @@ class ReqlConnection {
 
   _init_connection() {
     this._retry_timer = null;
-    console.log('Connecting to RethinkDB');
 
     return r.connect(this._rdb_options).then((conn) => {
       if (this._interrupted_err) {
@@ -101,6 +96,9 @@ class ReqlConnection {
         logger.error('Lost connection to RethinkDB.');
         this._reconnect();
       });
+
+      // This is to avoid EPIPE errors - handling is done by the 'close' listener
+      this._conn.on('error', () => { });
 
       return this;
     }).catch((err) => {

@@ -324,7 +324,7 @@ const start_horizon_server = (http_servers, opts) =>
 
 const run = (args) => {
   const opts = processConfig(parseArguments(args));
-  let conn, http_servers, hz_server, rdb_server;
+  let http_servers, hz_server, rdb_server;
 
   const old_log_level = logger.level;
   logger.level = opts.debug ? 'debug' : 'warn';
@@ -340,10 +340,9 @@ const run = (args) => {
     logger.level = old_log_level;
 
     return Promise.all([
-      conn ? conn.close() : Promise.resolve(),
       hz_server ? hz_server.close() : Promise.resolve(),
       rdb_server ? rdb_server.close() : Promise.resolve(),
-      Promise.all(http_servers.map((server) => new Promise((resolve) => server.close(resolve)))),
+      Promise.all(http_servers.map((s) => new Promise((resolve) => s.close(resolve)))),
     ]);
   };
 
@@ -426,7 +425,7 @@ const run = (args) => {
         console.log(open_err);
       }
     }
-    return hz_server._interruptor;
+    return hz_server._interruptor.catch(() => { });
   }).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
 

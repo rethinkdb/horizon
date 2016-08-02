@@ -8,10 +8,7 @@ const on_interrupt = (cb) => {
 
 const run_handlers = () => {
   if (handlers.length > 0) {
-    console.log(`running interrupt handler:\n${handlers[handlers.length - 1]}`);
     return handlers.shift()().then(() => run_handlers);
-  } else {
-    console.log('no more interrupt handlers');
   }
 };
 
