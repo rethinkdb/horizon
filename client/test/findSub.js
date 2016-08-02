@@ -1,15 +1,32 @@
 import 'rxjs/add/operator/concat'
 
-import { assertCompletes, observableInterleave } from './utils'
+import { removeAllData,
+         assertCompletes,
+         compareSetsWithoutVersion } from './utils'
 import { oit } from './observableUtils'
 
-export default function findSubscriptionSuite(getData) {
+export default function findSubscriptionSuite() {
   return () => {
-  let data
+  const horizon = Horizon({ lazyWrites: true })
+  const data = horizon('test_data')
+  const testData = [
+    { id: 1, a: 10 },
+    { id: 2, a: 20, b: 1 },
+    { id: 3, a: 20, b: 2 },
+    { id: 4, a: 20, b: 3 },
+    { id: 5, a: 60 },
+    { id: 6, a: 50 },
+  ]
 
-  before(() => {
-    data = getData()
-  })
+  before(assertCompletes(() => {
+    return data.store(testData)
+      .ignoreElements()
+      .concat(data.fetch())
+      .do(res => compareSetsWithoutVersion(res, testData))
+  }))
+
+  afterEach(done => removeAllData(data, done))
+
 
   oit('returns an updating document', t => {
     t.subscribeTo(data.find(1).watch())
@@ -20,7 +37,6 @@ export default function findSubscriptionSuite(getData) {
       .expect({ id: 1, val: 'bar' })
       .do(data.remove({ id: 1 }))
       .expect(null)
-      .done()
   })
 
   oit('receives results from store operations', t => {
@@ -32,7 +48,6 @@ export default function findSubscriptionSuite(getData) {
       .expect({ id: 1, a: 2 })
       .do(data.remove(1))
       .expect(null)
-      .done()
   })
 
   oit("doesn't see events that don't belong to it", t => {
@@ -45,7 +60,6 @@ export default function findSubscriptionSuite(getData) {
       .expect({ id: 1, data: 'blep' })
       .do(data.remove(1))
       .expect(null)
-      .done()
   })
 
   oit('properly handles initial values', t => {
@@ -56,12 +70,11 @@ export default function findSubscriptionSuite(getData) {
       .expect({ id: 1, a: 2 })
       .do(data.remove(1))
       .expect(null)
-      .complete()
+      .expectComplete()
   })
 
   oit('emits null when the document id is not found', t => {
     t.subscribeTo(data.find('does_not_exist').watch())
-     .expect(1)
-     .done()
+     .expect(null)
   })
 }}

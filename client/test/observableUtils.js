@@ -1,7 +1,19 @@
+import { Observable } from 'rxjs/Observable'
+
+import 'rxjs/add/observable/empty'
+import 'rxjs/add/operator/concat'
+
 import { assert } from 'chai'
 
-export function oit(title, implementation) {
-  it(title, observableTest(implementation))
+export function oit(title, getTest) {
+  it(title, observableTest(getTest))
+}
+
+export function observableTest(getTest) {
+  const testPlan = new ObservableTestPlan()
+  getTest(testPlan)
+  const obs = buildTestObservable(testPlan._plan)
+  return done => obs.subscribe({ error: done, complete: done })
 }
 
 export class ObservableTestPlan {
@@ -12,7 +24,7 @@ export class ObservableTestPlan {
 
   beforeHand(action) {
     this._plan.push({
-      type: 'before',
+      type: 'beforeHand',
       action,
     })
     return this
@@ -20,10 +32,8 @@ export class ObservableTestPlan {
 
   subscribeTo(query) {
     this._plan.push({
-      type: 'subscribe',
-      action(observer) {
-        return query.subscribe(observer)
-      },
+      type: 'subscribeTo',
+      query,
     })
     this._query = query
     return this
@@ -32,142 +42,123 @@ export class ObservableTestPlan {
   expect(expected, equality = assert.deepEqual) {
     this._plan.push({
       type: 'expect',
-      test(val) {
-        return equality(val, expected)
-      },
+      subtype: 'next',
+      observer: nextObserver(expected, equality),
     })
     return this
   }
 
-  execute(action) {
-    this._plan.push({
-      type: 'execute',
-      action() {
-        action.subscribe()
-      },
-    })
+  do(action) {
+    this._plan.push({ type: 'do', action })
     return this
   }
 
   expectComplete() {
-    this._plan.push({ type: 'complete' })
+    this._plan.push({
+      type: 'expect',
+      subtype: 'complete',
+      observer: completionObserver(),
+    })
     return this
   }
 
   expectError(regex) {
     this._plan.push({
-      type: 'error',
-      test(e) {
-        return Boolean(e.message.match(regex))
-      },
+      type: 'expect',
+      subtype: 'error',
+      observer: errorObserver(regex),
     })
     return this
   }
 }
 
-export function buildTestObservable(query, plan) {
-  // First, put all beforehand observables concatted and
-  // .ignoreElements() onto the start of the query
-
-  // Next, subscribe to the query with our observer
-  // Next,
-}
-
-class TestObserver {
-
-  constructor(plan, done) {
-    this.plan = plan
-    this._done = done
+export function buildTestObservable(plan) {
+  validatePlan(plan)
+  // Rest of this function is simplified by assuming a valid plan
+  let observable = Observable.empty()
+  while (plan[0].type === 'beforeHand') {
+    observable.concat(plan.shift().action)
   }
-
-  expect(val) {
-    this.plan.shift().test(val)
-  }
-
-  execute() {
-    this.plan.shift().action.subscribe()
-  }
-
-  errorMatch(e) {
-    const errTest = this.plan.shift()
-    if (errTest.test(e)) {
-      this.done()
-    } else {
-      this.done(`Expected error to match ${errTest.regex}. Got: "${e.message}"`)
-    }
-  }
-
-  // Calls the test's done method with a user error if provided. If
-  // it's not provided, the test will pass successfully as long as the
-  // test plan is empty (we've hit all the milestones)
-  done(msg) {
-    if (msg instanceof Error) {
-      this._done(msg)
-    } else if (typeof msg === 'string') {
-      this._done(new Error(msg))
-    } else if (this.plan.length === 0) {
-      this._done(new Error(`Test plan wasn't empty. Next was: ${this.plan[0]}`))
-    } else {
-      this._done()
-    }
-  }
-
-  // Observer methods below
-
-  next(val) {
-    if (this.plan[0].type === 'expect') {
-      this.expect(val)
-    } else {
-
-    }
-    while (this.peekType('execute')) {
-      this.execute()
-    }
-    if (this.plan.length === 0) {
-      this.done()
-    }
-  }
-
-  error(e) {
-    if (this.peekType('error')) {
-      this.errorMatch(e)
-    } else {
-      this.done(e)
-    }
-  }
-
-  complete() {
-    if (this.peekType('complete')) {
-      this.done()
-    } else {
-      this.done(`Planned ${this.plan[0][0]} but completed instead`)
-    }
-  }
-}
-
-
-export function expectRunEncoder(plan) {
+  const query = plan.shift().query
   let skip = 0
-  let take = 0
-  const runs = []
-  let currentRun = { expects: [] }
-  for (const p of plan) {
-    if (p.type === 'expect') {
-      currentRun.expects.push(p)
-      take += 1
-    } else {
-      currentRun.skip = skip
-      currentRun.take = take
-      runs.push(currentRun)
-      currentRun = { expects: [] }
-      skip += take
-      take = 0
+  for (const action of plan) {
+    if (action.type === 'expect') {
+      observable = observable.concat(
+        query.skip(skip).take(1).do(action.observer)
+      )
+      skip += 1
+    }
+    if (action.type === 'do') {
+      observable = observable.concat(action.action)
     }
   }
-  if (currentRun.expects.length > 0) {
-    currentRun.skip = skip
-    currentRun.take = take
-    runs.push(currentRun)
+}
+
+// Before we build an observable from the plan, validate it.
+export function validatePlan(plan) {
+  let currentAction = 'test start'
+  for (const rawAction of plan) {
+    const action = (rawAction.type === 'expect') ?
+            `expect_${rawAction.subtype}` :
+            rawAction.type
+    if (!isLegal(currentAction, action)) {
+      throw new Error(`Invalid plan: ${action} cannot follow ${currentAction}`)
+    } else {
+      currentAction = action
+    }
   }
-  return runs
+}
+
+const legalTransitions = {
+  'test start': [ 'beforeHand', 'subscribeTo' ],
+  beforeHand: [ 'beforeHand', 'subscribeTo' ],
+  subscribeTo: [ 'do', 'expect_next', 'expect_error', 'expect_complete' ],
+  do: [ 'do', 'expect_next', 'expect_error', 'expect_complete' ],
+  expect_next: [ 'do', 'expect_next', 'expect_error', 'expect_complete' ],
+  expect_error: [],
+  expect_complete: [],
+}
+
+function isLegal(currentAction, nextAction) {
+  return legalTransitions[currentAction].indexOf(nextAction) !== -1
+}
+
+// An observer that should error matching a particular regex
+function errorObserver(regex) {
+  return {
+    next(x) {
+      throw new Error(`Expected an error but got ${JSON.stringify(x)}`)
+    },
+    error(e) {
+      if (!e.message.match(regex)) {
+        throw new Error(`Expected error message to match ${regex} ` +
+                        `but got "${e.message}"`)
+      }
+    },
+    complete() {
+      throw new Error('Expected error but completed successfully')
+    },
+  }
+}
+
+// An observer that should complete successfully
+function completionObserver() {
+  return {
+    next(x) {
+      throw new Error(`Expected completion but got ${JSON.stringify(x)}`)
+    },
+  }
+}
+
+// An observer that ensures the next value received matches expectations
+function nextObserver(expected, equality) {
+  return {
+    next(val) {
+      return equality(val, expected)
+    },
+    complete() {
+      throw new Error(
+        `Expected value but completed instead: ${JSON.stringify(expected)}`)
+    },
+  }
 }
