@@ -5,7 +5,7 @@ const horizon_index = require('@horizon/server/src/metadata/index');
 const horizon_metadata = require('@horizon/server/src/metadata/metadata');
 
 const config = require('./utils/config');
-const shutdown = require('./utils/shutdown');
+const interrupt = require('./utils/interrupt');
 const start_rdb_server = require('./utils/start_rdb_server');
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const change_to_project_dir = require('./utils/change_to_project_dir');
@@ -237,14 +237,30 @@ const schema_to_toml = (collections, groups) => {
 };
 
 const runApplyCommand = (options) => {
-  let schema, conn;
+  const db = options.project_name;
+  let conn, schema, rdb_server;
   let obsolete_collections = [ ];
 
-  const db = options.project_name;
+  if (options.start_rethinkdb) {
+    change_to_project_dir(options.project_path);
+  }
+
+  // Use the 'error' level so RethinkDB output doesn't pollute the console
+  const old_log_level = logger.level;
+  logger.level = 'error';
+
+  const cleanup = () => {
+    logger.level = old_log_level;
+
+    return Promise.all([
+      conn ? conn.close() : Promise.resolve(),
+      rdb_server ? rdb_server.close() : Promise.resolve(),
+    ]);
+  };
+
+  interrupt.on_interrupt(() => cleanup());
 
   return Promise.resolve().then(() => {
-    logger.level = 'error';
-
     if (options.start_rethinkdb) {
       change_to_project_dir(options.project_path);
     }
@@ -259,10 +275,10 @@ const runApplyCommand = (options) => {
     schema = parse_schema(schema_toml);
 
     if (options.start_rethinkdb) {
-      return start_rdb_server().ready().then((server) => {
+      return start_rdb_server().then((server) => {
+        rdb_server = server;
         options.rdb_host = 'localhost';
         options.rdb_port = server.driver_port;
-        shutdown.on_shutdown(() => server.close());
       });
     }
   }).then(() =>
@@ -273,7 +289,6 @@ const runApplyCommand = (options) => {
                 timeout: options.rdb_timeout })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    shutdown.on_shutdown(() => conn.close());
     return initialize_metadata_reql(db).run(conn);
   }).then((initialization_result) => {
     if (initialization_result.tables_created) {
@@ -430,25 +445,38 @@ const runApplyCommand = (options) => {
     }
 
     return Promise.all(promises);
-  }).then(() => conn.close());
+  }).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
 
 const runSaveCommand = (options) => {
   const db = options.project_name;
-  let conn;
-
-  logger.level = 'error';
+  let conn, rdb_server;
 
   if (options.start_rethinkdb) {
     change_to_project_dir(options.project_path);
   }
 
+  // Use the 'error' level so RethinkDB output doesn't pollute the console
+  const old_log_level = logger.level;
+  logger.level = 'error';
+
+  const cleanup = () => {
+    logger.level = old_log_level;
+
+    return Promise.all([
+      conn ? conn.close() : Promise.resolve(),
+      rdb_server ? rdb_server.close() : Promise.resolve(),
+    ]);
+  };
+
+  interrupt.on_interrupt(() => cleanup());
+
   return new Promise.resolve().then(() => {
     if (options.start_rethinkdb) {
-      return start_rdb_server().ready().then((server) => {
+      return start_rdb_server().then((server) => {
+        rdb_server = server;
         options.rdb_host = 'localhost';
         options.rdb_port = server.driver_port;
-        shutdown.on_shutdown(() => server.close());
       });
     }
   }).then(() =>
@@ -459,7 +487,6 @@ const runSaveCommand = (options) => {
                 timeout: options.rdb_timeout })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    shutdown.on_shutdown(() => conn.close());
     return r.db(db).wait({ waitFor: 'ready_for_reads', timeout: 30 }).run(conn);
   }).then(() =>
     r.object('collections',
@@ -468,12 +495,12 @@ const runSaveCommand = (options) => {
                  row.merge({ indexes: r.db(db).table(row('id')).indexList() })),
              'groups', r.db(db).table('hz_groups').coerceTo('array'))
       .run(conn)
-  ).then((res) => {
-    conn.close();
-    const toml_str = schema_to_toml(res.collections, res.groups);
-    options.out_file.write(toml_str);
-    options.out_file.close();
-  });
+  ).then((res) =>
+    new Promise((resolve) => {
+      const toml_str = schema_to_toml(res.collections, res.groups);
+      options.out_file.end(toml_str, resolve);
+    })
+  ).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
 
 const processConfig = (options) => {

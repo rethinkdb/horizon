@@ -6,6 +6,7 @@ const Group = require('../permissions/group').Group;
 const Collection = require('./collection').Collection;
 const Table = require('./table').Table;
 const version_field = require('../endpoint/writes').version_field;
+const utils = require('../utils');
 
 const r = require('rethinkdb');
 
@@ -63,6 +64,10 @@ class Metadata {
     this._index_feed = null;
 
     this._ready_promise = Promise.resolve().then(() => {
+      logger.debug('checking rethinkdb version');
+      return r.db('rethinkdb').table('server_status').nth(0)('process')('version').run(this._conn)
+               .then((res) => utils.rethinkdb_version_check(res));
+    }).then(() => {
       logger.debug('checking for internal db/tables');
       if (this._auto_create_collection) {
         return initialize_metadata_reql(this._db).run(this._conn);
@@ -180,7 +185,7 @@ class Metadata {
           .map((row) => ({
             id: row('id'),
             name: row('name'),
-            indexes: row('indexes').filter((idx) => idx.match('^hz_'))
+            indexes: row('indexes').filter((idx) => idx.match('^hz_')),
           }))
           .changes({ squash: true,
                      includeInitial: true,

@@ -1,6 +1,6 @@
 'use strict';
 
-const shutdown = require('./utils/shutdown');
+const interrupt = require('./utils/interrupt');
 const start_rdb_server = require('./utils/start_rdb_server');
 const change_to_project_dir = require('./utils/change_to_project_dir');
 const config = require('./utils/config');
@@ -85,22 +85,34 @@ const processConfig = (parsed) => {
 
 const run = (args) => {
   const options = processConfig(parseArguments(args));
-
   const db = options.project_name;
-  let conn;
+  let conn, rdb_server;
 
   if (options.token_secret === null) {
     throw new Error('No token secret specified, unable to sign the token.');
   }
 
-  logger.level = 'error';
-
   if (options.start_rethinkdb) {
     change_to_project_dir(options.project_path);
   }
 
+  const old_log_level = logger.level;
+  logger.level = 'error';
+
+  const cleanup = () => {
+    logger.level = old_log_level;
+
+    return Promise.all([
+      conn ? conn.close() : Promise.resolve(),
+      rdb_server ? rdb_server.close() : Promise.resolve(),
+    ]);
+  };
+
+  interrupt.on_interrupt(() => cleanup());
+
   return Promise.resolve().then(() =>
-    options.start_rethinkdb && start_rdb_server().ready().then((server) => {
+    options.start_rethinkdb && start_rdb_server().then((server) => {
+      rdb_server = server;
       options.rdb_host = 'localhost';
       options.rdb_port = server.driver_port;
     })
@@ -112,7 +124,6 @@ const run = (args) => {
                 timeout: options.rdb_timeout })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    shutdown.on_shutdown(() => conn.close());
 
     return r.db(db).table('users')
       .wait({ waitFor: 'ready_for_reads', timeout: 30 })
@@ -128,7 +139,7 @@ const run = (args) => {
                            new Buffer(options.token_secret, 'base64'),
                            { expiresIn: '1d', algorithm: 'HS512' });
     console.log(`${token}`);
-  });
+  }).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
 
 module.exports = {

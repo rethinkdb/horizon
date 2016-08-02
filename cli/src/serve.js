@@ -14,7 +14,7 @@ const url = require('url');
 const config = require('./utils/config');
 const start_rdb_server = require('./utils/start_rdb_server');
 const change_to_project_dir = require('./utils/change_to_project_dir');
-const shutdown = require('./utils/shutdown');
+const interrupt = require('./utils/interrupt');
 const schema = require('./schema');
 
 const horizon_server = require('@horizon/server');
@@ -301,9 +301,8 @@ const processConfig = (parsed) => {
   return options;
 };
 
-const startHorizonServer = (servers, opts) => {
-  console.log('Starting Horizon...');
-  const hzServer = new horizon_server.Server(servers, {
+const start_horizon_server = (http_servers, opts) =>
+  new horizon_server.Server(http_servers, {
     auto_create_collection: opts.auto_create_collection,
     auto_create_index: opts.auto_create_index,
     permissions: opts.permissions,
@@ -323,29 +322,12 @@ const startHorizonServer = (servers, opts) => {
     rdb_timeout: opts.rdb_timeout || null,
   });
 
-  return new Promise((resolve, reject) => {
-    const timeoutObject = setTimeout(() => {
-      reject(new Error('Horizon failed to start after 30 seconds.\n' +
-                       'Try running hz serve again with the --debug flag'));
-    }, TIMEOUT_30_SECONDS);
-
-    hzServer.ready().then(() => {
-      clearTimeout(timeoutObject);
-      console.log(chalk.green.bold('🌄 Horizon ready for connections'));
-      resolve(hzServer);
-    }).catch(reject);
-  });
-};
-
 const run = (args) => {
   const opts = processConfig(parseArguments(args));
-  let httpServers, hzInstance;
+  let conn, http_servers, hz_server, rdb_server;
 
-  if (opts.debug) {
-    logger.level = 'debug';
-  } else {
-    logger.level = 'warn';
-  }
+  const old_log_level = logger.level;
+  logger.level = opts.debug ? 'debug' : 'warn';
 
   if (!opts.secure && opts.auth && Array.from(Object.keys(opts.auth)).length > 0) {
     logger.warn('Authentication requires that the server be accessible via HTTPS. ' +
@@ -354,19 +336,31 @@ const run = (args) => {
 
   change_to_project_dir(opts.project_path);
 
+  const cleanup = () => {
+    logger.level = old_log_level;
+
+    return Promise.all([
+      conn ? conn.close() : Promise.resolve(),
+      hz_server ? hz_server.close() : Promise.resolve(),
+      rdb_server ? rdb_server.close() : Promise.resolve(),
+      Promise.all(http_servers.map((server) => new Promise((resolve) => server.close(resolve)))),
+    ]);
+  };
+
+  interrupt.on_interrupt(() => cleanup());
+
   return Promise.resolve().then(() =>
     (opts.secure ? create_secure_servers(opts) : create_insecure_servers(opts))
   ).then((servers) => {
-    httpServers = servers;
-    shutdown.on_shutdown(() =>
-      Promise.all(httpServers.map((server) => new Promise((resolve) => server.close(resolve)))));
+    http_servers = servers;
 
     if (opts.start_rethinkdb) {
-      return start_rdb_server().ready().then((server) => {
+      return start_rdb_server().then((server) => {
+        rdb_server = server;
+
         // Don't need to check for host, always localhost.
         opts.rdb_host = 'localhost';
         opts.rdb_port = server.driver_port;
-        shutdown.on_shutdown(() => server.close());
 
         console.log('RethinkDB');
         console.log(`   ├── Admin interface: http://localhost:${server.http_port}`);
@@ -385,13 +379,24 @@ const run = (args) => {
         update: true,
         force: false,
       });
-      return schema.runApplyCommand(schemaOptions, false, (err) => { console.error(err); });
+      return schema.runApplyCommand(schemaOptions);
     }
-  }).then(() =>
-    startHorizonServer(httpServers, opts)
-  ).then((hz_server) => {
-    hzInstance = hz_server;
-    shutdown.on_shutdown(() => hzInstance.close());
+  }).then(() => {
+    console.log('Starting Horizon...');
+    hz_server = start_horizon_server(http_servers, opts);
+
+    return new Promise((resolve, reject) => {
+      const timeoutObject = setTimeout(() => {
+        reject(new Error('Horizon failed to start after 30 seconds.\n' +
+                         'Try running hz serve again with the --debug flag'));
+      }, TIMEOUT_30_SECONDS);
+
+      hz_server.ready().then(() => {
+        clearTimeout(timeoutObject);
+        console.log(chalk.green.bold('🌄 Horizon ready for connections'));
+        resolve(hz_server);
+      }).catch(reject);
+    });
   }).then(() => {
     if (opts.auth) {
       for (const name in opts.auth) {
@@ -399,8 +404,8 @@ const run = (args) => {
         if (!provider) {
           throw new Error(`Unrecognized auth provider "${name}"`);
         }
-        hzInstance.add_auth_provider(provider,
-                                      Object.assign({}, { path: name }, opts.auth[name]));
+        hz_server.add_auth_provider(provider,
+                                    Object.assign({}, { path: name }, opts.auth[name]));
       }
     }
   }).then(() => {
@@ -421,7 +426,8 @@ const run = (args) => {
         console.log(open_err);
       }
     }
-  });
+    return hz_server._interruptor;
+  }).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
 
 module.exports = {
