@@ -237,12 +237,9 @@ const schema_to_toml = (collections, groups) => {
 const runApplyCommand = (options) => {
   let conn, schema, rdb_server;
   let obsolete_collections = [ ];
-  const old_log_level = logger.level;
   const db = options.project_name;
 
   const cleanup = () => {
-    logger.level = old_log_level;
-
     return Promise.all([
       conn ? conn.close() : Promise.resolve(),
       rdb_server ? rdb_server.close() : Promise.resolve(),
@@ -252,9 +249,6 @@ const runApplyCommand = (options) => {
   interrupt.on_interrupt(() => cleanup());
 
   return Promise.resolve().then(() => {
-    // Use the 'error' level so RethinkDB output doesn't pollute the console
-    logger.level = 'error';
-
     if (options.start_rethinkdb) {
       change_to_project_dir(options.project_path);
     }
@@ -269,7 +263,7 @@ const runApplyCommand = (options) => {
     schema = parse_schema(schema_toml);
 
     if (options.start_rethinkdb) {
-      return start_rdb_server().then((server) => {
+      return start_rdb_server({ quiet: !options.debug }).then((server) => {
         rdb_server = server;
         options.rdb_host = 'localhost';
         options.rdb_port = server.driver_port;
@@ -445,11 +439,8 @@ const runApplyCommand = (options) => {
 const runSaveCommand = (options) => {
   let conn, rdb_server;
   const db = options.project_name;
-  const old_log_level = logger.level;
 
   const cleanup = () => {
-    logger.level = old_log_level;
-
     return Promise.all([
       conn ? conn.close() : Promise.resolve(),
       rdb_server ? rdb_server.close() : Promise.resolve(),
@@ -459,15 +450,12 @@ const runSaveCommand = (options) => {
   interrupt.on_interrupt(() => cleanup());
 
   return Promise.resolve().then(() => {
-    // Use the 'error' level so RethinkDB output doesn't pollute the console
-    logger.level = 'error';
-
     if (options.start_rethinkdb) {
       change_to_project_dir(options.project_path);
     }
   }).then(() => {
     if (options.start_rethinkdb) {
-      return start_rdb_server().then((server) => {
+      return start_rdb_server({ quiet: !options.debug }).then((server) => {
         rdb_server = server;
         options.rdb_host = 'localhost';
         options.rdb_port = server.driver_port;

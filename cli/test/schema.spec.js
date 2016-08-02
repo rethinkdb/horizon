@@ -26,6 +26,8 @@ indexes = ["hz_[\\\"datetime\\\"]"]
 template = "any()"
 `;
 
+parse_schema(testSchema);
+
 const brokenTestSchema = `
 [collectiosfklajsfns.test_messages]
 indexes = ["datetime"]
