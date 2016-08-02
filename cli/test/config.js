@@ -7,10 +7,7 @@ const argparse = require('argparse');
 const assert = require('assert');
 const fs = require('fs');
 
-const arg_parser = new argparse.ArgumentParser();
-serve.addArguments(arg_parser);
-
-const make_flags = (flags) => Object.assign({}, arg_parser.parseArgs([]), flags);
+const make_flags = (flags) => Object.assign({}, serve.parseArguments([]), flags);
 
 const config_file = './test_config.toml';
 const write_config = (config) => {

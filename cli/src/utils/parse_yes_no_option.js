@@ -1,6 +1,6 @@
 'use strict';
 
-function parse_yes_no_option(value, option_name) {
+module.exports = (value, option_name) => {
   if (value !== undefined && value !== null) {
     const lower = value.toLowerCase ? value.toLowerCase() : value;
     if (lower === true || lower === 'true' || lower === 'yes') {
@@ -10,6 +10,4 @@ function parse_yes_no_option(value, option_name) {
     }
     throw new Error(`Unexpected value "${option_name}=${value}", should be yes or no.`);
   }
-}
-
-module.exports = parse_yes_no_option;
+};
