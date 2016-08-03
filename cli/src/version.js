@@ -2,13 +2,15 @@
 
 const package_json = require('../package.json');
 
-const helpText = 'Print the version number of horizon';
-
-const runCommand = () => {
-  console.info(package_json.version);
-};
+const run = (args) =>
+  Promise.resolve().then(() => {
+    if (args && args.length) {
+      throw new Error('create-cert takes no arguments');
+    }
+    console.info(package_json.version);
+  });
 
 module.exports = {
-  runCommand,
-  helpText,
+  run,
+  description: 'Print the version number of horizon',
 };

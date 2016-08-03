@@ -9,8 +9,6 @@ const argparse = require('argparse');
 const checkProjectName = require('./utils/check-project-name');
 const rethrow = require('./utils/rethrow');
 
-const helpText = 'Initialize a horizon app directory';
-
 const makeIndexHTML = (projectName) => `\
 <!doctype html>
 <html>
@@ -155,10 +153,10 @@ const gitignore = () => `\
 rethinkdb_data
 **/*.log
 .hz/secrets.toml
-`
+`;
 
-function parseArguments(args) {
-  const parser = new argparse.ArgumentParser({prog: 'hz init'});
+const parseArguments = (args) => {
+  const parser = new argparse.ArgumentParser({ prog: 'hz init' });
   parser.addArgument([ 'projectName' ],
     { action: 'store',
       help: 'Name of directory to create. Defaults to current directory',
@@ -177,7 +175,7 @@ const fileExists = (pathName) => {
   }
 };
 
-function maybeMakeDir(createDir, dirName) {
+const maybeMakeDir = (createDir, dirName) => {
   if (createDir) {
     try {
       fs.mkdirSync(dirName);
@@ -189,9 +187,9 @@ function maybeMakeDir(createDir, dirName) {
   } else {
     console.info(`Initializing in existing directory ${dirName}`);
   }
-}
+};
 
-function maybeChdir(chdirTo) {
+const maybeChdir = (chdirTo) => {
   if (chdirTo) {
     try {
       process.chdir(chdirTo);
@@ -203,9 +201,9 @@ function maybeChdir(chdirTo) {
       }
     }
   }
-}
+};
 
-function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
+const populateDir = (projectName, dirWasPopulated, chdirTo, dirName) => {
   const niceDir = chdirTo ? `${dirName}/` : '';
   if (!dirWasPopulated && !fileExists('src')) {
     fs.mkdirSync('src');
@@ -282,29 +280,30 @@ function populateDir(projectName, dirWasPopulated, chdirTo, dirName) {
   } else {
     console.info('.hz/secrets.toml already exists, not touching it.');
   }
-}
-
-function runCommand(args) {
-  const parsed = parseArguments(args);
-  const check = checkProjectName(
-    parsed.projectName,
-    process.cwd(),
-    fs.readdirSync('.')
-  );
-  const projectName = check.projectName;
-  const dirName = check.dirName;
-  const chdirTo = check.chdirTo;
-  const createDir = check.createDir;
-  maybeMakeDir(createDir, dirName);
-  maybeChdir(chdirTo);
-
-  // Before we create things, check if the directory is empty
-  const dirWasPopulated = fs.readdirSync(process.cwd()).length !== 0;
-  populateDir(projectName, dirWasPopulated, chdirTo, dirName);
 };
 
+const run = (args) =>
+  Promise.resolve(args)
+    .then(parseArguments)
+    .then((parsed) => {
+      const check = checkProjectName(
+        parsed.projectName,
+        process.cwd(),
+        fs.readdirSync('.')
+      );
+      const projectName = check.projectName;
+      const dirName = check.dirName;
+      const chdirTo = check.chdirTo;
+      const createDir = check.createDir;
+      maybeMakeDir(createDir, dirName);
+      maybeChdir(chdirTo);
+
+      // Before we create things, check if the directory is empty
+      const dirWasPopulated = fs.readdirSync(process.cwd()).length !== 0;
+      populateDir(projectName, dirWasPopulated, chdirTo, dirName);
+    });
 
 module.exports = {
-  runCommand,
-  helpText,
+  run,
+  description: 'Initialize a horizon app directory',
 };

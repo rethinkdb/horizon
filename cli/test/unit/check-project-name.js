@@ -2,7 +2,7 @@
 
 'use strict';
 
-const checkProjectName = require('../../src/utils/check-project-name')
+const checkProjectName = require('../../src/utils/check-project-name');
 const assert = require('chai').assert;
 
 describe('checkProjectName', () => {
