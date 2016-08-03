@@ -471,6 +471,23 @@ const runSaveCommand = (options) => {
   ).then((res) => {
     conn.close();
     const toml_str = schema_to_toml(res.collections, res.groups);
+
+    // Check if file exists, do nothing if it throws
+    let exists;
+    try {
+      exists = fs.accessSync(options.out_file.path);
+    } catch(e) {
+      // File doesn't exist! Do nothing.
+    }
+    // If it does exist, move file from oldPath to newPath with appendedISOString to path
+    if (exists) {
+      const oldPath = path.resolve(options.out_file.path);
+      const newPath =
+        `${path.parse(options.out_file.path).dir}/schema.toml.${new Date().toISOString()}`;
+      fs.renameSync(oldPath, newPath);
+    }
+
+    // Write out toml string to file write stream.
     options.out_file.write(toml_str);
     options.out_file.close();
   });

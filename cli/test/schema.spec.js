@@ -93,6 +93,22 @@ describe("hz schema", () => {
       ).run(rdb_conn)
     );
 
+    it("renames previous schema.toml if it already exists", () => {
+      mockFs({
+        '.hz': {
+          'schema.toml': '',
+        },
+      });
+      runSaveCommand({
+        start_rethinkdb: false,
+        rdb_host: '127.0.0.1',
+        rdb_port: currentOpts.dbPort,
+        project_name: 'horizon_schema_test',
+      }).then(() => {
+        assert.equal(fs.readdirSync('.hz').length, 2, "backup schema file created")
+      });
+    });
+
     it("saves schema to schema.toml from rdb", () =>
       runSaveCommand({
         start_rethinkdb: false,
