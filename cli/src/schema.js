@@ -480,21 +480,24 @@ const runSaveCommand = (options) => {
   ).then((res) =>
     new Promise((resolve) => {
 
-      // Check if file exists, do nothing if it throws
-      let exists;
-      try {
-        exists = fs.accessSync(options.out_file.path);
-      } catch(e) {
-        // File doesn't exist! Do nothing.
-      }
-      // If it does exist, move file from oldPath to newPath with appendedISOString to path
-      if (exists) {
-        const oldPath = path.resolve(options.out_file.path);
-        const newPath =
-          `${path.parse(options.out_file.path).dir}/schema.toml.${new Date().toISOString()}`;
-        fs.renameSync(oldPath, newPath);
-      }
+      // Only rename old file if saving to default .hz/schema.toml
+      if (options.out_file.path === '.hz/schema.toml'){
+        try {
+          // Throws if file doesn't exist
+          fs.accessSync(options.out_file.path, fs.R_OK);
 
+          // If it does exist, move file from oldPath to newPath with appendedISOString to path
+          const oldPath = path.resolve(options.out_file.path);
+          const newPath =
+            `${path.parse(options.out_file.path).dir}/schema.toml.${new Date().toISOString()}`;
+          // Rename/move file to new path
+          fs.renameSync(oldPath, newPath);
+        } catch(e) {
+          // File doesn't exist! Do nothing.
+        }
+      }
+      
+      // Output toml_str to schema.toml
       const toml_str = schema_to_toml(res.collections, res.groups);
       options.out_file.end(toml_str, resolve);
     })
