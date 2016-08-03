@@ -21,28 +21,31 @@ logger.add(logger.transports.File, { filename: log_file });
 logger.remove(logger.transports.Console);
 
 // Variables used by most tests
-let rdb_http_port, rdb_port, rdb_conn, horizon_server, horizon_port, horizon_conn, horizon_listeners;
+let rdb_server, rdb_http_port, rdb_port, rdb_conn, horizon_server, horizon_port, horizon_conn, horizon_listeners;
 let horizon_authenticated = false;
 
-const test_db_server = (done) => {
+const start_rethinkdb = () => {
   logger.info('removing dir');
   rm_sync_recursive(data_dir);
 
   logger.info('creating server');
-
-  start_rdb_server({ dataDir: data_dir }).then((info) => {
-    rdb_port = info.driverPort;
-    rdb_http_port = info.httpPort;
+  return start_rdb_server({ dataDir: data_dir }).then((server) => {
+    rdb_server = server;
+    rdb_port = server.driver_port;
+    rdb_http_port = server.http_port;
     logger.info('server created, connecting');
 
-    const conn_promise = r.connect({ db: project_name, port: rdb_port });
-    conn_promise.then((c) => { rdb_conn = c; logger.info('connected'); });
-    conn_promise.then((c) => r.dbCreate(project_name).run(c)).then((res) => {
-      assert.strictEqual(res.dbs_created, 1);
-      done();
-    });
+    return r.connect({ db: project_name, port: rdb_port });
+  }).then((conn) => {
+    logger.info('connected');
+    rdb_conn = conn;
+    return r.dbCreate(project_name).run(conn);
+  }).then((res) => {
+    assert.strictEqual(res.dbs_created, 1);
   });
 };
+
+const stop_rethinkdb = () => rdb_server.close();
 
 // Used to prefix reql queries with the underlying table of a given collection
 const table = (collection) =>
@@ -277,7 +280,7 @@ module.exports = {
   horizon_port: () => horizon_port,
   horizon_listeners: () => horizon_listeners,
 
-  test_db_server,
+  start_rethinkdb, stop_rethinkdb,
   create_collection,
   populate_collection,
   clear_collection,

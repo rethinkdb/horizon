@@ -1,6 +1,6 @@
 'use strict';
 
-const shutdown = require('./utils/shutdown');
+const interrupt = require('./utils/interrupt');
 const start_rdb_server = require('./utils/start_rdb_server');
 const change_to_project_dir = require('./utils/change_to_project_dir');
 const config = require('./utils/config');
@@ -84,27 +84,39 @@ const processConfig = (parsed) => {
 };
 
 const run = (args) => {
-  const options = processConfig(parseArguments(args));
+  let db, options, conn, rdb_server;
+  const old_log_level = logger.level;
 
-  const db = options.project_name;
-  let conn;
+  const cleanup = () => {
+    logger.level = old_log_level;
 
-  if (options.token_secret === null) {
-    throw new Error('No token secret specified, unable to sign the token.');
-  }
+    return Promise.all([
+      conn ? conn.close() : Promise.resolve(),
+      rdb_server ? rdb_server.close() : Promise.resolve(),
+    ]);
+  };
 
-  logger.level = 'error';
+  interrupt.on_interrupt(() => cleanup());
 
-  if (options.start_rethinkdb) {
-    change_to_project_dir(options.project_path);
-  }
+  return Promise.resolve().then(() => {
+    options = processConfig(parseArguments(args));
+    db = options.project_name;
+    logger.level = 'error';
 
-  return Promise.resolve().then(() =>
-    options.start_rethinkdb && start_rdb_server().ready().then((server) => {
-      options.rdb_host = 'localhost';
-      options.rdb_port = server.driver_port;
-    })
-  ).then(() =>
+    if (options.token_secret === null) {
+      throw new Error('No token secret specified, unable to sign the token.');
+    }
+
+    if (options.start_rethinkdb) {
+      change_to_project_dir(options.project_path);
+
+      return start_rdb_server().then((server) => {
+        rdb_server = server;
+        options.rdb_host = 'localhost';
+        options.rdb_port = server.driver_port;
+      });
+    }
+  }).then(() =>
     r.connect({ host: options.rdb_host,
                 port: options.rdb_port,
                 user: options.rdb_user,
@@ -112,7 +124,6 @@ const run = (args) => {
                 timeout: options.rdb_timeout })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    shutdown.on_shutdown(() => conn.close());
 
     return r.db(db).table('users')
       .wait({ waitFor: 'ready_for_reads', timeout: 30 })
@@ -128,7 +139,7 @@ const run = (args) => {
                            new Buffer(options.token_secret, 'base64'),
                            { expiresIn: '1d', algorithm: 'HS512' });
     console.log(`${token}`);
-  });
+  }).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
 
 module.exports = {

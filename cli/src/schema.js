@@ -5,10 +5,11 @@ const horizon_index = require('@horizon/server/src/metadata/index');
 const horizon_metadata = require('@horizon/server/src/metadata/metadata');
 
 const config = require('./utils/config');
-const shutdown = require('./utils/shutdown');
+const interrupt = require('./utils/interrupt');
 const start_rdb_server = require('./utils/start_rdb_server');
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const change_to_project_dir = require('./utils/change_to_project_dir');
+const initialize_joi = require('./utils/initialize_joi');
 
 const fs = require('fs');
 const Joi = require('joi');
@@ -18,10 +19,11 @@ const argparse = require('argparse');
 const toml = require('toml');
 
 const r = horizon_server.r;
-const logger = horizon_server.logger;
 const create_collection_reql = horizon_metadata.create_collection_reql;
-const initialize_metadata_reql = horizon_metadata.initialize_metadata_reql;
+const initialize_metadata = horizon_metadata.initialize_metadata;
 const name_to_info = horizon_index.name_to_info;
+
+initialize_joi(Joi);
 
 const parseArguments = (args) => {
   const parser = new argparse.ArgumentParser({ prog: 'hz schema' });
@@ -141,8 +143,6 @@ const processApplyConfig = (parsed) => {
   let options, in_file;
 
   options = config.default_options();
-  options.start_rethinkdb = true;
-
   options = config.merge_options(options,
     config.read_from_config_file(parsed.project_path, parsed.config));
   options = config.merge_options(options, config.read_from_env());
@@ -237,14 +237,19 @@ const schema_to_toml = (collections, groups) => {
 };
 
 const runApplyCommand = (options) => {
-  let schema, conn;
+  let conn, schema, rdb_server;
   let obsolete_collections = [ ];
-
   const db = options.project_name;
 
-  return Promise.resolve().then(() => {
-    logger.level = 'error';
+  const cleanup = () =>
+    Promise.all([
+      conn ? conn.close() : Promise.resolve(),
+      rdb_server ? rdb_server.close() : Promise.resolve(),
+    ]);
 
+  interrupt.on_interrupt(() => cleanup());
+
+  return Promise.resolve().then(() => {
     if (options.start_rethinkdb) {
       change_to_project_dir(options.project_path);
     }
@@ -259,10 +264,10 @@ const runApplyCommand = (options) => {
     schema = parse_schema(schema_toml);
 
     if (options.start_rethinkdb) {
-      return start_rdb_server().ready().then((server) => {
+      return start_rdb_server({ quiet: !options.debug }).then((server) => {
+        rdb_server = server;
         options.rdb_host = 'localhost';
         options.rdb_port = server.driver_port;
-        shutdown.on_shutdown(() => server.close());
       });
     }
   }).then(() =>
@@ -273,8 +278,7 @@ const runApplyCommand = (options) => {
                 timeout: options.rdb_timeout })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    shutdown.on_shutdown(() => conn.close());
-    return initialize_metadata_reql(db).run(conn);
+    return initialize_metadata(db, conn);
   }).then((initialization_result) => {
     if (initialization_result.tables_created) {
       console.log('Initialized new application metadata.');
@@ -430,25 +434,31 @@ const runApplyCommand = (options) => {
     }
 
     return Promise.all(promises);
-  }).then(() => conn.close());
+  }).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
 
 const runSaveCommand = (options) => {
+  let conn, rdb_server;
   const db = options.project_name;
-  let conn;
 
-  logger.level = 'error';
+  const cleanup = () =>
+    Promise.all([
+      conn ? conn.close() : Promise.resolve(),
+      rdb_server ? rdb_server.close() : Promise.resolve(),
+    ]);
 
-  if (options.start_rethinkdb) {
-    change_to_project_dir(options.project_path);
-  }
+  interrupt.on_interrupt(() => cleanup());
 
-  return new Promise.resolve().then(() => {
+  return Promise.resolve().then(() => {
     if (options.start_rethinkdb) {
-      return start_rdb_server().ready().then((server) => {
+      change_to_project_dir(options.project_path);
+    }
+  }).then(() => {
+    if (options.start_rethinkdb) {
+      return start_rdb_server({ quiet: !options.debug }).then((server) => {
+        rdb_server = server;
         options.rdb_host = 'localhost';
         options.rdb_port = server.driver_port;
-        shutdown.on_shutdown(() => server.close());
       });
     }
   }).then(() =>
@@ -459,7 +469,6 @@ const runSaveCommand = (options) => {
                 timeout: options.rdb_timeout })
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    shutdown.on_shutdown(() => conn.close());
     return r.db(db).wait({ waitFor: 'ready_for_reads', timeout: 30 }).run(conn);
   }).then(() =>
     r.object('collections',
@@ -468,29 +477,28 @@ const runSaveCommand = (options) => {
                  row.merge({ indexes: r.db(db).table(row('id')).indexList() })),
              'groups', r.db(db).table('hz_groups').coerceTo('array'))
       .run(conn)
-  ).then((res) => {
-    conn.close();
-    const toml_str = schema_to_toml(res.collections, res.groups);
+  ).then((res) =>
+    new Promise((resolve) => {
 
-    // Check if file exists, do nothing if it throws
-    let exists;
-    try {
-      exists = fs.accessSync(options.out_file.path);
-    } catch(e) {
-      // File doesn't exist! Do nothing.
-    }
-    // If it does exist, move file from oldPath to newPath with appendedISOString to path
-    if (exists) {
-      const oldPath = path.resolve(options.out_file.path);
-      const newPath =
-        `${path.parse(options.out_file.path).dir}/schema.toml.${new Date().toISOString()}`;
-      fs.renameSync(oldPath, newPath);
-    }
+      // Check if file exists, do nothing if it throws
+      let exists;
+      try {
+        exists = fs.accessSync(options.out_file.path);
+      } catch(e) {
+        // File doesn't exist! Do nothing.
+      }
+      // If it does exist, move file from oldPath to newPath with appendedISOString to path
+      if (exists) {
+        const oldPath = path.resolve(options.out_file.path);
+        const newPath =
+          `${path.parse(options.out_file.path).dir}/schema.toml.${new Date().toISOString()}`;
+        fs.renameSync(oldPath, newPath);
+      }
 
-    // Write out toml string to file write stream.
-    options.out_file.write(toml_str);
-    options.out_file.close();
-  });
+      const toml_str = schema_to_toml(res.collections, res.groups);
+      options.out_file.end(toml_str, resolve);
+    })
+  ).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
 
 const processConfig = (options) => {
@@ -507,18 +515,19 @@ const processConfig = (options) => {
 
 // Avoiding cyclical depdendencies
 module.exports = {
-  run: (args) => {
-    const options = processConfig(parseArguments(args));
-    // Determine if we are saving or applying and use appropriate run function
-    switch (options.subcommand_name) {
-    case 'apply':
-      return runApplyCommand(options);
-    case 'save':
-      return runSaveCommand(options);
-    default:
-      throw new Error(`Unrecognized schema subcommand: "${options.subcommand_name}"`);
-    }
-  },
+  run: (args) =>
+    Promise.resolve().then(() => {
+      const options = processConfig(parseArguments(args));
+      // Determine if we are saving or applying and use appropriate run function
+      switch (options.subcommand_name) {
+      case 'apply':
+        return runApplyCommand(options);
+      case 'save':
+        return runSaveCommand(options);
+      default:
+        throw new Error(`Unrecognized schema subcommand: "${options.subcommand_name}"`);
+      }
+    }),
   description: 'Apply and save the schema from a horizon database',
   processApplyConfig,
   runApplyCommand,

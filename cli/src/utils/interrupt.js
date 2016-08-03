@@ -2,7 +2,7 @@
 
 const handlers = [ ];
 
-const on_shutdown = (cb) => {
+const on_interrupt = (cb) => {
   handlers.push(cb);
 };
 
@@ -12,7 +12,7 @@ const run_handlers = () => {
   }
 };
 
-const shutdown = () => {
+const interrupt = () => {
   process.removeAllListeners('SIGTERM');
   process.removeAllListeners('SIGINT');
   process.on('SIGTERM', () => process.exit(1));
@@ -21,7 +21,7 @@ const shutdown = () => {
   return run_handlers();
 };
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+process.on('SIGTERM', interrupt);
+process.on('SIGINT', interrupt);
 
-module.exports = { on_shutdown, shutdown };
+module.exports = { on_interrupt, interrupt };

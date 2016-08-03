@@ -155,9 +155,11 @@ class Client {
 
     const endpoint = this._server.get_request_handler(raw_request);
     if (endpoint === undefined) {
-      return this.send_error(raw_request, `"${raw_request.type}" is not a registered request type.`);
+      return this.send_error(raw_request,
+        `"${raw_request.type}" is not a registered request type.`);
     } else if (this._requests.has(raw_request.request_id)) {
-      return this.send_error(raw_request, `Request ${raw_request.request_id} already exists for this client.`);
+      return this.send_error(raw_request,
+        `Request ${raw_request.request_id} already exists for this client.`);
     }
 
     const request = new Request(raw_request, endpoint, this);
@@ -180,7 +182,8 @@ class Client {
   close(info) {
     if (this.is_open()) {
       const close_msg = (info.error && info.error.substr(0, 64)) || 'Unspecified reason.';
-      logger.debug(`Closing client connection with message: ${info.error || 'Unspecified reason.'}`);
+      logger.debug('Closing client connection with message: ' +
+                   `${info.error || 'Unspecified reason.'}`);
       logger.debug(`info: ${JSON.stringify(info)}`);
       if (info.request_id !== undefined) {
         this._socket.send(JSON.stringify(info));

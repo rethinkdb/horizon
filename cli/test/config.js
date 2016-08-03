@@ -3,7 +3,6 @@
 const serve = require('../src/serve');
 const processConfig = serve.processConfig;
 
-const argparse = require('argparse');
 const assert = require('assert');
 const fs = require('fs');
 
@@ -199,11 +198,13 @@ describe('Config', () => {
       let config;
 
       write_config({ connect: 'example:123' });
-      config = processConfig(make_flags({ config: config_file, start_rethinkdb: true }));
+      config = processConfig(
+        make_flags({ config: config_file, start_rethinkdb: true }));
       assert.strictEqual(config.start_rethinkdb, true);
 
       write_config({ start_rethinkdb: true });
-      config = processConfig(make_flags({ config: config_file, connect: 'example:123' }));
+      config = processConfig(
+        make_flags({ config: config_file, connect: 'example:123' }));
       assert.strictEqual(config.start_rethinkdb, false);
       assert.strictEqual(config.rdb_host, 'example');
       assert.strictEqual(config.rdb_port, 123);
@@ -219,13 +220,15 @@ describe('Config', () => {
       assert.strictEqual(config.rdb_port, 123);
 
       write_config({ connect: 'example:123' });
-      config = processConfig(make_flags({ config: config_file, start_rethinkdb: false, dev: true }));
+      config = processConfig(
+        make_flags({ config: config_file, start_rethinkdb: false, dev: true }));
       assert.strictEqual(config.start_rethinkdb, false);
       assert.strictEqual(config.rdb_host, 'example');
       assert.strictEqual(config.rdb_port, 123);
 
       write_config({ connect: 'example:123' });
-      config = processConfig(make_flags({ config: config_file, start_rethinkdb: true, dev: true }));
+      config = processConfig(
+        make_flags({ config: config_file, start_rethinkdb: true, dev: true }));
       assert.strictEqual(config.start_rethinkdb, true);
 
       write_config({ start_rethinkdb: true });
@@ -233,7 +236,8 @@ describe('Config', () => {
       assert.strictEqual(config.start_rethinkdb, true);
 
       write_config({ start_rethinkdb: true });
-      config = processConfig(make_flags({ config: config_file, connect: 'example:123', dev: true }));
+      config = processConfig(
+        make_flags({ config: config_file, connect: 'example:123', dev: true }));
       assert.strictEqual(config.start_rethinkdb, false);
       assert.strictEqual(config.rdb_host, 'example');
       assert.strictEqual(config.rdb_port, 123);

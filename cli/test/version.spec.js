@@ -5,7 +5,7 @@ const assert = require('assert');
 const sinon = require('sinon');
 const pkg = require('../package.json');
 
-describe('Version Command', () => {
+describe('hz version', () => {
   beforeEach(() => sinon.stub(console, 'info'));
   afterEach(() => console.info.restore());
 

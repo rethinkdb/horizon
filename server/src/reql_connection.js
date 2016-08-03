@@ -4,114 +4,112 @@ const check = require('./error').check;
 const logger = require('./logger');
 const Metadata = require('./metadata/metadata').Metadata;
 const r = require('rethinkdb');
-const utils = require('./utils');
 
 const default_user = 'admin';
 const default_pass = '';
 
 class ReqlConnection {
-  constructor(host, port, project_name, auto_create_collection, auto_create_index, user, pass, connect_timeout) {
-    this._host = host;
-    this._port = port;
-    this._user = user || default_user;
-    this._pass = pass || default_pass;
-    this._connect_timeout = connect_timeout || null;
-    this._project_name = project_name;
+  constructor(host, port, db,
+              auto_create_collection, auto_create_index,
+              user, pass, connect_timeout,
+              interruptor) {
+    this._rdb_options = {
+      host,
+      port,
+      db,
+      user: user || default_user,
+      password: pass || default_pass,
+      timeout: connect_timeout || null,
+    };
+
     this._auto_create_collection = auto_create_collection;
     this._auto_create_index = auto_create_index;
     this._clients = new Set();
-    this._connection = undefined;
-    this._metadata = undefined;
-    this._ready = false;
     this._reconnect_delay = 0;
-    this._ready_promise = new Promise((resolve) => this._reconnect(resolve));
-    this._closed = false;
-    this._hasRetried = false;
+    this._retry_timer = null;
+
+    interruptor.catch((err) => {
+      if (this._retry_timer) {
+        clearTimeout(this._retry_timer);
+      }
+
+      this._clients.forEach((client) =>
+        client.close({ error: err.message }));
+      this._clients.clear();
+
+      this._interrupted_err = err;
+      this._reconnect(); // This won't actually reconnect, but will do all the cleanup
+    });
+
+    logger.info('Connecting to RethinkDB: ' +
+      `${this._rdb_options.user} @ ${this._rdb_options.host}:${this._rdb_options.port}`);
+    this._ready_promise = this._reconnect();
   }
 
-  _reconnect(resolve) {
-    if (this._connection) {
-      this._connection.close();
+  _reconnect() {
+    if (this._conn) {
+      this._conn.removeAllListeners('close');
+      this._conn.close();
     }
     if (this._metadata) {
       this._metadata.close();
     }
-    this._connection = undefined;
-    this._metadata = undefined;
-    this._ready = false;
+    this._conn = null;
+    this._metadata = null;
+
     this._clients.forEach((client) =>
       client.close({ error: 'Connection to the database was lost.' }));
     this._clients.clear();
 
-    if (!this._closed) {
-      setTimeout(() => this._init_connection(resolve), this._reconnect_delay);
-      this._reconnect_delay = Math.min(this._reconnect_delay + 100, 1000);
+    if (this._interrupted_err) {
+      return Promise.reject(this._interrupted_err);
+    } else if (!this._retry_timer) {
+      return new Promise((resolve) => {
+        this._retry_timer = setTimeout(() => resolve(this._init_connection()), this._reconnect_delay);
+        this._reconnect_delay = Math.min(this._reconnect_delay + 100, 1000);
+      });
     }
   }
 
-  _init_connection(resolve) {
-    let retried = false;
-    const retry = () => {
-      if (!retried) {
-        retried = true;
-        if (!this._ready) {
-          this._reconnect(resolve);
-        } else {
-          this._ready_promise = new Promise((new_resolve) => this._reconnect(new_resolve));
-        }
-      }
-    };
+  _init_connection() {
+    this._retry_timer = null;
 
-    if (!this._hasRetried) {
-      logger.info(`Connecting to RethinkDB: ${this._user} @ ${this._host}:${this._port}`);
-      this._hasRetried = true;
-    }
-    let rdb_conn = { host: this._host, port: this._port, db: this._project_name };
-    if (this._user) {
-      rdb_conn.user = this._user;
-      rdb_conn.password = this._pass;
-    }
-    if (this._connect_timeout) {
-      rdb_conn.timeout = this._connect_timeout;
-    }
-    r.connect(rdb_conn)
-     .then((conn) => {
-       logger.debug('Connection to RethinkDB established.');
-       conn.once('close', () => {
-         retry();
-       });
-       conn.on('error', (err) => {
-         logger.error(`Error on connection to RethinkDB: ${err}.`);
-         retry();
-       });
-       return r.db('rethinkdb').table('server_status').nth(0)('process')('version')
-               .run(conn)
-               .then((res) => {
-                 utils.rethinkdb_version_check(res);
-                 return conn;
-               });
-     }).then((conn) => {
-       this._connection = conn;
-       this._metadata = new Metadata(this._project_name,
-                                     this._connection,
-                                     this._clients,
-                                     this._auto_create_collection,
-                                     this._auto_create_index);
-       return this._metadata.ready();
-     }).then(() => {
-       logger.info(`Connection to RethinkDB ready: ${this._user} @ ${this._host}:${this._port}`);
-       this._reconnect_delay = 0;
-       this._ready = true;
-       resolve(this);
-     }).catch((err) => {
-       logger.error(`Connection to RethinkDB terminated: ${err}`);
-       logger.debug(`stack: ${err.stack}`);
-       retry();
-     });
+    return r.connect(this._rdb_options).then((conn) => {
+      if (this._interrupted_err) {
+        return Promise.reject(this._interrupted_err);
+      }
+      this._conn = conn;
+      logger.debug('Connection to RethinkDB established.');
+      return new Metadata(this._rdb_options.db,
+                          conn,
+                          this._clients,
+                          this._auto_create_collection,
+                          this._auto_create_index).ready();
+    }).then((metadata) => {
+      logger.info('Connection to RethinkDB ready: ' +
+        `${this._rdb_options.user} @ ${this._rdb_options.host}:${this._rdb_options.port}`);
+
+      this._metadata = metadata;
+      this._reconnect_delay = 0;
+
+      this._conn.once('close', () => {
+        logger.error('Lost connection to RethinkDB.');
+        this._reconnect();
+      });
+
+      // This is to avoid EPIPE errors - handling is done by the 'close' listener
+      this._conn.on('error', () => { });
+
+      return this;
+    }).catch((err) => {
+      logger.error(`Connection to RethinkDB terminated: ${err}`);
+      logger.debug(`stack: ${err.stack}`);
+      return this._reconnect();
+    });
   }
 
   is_ready() {
-    return this._ready;
+    return Boolean(this._conn);
   }
 
   ready() {
@@ -119,18 +117,13 @@ class ReqlConnection {
   }
 
   connection() {
-    check(this._ready, 'Connection to the database is down.');
-    return this._connection;
+    check(this.is_ready(), 'Connection to the database is down.');
+    return this._conn;
   }
 
   metadata() {
-    check(this._ready, 'Connection to the database is down.');
+    check(this.is_ready(), 'Connection to the database is down.');
     return this._metadata;
-  }
-
-  close() {
-    this._closed = true;
-    this._reconnect(); // This won't actually reconnect, but will do all the cleanup
   }
 }
 
