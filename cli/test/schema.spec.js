@@ -105,7 +105,7 @@ describe('hz schema', () => {
         start_rethinkdb: false,
         rdb_host: 'localhost',
         rdb_port: rdb_server.driver_port,
-        out_file: fs.createWriteStream('out.toml', { flags: 'w' }),
+        out_file: 'out.toml',
         project_name,
       }).then(() =>
         assert.strictEqual(fs.readFileSync('out.toml', 'utf8'), testSchema)

@@ -186,7 +186,7 @@ const processSaveConfig = (parsed) => {
   if (parsed.out_file === '-') {
     out_file = process.stdout;
   } else {
-    out_file = fs.createWriteStream(parsed.out_file, { flags: 'w', defaultEncoding: 'utf8' });
+    out_file = parsed.out_file;
   }
 
   if (options.project_name === null) {
@@ -481,10 +481,10 @@ const runSaveCommand = (options) => {
     new Promise((resolve) => {
 
       // Only rename old file if saving to default .hz/schema.toml
-      if (options.out_file.path === '.hz/schema.toml'){
+      if (options.out_file === '.hz/schema.toml') {
         try {
           // Throws if file doesn't exist
-          fs.accessSync(options.out_file.path, fs.R_OK);
+          fs.accessSync(options.out_file);
 
           // If it does exist, move file from oldPath to newPath with appendedISOString to path
           const oldPath = path.resolve(options.out_file.path);
@@ -492,13 +492,14 @@ const runSaveCommand = (options) => {
             `${path.parse(options.out_file.path).dir}/schema.toml.${new Date().toISOString()}`;
           // Rename/move file to new path
           fs.renameSync(oldPath, newPath);
-        } catch(e) {
+        } catch (e) {
           // File doesn't exist! Do nothing.
         }
       }
-      
+
       // Output toml_str to schema.toml
       const toml_str = schema_to_toml(res.collections, res.groups);
+      options.out_file = fs.createWriteStream(options.out_file, { flags: 'w', defaultEncoding: 'utf8' });
       options.out_file.end(toml_str, resolve);
     })
   ).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
