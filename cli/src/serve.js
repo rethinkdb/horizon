@@ -33,7 +33,7 @@ const default_rdb_timeout = 20;
 const helpText = 'Serve a Horizon app';
 
 function parseArguments(args) {
-  const parser = new argparse.ArgumentParser({prog: "hz serve"});
+  const parser = new argparse.ArgumentParser({ prog: 'hz serve' });
 
   parser.addArgument([ 'project_path' ],
     { type: 'string', nargs: '?',
@@ -87,6 +87,10 @@ function parseArguments(args) {
   parser.addArgument([ '--allow-anonymous' ],
     { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
       help: 'Whether to allow anonymous Horizon connections.' });
+
+  parser.addArgument([ '--max-connections' ],
+    { type: 'int', metavar: 'MAX_CONNECTIONS',
+      help: 'Maximum number of simultaneous connections server will accept.' });
 
   parser.addArgument([ '--debug' ],
     { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
@@ -194,6 +198,7 @@ const make_default_config = () => ({
   allow_unauthenticated: false,
   auth_redirect: '/',
   access_control_allow_origin: '',
+  max_connections: null,
 
   auth: { },
 });
@@ -548,6 +553,11 @@ const read_config_from_flags = (parsed) => {
     config.access_control_allow_origin = parsed.access_control_allow_origin;
   }
 
+  if (parsed.max_connections !== null &&
+      parsed.max_connections !== undefined) {
+    config.max_connections = parsed.max_connections;
+  }
+
   // Auth options
   if (parsed.auth !== null && parsed.auth !== undefined) {
     parsed.auth.forEach((auth_options) => {
@@ -649,6 +659,7 @@ const startHorizonServer = (servers, opts) => {
     rdb_user: opts.rdb_user || null,
     rdb_password: opts.rdb_password || null,
     rdb_timeout: opts.rdb_timeout || null,
+    max_connections: opts.max_connections || null,
   });
   const timeoutObject = setTimeout(() => {
     console.log(chalk.red.bold('Horizon failed to start after 30 seconds'));

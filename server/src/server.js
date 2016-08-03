@@ -72,6 +72,7 @@ class Server {
     this._r = r;
     this._path = opts.path;
     this._name = opts.project_name;
+    this._max_connections = opts.max_connections;
     this._permissions_enabled = opts.permissions;
     this._auth_methods = { };
     this._request_handlers = new Map();

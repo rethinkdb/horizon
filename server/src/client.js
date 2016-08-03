@@ -33,6 +33,10 @@ class Client {
     if (!this._metadata.is_ready()) {
       this.close({ error: 'No connection to the database.' });
     }
+
+    if (server._max_connections !== null && server._reql_conn._clients.size > server._max_connections) {
+      this.close({ request_id: null, error: 'Max connections limit reached.', error_code: 0 });
+    }
   }
 
   handle_websocket_close() {
