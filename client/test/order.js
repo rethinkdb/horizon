@@ -6,6 +6,9 @@ import { assertCompletes,
          assertErrors,
          compareWithoutVersion } from './utils'
 
+import cloneDeep from 'lodash.clonedeep'
+import sortBy from 'lodash.sortby'
+
 export default function orderSuite(getData, getTestData) {
   return () => {
   let data, testData
@@ -30,7 +33,7 @@ export default function orderSuite(getData, getTestData) {
   // We can also sort in descending order
   it('can order results in descending order', assertCompletes(() =>
     data.order('id', 'descending').fetch()
-      .do(res => compareWithoutVersion(res, _.cloneDeep(testData).reverse()))
+      .do(res => compareWithoutVersion(res, cloneDeep(testData).reverse()))
   ))
 
   // Let's try ordering by a different field.
@@ -62,14 +65,14 @@ export default function orderSuite(getData, getTestData) {
   // We can pass multiple fields to `order` to disambiguate.
   it('can order by multiple fields', assertCompletes(() =>
     data.order([ 'a', 'id' ]).fetch()
-      .do(res => compareWithoutVersion(res, _.sortBy(testData, [ 'a', 'id' ])))
+      .do(res => compareWithoutVersion(res, sortBy(testData, [ 'a', 'id' ])))
   ))
 
   // We can pass multiple fields to `order` to disambiguate. Let's do it in
   // descending order.
   it('can order by multiple fields descending', assertCompletes(() =>
     data.order([ 'a', 'id' ], 'descending').fetch()
-      .do(res => compareWithoutVersion(res, _.sortBy(testData, ['a', 'id']).reverse()))
+      .do(res => compareWithoutVersion(res, sortBy(testData, ['a', 'id']).reverse()))
   ))
 
   // `order` cannot accept any keys that are present in `findAll`

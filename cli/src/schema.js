@@ -479,7 +479,6 @@ const runSaveCommand = (options) => {
       .run(conn)
   ).then((res) =>
     new Promise((resolve) => {
-
       // Only rename old file if saving to default .hz/schema.toml
       if (options.out_file === '.hz/schema.toml') {
         try {
@@ -497,10 +496,12 @@ const runSaveCommand = (options) => {
         }
       }
 
+      const output = (options.out_file === '-') ? process.stdout :
+        fs.createWriteStream(options.out_file, { flags: 'w', defaultEncoding: 'utf8' });
+
       // Output toml_str to schema.toml
       const toml_str = schema_to_toml(res.collections, res.groups);
-      options.out_file = fs.createWriteStream(options.out_file, { flags: 'w', defaultEncoding: 'utf8' });
-      options.out_file.end(toml_str, resolve);
+      output.end(toml_str, resolve);
     })
   ).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
