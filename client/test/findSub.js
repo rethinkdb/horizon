@@ -18,14 +18,18 @@ export default function findSubscriptionSuite() {
     { id: 6, a: 50 },
   ]
 
-  before(assertCompletes(() => {
-    return data.store(testData)
-      .ignoreElements()
-      .concat(data.fetch())
-      .do(res => compareSetsWithoutVersion(res, testData))
-  }))
+  before(() => {
+    horizon.connect()
+    return assertCompletes(() => {
+      return data.store(testData)
+        .do(x => console.log('stored', x))
+        .ignoreElements()
+        .concat(data.fetch())
+        .do(res => compareSetsWithoutVersion(res, testData))
+    })
+  })
 
-  afterEach(done => removeAllData(data, done))
+  after(done => removeAllData(data, done))
 
 
   oit('returns an updating document', t => {

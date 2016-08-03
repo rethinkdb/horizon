@@ -2,6 +2,8 @@ import { Observable } from 'rxjs/Observable'
 
 import 'rxjs/add/observable/empty'
 import 'rxjs/add/operator/concat'
+import 'rxjs/add/operator/ignoreElements'
+import 'rxjs/add/operator/multicast'
 
 import { assert } from 'chai'
 
@@ -13,7 +15,11 @@ export function observableTest(getTest) {
   const testPlan = new ObservableTestPlan()
   getTest(testPlan)
   const obs = buildTestObservable(testPlan._plan)
-  return done => obs.subscribe({ error: done, complete: done })
+  function testFunc() {
+    return obs.toPromise()
+  }
+  testFunc.toString = () => getTest.toString()
+  return testFunc
 }
 
 export class ObservableTestPlan {
@@ -72,26 +78,43 @@ export class ObservableTestPlan {
   }
 }
 
+function log(name, obs) {
+  return obs.do({
+    next(x) { console.log(`${name} got`, x) },
+    error(e) { console.log(`${name} errored`, e) },
+    complete() { console.log(`${name} completed`) },
+  })
+}
+
 export function buildTestObservable(plan) {
   validatePlan(plan)
+  function next() {
+    return plan.shift()
+  }
+  let step = 0
   // Rest of this function is simplified by assuming a valid plan
   let observable = Observable.empty()
   while (plan[0].type === 'beforeHand') {
-    observable.concat(plan.shift().action)
+    step++
+    observable = observable.concat(log('beforeHand'+step, next().action))
   }
-  const query = plan.shift().query
+  const query = log('query', next().query)
   let skip = 0
-  for (const action of plan) {
+  while (plan.length !== 0) {
+    step++
+    const action = next()
     if (action.type === 'expect') {
       observable = observable.concat(
-        query.skip(skip).take(1).do(action.observer)
+        log('expect'+step, query.skip(skip++).take(1).do(action.observer)).ignoreElements()
       )
-      skip += 1
     }
     if (action.type === 'do') {
-      observable = observable.concat(action.action)
+      observable = observable.concat(
+        log('do'+step, action.action.ignoreElements())
+      )
     }
   }
+  return log('test'+step, observable)
 }
 
 // Before we build an observable from the plan, validate it.
@@ -155,10 +178,6 @@ function nextObserver(expected, equality) {
   return {
     next(val) {
       return equality(val, expected)
-    },
-    complete() {
-      throw new Error(
-        `Expected value but completed instead: ${JSON.stringify(expected)}`)
     },
   }
 }

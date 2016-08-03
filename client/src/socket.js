@@ -105,6 +105,7 @@ export class HorizonSocket extends WebSocketSubject {
 
   deactivateRequest(req) {
     return () => {
+      console.log('Sending unsubscribe for ', req.request_id)
       this.activeRequests.delete(req.request_id)
       return { request_id: req.request_id, type: 'end_subscription' }
     }
@@ -112,6 +113,7 @@ export class HorizonSocket extends WebSocketSubject {
 
   activateRequest(req) {
     return () => {
+      console.log('Activating', req.request_id)
       this.activeRequests.set(req.request_id, req)
       return req
     }
