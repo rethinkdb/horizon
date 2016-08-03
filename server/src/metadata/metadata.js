@@ -6,6 +6,7 @@ const Group = require('../permissions/group').Group;
 const Collection = require('./collection').Collection;
 const Table = require('./table').Table;
 const version_field = require('../endpoint/writes').version_field;
+const utils = require('../utils');
 
 const r = require('rethinkdb');
 
@@ -35,12 +36,13 @@ const create_collection_reql = (db, collection) =>
                       res))))),
       { old_val: row, new_val: row }));
 
-const initialize_metadata_reql = (db) =>
-  r.branch(r.dbList().contains(db), null, r.dbCreate(db))
-    .do(() =>
-      r.expr([ 'hz_collections', 'hz_users_auth', 'hz_groups', 'users' ])
-        .forEach((table) => r.branch(r.db(db).tableList().contains(table),
-                                     [], r.db(db).tableCreate(table))));
+const initialize_metadata = (db, conn) =>
+  r.branch(r.dbList().contains(db), null, r.dbCreate(db)).run(conn).then(() =>
+    Promise.all([ 'hz_collections', 'hz_users_auth', 'hz_groups', 'users' ].map((table) =>
+      r.branch(r.db(db).tableList().contains(table),
+               { },
+               r.db(db).tableCreate(table))
+        .run(conn))));
 
 class Metadata {
   constructor(project_name,
@@ -63,9 +65,13 @@ class Metadata {
     this._index_feed = null;
 
     this._ready_promise = Promise.resolve().then(() => {
+      logger.debug('checking rethinkdb version');
+      return r.db('rethinkdb').table('server_status').nth(0)('process')('version').run(this._conn)
+               .then((res) => utils.rethinkdb_version_check(res));
+    }).then(() => {
       logger.debug('checking for internal db/tables');
       if (this._auto_create_collection) {
-        return initialize_metadata_reql(this._db).run(this._conn);
+        return initialize_metadata(this._db, this._conn);
       } else {
         return r.dbList().contains(this._db).run(this._conn).then((is_missing_db) => {
           if (is_missing_db) {
@@ -180,7 +186,7 @@ class Metadata {
           .map((row) => ({
             id: row('id'),
             name: row('name'),
-            indexes: row('indexes').filter((idx) => idx.match('^hz_'))
+            indexes: row('indexes').filter((idx) => idx.match('^hz_')),
           }))
           .changes({ squash: true,
                      includeInitial: true,
@@ -397,4 +403,4 @@ class Metadata {
   }
 }
 
-module.exports = { Metadata, create_collection_reql, initialize_metadata_reql };
+module.exports = { Metadata, create_collection_reql, initialize_metadata };

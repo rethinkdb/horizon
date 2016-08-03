@@ -1,26 +1,30 @@
 'use strict';
-const r = require('rethinkdb');
-const assert = require('chai').assert;
-const mockFs = require('mock-fs');
-const tmpdir = require('os').tmpdir;
-// const sinon = require('sinon');
-const processLoadConfig = require("../src/schema").processLoadConfig;
-const runLoadCommand = require('../src/schema').runLoadCommand;
+
+const processApplyConfig = require('../src/schema').processApplyConfig;
+const runApplyCommand = require('../src/schema').runApplyCommand;
 const runSaveCommand = require('../src/schema').runSaveCommand;
 const parse_schema = require('../src/schema').parse_schema;
+const start_rdb_server = require('../src/utils/start_rdb_server');
+const rm_sync_recursive = require('../src/utils/rm_sync_recursive');
+
+const assert = require('assert');
 const fs = require('fs');
-const start_rethinkdb_server = require("../src/utils/start_rdb_server");
-// const joi = require('joi/schemas');
+
+const r = start_rdb_server.r;
+const mockFs = require('mock-fs');
+const tmpdir = require('os').tmpdir;
+
+const project_name = 'schema_test';
 
 const testSchema = `# This is a TOML document
 
 [collections.test_messages]
-indexes = ["datetime"]
+indexes = ["hz_[\\\"datetime\\\"]"]
 
 [groups.admin]
 [groups.admin.rules.carte_blanche]
 template = "any()"
-`
+`;
 
 const brokenTestSchema = `
 [collectiosfklajsfns.test_messages]
@@ -29,162 +33,118 @@ indexes = ["datetime"]
 [groups.adminasklfjasf]
 [groups.admin.rules.carte_blanche]
 template = "any()a;lkdfjlakjf;ladkfjal;kfj"
-`
+`;
 
-parse_schema(testSchema)
-const currentOpts = {};
-describe("hz schema", () => {
-  before(() => {
-    // Start RethinkDB server
-    return new Promise((resolve, reject) => {
-      start_rethinkdb_server({
-        driverPort: 38015,
-        bind: ["127.0.0.1"],
-        dataDir: tmpdir() + "/horizon-test",
-        db: "horizon_schema_test"
-      }).then((server) => {
-        currentOpts.dbPort = server.driverPort;
-        resolve();
-      }).catch((err) => {
-        console.log(err)
-      });
-    });
-  });
+const valid_file_system = {
+  '.hz': {
+    'schema.toml': testSchema,
+  },
+};
 
-  describe("hz schema save", () => {
-    
-    beforeEach('set up database state', () => {
-      // Create MockFS
-      mockFs({
-          '.hz': {
-            'schema.toml': testSchema,
-          },
-          'out.toml': '',
-      });
+describe('hz schema', () => {
+  const rdb_data_dir = `${tmpdir()}/horizon-test-${process.pid}`;
+  let rdb_conn, rdb_server;
 
-      // Load default schema into rethinkdb to read from
-      const config = processLoadConfig({  
+  before('start rethinkdb', () =>
+    start_rdb_server({
+      quiet: true,
+      dataDir: rdb_data_dir,
+    }).then((server) => {
+      rdb_server = server;
+    })
+  );
+
+  after('stop rethinkdb', () => rdb_server && rdb_server.close());
+  after('delete rethinkdb data directory', () => rm_sync_recursive(rdb_data_dir));
+
+  before('connect to rethinkdb', () =>
+    rdb_server.connect().then((conn) => {
+      rdb_conn = conn;
+    })
+  );
+
+  beforeEach('initialize mockfs', () => mockFs(valid_file_system));
+  afterEach('restore fs', () => mockFs.restore());
+
+  describe('save', () => {
+    beforeEach('initialize database', () =>
+      runApplyCommand(processApplyConfig({
         start_rethinkdb: false,
-        schema_file: `.hz/schema.toml`,
-        project_name: 'horizon_schema_test',
-        connect: '127.0.0.1:' + currentOpts.dbPort,
-      });
-      return runLoadCommand(config, false).catch(err => console.log);
-    });
-
-    afterEach('restore mockfs and drop dbs from rdb', () => {
-      mockFs.restore();
-
-      // Remove default schema from rethinkdb
-      return r.connect('localhost', currentOpts.dbPort).then((conn) => {
-        r.branch(
-          r.dbList().contains(['horizon_schema_test', 'horizon_schema_test_internal']),
-          r.dbDrop(['horizon_schema_test', 'horizon_schema_test_internal']),
-          r.dbList().contains('horizon_schema_test'),
-          r.dbDrop('horizon_schema_test'),
-          r.dbList().contains('horizon_schema_test_internal'),
-          r.dbDrop('horizon_schema_test_internal'),
-          null
-        ).run(conn);
-      }).catch(console.log);
-    });
-
-    it("saves schema to schema.toml from rdb", () => {
-      return runSaveCommand({
-        start_rethinkdb: false,
-        rdb_host: '127.0.0.1',
-        rdb_port: currentOpts.dbPort,
-        out_file: fs.createWriteStream('out.toml', {flags: 'w'}),
-        project_name: 'horizon_schema_test',
-      }).then(() => {
-        assert.equal(fs.readFileSync('out.toml', 'utf8'), testSchema);
-        
-      });
-    });
-  });
-
-  describe("hz schema load", () => {
-    beforeEach(() => {
-      mockFs({
-          '.hz': {
-            'schema.toml': testSchema,
-          },
-      });
-    });
-
-    it("should load schema to rdb from schema.toml", () => {
-      let rethinkdb_conn;
-      const createdConfig = processLoadConfig({
-        connect: "localhost:" + currentOpts.dbPort,
         schema_file: '.hz/schema.toml',
-        start_rethinkdb: false, 
+        project_name,
+        connect: `localhost:${rdb_server.driver_port}`,
+      }))
+    );
+
+    afterEach('clear database', () =>
+      r.branch(
+        r.dbList().contains(project_name),
+        r.dbDrop(project_name),
+        null
+      ).run(rdb_conn)
+    );
+
+    it('saves schema to schema.toml from rdb', () =>
+      runSaveCommand({
+        start_rethinkdb: false,
+        rdb_host: 'localhost',
+        rdb_port: rdb_server.driver_port,
+        out_file: fs.createWriteStream('out.toml', { flags: 'w' }),
+        project_name,
+      }).then(() =>
+        assert.strictEqual(fs.readFileSync('out.toml', 'utf8'), testSchema)
+      )
+    );
+  });
+
+  describe('apply', () => {
+    it('should apply schema to rdb from schema.toml', () => {
+      const config = processApplyConfig({
+        connect: `localhost:${rdb_server.driver_port}`,
+        schema_file: '.hz/schema.toml',
+        start_rethinkdb: false,
         update: true,
         force: true,
         secure: false,
         permissions: false,
-        project_name: 'horizon_schema_test',
+        project_name,
       });
 
-      // Load settings into RethinkDB
-      return runLoadCommand(createdConfig, false).then((RLCresult) => {
-        
-        // Make connection to test RethinkDB instance
-        return r.connect({ host: '127.0.0.1', port: currentOpts.dbPort});
-      
-      }).then((conn) => {
-      
-        rethinkdb_conn = conn;
-        // Assert both databases are created 
-        const expected_databases = ['horizon_schema_test', 'horizon_schema_test_internal'];
-        return Promise.all(expected_databases.map((table_name) => {
-          return new r.dbList().run(rethinkdb_conn).then((result) => {
-            assert.include(result, table_name, 'Tables include horizon_test');  
-          });
-        }));
-      }).then(() => {
-        // Assert index is created, have to do tableList first because of number ending on table names currently
-        return r.db('horizon_schema_test').tableList().run(rethinkdb_conn)
-          .then((table_names) => {
-            r.db('horizon_schema_test').table(table_names[0]).indexList().run(rethinkdb_conn)
-            .then((result) => {
-              assert.include(result, 'datetime', '"datetime" index not included')
-            });
-          });
-        });
-      });
+      // Apply settings into RethinkDB
+      return runApplyCommand(config).then(() =>
+        // Check that the project database exists
+        r.dbList().contains(project_name).run(rdb_conn)
+      ).then((res) =>
+        assert(res, `${project_name} database is missing.`)
+      ).then(() =>
+        // Check that the expected indexes exist on the expected table
+        r.db(project_name).table('test_messages')
+          .indexList().contains('hz_["datetime"]')
+          .run(rdb_conn)
+      ).then((res) =>
+        assert(res, '"datetime" index is missing')
+      );
     });
-  
-  describe("given a schema.toml file", () => {
-    beforeEach(() => {
-      mockFs({
-          '.hz': {
-            'schema.toml': testSchema,
-          },
-      });
+  });
+
+  describe('given a schema.toml file', () => {
+    it('can parse a valid schema.toml file', () => {
+      parse_schema(testSchema);
     });
-    afterEach(() => {
-      mockFs.restore();
+
+    it('fails parsing invalid schema.toml file', () => {
+      assert.throws(() => {
+        parse_schema(brokenTestSchema);
+      }, /"collectiosfklajsfns" is not allowed/);
     });
-    it('can parse a valid schema.toml file', (done) => {
-      const schema = parse_schema(testSchema);
-      done();
-    });
-    it('fails parsing invalid schema.toml file', (done) => {
-      try {
-        const schema = parse_schema(brokenTestSchema);
-      } catch (e) {
-        assert(e.name === "ValidationError");
-      }
-      done();
-    });
-    it('can read a vaild schema.toml file', (done) => {
-        const createdConfig = processLoadConfig({
-            start_rethinkdb: true, 
-            schema_file: '.hz/schema.toml',
-            update: true,
-            force: true,
-        });
-        done();
-    });
+
+    it('can read a vaild schema.toml file', () =>
+      processApplyConfig({
+        start_rethinkdb: true,
+        schema_file: '.hz/schema.toml',
+        update: true,
+        force: true,
+      })
+    );
   });
 });

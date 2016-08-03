@@ -33,7 +33,8 @@ const run_request = (req, cb) => {
     });
     res.once('end', () => {
       if (res.statusCode !== 200) {
-        cb(new Error(`Request returned status code: ${res.statusCode} (${res.statusMessage}): ${chunks.join('')}`));
+        cb(new Error(`Request returned status code: ${res.statusCode} ` +
+                     `(${res.statusMessage}): ${chunks.join('')}`));
       } else {
         cb(null, chunks.join(''));
       }
@@ -64,7 +65,8 @@ const make_nonce = (cb) => crypto.randomBytes(64, (err, res) => {
 });
 
 // TODO: this base64 encoding isn't URL-friendly
-const nonce_to_state = (nonce) => crypto.createHash('sha256').update(nonce, 'base64').digest('base64');
+const nonce_to_state = (nonce) =>
+  crypto.createHash('sha256').update(nonce, 'base64').digest('base64');
 
 const set_nonce = (res, name, nonce) =>
   res.setHeader('set-cookie',

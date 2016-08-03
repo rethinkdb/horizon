@@ -11,7 +11,8 @@ const all_suites = [ 'http_tests',
                      'write_tests' ];
 const collection = 'test';
 
-before('Start RethinkDB Server', (done) => utils.test_db_server(done));
+before('Start RethinkDB Server', () => utils.start_rethinkdb());
+after('Stop RethinkDB Server', () => utils.stop_rethinkdb());
 
 beforeEach(
   /** @this mocha */
