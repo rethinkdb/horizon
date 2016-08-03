@@ -42,8 +42,6 @@ global.chai.config.truncateThreshold = 0
 global.expect = global.chai.expect
 global.assert = global.chai.assert
 
-global._ = require('lodash/lodash.js')
-
 // Wait until server is ready before proceeding to tests
 describe('Waiting until server ready...', function() {
   this.timeout(60000)
