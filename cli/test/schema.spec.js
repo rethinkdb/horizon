@@ -67,16 +67,17 @@ describe('hz schema', () => {
   afterEach('restore fs', () => mockFs.restore());
 
   describe('save', () => {
-    beforeEach('initialize database', () =>
-      runApplyCommand(processApplyConfig({
+    before('initialize database', () => {
+      mockFs(valid_file_system);
+      return runApplyCommand(processApplyConfig({
         start_rethinkdb: false,
         schema_file: '.hz/schema.toml',
         project_name,
         connect: `localhost:${rdb_server.driver_port}`,
-      }))
-    );
+      }));
+    });
 
-    afterEach('clear database', () =>
+    after('clear database', () =>
       r.branch(
         r.dbList().contains(project_name),
         r.dbDrop(project_name),
@@ -84,12 +85,24 @@ describe('hz schema', () => {
       ).run(rdb_conn)
     );
 
+    it('renames previous schema.toml if it already exists', () =>
+      runSaveCommand({
+        start_rethinkdb: false,
+        rdb_host: 'localhost',
+        rdb_port: rdb_server.driver_port,
+        out_file: '.hz/schema.toml',
+        project_name,
+      }).then(() =>
+        assert.equal(fs.readdirSync('.hz').length, 2, 'backup schema file not created')
+      )
+    );
+
     it('saves schema to schema.toml from rdb', () =>
       runSaveCommand({
         start_rethinkdb: false,
         rdb_host: 'localhost',
         rdb_port: rdb_server.driver_port,
-        out_file: fs.createWriteStream('out.toml', { flags: 'w' }),
+        out_file: 'out.toml',
         project_name,
       }).then(() =>
         assert.strictEqual(fs.readFileSync('out.toml', 'utf8'), testSchema)

@@ -186,7 +186,7 @@ const processSaveConfig = (parsed) => {
   if (parsed.out_file === '-') {
     out_file = process.stdout;
   } else {
-    out_file = fs.createWriteStream(parsed.out_file, { flags: 'w', defaultEncoding: 'utf8' });
+    out_file = parsed.out_file;
   }
 
   if (options.project_name === null) {
@@ -437,6 +437,15 @@ const runApplyCommand = (options) => {
   }).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
 
+const file_exists = (filename) => {
+  try {
+    fs.accessSync(filename);
+  } catch (e) {
+    return false;
+  }
+  return true;
+};
+
 const runSaveCommand = (options) => {
   let conn, rdb_server;
   const db = options.project_name;
@@ -479,8 +488,21 @@ const runSaveCommand = (options) => {
       .run(conn)
   ).then((res) =>
     new Promise((resolve) => {
+      // Only rename old file if saving to default .hz/schema.toml
+      if (options.out_file === '.hz/schema.toml' &&
+          file_exists(options.out_file)) {
+        // Rename existing file to have the current time appended to its name
+        const oldPath = path.resolve(options.out_file);
+        const newPath = `${path.resolve(options.out_file)}.${new Date().toISOString()}`;
+        fs.renameSync(oldPath, newPath);
+      }
+
+      const output = (options.out_file === '-') ? process.stdout :
+        fs.createWriteStream(options.out_file, { flags: 'w', defaultEncoding: 'utf8' });
+
+      // Output toml_str to schema.toml
       const toml_str = schema_to_toml(res.collections, res.groups);
-      options.out_file.end(toml_str, resolve);
+      output.end(toml_str, resolve);
     })
   ).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
