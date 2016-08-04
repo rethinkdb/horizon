@@ -481,7 +481,9 @@ const runSaveCommand = (options) => {
     return r.db(db).wait({ waitFor: 'ready_for_reads', timeout: 30 }).run(conn);
   }).then(() =>
     r.object('collections',
-             r.db(db).table('hz_collections').coerceTo('array')
+             r.db(db).table('hz_collections')
+               .filter((row) => row('name').match('^hz_').not())
+               .coerceTo('array')
                .map((row) =>
                  row.merge({ indexes: r.db(db).table(row('id')).indexList() })),
              'groups', r.db(db).table('hz_groups').coerceTo('array'))

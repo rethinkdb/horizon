@@ -348,4 +348,5 @@ module.exports = {
   read_from_env,
   read_from_flags,
   merge_options,
+  parse_connect,
 };
