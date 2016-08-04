@@ -88,7 +88,7 @@ describe('hz schema', () => {
     it('renames previous schema.toml if it already exists', () =>
       runSaveCommand({
         start_rethinkdb: false,
-        rdb_host: '127.0.0.1',
+        rdb_host: 'localhost',
         rdb_port: rdb_server.driver_port,
         out_file: '.hz/schema.toml',
         project_name,
