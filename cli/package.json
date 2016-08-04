@@ -32,7 +32,8 @@
     "mime-types": "^2.0.4",
     "rethinkdb": "^2.1.1",
     "open": "0.0.5",
-    "toml": "^2.3.0"
+    "toml": "^2.3.0",
+    "hzc-client-updater": "^1.0.0"
   },
   "devDependencies": {
     "chai": "^3.5.0",
