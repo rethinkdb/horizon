@@ -437,6 +437,15 @@ const runApplyCommand = (options) => {
   }).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
 
+const file_exists = (filename) => {
+  try {
+    fs.accessSync(filename);
+  } catch (e) {
+    return false;
+  }
+  return true;
+};
+
 const runSaveCommand = (options) => {
   let conn, rdb_server;
   const db = options.project_name;
@@ -480,20 +489,12 @@ const runSaveCommand = (options) => {
   ).then((res) =>
     new Promise((resolve) => {
       // Only rename old file if saving to default .hz/schema.toml
-      if (options.out_file === '.hz/schema.toml') {
-        try {
-          // Throws if file doesn't exist
-          fs.accessSync(options.out_file);
-
-          // If it does exist, move file from oldPath to newPath with appendedISOString to path
-          const oldPath = path.resolve(options.out_file.path);
-          const newPath =
-            `${path.parse(options.out_file.path).dir}/schema.toml.${new Date().toISOString()}`;
-          // Rename/move file to new path
-          fs.renameSync(oldPath, newPath);
-        } catch (e) {
-          // File doesn't exist! Do nothing.
-        }
+      if (options.out_file === '.hz/schema.toml' &&
+          file_exists(options.out_file)) {
+        // Rename existing file to have the current time appended to its name
+        const oldPath = path.resolve(options.out_file);
+        const newPath = `${path.resolve(options.out_file)}.${new Date().toISOString()}`;
+        fs.renameSync(oldPath, newPath);
       }
 
       const output = (options.out_file === '-') ? process.stdout :

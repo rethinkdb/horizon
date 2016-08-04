@@ -67,16 +67,17 @@ describe('hz schema', () => {
   afterEach('restore fs', () => mockFs.restore());
 
   describe('save', () => {
-    beforeEach('initialize database', () =>
-      runApplyCommand(processApplyConfig({
+    before('initialize database', () => {
+      mockFs(valid_file_system);
+      return runApplyCommand(processApplyConfig({
         start_rethinkdb: false,
         schema_file: '.hz/schema.toml',
         project_name,
         connect: `localhost:${rdb_server.driver_port}`,
-      }))
-    );
+      }));
+    });
 
-    afterEach('clear database', () =>
+    after('clear database', () =>
       r.branch(
         r.dbList().contains(project_name),
         r.dbDrop(project_name),
@@ -89,9 +90,10 @@ describe('hz schema', () => {
         start_rethinkdb: false,
         rdb_host: '127.0.0.1',
         rdb_port: rdb_server.driver_port,
-        project_name: 'horizon_schema_test',
+        out_file: '.hz/schema.toml',
+        project_name,
       }).then(() =>
-        assert.equal(fs.readdirSync('.hz').length, 2, 'backup schema file created')
+        assert.equal(fs.readdirSync('.hz').length, 2, 'backup schema file not created')
       )
     );
 
