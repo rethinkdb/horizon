@@ -13,6 +13,7 @@ const versionCommand = require('./version');
 const createCertCommand = require('./create-cert');
 const schemaCommand = require('./schema');
 const makeTokenCommand = require('./make-token');
+const migrateCommand = require('./migrate');
 
 // Mapping from command line strings to modules. To add a new command,
 // add an entry in this object, and create a module with the following
@@ -26,6 +27,7 @@ const commands = {
   'create-cert': createCertCommand,
   'make-token': makeTokenCommand,
   schema: schemaCommand,
+  migrate: migrateCommand,
 };
 
 const programName = path.basename(process.argv[1]);
