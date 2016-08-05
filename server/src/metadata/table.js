@@ -7,9 +7,8 @@ const logger = require('../logger');
 const r = require('rethinkdb');
 
 class Table {
-  constructor(table, table_id, db, conn) {
-    this.collection = null; // This will be set when we are attached to a collection
-    this.table = r.db(db).table(table);
+  constructor(reql_table, conn) {
+    this.table = reql_table;
     this.indexes = new Map();
 
     this._waiters = [ ];
@@ -87,7 +86,7 @@ class Table {
       // Create the Index object now so we don't try to create it again before the
       // feed notifies us of the index creation
       const new_index = new index.Index(index_name, this.table, conn);
-      this.indexes.set(index_name, new_index);
+      this.indexes.set(index_name, new_index); // TODO: shouldn't this be done before we go async?
       return new_index.on_ready(done);
     };
 
@@ -122,11 +121,7 @@ class Table {
       }
     }
 
-    if (match) {
-      throw new error.IndexNotReady(this.collection, match);
-    } else {
-      throw new error.IndexMissing(this.collection, fuzzy_fields.concat(ordered_fields));
-    }
+    return match;
   }
 }
 
