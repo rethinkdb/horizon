@@ -9,11 +9,14 @@ const utils = require('../utils');
 
 const r = require('rethinkdb');
 
+const metadata_version = [ 2, 0, 0 ];
+
 const create_collection = (db, name, conn) =>
 // TODO: if the row was already there, this should appear to be success
-// TODO: majority write to 'hz_collections'
-  r.db(db).table('hz_collections').insert({ id: name }).do((res) =>
+  r.db(db).table('hz_collections').get(name).replace({ id: name }).do((res) =>
     r.branch(
+      res('errors').ne(0),
+      r.error(res('first_error')),
       res('inserted').eq(1),
       r.db(db).tableCreate(name),
       res
@@ -29,9 +32,14 @@ const initialize_metadata = (db, conn) =>
                  r.db(db).tableCreate(table))
           .run(conn))))
     .then(() =>
+      r.db(db).table('hz_collections').wait({ timeout: 30 }).run(conn))
+    .then(() =>
       Promise.all([
-        create_collection(db, 'users', conn),
-        r.db(db).table('hz_collections').insert({ id: 'hz_metadata', version: '2.0.0' }).run(conn),
+        r.db(db).tableList().contains('users').not().run(conn).then(() =>
+          create_collection(db, 'users', conn)),
+        r.db(db).table('hz_collections')
+          .insert({ id: 'hz_metadata', version: metadata_version })
+          .run(conn),
       ])
     );
 
@@ -59,12 +67,21 @@ class Metadata {
       return r.db('rethinkdb').table('server_status').nth(0)('process')('version').run(this._conn)
                .then((res) => utils.rethinkdb_version_check(res));
     }).then(() => {
+      const old_metadata_db = `${this._db}_internal`;
+      return r.dbList().contains(old_metadata_db).run(this._conn).then((has_old_db) => {
+        if (has_old_db) {
+          throw new Error('The Horizon metadata appears to be from v1.x because ' +
+                          `the "${old_metadata_db}" database exists.  Please use ` +
+                          '`hz migrate` to convert your metadata to the new format.');
+        }
+      });
+    }).then(() => {
       logger.debug('checking for internal tables');
       if (this._auto_create_collection) {
         return initialize_metadata(this._db, this._conn);
       } else {
-        return r.dbList().contains(this._db).run(this._conn).then((is_missing_db) => {
-          if (is_missing_db) {
+        return r.dbList().contains(this._db).run(this._conn).then((has_db) => {
+          if (!has_db) {
             throw new Error(`The database ${this._db} does not exist.  ` +
                             'Run `hz schema apply` to initialize the database, ' +
                             'then start the Horizon server.');
