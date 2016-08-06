@@ -122,7 +122,7 @@ const parseArguments = (args) => {
       '--start-rethinkdb=yes, ' +
       '--allow-unauthenticated=yes, ' +
       '--allow-anonymous=yes, ' +
-      '--schema-file=.hz/schema.toml' +
+      '--schema-file=.hz/schema.toml ' +
       'and --serve-static=./dist.' });
 
   parser.addArgument([ '--config' ],
