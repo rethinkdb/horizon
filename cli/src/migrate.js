@@ -8,6 +8,7 @@ const runSaveCommand = require('./schema').runSaveCommand;
 const config = require('./utils/config');
 const interrupt = require('./utils/interrupt');
 const change_to_project_dir = require('./utils/change_to_project_dir');
+const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const start_rdb_server = require('./utils/start_rdb_server');
 
 const VERSION_2_0 = [ 2, 0, 0 ];
@@ -24,11 +25,7 @@ function run(cmdArgs) {
     .then(renameIndices)
     .then(rewriteHzCollectionDocs)
     .then(exportNewSchema)
-    .then(teardown)
-    .catch((err) => {
-      red(` └── ${err.message}`);
-      return Promise.bind(options).then(teardown());
-    });
+    .finally(teardown);
 }
 
 function green(arg, ...args) {
@@ -76,7 +73,10 @@ function processConfig(cmdArgs) {
   });
 
   parser.addArgument([ '--start-rethinkdb' ], {
-    action: 'storeTrue',
+    metavar: 'yes|no',
+    default: 'yes',
+    constant: 'yes',
+    nargs: '?',
     help: 'Start up a RethinkDB server in the current directory'
   });
 
@@ -86,7 +86,10 @@ function processConfig(cmdArgs) {
   });
 
   parser.addArgument([ '--skip-backup' ], {
-    action: 'storeTrue',
+    metavar: 'yes|no',
+    default: 'no',
+    constant: 'yes',
+    nargs: '?',
     help: 'Whether to perform a backup of rethinkdb_data before migrating',
   });
 
@@ -100,8 +103,8 @@ function processConfig(cmdArgs) {
     rdb_port: parsed.rdb_port || confOptions.rdb_port || 28015,
     rdb_user: parsed.rdb_user || confOptions.rdb_user || 'admin',
     rdb_password: parsed.rdb_password || confOptions.rdb_password || '',
-    skip_backup: parsed.skip_backup || false,
-    start_rethinkdb: parsed.start_rethinkdb || false,
+    skip_backup: parse_yes_no_option(parsed.skip_backup),
+    start_rethinkdb: parse_yes_no_option(parsed.start_rethinkdb),
   };
   // sets rdb_host and rdb_port from connect if necessary
   if (parsed.connect) {
@@ -109,7 +112,7 @@ function processConfig(cmdArgs) {
   }
 
   if (options.project_name == null) {
-    throw new Error('project_name is null');
+    throw new Error('No project_name given');
   }
   return options;
 }
@@ -132,8 +135,6 @@ function setup() {
         this.options.rdb_host = 'localhost';
         this.options.rdb_port = server.driver_port;
       }).then(() => Promise.delay(2000));
-    } else {
-      return undefined;
     }
   }).then(() => {
     green(' ├── Connecting to RethinkDB');
@@ -156,16 +157,12 @@ function teardown() {
     if (this.conn) {
       green(' ├── Closing rethinkdb connection');
       return this.conn.close();
-    } else {
-      return undefined;
     }
   }).then(() => {
     // shut down the rethinkdb server if we started it
     if (this.rdb_server) {
       green(' └── Shutting down rethinkdb server');
       return this.rdb_server.close();
-    } else {
-      return undefined;
     }
   });
 }
@@ -187,9 +184,10 @@ function validateMigration() {
       .do(() => checkForHzTables)
       .run(this.conn)
       .then(() => green(' └── Pre-2.0 schema found'))
-      .catch(() => {
+      .catch((e) => {
         throw new Error(
-          'Pre-2.0 schema not found. Have you already migrated?');
+          `Pre-2.0 schema not found (${e}). ` +
+            'Have you already migrated?');
       });
   });
 }
@@ -224,7 +222,7 @@ function makeBackup() {
 }
 
 function renameUserTables() {
-  // for each table listed in ${project}_internal.tables
+  // for each table listed in ${project}_internal.collections
   // rename the table name to the collection name
   const project = this.options.project_name;
   return Promise.resolve().then(() => {
@@ -311,7 +309,7 @@ function renameIndices() {
 }
 
 function rewriteHzCollectionDocs() {
-  // for each document in ${project}.hz_tables
+  // for each document in ${project}.hz_collections
   //   delete the table field
   const project = this.options.project_name;
   return Promise.resolve().then(() => {
@@ -341,7 +339,6 @@ function exportNewSchema() {
       rdb_port: this.options.rdb_port,
       rdb_user: this.options.rdb_user,
       rdb_password: this.options.rdb_password,
-      rdb_timeout: this.options.rdb_timeout,
       out_file: '.hz/schema.toml.migrated',
       project_name: this.options.project_name,
     }).then(() => green(' └── Schema exported'));
