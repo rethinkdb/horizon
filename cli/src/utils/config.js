@@ -227,7 +227,6 @@ const read_from_flags = (parsed) => {
     config.auto_create_index = true;
     config.serve_static = 'dist';
     config._dev_flag_used = true;
-    config.schema_file = '.hz/schema.toml';
 
     if (parsed.start_rethinkdb === null || parsed.start_rethinkdb === undefined) {
       config._start_rethinkdb_implicit = true;
@@ -348,4 +347,5 @@ module.exports = {
   read_from_env,
   read_from_flags,
   merge_options,
+  parse_connect,
 };

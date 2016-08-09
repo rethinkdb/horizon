@@ -6,6 +6,7 @@ module.exports = {
   extends: "../.eslintrc.js",
   rules: {
     "max-len": [ ERROR, 100 ],
+    "no-invalid-this": [ OFF ]
   },
   env: {
     "es6": true,
