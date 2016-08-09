@@ -3,7 +3,7 @@
 const error = require('../error');
 
 class Collection {
-  constructor(name, table_id) {
+  constructor(name) {
     this.name = name;
     this._waiters = [ ];
     this.table = null; // This is the ReQL Table object
