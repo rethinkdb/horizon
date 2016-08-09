@@ -18,6 +18,8 @@ const project_name = 'schema_test';
 
 const testSchema = `# This is a TOML document
 
+[collections.users]
+
 [collections.test_messages]
 indexes = ["hz_[\\\"datetime\\\"]"]
 

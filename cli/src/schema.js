@@ -19,7 +19,7 @@ const argparse = require('argparse');
 const toml = require('toml');
 
 const r = horizon_server.r;
-const create_collection_reql = horizon_metadata.create_collection_reql;
+const create_collection = horizon_metadata.create_collection;
 const initialize_metadata = horizon_metadata.initialize_metadata;
 const name_to_info = horizon_index.name_to_info;
 
@@ -127,6 +127,12 @@ const parse_schema = (schema_toml) => {
     for (const name in schema.collections) {
       collections.push(Object.assign({ id: name }, schema.collections[name]));
     }
+  }
+
+  // Make sure the 'users' collection is present, as some things depend on
+  // its existence.
+  if (!schema.collections || !schema.collections.users) {
+    collections.push({ id: 'users', indexes: [ ] });
   }
 
   const groups = [ ];
@@ -292,7 +298,9 @@ const runApplyCommand = (options) => {
   }).then(() => {
     // Error if any collections will be removed
     if (!options.update) {
-      return r.db(db).table('hz_collections')('id')
+      return r.db(db).table('hz_collections')
+        .filter((row) => row('id').match('^hz_').not())
+        .getField('id')
         .coerceTo('array')
         .setDifference(schema.collections.map((c) => c.id))
         .run(conn)
@@ -356,12 +364,11 @@ const runApplyCommand = (options) => {
     const promises = [ ];
     for (const c of schema.collections) {
       promises.push(
-        create_collection_reql(db, c.id)
-          .run(conn).then((res) => {
-            if (res.error) {
-              throw new Error(res.error);
-            }
-          }));
+        create_collection(db, c.id, conn).then((res) => {
+          if (res.error) {
+            throw new Error(res.error);
+          }
+        }));
     }
 
     for (const c of obsolete_collections) {
@@ -481,7 +488,9 @@ const runSaveCommand = (options) => {
     return r.db(db).wait({ waitFor: 'ready_for_reads', timeout: 30 }).run(conn);
   }).then(() =>
     r.object('collections',
-             r.db(db).table('hz_collections').coerceTo('array')
+             r.db(db).table('hz_collections')
+               .filter((row) => row('id').match('^hz_').not())
+               .coerceTo('array')
                .map((row) =>
                  row.merge({ indexes: r.db(db).table(row('id')).indexList() })),
              'groups', r.db(db).table('hz_groups').coerceTo('array'))

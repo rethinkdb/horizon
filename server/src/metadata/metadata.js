@@ -4,45 +4,43 @@ const error = require('../error');
 const logger = require('../logger');
 const Group = require('../permissions/group').Group;
 const Collection = require('./collection').Collection;
-const Table = require('./table').Table;
 const version_field = require('../endpoint/writes').version_field;
 const utils = require('../utils');
 
 const r = require('rethinkdb');
 
-// These are exported for use by the CLI. They accept 'R' as a parameter because of
-// https://github.com/rethinkdb/rethinkdb/issues/3263
-const create_collection_reql = (db, collection) =>
-  r.db(db).table('hz_collections').get(collection).do((row) =>
+const metadata_version = [ 2, 0, 0 ];
+
+const create_collection = (db, name, conn) =>
+  r.db(db).table('hz_collections').get(name).replace({ id: name }).do((res) =>
     r.branch(
-      row.eq(null),
-      r.db(db).tableCreate(collection).do((create_res) =>
-        r.branch(
-          create_res.hasFields('error'),
-          r.error(create_res('error')),
-          create_res('config_changes')(0)('new_val')('id').do((table_id) =>
-            r.db(db).table('hz_collections').get(collection)
-              .replace((old_row) =>
-                r.branch(
-                  old_row.eq(null),
-                  { id: collection, table_id },
-                  old_row),
-                { returnChanges: 'always' })('changes')(0)
-                  .do((res) =>
-                    r.branch(
-                      r.or(res.hasFields('error'),
-                           res('new_val')('table_id').ne(table_id)),
-                      r.db('rethinkdb').table('table_config').get(table_id).delete().do(() => res),
-                      res))))),
-      { old_val: row, new_val: row }));
+      res('errors').ne(0),
+      r.error(res('first_error')),
+      res('inserted').eq(1),
+      r.db(db).tableCreate(name),
+      res
+    )
+  ).run(conn);
 
 const initialize_metadata = (db, conn) =>
-  r.branch(r.dbList().contains(db), null, r.dbCreate(db)).run(conn).then(() =>
-    Promise.all([ 'hz_collections', 'hz_users_auth', 'hz_groups', 'users' ].map((table) =>
-      r.branch(r.db(db).tableList().contains(table),
-               { },
-               r.db(db).tableCreate(table))
-        .run(conn))));
+  r.branch(r.dbList().contains(db), null, r.dbCreate(db)).run(conn)
+    .then(() =>
+      Promise.all([ 'hz_collections', 'hz_users_auth', 'hz_groups' ].map((table) =>
+        r.branch(r.db(db).tableList().contains(table),
+                 { },
+                 r.db(db).tableCreate(table))
+          .run(conn))))
+    .then(() =>
+      r.db(db).table('hz_collections').wait({ timeout: 30 }).run(conn))
+    .then(() =>
+      Promise.all([
+        r.db(db).tableList().contains('users').not().run(conn).then(() =>
+          create_collection(db, 'users', conn)),
+        r.db(db).table('hz_collections')
+          .insert({ id: 'hz_metadata', version: metadata_version })
+          .run(conn),
+      ])
+    );
 
 class Metadata {
   constructor(project_name,
@@ -57,7 +55,6 @@ class Metadata {
     this._auto_create_index = auto_create_index;
     this._closed = false;
     this._ready = false;
-    this._tables = new Map();
     this._collections = new Map();
     this._groups = new Map();
     this._collection_feed = null;
@@ -69,12 +66,21 @@ class Metadata {
       return r.db('rethinkdb').table('server_status').nth(0)('process')('version').run(this._conn)
                .then((res) => utils.rethinkdb_version_check(res));
     }).then(() => {
-      logger.debug('checking for internal db/tables');
+      const old_metadata_db = `${this._db}_internal`;
+      return r.dbList().contains(old_metadata_db).run(this._conn).then((has_old_db) => {
+        if (has_old_db) {
+          throw new Error('The Horizon metadata appears to be from v1.x because ' +
+                          `the "${old_metadata_db}" database exists.  Please use ` +
+                          '`hz migrate` to convert your metadata to the new format.');
+        }
+      });
+    }).then(() => {
+      logger.debug('checking for internal tables');
       if (this._auto_create_collection) {
         return initialize_metadata(this._db, this._conn);
       } else {
-        return r.dbList().contains(this._db).run(this._conn).then((is_missing_db) => {
-          if (is_missing_db) {
+        return r.dbList().contains(this._db).run(this._conn).then((has_db) => {
+          if (!has_db) {
             throw new Error(`The database ${this._db} does not exist.  ` +
                             'Run `hz schema apply` to initialize the database, ' +
                             'then start the Horizon server.');
@@ -128,6 +134,7 @@ class Metadata {
       const collection_changefeed =
         r.db(this._db)
           .table('hz_collections')
+          .filter((row) => row('id').match('^hz_').not())
           .changes({ squash: false,
                      includeInitial: true,
                      includeStates: true,
@@ -148,30 +155,22 @@ class Metadata {
                 } else if (change.type === 'initial' ||
                            change.type === 'add' ||
                            change.type === 'change') {
-                  // Ignore special collections
-                  if (change.new_val.id !== 'users') {
-                    const collection_name = change.new_val.id;
-                    const table_id = change.new_val.table_id;
-                    let collection = this._collections.get(collection_name);
-                    if (!collection) {
-                      collection = new Collection(collection_name, table_id);
-                      this._collections.set(collection_name, collection);
-                    }
-
-                    // Check if we already have a table object for this collection
-                    // TODO: timer-supervise this state - if we don't have a table after x seconds, delete the collection row
-                    const table = this._tables.get(table_id);
-                    if (table) {
-                      collection.set_table(table);
-                    }
+                  const collection_name = change.new_val.id;
+                  let collection = this._collections.get(collection_name);
+                  if (!collection) {
+                    collection = new Collection(this._db, collection_name);
+                    this._collections.set(collection_name, collection);
                   }
+                  collection._register();
                 } else if (change.type === 'uninitial' ||
                            change.type === 'remove') {
-                  // Ignore special collections
-                  if (change.old_val.id !== 'users') {
-                    const collection = this._collections.get(change.old_val.id);
-                    this._collections.delete(change.old_val.id);
-                    collection.close();
+                  const collection = this._collections.get(change.old_val.id);
+                  if (collection) {
+                    collection._unregister();
+                    if (collection._is_safe_to_remove()) {
+                      this._collections.delete(change.old_val.id);
+                      collection._close();
+                    }
                   }
                 }
               }).catch(reject);
@@ -208,24 +207,25 @@ class Metadata {
                 } else if (change.type === 'initial' ||
                            change.type === 'add' ||
                            change.type === 'change') {
-                  const table_name = change.new_val.name;
+                  const collection_name = change.new_val.name;
                   const table_id = change.new_val.id;
-                  let table = this._tables.get(table_id);
-                  if (!table) {
-                    table = new Table(table_name, table_id, this._db, this._conn);
-                    this._tables.set(table_id, table);
-                  }
-                  table.update_indexes(change.new_val.indexes, this._conn);
 
-                  const collection = this._collections.get(table_name);
-                  if (collection) {
-                    collection.set_table(table);
+                  let collection = this._collections.get(collection_name);
+                  if (!collection) {
+                    collection = new Collection(this._db, collection_name);
+                    this._collections.set(collection_name, collection);
                   }
+                  collection._update_table(table_id, change.new_val.indexes, this._conn);
                 } else if (change.type === 'uninitial' ||
                            change.type === 'remove') {
-                  const table = this._tables.get(change.old_val.id);
-                  this._tables.delete(change.old_val.id);
-                  table.close();
+                  const collection = this._collections.get(change.old_val.name);
+                  if (collection) {
+                    collection._update_table(change.old_val.id, null, this._conn);
+                    if (collection._is_safe_to_remove()) {
+                      this._collections.delete(collection);
+                      collection._close();
+                    }
+                  }
                 }
               }).catch(reject);
             });
@@ -265,23 +265,6 @@ class Metadata {
                      r.error(res('error')),
                      res('new_val'))).run(this._conn),
       ]);
-    }).then(() =>
-      // Get the table_id of the users table
-      r.db('rethinkdb').table('table_config')
-        .filter({ db: this._db, name: 'users' })
-        .nth(0)('id')
-        .run(this._conn)
-    ).then((table_id) => {
-      logger.debug('redirecting users table');
-      // Redirect the 'users' table to the one in the internal db
-      const users_table = new Table('users', table_id, this._db, this._conn);
-      users_table.update_indexes([ ]);
-
-      const users_collection = new Collection({ id: 'users', table: 'users' }, this._internal_db);
-      users_collection.set_table(users_table);
-
-      this._tables.set(table_id, users_table);
-      this._collections.set('users', users_collection);
     }).then(() => {
       logger.debug('metadata sync complete');
       this._ready = true;
@@ -307,11 +290,8 @@ class Metadata {
       this._index_feed.close().catch(() => { });
     }
 
-    this._collections.forEach((x) => x.close());
+    this._collections.forEach((collection) => collection._close());
     this._collections.clear();
-
-    this._tables.forEach((x) => x.close());
-    this._tables.clear();
   }
 
   is_ready() {
@@ -328,32 +308,26 @@ class Metadata {
                       'and cannot be used in requests.');
     }
 
-    const res = this._collections.get(name);
-    if (res === undefined) { throw new error.CollectionMissing(name); }
-    if (res.promise) { throw new error.CollectionNotReady(res); }
-    if (!res._table) { throw new error.CollectionNotReady(res); }
-    return res;
+    const collection = this._collections.get(name);
+    if (collection === undefined) { throw new error.CollectionMissing(name); }
+    if (!collection._get_table().ready()) { throw new error.CollectionNotReady(collection); }
+    return collection;
   }
 
   handle_error(err, done) {
     logger.debug(`Handling error: ${err.message}`);
     try {
-      if (this._auto_create_collection) {
-        if (err instanceof error.CollectionMissing) {
-          logger.warn(`Auto-creating collection: ${err.name}`);
-          return this.create_collection(err.name, done);
-        } else if (err instanceof error.CollectionNotReady) {
-          return err.collection.on_ready(done);
-        }
-      }
-      if (this._auto_create_index) {
-        if (err instanceof error.IndexMissing) {
-          logger.warn(`Auto-creating index on collection "${err.collection.name}": ` +
-                      `${JSON.stringify(err.fields)}`);
-          return err.collection.create_index(err.fields, this._conn, done);
-        } else if (err instanceof error.IndexNotReady) {
-          return err.index.on_ready(done);
-        }
+      if (err instanceof error.CollectionNotReady) {
+        return err.collection._on_ready(done);
+      } else if (err instanceof error.IndexNotReady) {
+        return err.index.on_ready(done);
+      } else if (this._auto_create_collection && (err instanceof error.CollectionMissing)) {
+        logger.warn(`Auto-creating collection: ${err.name}`);
+        return this.create_collection(err.name, done);
+      } else if (this._auto_create_index && (err instanceof error.IndexMissing)) {
+        logger.warn(`Auto-creating index on collection "${err.collection.name}": ` +
+                    `${JSON.stringify(err.fields)}`);
+        return err.collection._create_index(err.fields, this._conn, done);
       }
       done(err);
     } catch (new_err) {
@@ -366,26 +340,20 @@ class Metadata {
     error.check(this._collections.get(name) === undefined,
                 `Collection "${name}" already exists.`);
 
-    // We don't have the collection's table id yet, so pass null down until we get
-    // notified by the index_changefeed about the new table.
-    const collection = new Collection(name, null);
+    const collection = new Collection(this._db, name);
     this._collections.set(name, collection);
 
-    create_collection_reql(this._db, name)
-      .run(this._conn)
-      .then((res) => {
-        error.check(!res.error, `Collection creation failed: "${name}", ${res.error}`);
-        logger.warn(`Collection created: "${name}"`);
-        collection.on_ready(done);
-      }).catch((err) => {
-        // If an error occurred we should clean up this proto-collection - but only if
-        // it hasn't changed yet - e.g. it was created by another instance at the same time.
-        if (collection._table_name === null) {
-          collection.close();
-          this._collections.delete(name);
-        }
-        done(err);
-      });
+    create_collection(this._db, name, this._conn).then((res) => {
+      error.check(!res.error, `Collection "${name}" creation failed: ${res.error}`);
+      logger.warn(`Collection created: "${name}"`);
+      collection._on_ready(done);
+    }).catch((err) => {
+      if (collection._is_safe_to_remove()) {
+        this._collections.delete(name);
+        collection._close();
+      }
+      done(err);
+    });
   }
 
   get_user_feed(id) {
@@ -403,4 +371,4 @@ class Metadata {
   }
 }
 
-module.exports = { Metadata, create_collection_reql, initialize_metadata };
+module.exports = { Metadata, create_collection, initialize_metadata };
