@@ -12,7 +12,6 @@ const r = require('rethinkdb');
 const metadata_version = [ 2, 0, 0 ];
 
 const create_collection = (db, name, conn) =>
-// TODO: if the row was already there, this should appear to be success
   r.db(db).table('hz_collections').get(name).replace({ id: name }).do((res) =>
     r.branch(
       res('errors').ne(0),
@@ -168,7 +167,7 @@ class Metadata {
                   const collection = this._collections.get(change.old_val.id);
                   if (collection) {
                     collection._unregister();
-                    if (collection._ok_to_remove()) {
+                    if (collection._is_safe_to_remove()) {
                       this._collections.delete(change.old_val.id);
                       collection._close();
                     }
@@ -222,7 +221,7 @@ class Metadata {
                   const collection = this._collections.get(change.old_val.name);
                   if (collection) {
                     collection._update_table(change.old_val.id, null, this._conn);
-                    if (collection._can_be_removed()) {
+                    if (collection._is_safe_to_remove()) {
                       this._collections.delete(collection);
                       collection._close();
                     }
@@ -349,7 +348,7 @@ class Metadata {
       logger.warn(`Collection created: "${name}"`);
       collection._on_ready(done);
     }).catch((err) => {
-      if (collection._ok_to_remove()) {
+      if (collection._is_safe_to_remove()) {
         this._collections.delete(name);
         collection._close();
       }

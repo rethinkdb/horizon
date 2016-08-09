@@ -52,7 +52,7 @@ class Collection {
     this._registered = false;
   }
 
-  _can_be_removed() {
+  _is_safe_to_remove() {
     return this._tables.size === 0 && !this._registered;
   }
 
