@@ -10,7 +10,7 @@ const r = require('rethinkdb');
 const object_to_fields = (obj) =>
   Object.keys(obj).map((key) => {
     const value = obj[key];
-    if (value !== null && typeof value === 'object') {
+    if (value !== null && typeof value === 'object' && !value['$reql_type$']) {
       return object_to_fields(value).map((subkeys) => [ key ].concat(subkeys));
     } else {
       return [ key ];

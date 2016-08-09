@@ -166,7 +166,9 @@ class Index {
       return false;
     }
 
-    if (this.fields.length > fuzzy_fields.length + ordered_fields.length) {
+    if (this.fields.length > fuzzy_fields.length + ordered_fields.length ||
+        this.fields.length < fuzzy_fields.length ||
+        this.fields.length < ordered_fields.length) {
       return false;
     }
 
