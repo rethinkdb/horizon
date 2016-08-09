@@ -189,15 +189,10 @@ const read_from_env = () => {
       } else if (varPath[0] === 'auth') {
         if (varPath.length !== 3) {
           console.log(`Ignoring malformed Horizon environment variable: "${env_var}", ` +
-                      'should be HZ_AUTH_{PROVIDER}_ID or HZ_AUTH_{PROVIDER}_SECRET.');
+                      'should be HZ_AUTH_{PROVIDER}_{OPTION}.');
         } else {
           config.auth[varPath[1]] = config.auth[varPath[1]] || { };
-
-          if (varPath[2] === 'id') {
-            config.auth[varPath[1]].id = value;
-          } else if (varPath[2] === 'secret') {
-            config.auth[varPath[1]].secret = value;
-          }
+          config.auth[varPath[1]][varPath[2]] = value;
         }
       } else if (yes_no_options.indexOf(destVarName) !== -1) {
         config[destVarName] = parse_yes_no_option(value, destVarName);
