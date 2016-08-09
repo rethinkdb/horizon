@@ -7,6 +7,16 @@ const reql_options = require('./common').reql_options;
 const Joi = require('joi');
 const r = require('rethinkdb');
 
+const object_to_fields = (obj) =>
+  Object.keys(obj).map((key) => {
+    const value = obj[key];
+    if (value !== null && typeof value === 'object' && !value['$reql_type$']) {
+      return object_to_fields(value).map((subkeys) => [ key ].concat(subkeys));
+    } else {
+      return [ key ];
+    }
+  });
+
 // This is exposed to be reused by 'subscribe'
 const make_reql = (raw_request, metadata) => {
   const parsed = Joi.validate(raw_request.options, query);
@@ -17,6 +27,7 @@ const make_reql = (raw_request, metadata) => {
   let reql = collection.table;
 
   const ordered_between = (obj) => {
+    const fuzzy_fields = object_to_fields(obj);
     const order_keys = (options.order && options.order[0]) ||
                        (options.above && Object.keys(options.above[0])) ||
                        (options.below && Object.keys(options.below[0])) || [ ];
@@ -26,7 +37,7 @@ const make_reql = (raw_request, metadata) => {
       check(!options.above || options.above[0][k] !== undefined,
             '"above" must be on the same field as the first in "order".');
       check(!options.below || options.below[0][k] !== undefined,
-            '"below" must be on the same field as the first in "order"');
+            '"below" must be on the same field as the first in "order".');
     }
 
     order_keys.forEach((k) => {
@@ -34,7 +45,7 @@ const make_reql = (raw_request, metadata) => {
             `"${k}" cannot be used in "order", "above", or "below" when finding by that field.`);
     });
 
-    const index = collection.get_matching_index(Object.keys(obj), order_keys);
+    const index = collection.get_matching_index(fuzzy_fields, order_keys.map((k) => [ k ]));
 
     const get_bound = (name) => {
       const eval_key = (key) => {

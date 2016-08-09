@@ -21,7 +21,6 @@ const toml = require('toml');
 const r = horizon_server.r;
 const create_collection = horizon_metadata.create_collection;
 const initialize_metadata = horizon_metadata.initialize_metadata;
-const name_to_info = horizon_index.name_to_info;
 
 initialize_joi(Joi);
 
@@ -99,9 +98,16 @@ const parseArguments = (args) => {
 const schema_schema = Joi.object().unknown(false).keys({
   collections: Joi.object().unknown(true).pattern(/.*/,
     Joi.object().unknown(false).keys({
-      indexes: Joi.array().items(Joi.string().min(1)).default([ ]),
+      indexes: Joi.array().items(
+        Joi.alternatives(
+          Joi.string(),
+          Joi.object().unknown(false).keys({
+            fields: Joi.array().items(Joi.array().items(Joi.string())).required(),
+          })
+        )
+      ).optional().default([ ]),
     })
-  ).optional(),
+  ).optional().default({ }),
   groups: Joi.object().unknown(true).pattern(/.*/,
     Joi.object().keys({
       rules: Joi.object().unknown(true).pattern(/.*/,
@@ -111,8 +117,36 @@ const schema_schema = Joi.object().unknown(false).keys({
         })
       ).optional().default({ }),
     })
-  ).optional(),
+  ).optional().default({ }),
 });
+
+// Preserved for interpreting old schemas
+const v1_0_name_to_fields = (name) => {
+  let escaped = false;
+  let field = '';
+  const fields = [ ];
+  for (const c of name) {
+    if (escaped) {
+      if (c !== '\\' && c !== '_') {
+        throw new Error(`Unexpected index name: "${name}"`);
+      }
+      escaped = false;
+      field += c;
+    } else if (c === '\\') {
+      escaped = true;
+    } else if (c === '_') {
+      fields.push(field);
+      field = '';
+    } else {
+      field += c;
+    }
+  }
+  if (escaped) {
+    throw new Error(`Unexpected index name: "${name}"`);
+  }
+  fields.push([ field ]);
+  return fields;
+};
 
 const parse_schema = (schema_toml) => {
   const parsed = Joi.validate(toml.parse(schema_toml), schema_schema);
@@ -123,10 +157,17 @@ const parse_schema = (schema_toml) => {
   }
 
   const collections = [ ];
-  if (schema.collections) {
-    for (const name in schema.collections) {
-      collections.push(Object.assign({ id: name }, schema.collections[name]));
-    }
+  for (const name in schema.collections) {
+    collections.push({
+      id: name,
+      indexes: schema.collections[name].indexes.map((index) => {
+        if (typeof index === 'string') {
+          return { fields: v1_0_name_to_fields(index), multi: false, geo: false };
+        } else {
+          return { fields: index.fields, multi: false, geo: false };
+        }
+      }),
+    });
   }
 
   // Make sure the 'users' collection is present, as some things depend on
@@ -136,10 +177,8 @@ const parse_schema = (schema_toml) => {
   }
 
   const groups = [ ];
-  if (schema.groups) {
-    for (const name in schema.groups) {
-      groups.push(Object.assign({ id: name }, schema.groups[name]));
-    }
+  for (const name in schema.groups) {
+    groups.push(Object.assign({ id: name }, schema.groups[name]));
   }
 
   return { groups, collections };
@@ -217,9 +256,11 @@ const schema_to_toml = (collections, groups) => {
   for (const c of collections) {
     res.push('');
     res.push(`[collections.${c.id}]`);
-    if (c.indexes.length > 0) {
-      res.push(`indexes = ${JSON.stringify(c.indexes)}`);
-    }
+    c.indexes.forEach((index) => {
+      const info = horizon_index.name_to_info(index);
+      res.push(`[[collections.${c.id}.indexes]]`);
+      res.push(`fields = ${JSON.stringify(info.fields)}`);
+    });
   }
 
   for (const g of groups) {
@@ -394,50 +435,40 @@ const runApplyCommand = (options) => {
   }).then(() => {
     const promises = [ ];
 
-    // Determine the index fields of each index from the name
+    // Ensure all indexes exist
     for (const c of schema.collections) {
-      c.index_fields = { };
-      for (const index of c.indexes) {
-        c.index_fields[index] = name_to_info(index).fields;
+      for (const info of c.indexes) {
+        const name = horizon_index.info_to_name(info);
+        promises.push(
+          r.branch(r.db(db).table(c.id).indexList().contains(name), { },
+                   r.db(db).table(c.id).indexCreate(name, horizon_index.info_to_reql(info),
+                     { geo: Boolean(info.geo), multi: (info.multi !== false) }))
+            .run(conn)
+            .then((res) => {
+              if (res.errors) {
+                throw new Error(`Failed to create index ${name} ` +
+                                `on collection ${c.id}: ${res.first_error}`);
+              }
+            }));
       }
     }
 
-    // Ensure all indexes exist
-    promises.push(
-      r.expr(schema.collections)
-        .forEach((c) =>
-          r.db(db).table('hz_collections').get(c('id')).do((collection) =>
-            // TODO: disambiguate using 'table' field once ReQL supports it
-            c('indexes')
-              .setDifference(r.db(db).table(collection('id')).indexList())
-              .forEach((index) =>
-                c('index_fields')(index).do((fields) =>
-                  r.db(db).table(collection('id')).indexCreate(index, (row) =>
-                    fields.map((key) => row(key)))))))
-        .run(conn)
-        .then((res) => {
-          if (res.errors) {
-            throw new Error(`Failed to create indexes: ${res.first_error}`);
-          }
-        }));
-
     // Remove obsolete indexes
     if (!options.update) {
-      promises.push(
-        r.expr(schema.collections)
-          .forEach((c) =>
-            r.db(db).table('hz_collections').get(c('id')).do((collection) =>
-              // TODO: disambiguate using 'table' field once ReQL supports it
-              r.db(db).table(collection('id')).indexList()
-                .setDifference(c('indexes'))
-                .forEach((index) =>
-                  r.db(db).table(collection('id')).indexDrop(index))))
-        .run(conn)
-        .then((res) => {
-          if (res.errors) {
-            throw new Error(`Failed to remove old indexes: ${res.first_error}`);
-          }
-        }));
+      for (const c of schema.collections) {
+        const names = c.indexes.map(horizon_index.info_to_name);
+        promises.push(
+          r.db(db).table(c.id).indexList().filter((name) => name.match('^hz_'))
+            .setDifference(names)
+            .forEach((name) => r.db(db).table(c.id).indexDrop(name))
+            .run(conn)
+            .then((res) => {
+              if (res.errors) {
+                throw new Error('Failed to remove old indexes ' +
+                                `on collection ${c.id}: ${res.first_error}`);
+              }
+            }));
+      }
     }
 
     return Promise.all(promises);

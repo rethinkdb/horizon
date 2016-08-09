@@ -79,7 +79,8 @@ class Table {
 
   // TODO: support geo and multi indexes
   create_index(fields, conn, done) {
-    const index_name = index.info_to_name({ geo: false, multi: null, fields });
+    const info = { geo: false, multi: false, fields };
+    const index_name = index.info_to_name(info);
     error.check(!this.indexes.get(index_name), 'index already exists');
 
     const success = () => {
@@ -90,7 +91,8 @@ class Table {
       return new_index.on_ready(done);
     };
 
-    this.table.indexCreate(index_name, (row) => fields.map((key) => row(key)))
+    this.table.indexCreate(index_name, index.info_to_reql(info),
+                           { geo: info.geo, multi: (info.multi !== false) })
       .run(conn)
       .then(success)
       .catch((err) => {

@@ -37,18 +37,14 @@ const name_to_info = (name) => {
 
   // Sanity check fields
   const validate_field = (f) => {
-    if (Array.isArray(f)) {
-      f.forEach((s) => check(typeof s === 'string',
-                             `Unexpected index name (invalid field): "${name}"`));
-    } else {
-      check(typeof f === 'string',
-            `Unexpected index name (field is not a string or array): "${name}"`);
-    }
+    check(Array.isArray(f), `Unexpected index name (invalid field): "${name}"`);
+    f.forEach((s) => check(typeof s === 'string',
+                           `Unexpected index name (invalid field): "${name}"`));
   };
 
   check(Array.isArray(info.fields),
         `Unexpected index name (fields are not an array): "${name}"`);
-  check((info.multi === null) || info.multi < info.fields.length,
+  check((info.multi === false) || (info.multi < info.fields.length),
         `Unexpected index name (multi index out of bounds): "${name}"`);
   info.fields.forEach(validate_field);
   return info;
@@ -59,11 +55,50 @@ const info_to_name = (info) => {
   if (info.geo) {
     res += 'geo_';
   }
-  if (info.multi !== null) {
+  if (info.multi !== false) {
     res += 'multi_' + info.multi + '_';
   }
   res += JSON.stringify(info.fields);
   return res;
+};
+
+const info_to_reql = (info) => {
+  if (info.geo && (info.multi !== false)) {
+    throw new Error('multi and geo cannot be specified on the same index');
+  }
+
+  if (info.multi !== false) {
+    const multi_field = info.fields[info.multi];
+    return (row) =>
+      row(multi_field).map((value) => info.fields.map((f, i) => {
+        if (i === info.multi) {
+          return value;
+        } else {
+          let res = row;
+          f.forEach((field_name) => { res = res(field_name); });
+          return res;
+        }
+      }));
+  } else {
+    return (row) =>
+      info.fields.map((f) => {
+        let res = row;
+        f.forEach((field_name) => { res = res(field_name); });
+        return res;
+      });
+  }
+};
+
+const compare_fields = (a, b) => {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; ++i) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+  return true;
 };
 
 class Index {
@@ -131,22 +166,27 @@ class Index {
       return false;
     }
 
-    if (this.fields.length > fuzzy_fields.length + ordered_fields.length) {
+    if (this.fields.length > fuzzy_fields.length + ordered_fields.length ||
+        this.fields.length < fuzzy_fields.length ||
+        this.fields.length < ordered_fields.length) {
       return false;
     }
 
     for (let i = 0; i < fuzzy_fields.length; ++i) {
-      const pos = this.fields.indexOf(fuzzy_fields[i]);
-      if (pos < 0 || pos >= fuzzy_fields.length) { return false; }
+      let found = false;
+      for (let j = 0; j < fuzzy_fields.length && !found; ++j) {
+        found = compare_fields(fuzzy_fields[i], this.fields[j]);
+      }
+      if (!found) { return false; }
     }
 
     for (let i = 0; i < ordered_fields.length; ++i) {
       const pos = this.fields.length - ordered_fields.length + i;
-      if (pos < 0 || this.fields[pos] !== ordered_fields[i]) { return false; }
+      if (pos < 0 || !compare_fields(ordered_fields[i], this.fields[pos])) { return false; }
     }
 
     return true;
   }
 }
 
-module.exports = { Index, primary_index_name, name_to_info, info_to_name };
+module.exports = { Index, primary_index_name, name_to_info, info_to_name, info_to_reql };

@@ -16,12 +16,24 @@ const tmpdir = require('os').tmpdir;
 
 const project_name = 'schema_test';
 
-const testSchema = `# This is a TOML document
+const v1_schema = ` 
+[collections.test_messages]
+indexes = ["datetime"]
+
+[groups.admin]
+[groups.admin.rules.carte_blanche]
+template = "any()"
+`;
+
+const v2_schema = `# This is a TOML document
 
 [collections.users]
 
 [collections.test_messages]
-indexes = ["hz_[\\\"datetime\\\"]"]
+[[collections.test_messages.indexes]]
+fields = [["a","b"],["c"]]
+[[collections.test_messages.indexes]]
+fields = [["datetime"]]
 
 [groups.admin]
 [groups.admin.rules.carte_blanche]
@@ -37,10 +49,8 @@ indexes = ["datetime"]
 template = "any()a;lkdfjlakjf;ladkfjal;kfj"
 `;
 
-const valid_file_system = {
-  '.hz': {
-    'schema.toml': testSchema,
-  },
+const fs_with_schema = (schema) => {
+  mockFs({ '.hz': { 'schema.toml': schema } });
 };
 
 describe('hz schema', () => {
@@ -65,12 +75,12 @@ describe('hz schema', () => {
     })
   );
 
-  beforeEach('initialize mockfs', () => mockFs(valid_file_system));
+  beforeEach('initialize mockfs', () => fs_with_schema(v2_schema));
   afterEach('restore fs', () => mockFs.restore());
 
   describe('save', () => {
     before('initialize database', () => {
-      mockFs(valid_file_system);
+      fs_with_schema(v2_schema);
       return runApplyCommand(processApplyConfig({
         start_rethinkdb: false,
         schema_file: '.hz/schema.toml',
@@ -107,13 +117,22 @@ describe('hz schema', () => {
         out_file: 'out.toml',
         project_name,
       }).then(() =>
-        assert.strictEqual(fs.readFileSync('out.toml', 'utf8'), testSchema)
+        assert.strictEqual(fs.readFileSync('out.toml', 'utf8'), v2_schema)
       )
     );
   });
 
   describe('apply', () => {
-    it('should apply schema to rdb from schema.toml', () => {
+    afterEach('clear database', () =>
+      r.branch(
+        r.dbList().contains(project_name),
+        r.dbDrop(project_name),
+        null
+      ).run(rdb_conn)
+    );
+
+    it('applies v1.x schema to rdb from schema.toml', () => {
+      fs_with_schema(v1_schema);
       const config = processApplyConfig({
         connect: `localhost:${rdb_server.driver_port}`,
         schema_file: '.hz/schema.toml',
@@ -132,19 +151,48 @@ describe('hz schema', () => {
       ).then((res) =>
         assert(res, `${project_name} database is missing.`)
       ).then(() =>
+        r.db(project_name).table('test_messages').indexList().run(rdb_conn)
+      ).then((indexes) => {
         // Check that the expected indexes exist on the expected table
-        r.db(project_name).table('test_messages')
-          .indexList().contains('hz_["datetime"]')
-          .run(rdb_conn)
+        assert(indexes.indexOf('hz_[["datetime"]]') !== -1, '"datetime" index is missing');
+      });
+    });
+
+    it('applies v2.x schema to rdb from schema.toml', () => {
+      const config = processApplyConfig({
+        connect: `localhost:${rdb_server.driver_port}`,
+        schema_file: '.hz/schema.toml',
+        start_rethinkdb: false,
+        update: true,
+        force: true,
+        secure: false,
+        permissions: false,
+        project_name,
+      });
+
+      // Apply settings into RethinkDB
+      return runApplyCommand(config).then(() =>
+        // Check that the project database exists
+        r.dbList().contains(project_name).run(rdb_conn)
       ).then((res) =>
-        assert(res, '"datetime" index is missing')
-      );
+        assert(res, `${project_name} database is missing.`)
+      ).then(() =>
+        r.db(project_name).table('test_messages').indexList().run(rdb_conn)
+      ).then((indexes) => {
+        // Check that the expected indexes exist on the expected table
+        assert(indexes.indexOf('hz_[["datetime"]]') !== -1, '"datetime" index is missing');
+        assert(indexes.indexOf('hz_[["a","b"],["c"]]') !== -1, '[["a","b"],["c"]] index is missing');
+      });
     });
   });
 
   describe('given a schema.toml file', () => {
-    it('can parse a valid schema.toml file', () => {
-      parse_schema(testSchema);
+    it('can parse a valid v1.x schema.toml file', () => {
+      parse_schema(v1_schema);
+    });
+
+    it('can parse a valid v2.x schema.toml file', () => {
+      parse_schema(v2_schema);
     });
 
     it('fails parsing invalid schema.toml file', () => {
