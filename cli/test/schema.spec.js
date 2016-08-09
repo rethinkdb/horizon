@@ -80,7 +80,7 @@ describe('hz schema', () => {
 
   describe('save', () => {
     before('initialize database', () => {
-      mockFs(valid_file_system);
+      fs_with_schema(v2_schema);
       return runApplyCommand(processApplyConfig({
         start_rethinkdb: false,
         schema_file: '.hz/schema.toml',
