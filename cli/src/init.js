@@ -76,12 +76,14 @@ project_name = "${projectName}"
 
 ###############################################################################
 # RethinkDB Options
-# These options are mutually exclusive
+# 'connect' and 'start_rethinkdb' are mutually exclusive
 # 'connect' will connect to an existing RethinkDB instance
 # 'start_rethinkdb' will run an internal RethinkDB instance
+# 'rdb_timeout' is the number of seconds to wait when connecting to RethinkDB
 #------------------------------------------------------------------------------
 # connect = "localhost:28015"
 # start_rethinkdb = false
+# rdb_timeout = 30
 
 
 ###############################################################################
@@ -117,6 +119,14 @@ template = "any()"
 
 const makeDefaultSecrets = () => `\
 token_secret = "${crypto.randomBytes(64).toString('base64')}"
+
+###############################################################################
+# RethinkDB Options
+# 'rdb_user' is the user account to log in with when connecting to RethinkDB
+# 'rdb_password' is the password for the user account specified by 'rdb_user'
+#------------------------------------------------------------------------------
+# rdb_user = 'admin'
+# rdb_password = ''
 
 # [auth.auth0]
 # host = "0000.00.auth0.com"

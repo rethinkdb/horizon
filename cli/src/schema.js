@@ -19,7 +19,7 @@ const argparse = require('argparse');
 const toml = require('toml');
 
 const r = horizon_server.r;
-const create_collection_reql = horizon_metadata.create_collection_reql;
+const create_collection = horizon_metadata.create_collection;
 const initialize_metadata = horizon_metadata.initialize_metadata;
 
 initialize_joi(Joi);
@@ -170,6 +170,12 @@ const parse_schema = (schema_toml) => {
     });
   }
 
+  // Make sure the 'users' collection is present, as some things depend on
+  // its existence.
+  if (!schema.collections || !schema.collections.users) {
+    collections.push({ id: 'users', indexes: [ ] });
+  }
+
   const groups = [ ];
   for (const name in schema.groups) {
     groups.push(Object.assign({ id: name }, schema.groups[name]));
@@ -225,7 +231,7 @@ const processSaveConfig = (parsed) => {
   if (parsed.out_file === '-') {
     out_file = process.stdout;
   } else {
-    out_file = fs.createWriteStream(parsed.out_file, { flags: 'w', defaultEncoding: 'utf8' });
+    out_file = parsed.out_file;
   }
 
   if (options.project_name === null) {
@@ -333,7 +339,9 @@ const runApplyCommand = (options) => {
   }).then(() => {
     // Error if any collections will be removed
     if (!options.update) {
-      return r.db(db).table('hz_collections')('id')
+      return r.db(db).table('hz_collections')
+        .filter((row) => row('id').match('^hz_').not())
+        .getField('id')
         .coerceTo('array')
         .setDifference(schema.collections.map((c) => c.id))
         .run(conn)
@@ -397,12 +405,11 @@ const runApplyCommand = (options) => {
     const promises = [ ];
     for (const c of schema.collections) {
       promises.push(
-        create_collection_reql(db, c.id)
-          .run(conn).then((res) => {
-            if (res.error) {
-              throw new Error(res.error);
-            }
-          }));
+        create_collection(db, c.id, conn).then((res) => {
+          if (res.error) {
+            throw new Error(res.error);
+          }
+        }));
     }
 
     for (const c of obsolete_collections) {
@@ -468,6 +475,15 @@ const runApplyCommand = (options) => {
   }).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
 
+const file_exists = (filename) => {
+  try {
+    fs.accessSync(filename);
+  } catch (e) {
+    return false;
+  }
+  return true;
+};
+
 const runSaveCommand = (options) => {
   let conn, rdb_server;
   const db = options.project_name;
@@ -503,15 +519,30 @@ const runSaveCommand = (options) => {
     return r.db(db).wait({ waitFor: 'ready_for_reads', timeout: 30 }).run(conn);
   }).then(() =>
     r.object('collections',
-             r.db(db).table('hz_collections').coerceTo('array')
+             r.db(db).table('hz_collections')
+               .filter((row) => row('id').match('^hz_').not())
+               .coerceTo('array')
                .map((row) =>
                  row.merge({ indexes: r.db(db).table(row('id')).indexList() })),
              'groups', r.db(db).table('hz_groups').coerceTo('array'))
       .run(conn)
   ).then((res) =>
     new Promise((resolve) => {
+      // Only rename old file if saving to default .hz/schema.toml
+      if (options.out_file === '.hz/schema.toml' &&
+          file_exists(options.out_file)) {
+        // Rename existing file to have the current time appended to its name
+        const oldPath = path.resolve(options.out_file);
+        const newPath = `${path.resolve(options.out_file)}.${new Date().toISOString()}`;
+        fs.renameSync(oldPath, newPath);
+      }
+
+      const output = (options.out_file === '-') ? process.stdout :
+        fs.createWriteStream(options.out_file, { flags: 'w', defaultEncoding: 'utf8' });
+
+      // Output toml_str to schema.toml
       const toml_str = schema_to_toml(res.collections, res.groups);
-      options.out_file.end(toml_str, resolve);
+      output.end(toml_str, resolve);
     })
   ).then(cleanup).catch((err) => cleanup().then(() => { throw err; }));
 };
