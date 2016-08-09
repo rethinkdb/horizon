@@ -121,8 +121,7 @@ const parseArguments = (args) => {
       '--auto-create-index=yes, ' +
       '--start-rethinkdb=yes, ' +
       '--allow-unauthenticated=yes, ' +
-      '--allow-anonymous=yes, ' +
-      '--schema-file=.hz/schema.toml ' +
+      '--allow-anonymous=yes ' +
       'and --serve-static=./dist.' });
 
   parser.addArgument([ '--config' ],
@@ -376,6 +375,13 @@ const run = (args, interruptor) => {
     // Ensure schema from schema.toml file is set
     if (opts.schema_file) {
       console.log(`Ensuring schema "${opts.schema_file}" is applied`);
+      try {
+        fs.accessAsync(opts.schema_file, fs.R_OK | fs.F_OK);
+      } catch (e) {
+        console.error(
+          chalk.yellow.bold('No .hz/schema.toml file found'));
+        return;
+      }
       const schemaOptions = schema.processApplyConfig({
         project_name: opts.project_name,
         schema_file: opts.schema_file,
