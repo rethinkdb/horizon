@@ -28,16 +28,16 @@ function run(cmdArgs) {
     .finally(teardown);
 }
 
-function green(arg, ...args) {
-  console.log(chalk.green(arg), ...args);
+function green() {
+  const args = Array.from(arguments);
+  args[0] = chalk.green(args[0]);
+  console.log.apply(console, args);
 }
 
-function red(arg, ...args) {
-  console.error(chalk.red.bold(arg), ...args);
-}
-
-function white(arg, ...args) {
-  console.log(chalk.white(arg), ...args);
+function white() {
+  const args = Array.from(arguments);
+  args[0] = chalk.white(args[0]);
+  console.log.apply(console, args);
 }
 
 function processConfig(cmdArgs) {
@@ -134,7 +134,7 @@ function setup() {
         this.rdb_server = server;
         this.options.rdb_host = 'localhost';
         this.options.rdb_port = server.driver_port;
-      }).then(() => Promise.delay(2000));
+      });
     }
   }).then(() => {
     green(' ├── Connecting to RethinkDB');
@@ -170,23 +170,37 @@ function teardown() {
 function validateMigration() {
   // check that `${project}_internal` exists
   const project = this.options.project_name;
+  const niceErr = (e) => {
+    const match = e.message.match(/(.*?) in:/);
+    if (match) {
+      return match[1];
+    } else {
+      return 'unknown';
+    }
+  };
 
   const checkForHzTables = r.db('rethinkdb')
           .table('table_config')
           .filter({ db: project })('name')
           .contains((x) => x.match('^hz_'))
-          .branch(r.error(`Some tables in ${project} have an hz_ prefix`), true)
+          .branch(r.error(
+            `Some tables in ${project} have an hz_ prefix`), true);
+  const waitForCollections = r.db(`${project}_internal`)
+          .table('collections')
+          .wait({ timeout: 30 });
 
   return Promise.resolve().then(() => {
     white('Validating current schema version');
     return r.dbList().contains(`${project}_internal`)
-      .branch(true, r.error(`${project}_internal not found`))
+      .branch(true, r.error(
+        `Database named '${project}_internal' wasn't found`))
       .do(() => checkForHzTables)
+      .do(() => waitForCollections)
       .run(this.conn)
       .then(() => green(' └── Pre-2.0 schema found'))
       .catch((e) => {
         throw new Error(
-          `Pre-2.0 schema not found (${e}). ` +
+          `v1.x schema not found (${niceErr(e)}). ` +
             'Have you already migrated?');
       });
   });
@@ -227,11 +241,12 @@ function renameUserTables() {
   const project = this.options.project_name;
   return Promise.resolve().then(() => {
     white('Removing suffix from user tables');
-    return r.db(`${project}_internal`).table('collections')
-      .forEach((collDoc) => r.db('rethinkdb').table('table_config')
-          .filter({ db: project, name: collDoc('table') })
-          .update({ name: collDoc('id') }))
-      .run(this.conn)
+    return r.db(`${project}_internal`).wait({ timeout: 30 }).
+      do(() => r.db(`${project}_internal`).table('collections')
+         .forEach((collDoc) => r.db('rethinkdb').table('table_config')
+                  .filter({ db: project, name: collDoc('table') })
+                  .update({ name: collDoc('id') }))
+        ).run(this.conn)
       .then(() => green(' └── Suffixes removed'));
   });
 }
