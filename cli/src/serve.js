@@ -180,7 +180,7 @@ const serve_file = (filePath, res) => {
               res.end(file, 'binary');
             }
           });
-        } else if (stats.is_directory()) {
+        } else if (stats.isDirectory()) {
           serve_file(path.join(filePath, 'index.html'), res);
         }
       });
