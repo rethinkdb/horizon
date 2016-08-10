@@ -1,6 +1,6 @@
 {
   "name": "horizon",
-  "version": "2.0.0-beta-2",
+  "version": "2.0.0-beta-3",
   "description": "An open-source developer platform for building realtime, scalable web apps.",
   "main": "src/main.js",
   "repository": {
@@ -23,15 +23,16 @@
   },
   "homepage": "https://github.com/rethinkdb/horizon#readme",
   "dependencies": {
-    "@horizon/server": "2.0.0-beta-2",
+    "@horizon/server": "2.0.0-beta-3",
     "argparse": "^1.0.3",
+    "bluebird": "^3.4.1",
     "chalk": "^1.1.3",
     "hasbin": "^1.2.1",
     "joi": "^8.0.5",
     "jsonwebtoken": "^5.5.4",
     "mime-types": "^2.0.4",
-    "rethinkdb": "^2.1.1",
     "open": "0.0.5",
+    "rethinkdb": "^2.1.1",
     "toml": "^2.3.0"
   },
   "devDependencies": {
