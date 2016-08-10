@@ -10,7 +10,7 @@ import 'rxjs/add/operator/share'
 import 'rxjs/add/operator/ignoreElements'
 import 'rxjs/add/operator/concat'
 import 'rxjs/add/operator/takeWhile'
-import 'rxjs/add/operator/publish';
+import 'rxjs/add/operator/publish'
 
 import { serialize, deserialize } from './serialization.js'
 
