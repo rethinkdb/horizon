@@ -1,0 +1,31 @@
+{
+  "name": "@horizon/plugin_router",
+  "version": "1.0.0",
+  "description": "Plugin router for Horizon.",
+  "main": "src/index.js",
+  "scripts": {
+    "lint": "eslint src test",
+    "test": "mocha test",
+    "coverage": "istanbul cover _mocha test/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rethinkdb/horizon.git"
+  },
+  "author": "RethinkDB",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rethinkdb/horizon/issues"
+  },
+  "homepage": "https://github.com/rethinkdb/horizon#readme"
+  "engines": {
+    "node": ">=4.0.0"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "eslint": "^2.3.0",
+    "istanbul": "^0.4.3",
+    "mocha": "^2.3.3",
+  }
+}
