@@ -78,6 +78,7 @@ class Server {
     this._interruptor = new Promise((resolve, reject) => {
       this._interrupt = reject;
     });
+    logger.level = opts.log_level;
 
     try {
       this._reql_conn = new ReqlConnection(opts.rdb_host,

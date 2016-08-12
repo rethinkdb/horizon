@@ -20,6 +20,7 @@ const server = Joi.object({
   rdb_user: Joi.string().allow(null),
   rdb_password: Joi.string().allow(null),
   rdb_timeout: Joi.number().allow(null),
+  log_level: Joi.string().default('warn')
 }).unknown(false);
 
 const auth = Joi.object({
