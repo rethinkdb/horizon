@@ -72,7 +72,6 @@ const parseArguments = (args) => {
 
   parser.addArgument([ '--token-secret' ],
     { type: 'string', metavar: 'SECRET',
-      defaultValue: crypto.randomBytes(64).toString('base64'),
       help: 'Key for signing jwts. Default is random on each run' });
 
   parser.addArgument([ '--allow-unauthenticated' ],
