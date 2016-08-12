@@ -59,7 +59,8 @@ const request = Joi.object({
   request_id: Joi.number().required(),
   type: Joi.string().required(),
   options: Joi.object().required()
-    .when('type', { is: Joi.string().only('end_subscription'), then: Joi.forbidden() }),
+    .when('type', { is: Joi.string().only('end_subscription'), then: Joi.forbidden() })
+    .when('type', { is: Joi.string().only('keepalive'), then: Joi.forbidden() }),
 }).unknown(false);
 
 module.exports = {
