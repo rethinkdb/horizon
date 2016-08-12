@@ -85,7 +85,7 @@ export class HorizonSocket extends WebSocketSubject {
 
     this.keepalive = Observable
       .timer(keepalive * 1000, keepalive * 1000)
-      .map(n => this._multiplex({ type: 'keepalive', n }))
+      .map(n => this.multiplex({ type: 'keepalive', n }))
       .publish()
 
     // This is used to emit status changes that others can hook into.
