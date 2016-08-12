@@ -1,4 +1,4 @@
-import validIndexValue from '../../src/util/valid-index-value'
+import { validIndexValue } from '../../src/util/valid-index-value'
 
 export default function unitUtilsSuite() {
   describe('validIndexValue', () => {

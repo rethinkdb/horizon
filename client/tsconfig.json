@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es5",
+    "sourceMap": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    "pretty": true,
+    "rootDir": "src"
+  },
+  "formatOptions": {
+    "tabSize": 2
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}

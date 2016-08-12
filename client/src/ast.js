@@ -13,7 +13,7 @@ import snakeCase from 'snake-case'
 import deepEqual from 'deep-equal'
 
 import checkArgs from './util/check-args'
-import validIndexValue from './util/valid-index-value.js'
+import { validIndexValue } from './util/valid-index-value'
 import { serialize } from './serialization.js'
 
 
