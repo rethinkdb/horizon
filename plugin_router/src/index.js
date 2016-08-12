@@ -15,39 +15,55 @@ const examplePluginActivateResult = {
 }
 
 class PluginRouter {
-  constructor() {
+  constructor(server) {
+    this.server = server
     this.plugins = {}
+    this.httpRoutes = {}
     this.methods = {}
   }
 
-  addPlugin(plugin) {
+  add(plugin) {
     if (this.plugins[plugin.name]) {
-      throw new Error(`Plugin conflict: '${plugin.name}' already present.`);
+      return Promise.reject(
+        new Error(`Plugin conflict: '${plugin.name}' already present.`));
     }
-    for (const m in plugin.methods) {
-      if (this.methods[m]) {
-        throw new Error(`Method name conflict: '${m}');
+    const activePlugin = Promise.resolve(server.ctx()).then(plugin.activate)
+    this.plugins[plugin.name] = activePlugin.then((active) => {
+      if (this.httpRoutes[plugin.name]) {
+        throw new Error(`Plugin conflict: '${plugin.name}' already present.`);
       }
-    }
+      // RSI: validate method name is a legal identifier and doesn't
+      // conflict with our methods.
+      for (const m in active.methods) {
+        if (this.methods[m]) {
+          throw new Error(`Method name conflict: '${m}');
+        }
+      }
 
-    this.plugins[plugin.name] = plugin;
-    for (const m in plugin.methods) {
-      this.methods[m] = plugin.methods[m];
-    }
+      this.httpRoutes[plugin.name] = active;
+      for (const m in active.methods) {
+        this.methods[m] = active.methods[m];
+      }
+    });
+    return this.plugins[plugin.name];
   }
 
-  removePlugin(plugin) {
+  remove(plugin, reason) {
     if (!this.plugins[plugin.name]) {
-      throw new Error(`Plugin '${plugin.name}' is not present.`);
+      return Promise.reject(new Error(`Plugin '${plugin.name}' is not present.`));
     }
-    delete this.plugins[plugin.name];
+    return this.plugins[plugin.name].then(() => {
+      if (plugin.deactivate) {
+        plugin.deactivate(reason || "Removed from PluginRouter.");
+      }
+    }
   }
 
   httpMiddleware() {
     return (req, res, next) => {
       const pathParts = req.path.split('/');
       const name = pathParts[0] || pathParts[1];
-      const plugin = this.plugins[name];
+      const plugin = this.httpRoutes[name];
       if (plugin && plugin.httpRoute) {
         plugin.httpRouter(req, res, next);
       } else {
@@ -58,12 +74,30 @@ class PluginRouter {
 
   hzMiddleware() {
     return (req, res, next) {
-      const method = req.type && this.methods[req.type];
-      if (method) {
-        method(req, res, next);
-      } else {
-        next();
+      const method = (req.type && this.methods[req.type]) || next;
+      let cb = method;
+      if (req.options) {
+        for (const o in req.options) {
+          if (o !== req.type) {
+            const m = this.methods[o];
+            if (m) {
+              const old_cb = cb;
+              cb = (maybeErr) => {
+                if (maybeErr instanceof Error) {
+                  next(maybeErr);
+                } else {
+                  try {
+                    m(req, res, old_cb);
+                  } catch (e) {
+                    next(e);
+                  }
+                }
+              }
+            }
+          }
+        }
       }
+      cb();
     }
   }
 }

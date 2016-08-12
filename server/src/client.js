@@ -148,10 +148,13 @@ class Client {
     if (raw_request === undefined) {
       return;
     } else if (raw_request.type === 'end_subscription') {
-      return this.remove_request(raw_request); // there is no response for end_subscription
+      // there is no response for end_subscription
+      return this.remove_request(raw_request);
     } else if (raw_request.type === 'keepalive') {
       return this.send_response(raw_request, { state: 'complete' });
     }
+
+    this._server.handle(raw_request);
 
     const endpoint = this._server.get_request_handler(raw_request);
     if (endpoint === undefined) {
@@ -181,7 +184,8 @@ class Client {
 
   close(info) {
     if (this.is_open()) {
-      const close_msg = (info.error && info.error.substr(0, 64)) || 'Unspecified reason.';
+      const close_msg =
+        (info.error && info.error.substr(0, 64)) || 'Unspecified reason.';
       logger.debug('Closing client connection with message: ' +
                    `${info.error || 'Unspecified reason.'}`);
       logger.debug(`info: ${JSON.stringify(info)}`);
@@ -202,7 +206,8 @@ class Client {
   }
 
   send_error(request, err, code) {
-    logger.debug(`Sending error result for request ${request.request_id}:\n${err.stack}`);
+    logger.debug(
+      `Sending error result for request ${request.request_id}:\n${err.stack}`);
 
     const error = err instanceof Error ? err.message : err;
     const error_code = code === undefined ? -1 : code;

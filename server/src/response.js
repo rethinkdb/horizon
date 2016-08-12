@@ -3,6 +3,47 @@
 const logger = require('./logger');
 const rule = require('./permissions/rule');
 
+class Response {
+  constructor(requestId, socketSend) {
+    this._requestId = requestId;
+    this._socketSend = socketSend;
+    this.complete = new Promise((resolve, reject) => {
+      this._resolve = resolve;
+      this._reject = reject;
+    }).then((data) => {
+      this._completed = true;
+      write(data, 'complete');
+    }).catch((err) => {
+      this._completed = true;
+      this._socketSend({
+        request_id: this._requestId,
+        error: `${err}`,
+        error_code: err.code || -1,
+      });
+      throw err;
+    });
+  }
+
+  write(data, state = undefined) {
+    if (this._completed && state !== 'complete') {
+      throw new Error('This response has already completed.');
+    } else if (!this._completed && state === 'complete') {
+      throw new Error(
+        '`.write()` cannot be used to send a `state: complete` message.' +
+          '  Use `.end()` to complete a Response.');
+    }
+    this._socketSend({state, data, request_id: this._requestId});
+  }
+
+  end(dataOrError) {
+    if (dataOrError instanceof Error) {
+      this._reject(dataOrError);
+    } else {
+      this._resolve(dataOrError);
+    }
+  }
+}
+
 class Request {
   constructor(raw_request, endpoint, client) {
     this._raw_request = raw_request;

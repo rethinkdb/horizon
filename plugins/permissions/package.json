@@ -2,7 +2,7 @@
   "name": "@horizon/plugins/permissions",
   "version": "1.0.0",
   "description": "Default permissions plugin for Horizon.",
-  "main": "src/index.js",
+  "main": "src/permissions.js",
   "scripts": {
     "lint": "eslint src test",
     "test": "mocha test",
