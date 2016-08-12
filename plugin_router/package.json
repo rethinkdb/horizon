@@ -6,7 +6,6 @@
   "scripts": {
     "lint": "eslint src test",
     "test": "mocha test",
-    "coverage": "istanbul cover _mocha test/test.js"
   },
   "repository": {
     "type": "git",
