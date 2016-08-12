@@ -319,15 +319,14 @@ const start_horizon_server = (http_servers, opts) =>
     rdb_user: opts.rdb_user || null,
     rdb_password: opts.rdb_password || null,
     rdb_timeout: opts.rdb_timeout || null,
+    log_level: opts.log_level
   });
 
 // `interruptor` is meant for use by tests to stop the server without relying on SIGINT
 const run = (args, interruptor) => {
   let opts, http_servers, hz_server, rdb_server;
-  const old_log_level = logger.level;
 
   const cleanup = () => {
-    logger.level = old_log_level;
 
     return Promise.all([
       hz_server ? hz_server.close() : Promise.resolve(),
@@ -341,7 +340,7 @@ const run = (args, interruptor) => {
 
   return Promise.resolve().then(() => {
     opts = processConfig(parseArguments(args));
-    logger.level = opts.debug ? 'debug' : 'warn';
+    opts.log_level = opts.debug ? 'debug' : 'warn';
 
     if (!opts.secure && opts.auth && Array.from(Object.keys(opts.auth)).length > 0) {
       logger.warn('Authentication requires that the server be accessible via HTTPS. ' +
