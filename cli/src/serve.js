@@ -72,7 +72,7 @@ const parseArguments = (args) => {
 
   parser.addArgument([ '--token-secret' ],
     { type: 'string', metavar: 'SECRET',
-      help: 'Key for signing jwts. Default is random on each run' });
+      help: 'Key for signing jwts' });
 
   parser.addArgument([ '--allow-unauthenticated' ],
     { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',

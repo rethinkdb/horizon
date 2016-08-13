@@ -20,7 +20,7 @@ class JWT {
       this.secret = new Buffer(options.token_secret, 'base64');
     } else {
       throw new Error(
-        'No token_secret set! Try setting it in .hz/config.toml ' +
+        'No token_secret set! Try setting it in .hz/secrets.toml ' +
         'or passing it to the Server constructor.');
     }
   }
