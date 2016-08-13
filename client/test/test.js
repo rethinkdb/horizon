@@ -1,8 +1,17 @@
 const BROWSER = (typeof window !== 'undefined')
 const path = require('path')
-const glob = require('../src/util/glob')
 
-const global = glob()
+const global = (function glob() {
+  if (typeof self !== 'undefined') {
+    return self
+  } else if (typeof window !== 'undefined') {
+    return window
+  } else if (typeof global !== 'undefined') {
+    return global
+  } else {
+    return {}
+  }
+})()
 
 if (BROWSER) {
   // Use source maps in mocha errors (ordinarily source maps

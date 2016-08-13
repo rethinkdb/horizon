@@ -1,10 +1,19 @@
-import ordinal from './ordinal.js'
+import ordinal from './ordinal'
 
+export interface CheckArgsArgs {
+  nullable?: boolean,
+  minArgs?: number,
+  maxArgs?: number,
+}
 // Validation helper
-export default function checkArgs(name, args, {
-                    nullable: nullable = false,
-                    minArgs: minArgs = 1,
-                    maxArgs: maxArgs = 1 } = {}) {
+export function checkArgs(
+  name: string,
+  args: Array<any>,
+  {
+    nullable = false,
+    minArgs = 1,
+    maxArgs = 1
+  }: CheckArgsArgs = {}) {
   if (minArgs === maxArgs && args.length !== minArgs) {
     const plural = minArgs === 1 ? '' : 's'
     throw new Error(`${name} must receive exactly ${minArgs} argument${plural}`)
