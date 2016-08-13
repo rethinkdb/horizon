@@ -9,10 +9,11 @@ joi.validate('', joi.any().when('', { is: '', then: joi.any() }));
 
 const server = require('./server');
 
-const create_server = (http_servers, options) =>
-  new server.Server(http_servers, options);
+function createServer(httpServers, options) {
+  return new server.Server(httpServers, options);
+}
 
-module.exports = create_server;
+module.exports = createServer;
 module.exports.Server = server.Server;
 
 module.exports.r = require('rethinkdb');

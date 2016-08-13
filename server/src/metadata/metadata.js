@@ -42,14 +42,15 @@ const initialize_metadata = (db, conn) =>
       ])
     );
 
+// RSI: pick up here, make this reliable.
 class Metadata {
   constructor(project_name,
-              conn,
+              reliable_conn,
               clients,
               auto_create_collection,
               auto_create_index) {
     this._db = project_name;
-    this._conn = conn;
+    this._reliable_conn = reliable_conn;
     this._clients = clients;
     this._auto_create_collection = auto_create_collection;
     this._auto_create_index = auto_create_index;
@@ -63,8 +64,8 @@ class Metadata {
 
     this._ready_promise = Promise.resolve().then(() => {
       logger.debug('checking rethinkdb version');
-      return r.db('rethinkdb').table('server_status').nth(0)('process')('version').run(this._conn)
-               .then((res) => utils.rethinkdb_version_check(res));
+      const q = r.db('rethinkdb').table('server_status').nth(0)('process')('version')
+      return q.run(this._conn).then((res) => utils.rethinkdb_version_check(res));
     }).then(() => {
       const old_metadata_db = `${this._db}_internal`;
       return r.dbList().contains(old_metadata_db).run(this._conn).then((has_old_db) => {
