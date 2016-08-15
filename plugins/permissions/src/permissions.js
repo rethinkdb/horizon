@@ -6,8 +6,6 @@ module.exports = (config) => {
     name: 'permissions',
     activate: (ctx) => {
 
-
-
       ctx.logger.info('Activating permissions.');
       return {
         middleware: (req, res, next) => {
