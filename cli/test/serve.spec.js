@@ -16,6 +16,7 @@ const serve_args = [
   '--port=0',
   '--auto-create-collection',
   `--project-name=${project_name}`,
+  `--token-secret=test-token`
 ];
 const make_args = (args) => serve_args.concat(args);
 
