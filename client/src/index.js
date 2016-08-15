@@ -33,7 +33,7 @@ function Horizon({
   const url = `ws${secure ? 's' : ''}:\/\/${host}\/${path}`
   const socket = new HorizonSocket({
     url,
-    handshakeMessage: tokenStorage.handshake(),
+    handshakeMaker: tokenStorage.handshake.bind(tokenStorage),
     keepalive,
     WebSocketCtor,
   })

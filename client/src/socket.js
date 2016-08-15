@@ -56,7 +56,7 @@ export class HorizonSocket extends WebSocketSubject {
 
   constructor({
     url,              // Full url to connect to
-    handshakeMessage, // function that returns handshake to emit
+    handshakeMaker, // function that returns handshake to emit
     keepalive = 60,   // seconds between keepalive messages
     WebSocketCtor = WebSocket,    // optionally provide a WebSocket constructor
   } = {}) {
@@ -80,7 +80,7 @@ export class HorizonSocket extends WebSocketSubject {
     // Completes or errors based on handshake success. Buffers
     // handshake response for later subscribers (like a Promise)
     this.handshake = new AsyncSubject()
-    this._handshakeMsg = handshakeMessage
+    this._handshakeMaker = handshakeMaker
     this._handshakeSub = null
 
     this.keepalive = Observable
@@ -131,7 +131,7 @@ export class HorizonSocket extends WebSocketSubject {
   // and cleans up after it when the handshake is cleaned up.
   sendHandshake() {
     if (!this._handshakeSub) {
-      this._handshakeSub = this.makeRequest(this._handshakeMsg)
+      this._handshakeSub = this.makeRequest(this._handshakeMaker())
         .subscribe({
           next: n => {
             this.status.next(STATUS_READY)
