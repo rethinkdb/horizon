@@ -31,7 +31,7 @@ class Client {
       this.error_wrap_socket(() => this.handle_handshake(data)));
 
     if (!this._metadata.is_ready()) {
-      this.close({ error: 'No connection to the database.' });
+      this.close({error: 'No connection to the database.'});
     }
   }
 
@@ -56,9 +56,9 @@ class Client {
       cb();
     } catch (err) {
       logger.debug(`Unhandled error in request: ${err.stack}`);
-      this.close({ request_id: null,
+      this.close({request_id: null,
                    error: `Unhandled error: ${err}`,
-                   error_code: 0 });
+                   error_code: 0});
     }
   }
 
@@ -67,9 +67,9 @@ class Client {
     try {
       request = JSON.parse(data);
     } catch (err) {
-      return this.close({ request_id: null,
+      return this.close({request_id: null,
                           error: `Invalid JSON: ${err}`,
-                          error_code: 0 });
+                          error_code: 0});
     }
 
     try {
@@ -81,9 +81,9 @@ class Client {
 
       if (request.request_id === undefined) {
         // This is pretty much an unrecoverable protocol error, so close the connection
-        this.close({ request_id, error: `Protocol error: ${err}`, error_code: 0 });
+        this.close({request_id, error: `Protocol error: ${err}`, error_code: 0});
       } else {
-        this.send_error({ request_id }, err_str);
+        this.send_error({request_id}, err_str);
       }
     }
   }
@@ -99,7 +99,7 @@ class Client {
     logger.debug(`Received handshake: ${JSON.stringify(request)}`);
 
     if (request === undefined) {
-      return this.close({ error: 'Invalid handshake.', error_code: 0 });
+      return this.close({error: 'Invalid handshake.', error_code: 0});
     }
 
     let responded = false;
@@ -107,7 +107,7 @@ class Client {
       const finish_handshake = () => {
         if (!responded) {
           responded = true;
-          const info = { token: res.token, id: res.payload.id, provider: res.payload.provider };
+          const info = {token: res.token, id: res.payload.id, provider: res.payload.provider};
           this.send_response(request, info);
           this._socket.on('message', (msg) =>
             this.error_wrap_socket(() => this.handle_request(msg)));
@@ -136,7 +136,7 @@ class Client {
     }).catch((err) => {
       if (!responded) {
         responded = true;
-        this.close({ request_id: request.request_id, error: `${err}`, error_code: 0 });
+        this.close({request_id: request.request_id, error: `${err}`, error_code: 0});
       }
     });
   }
@@ -151,7 +151,7 @@ class Client {
       // there is no response for end_subscription
       return this.remove_request(raw_request);
     } else if (raw_request.type === 'keepalive') {
-      return this.send_response(raw_request, { state: 'complete' });
+      return this.send_response(raw_request, {state: 'complete'});
     }
 
     this._server.handle(raw_request);
@@ -211,8 +211,8 @@ class Client {
 
     const error = err instanceof Error ? err.message : err;
     const error_code = code === undefined ? -1 : code;
-    this.send_response(request, { error, error_code });
+    this.send_response(request, {error, error_code});
   }
 }
 
-module.exports = { Client };
+module.exports = {Client};

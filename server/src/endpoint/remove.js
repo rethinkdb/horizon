@@ -37,17 +37,17 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                        // Otherwise, we can safely remove the row
                        null),
 
-              { returnChanges: 'always' }))
+              {returnChanges: 'always'}))
           // Pretend like we deleted rows that didn't exist
           .do((res) =>
-            res.merge({ changes:
+            res.merge({changes:
               r.range(row_data.count()).map((index) =>
                 r.branch(res('changes')(index)('old_val').eq(null),
-                         res('changes')(index).merge({ old_val: { id: row_data(index)('id') } }),
+                         res('changes')(index).merge({old_val: {id: row_data(index)('id')}}),
                          res('changes')(index))).coerceTo('array'),
             })))
         .run(conn, reql_options)
   ).then(done).catch(done);
 };
 
-module.exports = { run };
+module.exports = {run};

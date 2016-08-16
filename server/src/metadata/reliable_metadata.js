@@ -1,6 +1,8 @@
 'use strict';
 
 const error = require('../error');
+const version_field = require('../endpoints/writes').version_field;
+const {Reliable, ReliableChangefeed, ReliableUnion} = require('../reliable');
 const logger = require('../logger');
 const Collection = require('./collection').Collection;
 const utils = require('../utils');
@@ -10,7 +12,7 @@ const r = require('rethinkdb');
 const metadata_version = [ 2, 0, 0 ];
 
 const create_collection = (db, name, conn) =>
-  r.db(db).table('hz_collections').get(name).replace({ id: name }).do((res) =>
+  r.db(db).table('hz_collections').get(name).replace({id: name}).do((res) =>
     r.branch(
       res('errors').ne(0),
       r.error(res('first_error')),
@@ -29,13 +31,13 @@ const initialize_metadata = (db, conn) =>
                  r.db(db).tableCreate(table))
           .run(conn))))
     .then(() =>
-      r.db(db).table('hz_collections').wait({ timeout: 30 }).run(conn))
+      r.db(db).table('hz_collections').wait({timeout: 30}).run(conn))
     .then(() =>
       Promise.all([
         r.db(db).tableList().contains('users').not().run(conn).then(() =>
           create_collection(db, 'users', conn)),
         r.db(db).table('hz_collections')
-          .insert({ id: 'hz_metadata', version: metadata_version })
+          .insert({id: 'hz_metadata', version: metadata_version})
           .run(conn),
       ])
     );
@@ -50,7 +52,7 @@ class ReliableInit extends Reliable {
     this._conn_subs = reliable_conn.subscribe({
       onReady: (conn) => {
         this.current_attempt = Symbol();
-        do_init(conn, this.current_attempt);
+        this.do_init(conn, this.current_attempt);
       },
       onUnready: () => {
         this.current_attempt = null;
@@ -71,7 +73,7 @@ class ReliableInit extends Reliable {
     Promise.resolve().then(() => {
       this.check_attempt(attempt);
       logger.debug('checking rethinkdb version');
-      const q = r.db('rethinkdb').table('server_status').nth(0)('process')('version')
+      const q = r.db('rethinkdb').table('server_status').nth(0)('process')('version');
       return q.run(conn).then((res) => utils.rethinkdb_version_check(res));
     }).then(() => {
       this.check_attempt(attempt);
@@ -102,7 +104,7 @@ class ReliableInit extends Reliable {
       this.check_attempt(attempt);
       logger.debug('waiting for internal tables');
       return r.expr([ 'hz_collections', 'hz_users_auth', 'hz_groups', 'users' ])
-        .forEach((table) => r.db(this._db).table(table).wait({ timeout: 30 })).run(conn);
+        .forEach((table) => r.db(this._db).table(table).wait({timeout: 30})).run(conn);
     }).then(() => {
       this.check_attempt(attempt);
       logger.debug('adding admin user');
@@ -116,7 +118,7 @@ class ReliableInit extends Reliable {
                 [version_field]: 0,
               },
               old_row),
-            { returnChanges: 'always' })('changes')(0)
+            {returnChanges: 'always'})('changes')(0)
           .do((res) =>
             r.branch(res('new_val').eq(null),
                      r.error(res('error')),
@@ -126,11 +128,11 @@ class ReliableInit extends Reliable {
             r.branch(old_row.eq(null),
               {
                 id: 'admin',
-                rules: { carte_blanche: { template: 'any()' } },
+                rules: {carte_blanche: {template: 'any()'}},
                 [version_field]: 0,
               },
               old_row),
-            { returnChanges: 'always' })('changes')(0)
+            {returnChanges: 'always'})('changes')(0)
           .do((res) =>
             r.branch(res('new_val').eq(null),
                      r.error(res('error')),
@@ -164,6 +166,8 @@ class ReliableMetadata extends Reliable {
 
     this._db = project_name;
     this._reliable_conn = reliable_conn;
+    this._auto_create_collection = auto_create_collection;
+    this._auto_create_index = auto_create_index;
     this._collections = new Map();
 
     this._reliable_init = new ReliableInit(reliable_conn);
@@ -172,7 +176,7 @@ class ReliableMetadata extends Reliable {
       r.db(this._db)
        .table('hz_collections')
        .filter((row) => row('id').match('^hzp?_').not())
-       .changes({ squash: false, includeInitial: true, includeTypes: true }),
+       .changes({squash: false, includeInitial: true, includeTypes: true}),
       reliable_conn,
       {
         onChange: (change) => {
@@ -210,7 +214,7 @@ class ReliableMetadata extends Reliable {
           }
         },
       });
-      
+
 
     this._index_changefeed = new ReliableChangefeed(
       r.db('rethinkdb')
@@ -222,14 +226,7 @@ class ReliableMetadata extends Reliable {
           name: row('name'),
           indexes: row('indexes').filter((idx) => idx.match('^hz_')),
         }))
-        .changes({ squash: true,
-                 includeInitial: true,
-                 includeStates: true,
-                 includeTypes: true })
-      r.db(this._db)
-       .table('hz_collections')
-       .filter((row) => row('id').match('^hzp?_').not())
-       .changes({ squash: false, includeInitial: true, includeTypes: true }),
+        .changes({squash: true, includeInitial: true, includeTypes: true}),
       reliable_conn,
       {
         onChange: (change) => {
@@ -278,7 +275,8 @@ class ReliableMetadata extends Reliable {
         this.emit('onReady');
       },
       onUnready: () => {
-        this._collections.forEach((collection) => collection.close(reason));
+        // TODO: fill in the reason for `close`.
+        this._collections.forEach((collection) => collection.close());
         this._collections.clear();
       },
     });
@@ -361,4 +359,4 @@ class ReliableMetadata extends Reliable {
   }
 }
 
-module.exports = { ReliableMetadata, create_collection, initialize_metadata };
+module.exports = {ReliableMetadata, create_collection, initialize_metadata};

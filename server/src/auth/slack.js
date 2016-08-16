@@ -59,7 +59,7 @@ function slack(horizon, raw_options) {
   oauth_options.make_inspect_request = (access_token) =>
     https.request({
       host: 'slack.com',
-      path: `/api/auth.test?${querystring.stringify({ token: access_token })}`,
+      path: `/api/auth.test?${querystring.stringify({token: access_token})}`,
       headers: {
         'Content-Type': 'application/json',
         'user-agent': 'node.js',

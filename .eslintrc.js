@@ -68,7 +68,7 @@ module.exports = {
     "no-var": [ ERROR ],
     "no-void": [ ERROR ],
     "no-with": [ ERROR ],
-    "object-curly-spacing": [ ERROR, "always" ],
+    "object-curly-spacing": [ ERROR, "never" ],
     "one-var": [ ERROR, { "uninitialized": "always", "initialized": "never" } ],
     "operator-assignment": [ ERROR, "always" ],
     "operator-linebreak": [ ERROR, "after" ],

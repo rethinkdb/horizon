@@ -88,4 +88,4 @@ class Collection {
   }
 }
 
-module.exports = { Collection };
+module.exports = {Collection};

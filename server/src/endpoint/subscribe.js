@@ -7,11 +7,11 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   let feed;
   const reql = make_reql(raw_request, metadata);
 
-  reql.changes({ include_initial: true,
+  reql.changes({include_initial: true,
                  include_states: true,
                  include_types: true,
                  include_offsets: Boolean(raw_request.options.order) &&
-                                  Boolean(raw_request.options.limit) })
+                                  Boolean(raw_request.options.limit)})
     .run(metadata.connection(), reql_options)
     .then((res) => {
       feed = res;
@@ -19,15 +19,15 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
         if (item.state === 'initializing') {
           // Do nothing - we don't care
         } else if (item.state === 'ready') {
-          send({ state: 'synced' });
+          send({state: 'synced'});
         } else if ((item.old_val && !ruleset.validate(context, item.old_val)) ||
                    (item.new_val && !ruleset.validate(context, item.new_val))) {
           throw new Error('Operation not permitted.');
         } else {
-          send({ data: [ item ] });
+          send({data: [ item ]});
         }
       }).then(() => {
-        done({ state: 'complete' });
+        done({state: 'complete'});
       }).catch(done);
     }).catch(done);
 
@@ -38,4 +38,4 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   };
 };
 
-module.exports = { run };
+module.exports = {run};

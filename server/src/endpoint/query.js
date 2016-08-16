@@ -10,7 +10,7 @@ const r = require('rethinkdb');
 const object_to_fields = (obj) =>
   Object.keys(obj).map((key) => {
     const value = obj[key];
-    if (value !== null && typeof value === 'object' && !value['$reql_type$']) {
+    if (value !== null && typeof value === 'object' && !value.$reql_type$) {
       return object_to_fields(value).map((subkeys) => [ key ].concat(subkeys));
     } else {
       return [ key ];
@@ -77,7 +77,7 @@ const make_reql = (raw_request, metadata) => {
 
     const order = (options.order && options.order[1] === 'descending') ?
       r.desc(index.name) : index.name;
-    return reql.orderBy({ index: order }).between(above_value, below_value, optargs);
+    return reql.orderBy({index: order}).between(above_value, below_value, optargs);
   };
 
   if (options.find) {
@@ -107,10 +107,10 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           done(new Error('Operation not permitted.'));
           cursor.close().catch(() => { });
         } else {
-          send({ data: [ item ] });
+          send({data: [ item ]});
         }
       }).then(() => {
-        done({ data: [ ], state: 'complete' });
+        done({data: [ ], state: 'complete'});
       });
     } else if (res !== null && res.constructor.name === 'Array') {
       for (const item of res) {
@@ -118,11 +118,11 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           return done(new Error('Operation not permitted.'));
         }
       }
-      done({ data: res, state: 'complete' });
+      done({data: res, state: 'complete'});
     } else if (!ruleset.validate(context, res)) {
       done(new Error('Operation not permitted.'));
     } else {
-      done({ data: [ res ], state: 'complete' });
+      done({data: [ res ], state: 'complete'});
     }
   }).catch(done);
 
@@ -133,4 +133,4 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
   };
 };
 
-module.exports = { make_reql, run };
+module.exports = {make_reql, run};

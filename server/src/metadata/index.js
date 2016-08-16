@@ -16,7 +16,7 @@ const primary_index_name = 'id';
 
 const name_to_info = (name) => {
   if (name === primary_index_name) {
-    return { geo: false, multi: false, fields: [ 'id' ] };
+    return {geo: false, multi: false, fields: [ 'id' ]};
   }
 
   const re = /^hz_(?:(geo)_)?(?:multi_([0-9])+_)?\[/;
@@ -26,7 +26,7 @@ const name_to_info = (name) => {
 
   const json_offset = matches[0].length - 1;
 
-  const info = { name, geo: Boolean(matches[1]), multi: isNaN(matches[2]) ? false : Number(matches[2]) };
+  const info = {name, geo: Boolean(matches[1]), multi: isNaN(matches[2]) ? false : Number(matches[2])};
 
   // Parse remainder as JSON
   try {
@@ -189,4 +189,4 @@ class Index {
   }
 }
 
-module.exports = { Index, primary_index_name, name_to_info, info_to_name, info_to_reql };
+module.exports = {Index, primary_index_name, name_to_info, info_to_name, info_to_reql};

@@ -19,29 +19,29 @@ function github(horizon, raw_options) {
   const client_secret = options.secret;
   const provider = options.path;
 
-  const oauth_options = { horizon, provider };
+  const oauth_options = {horizon, provider};
 
   oauth_options.make_acquire_url = (state, redirect_uri) =>
-    url.format({ protocol: 'https',
+    url.format({protocol: 'https',
                  host: 'github.com',
                  pathname: '/login/oauth/authorize',
-                 query: { client_id, redirect_uri, state } });
+                 query: {client_id, redirect_uri, state}});
 
   oauth_options.make_token_request = (code, redirect_uri) => {
-    const req = https.request({ method: 'POST',
+    const req = https.request({method: 'POST',
                                 host: 'github.com',
                                 path: '/login/oauth/access_token',
-                                headers: { accept: 'application/json' } });
+                                headers: {accept: 'application/json'}});
 
-    req.write(querystring.stringify({ code, client_id, client_secret, redirect_uri }));
+    req.write(querystring.stringify({code, client_id, client_secret, redirect_uri}));
 
     return req;
   };
 
   oauth_options.make_inspect_request = (access_token) =>
-    https.request({ host: 'api.github.com',
-                    path: `/user?${querystring.stringify({ access_token })}`,
-                    headers: { 'user-agent': 'node.js' } });
+    https.request({host: 'api.github.com',
+                    path: `/user?${querystring.stringify({access_token})}`,
+                    headers: {'user-agent': 'node.js'}});
 
   oauth_options.extract_id = (user_info) => user_info && user_info.id;
 

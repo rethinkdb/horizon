@@ -63,6 +63,6 @@ class Ruleset {
 }
 
 // The any_rule is used when permissions are disabled - it allows all queries
-const any_rule = new Rule('permissions_disabled', { template: 'any()' });
+const any_rule = new Rule('permissions_disabled', {template: 'any()'});
 
-module.exports = { Rule, Ruleset, any_rule };
+module.exports = {Rule, Ruleset, any_rule};

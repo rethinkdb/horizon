@@ -96,7 +96,7 @@ const wrap_write = (query, docs) => {
 
 const wrap_remove = (doc) => {
   if (validIndexValue(doc)) {
-    return { id: doc };
+    return {id: doc};
   }
   return doc;
 };
@@ -148,9 +148,9 @@ ast.Collection.prototype.removeAll = function(docs) {
 
 const env = {
   collection: (name) => new ast.Collection((type, options) =>
-    ({ request_id: new Any(),
+    ({request_id: new Any(),
        type: Array.isArray(type) ? new Any(type) : type,
-       options }), name, false),
+       options}), name, false),
   any: function() { return new Any(Array.from(arguments)); },
   anyObject: function(obj) { return new AnyObject(obj); },
   anyArray: function() { return new AnyArray(Array.from(arguments)); },
@@ -246,4 +246,4 @@ class Template {
   }
 }
 
-module.exports = { Template };
+module.exports = {Template};

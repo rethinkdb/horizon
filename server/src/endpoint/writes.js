@@ -17,10 +17,10 @@ const apply_version = (row, new_version) => row.merge(r.object(hz_v, new_version
 const make_write_response = (data) => {
   data.forEach((item, index) => {
     if (item instanceof Error) {
-      data[index] = { error: item.message };
+      data[index] = {error: item.message};
     }
   });
-  return { data, state: 'complete' };
+  return {data, state: 'complete'};
 };
 
 // This function returns a Promise that resolves to an array of responses - one for each row in
@@ -40,7 +40,8 @@ const make_write_response = (data) => {
 //   rows: all pending rows
 //   return: a (promise of a) ReQL write result object
 const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row, do_write) => {
-  const iterate = (row_data, response_data, deadline_optional) => {
+  const iterate = (row_data_arg, response_data, deadline_optional) => {
+    let row_data = row_data_arg;
     let deadline = deadline_optional;
     if (row_data.length === 0) {
       return response_data;
@@ -107,17 +108,17 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
         const res = changes[index];
         if (res.error !== undefined) {
           if (res.error.indexOf('Duplicate primary key') === 0) {
-            response_data[data.index] = { error: 'The document already exists.' };
+            response_data[data.index] = {error: 'The document already exists.'};
           } else if (res.error.indexOf(invalidated_msg) === 0 &&
                      data.version === undefined) {
             retry_rows.push(data);
           } else {
-            response_data[data.index] = { error: res.error };
+            response_data[data.index] = {error: res.error};
           }
         } else if (res.new_val === null) {
-          response_data[data.index] = { id: res.old_val.id, [hz_v]: res.old_val[hz_v] };
+          response_data[data.index] = {id: res.old_val.id, [hz_v]: res.old_val[hz_v]};
         } else {
-          response_data[data.index] = { id: res.new_val.id, [hz_v]: res.new_val[hz_v] };
+          response_data[data.index] = {id: res.new_val.id, [hz_v]: res.new_val[hz_v]};
         }
       });
 
@@ -126,7 +127,7 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
     });
   };
 
-  return iterate(original_rows.map((row, index) => ({ row, index, version: row[hz_v] })),
+  return iterate(original_rows.map((row, index) => ({row, index, version: row[hz_v]})),
                  Array(original_rows.length).fill(null),
                  null).then(make_write_response);
 };

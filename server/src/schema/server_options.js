@@ -36,4 +36,4 @@ const auth = Joi.object({
   allow_unauthenticated: Joi.boolean().default(false),
 }).unknown(false);
 
-module.exports = { server, auth };
+module.exports = {server, auth};

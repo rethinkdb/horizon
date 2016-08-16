@@ -45,13 +45,13 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                            // Otherwise, we can safely overwrite the row
                            writes.apply_version(new_row, old_row(hz_v).default(-1).add(1))
                          )
-                       ), { returnChanges: 'always' }),
+                       ), {returnChanges: 'always'}),
 
                    // The new row does not have an id, so we insert it with an autogen id
                    collection.table.insert(writes.apply_version(new_row, 0),
-                                           { returnChanges: 'always' })))
+                                           {returnChanges: 'always'})))
         .run(conn, reql_options)
   ).then(done).catch(done);
 };
 
-module.exports = { run };
+module.exports = {run};

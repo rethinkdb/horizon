@@ -128,4 +128,4 @@ class Request {
   }
 }
 
-module.exports = { Request };
+module.exports = {Request};

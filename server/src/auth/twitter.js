@@ -28,7 +28,7 @@ const store_app_token = (nonce, token) => {
     item = iter.next();
   }
 
-  nonce_cache.set(nonce, { time, token });
+  nonce_cache.set(nonce, {time, token});
 };
 
 const get_app_token = (nonce) => {
@@ -54,10 +54,10 @@ function twitter(horizon, raw_options) {
   const user_info_url = 'https://api.twitter.com/1.1/account/verify_credentials.json';
 
   const make_success_url = (horizon_token) =>
-    url.format(auth_utils.extend_url_query(horizon._auth._success_redirect, { horizon_token }));
+    url.format(auth_utils.extend_url_query(horizon._auth._success_redirect, {horizon_token}));
 
   const make_failure_url = (horizon_error) =>
-    url.format(auth_utils.extend_url_query(horizon._auth._failure_redirect, { horizon_error }));
+    url.format(auth_utils.extend_url_query(horizon._auth._failure_redirect, {horizon_error}));
 
   horizon.add_http_handler(provider, (req, res) => {
     const request_url = url.parse(req.url, true);
@@ -74,10 +74,10 @@ function twitter(horizon, raw_options) {
           auth_utils.do_redirect(res, make_failure_url('error generating nonce'));
         } else {
           oa._authorize_callback =
-            url.format({ protocol: 'https',
+            url.format({protocol: 'https',
                          host: req.headers.host,
                          pathname: request_url.pathname,
-                         query: { state: auth_utils.nonce_to_state(nonce) } });
+                         query: {state: auth_utils.nonce_to_state(nonce)}});
 
           oa.getOAuthRequestToken((err, app_token, app_token_secret, body) => {
             if (err || body.oauth_callback_confirmed !== 'true') {
@@ -86,10 +86,10 @@ function twitter(horizon, raw_options) {
             } else {
               store_app_token(nonce, app_token_secret);
               auth_utils.set_nonce(res, horizon._name, nonce);
-              auth_utils.do_redirect(res, url.format({ protocol: 'https',
+              auth_utils.do_redirect(res, url.format({protocol: 'https',
                                                        host: 'api.twitter.com',
                                                        pathname: '/oauth/authenticate',
-                                                       query: { oauth_token: app_token } }));
+                                                       query: {oauth_token: app_token}}));
             }
           });
         }

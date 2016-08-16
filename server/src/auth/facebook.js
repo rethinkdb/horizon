@@ -25,10 +25,10 @@ function facebook(horizon, raw_options) {
 
   const make_app_token_request = () =>
     https.request(
-      url.format({ protocol: 'https',
+      url.format({protocol: 'https',
                    host: 'graph.facebook.com',
                    pathname: '/oauth/access_token',
-                   query: { client_id, client_secret, grant_type: 'client_credentials' } }));
+                   query: {client_id, client_secret, grant_type: 'client_credentials'}}));
 
   auth_utils.run_request(make_app_token_request(), (err, body) => {
     const parsed = body && querystring.parse(body);
@@ -41,28 +41,28 @@ function facebook(horizon, raw_options) {
     }
   });
 
-  const oauth_options = { horizon, provider };
+  const oauth_options = {horizon, provider};
 
   oauth_options.make_acquire_url = (state, redirect_uri) =>
-    url.format({ protocol: 'https',
+    url.format({protocol: 'https',
                  host: 'www.facebook.com',
                  pathname: '/dialog/oauth',
-                 query: { client_id, state, redirect_uri, response_type: 'code' } });
+                 query: {client_id, state, redirect_uri, response_type: 'code'}});
 
   oauth_options.make_token_request = (code, redirect_uri) => {
-    const req = https.request({ method: 'POST',
+    const req = https.request({method: 'POST',
                                 host: 'graph.facebook.com',
-                                path: '/v2.3/oauth/access_token' });
-    req.write(querystring.stringify({ code, redirect_uri, client_id, client_secret }));
+                                path: '/v2.3/oauth/access_token'});
+    req.write(querystring.stringify({code, redirect_uri, client_id, client_secret}));
     return req;
   };
 
   oauth_options.make_inspect_request = (input_token) =>
     https.request(
-      url.format({ protocol: 'https',
+      url.format({protocol: 'https',
                    host: 'graph.facebook.com',
                    pathname: '/debug_token',
-                   query: { access_token: app_token, input_token } }));
+                   query: {access_token: app_token, input_token}}));
 
   oauth_options.extract_id = (user_info) =>
     user_info && user_info.data && user_info.data.user_id;

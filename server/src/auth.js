@@ -31,15 +31,15 @@ class JWT {
     const token = jwt.sign(
       payload,
       this.secret,
-      { algorithm: this.algorithm, expiresIn: this.duration }
+      {algorithm: this.algorithm, expiresIn: this.duration}
     );
 
-    return { token, payload };
+    return {token, payload};
   }
 
   verify(token) {
-    return jwt.verifyAsync(token, this.secret, { algorithms: [ this.algorithm ] })
-    .then((payload) => ({ token, payload }));
+    return jwt.verifyAsync(token, this.secret, {algorithms: [ this.algorithm ]})
+    .then((payload) => ({token, payload}));
   }
 }
 
@@ -68,7 +68,7 @@ class Auth {
       if (!this._allow_unauthenticated) {
         throw new Error('Unauthenticated connections are not allowed.');
       }
-      return this._jwt.verify(this._jwt.sign({ id: null, provider: request.method }).token);
+      return this._jwt.verify(this._jwt.sign({id: null, provider: request.method}).token);
     case 'anonymous':
       if (!this._allow_anonymous) {
         throw new Error('Anonymous connections are not allowed.');
@@ -103,7 +103,7 @@ class Auth {
 
     const insert = (table, row) =>
       db.table(table)
-        .insert(row, { conflict: 'error', returnChanges: 'always' })
+        .insert(row, {conflict: 'error', returnChanges: 'always'})
         .bracket('changes')(0)('new_val');
 
     let query = db.table('users')
@@ -111,7 +111,7 @@ class Auth {
                   .default(r.error('User not found and new user creation is disabled.'));
 
     if (this._create_new_users) {
-      query = insert('hz_users_auth', { id: key, user_id: r.uuid() })
+      query = insert('hz_users_auth', {id: key, user_id: r.uuid()})
         .do((auth_user) => insert('users', this.new_user_row(auth_user('user_id'))));
     }
 
@@ -121,9 +121,9 @@ class Auth {
       logger.debug(`Failed user lookup or creation: ${err}`);
       throw new Error('User lookup or creation in database failed.');
     }).then((user) =>
-      this._jwt.sign({ id: user.id, provider }));
+      this._jwt.sign({id: user.id, provider}));
   }
 }
 
 
-module.exports = { Auth };
+module.exports = {Auth};

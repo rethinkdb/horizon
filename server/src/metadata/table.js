@@ -15,7 +15,7 @@ class Table {
     this._result = null;
 
     this.table
-      .wait({ waitFor: 'all_replicas_ready' })
+      .wait({waitFor: 'all_replicas_ready'})
       .run(conn)
       .then(() => {
         this._result = true;
@@ -79,7 +79,7 @@ class Table {
 
   // TODO: support geo and multi indexes
   create_index(fields, conn, done) {
-    const info = { geo: false, multi: false, fields };
+    const info = {geo: false, multi: false, fields};
     const index_name = index.info_to_name(info);
     error.check(!this.indexes.get(index_name), 'index already exists');
 
@@ -92,7 +92,7 @@ class Table {
     };
 
     this.table.indexCreate(index_name, index.info_to_reql(info),
-                           { geo: info.geo, multi: (info.multi !== false) })
+                           {geo: info.geo, multi: (info.multi !== false)})
       .run(conn)
       .then(success)
       .catch((err) => {
@@ -127,4 +127,4 @@ class Table {
   }
 }
 
-module.exports = { Table };
+module.exports = {Table};

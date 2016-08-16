@@ -34,7 +34,7 @@ class ReqlConnection {
       }
 
       this._clients.forEach((client) =>
-        client.close({ error: err.message }));
+        client.close({error: err.message}));
       this._clients.clear();
 
       this._interrupted_err = err;
@@ -58,7 +58,7 @@ class ReqlConnection {
     this._metadata = null;
 
     this._clients.forEach((client) =>
-      client.close({ error: 'Connection to the database was lost.' }));
+      client.close({error: 'Connection to the database was lost.'}));
     this._clients.clear();
 
     if (this._interrupted_err) {
@@ -127,4 +127,4 @@ class ReqlConnection {
   }
 }
 
-module.exports = { ReqlConnection };
+module.exports = {ReqlConnection};

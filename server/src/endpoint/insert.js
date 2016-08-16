@@ -25,9 +25,9 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
     (rows) => // write to database, all valid rows
       collection.table
         .insert(rows.map((row) => writes.apply_version(r.expr(row), 0)),
-                { returnChanges: 'always' })
+                {returnChanges: 'always'})
         .run(conn, reql_options)
   ).then(done).catch(done);
 };
 
-module.exports = { run };
+module.exports = {run};

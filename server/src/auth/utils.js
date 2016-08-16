@@ -9,7 +9,7 @@ const url = require('url');
 
 const do_redirect = (res, redirect_url) => {
   logger.debug(`Redirecting user to ${redirect_url}`);
-  res.writeHead(302, { Location: redirect_url });
+  res.writeHead(302, {Location: redirect_url});
   res.end();
 };
 
@@ -71,12 +71,12 @@ const nonce_to_state = (nonce) =>
 const set_nonce = (res, name, nonce) =>
   res.setHeader('set-cookie',
                 cookie.serialize(nonce_cookie(name), nonce,
-                                 { maxAge: 3600, secure: true, httpOnly: true }));
+                                 {maxAge: 3600, secure: true, httpOnly: true}));
 
 const clear_nonce = (res, name) =>
   res.setHeader('set-cookie',
                 cookie.serialize(nonce_cookie(name), 'invalid',
-                                 { maxAge: -1, secure: true, httpOnly: true }));
+                                 {maxAge: -1, secure: true, httpOnly: true}));
 
 const get_nonce = (req, name) => {
   const field = nonce_cookie(name);
@@ -107,13 +107,13 @@ const oauth2 = (raw_options) => {
   const extract_id = options.extract_id;
 
   const self_url = (host, path) =>
-    url.format({ protocol: 'https', host: host, pathname: path });
+    url.format({protocol: 'https', host: host, pathname: path});
 
   const make_success_url = (horizon_token) =>
-    url.format(extend_url_query(horizon._auth._success_redirect, { horizon_token }));
+    url.format(extend_url_query(horizon._auth._success_redirect, {horizon_token}));
 
   const make_failure_url = (horizon_error) =>
-    url.format(extend_url_query(horizon._auth._failure_redirect, { horizon_error }));
+    url.format(extend_url_query(horizon._auth._failure_redirect, {horizon_error}));
 
   horizon.add_http_handler(provider, (req, res) => {
     const request_url = url.parse(req.url, true);
