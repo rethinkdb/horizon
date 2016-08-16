@@ -56,7 +56,7 @@ export class HorizonSocket extends WebSocketSubject {
 
   constructor({
     url,              // Full url to connect to
-    handshakeMessage, // function that returns handshake to emit
+    handshakeMaker, // function that returns handshake to emit
     keepalive = 60,   // seconds between keepalive messages
     WebSocketCtor = WebSocket,    // optionally provide a WebSocket constructor
   } = {}) {
@@ -80,12 +80,12 @@ export class HorizonSocket extends WebSocketSubject {
     // Completes or errors based on handshake success. Buffers
     // handshake response for later subscribers (like a Promise)
     this.handshake = new AsyncSubject()
-    this._handshakeMsg = handshakeMessage
+    this._handshakeMaker = handshakeMaker
     this._handshakeSub = null
 
     this.keepalive = Observable
       .timer(keepalive * 1000, keepalive * 1000)
-      .map(n => this._multiplex({ type: 'keepalive', n }))
+      .map(n => this.makeRequest({ type: 'keepalive' }).subscribe())
       .publish()
 
     // This is used to emit status changes that others can hook into.
@@ -131,12 +131,17 @@ export class HorizonSocket extends WebSocketSubject {
   // and cleans up after it when the handshake is cleaned up.
   sendHandshake() {
     if (!this._handshakeSub) {
-      this._handshakeSub = this.makeRequest(this._handshakeMsg)
+      this._handshakeSub = this.makeRequest(this._handshakeMaker())
         .subscribe({
           next: n => {
-            this.status.next(STATUS_READY)
-            this.handshake.next(n)
-            this.handshake.complete()
+            if (n.error) {
+              this.status.next(STATUS_ERROR)
+              this.handshake.error(new ProtocolError(n.error, n.error_code))
+            } else {
+              this.status.next(STATUS_READY)
+              this.handshake.next(n)
+              this.handshake.complete()
+            }
           },
           error: e => {
             this.status.next(STATUS_ERROR)
@@ -193,31 +198,5 @@ export class HorizonSocket extends WebSocketSubject {
         return data
       })
       .share()
-  }
-
-  // This is a hack to fix the parent's _subscribe method. Overriding
-  // _subscribe like this can be removed once
-  // https://github.com/ReactiveX/rxjs/pull/1831 is merged.
-  _subscribe(subscriber) {
-    const { source } = this
-    if (source) {
-      return source.subscribe(subscriber)
-    }
-    if (!this.socket) {
-      this._connectSocket()
-    }
-    const subscription = new Subscription()
-    subscription.add(this._output.subscribe(subscriber))
-    subscription.add(() => {
-      const { socket } = this
-      if (socket && socket.readyState === 1) {
-        if (this._output.observers.length === 0 &&
-            socket && socket.readyState === 1) {
-          socket.close()
-          this.socket = null
-        }
-      }
-    })
-    return subscription
   }
 }
