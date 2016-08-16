@@ -74,17 +74,47 @@ class Server extends EventEmitter {
 
     const ws_options = {handleProtocols, verifyClient, path: opts.path};
 
+    // TODO: precedence, error handling middleware
+    const run_middleware = (request, response) => {
+      let cb = () => {
+        response.end(new Error('No terminal middleware to handle the request.'));
+      };
+
+      for (let i = this._middlewares.length - 1; i >= 0; --i) {
+        const mw = this._middlewares[i];
+        const old_cb = cb;
+        cb = (maybeErr) => {
+          if (maybeErr instanceof Error) {
+            response.end(maybeErr);
+          } else {
+            try {
+              mw(request, response, old_cb);
+            } catch (err) {
+              response.end(err);
+            }
+          }
+        };
+      }
+      cb();
+    };
+
     // RSI: only become ready when this and metadata are both ready.
     const add_websocket = (server) => {
       const ws_server = new websocket.Server(Object.assign({server}, ws_options))
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
         .on('connection', (socket) => {
           try {
-            const client = new Client(socket, this, () => ...);
+            const client = new Client(socket,
+                                      this._auth,
+                                      this._reliable_metadata,
+                                      run_middleware);
             this._clients.add(client);
             socket.on('close', () => this._clients.delete(client));
-          } catch (e) {
-            // RSI: do something.
+          } catch (err) {
+            logger.error(`Failed to construct client: ${err}`);
+            if (socket.readyState === websocket.OPEN) {
+              socket.close(1002, err.message.substr(0, 64));
+            }
           }
         });
 

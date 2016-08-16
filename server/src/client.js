@@ -8,40 +8,41 @@ const Joi = require('joi');
 const websocket = require('ws');
 
 class Client {
-  constructor(socket, reliable_metadata, middleware_cb) {
+  constructor(socket, auth, reliable_metadata,
+              auth_middleware_cb, request_middleware_cb) {
     logger.debug('Client connection established.');
-    this._socket = socket;
-    this._reliable_metadata = reliable_metadata;
-    this._middleware_cb = middleware_cb;
-    this._auth = this._server._auth;
-    this._requests = new Map();
+    this.socket = socket;
+    this.auth = auth;
+    this.reliable_metadata = reliable_metadata;
+    this.auth_middleware_cb = auth_middleware_cb;
+    this.request_middleware_cb = request_middleware_cb;
+
+    this.responses = new Map();
     this.user_info = { };
 
-    this._socket.on('close', (code, msg) =>
+    this.socket.on('close', (code, msg) =>
       this.handle_websocket_close(code, msg));
 
-    this._socket.on('error', (error) =>
+    this.socket.on('error', (error) =>
       this.handle_websocket_error(error));
 
     // The first message should always be the handshake
-    this._socket.once('message', (data) =>
+    this.socket.once('message', (data) =>
       this.error_wrap_socket(() => this.handle_handshake(data)));
 
-    if (!this._metadata.is_ready()) {
-      this.close({error: 'No connection to the database.'});
+    if (!this.metadata.ready) {
+      throw new Error('No connection to the database.');
     }
   }
 
   handle_websocket_close() {
     logger.debug('Client connection terminated.');
+    // RSI: move to permissions?
     if (this.user_feed) {
       this.user_feed.close().catch(() => { });
     }
-    this._requests.forEach((request) => {
-      request.close();
-    });
-    this._requests.clear();
-    this._server._reql_conn._clients.delete(this);
+    this.responses.forEach((response) => response.close());
+    this.responses.clear();
   }
 
   handle_websocket_error(code, msg) {
@@ -54,8 +55,8 @@ class Client {
     } catch (err) {
       logger.debug(`Unhandled error in request: ${err.stack}`);
       this.close({request_id: null,
-                   error: `Unhandled error: ${err}`,
-                   error_code: 0});
+                  error: `Unhandled error: ${err}`,
+                  error_code: 0});
     }
   }
 
@@ -65,8 +66,8 @@ class Client {
       request = JSON.parse(data);
     } catch (err) {
       return this.close({request_id: null,
-                          error: `Invalid JSON: ${err}`,
-                          error_code: 0});
+                         error: `Invalid JSON: ${err}`,
+                         error_code: 0});
     }
 
     try {
@@ -85,9 +86,10 @@ class Client {
     }
   }
 
+  // RSI: move to permissions plugin
   group_changed(group_name) {
     if (this.user_info.groups.indexOf(group_name) !== -1) {
-      this._requests.forEach((req) => req.evaluate_rules());
+      this.responses.forEach((response) => response.evaluate_rules());
     }
   }
 
@@ -100,7 +102,7 @@ class Client {
     }
 
     let responded = false;
-    this._server._auth.handshake(request).then((res) => {
+    this.auth.handshake(request).then((res) => {
       const finish_handshake = () => {
         if (!responded) {
           responded = true;
@@ -110,21 +112,22 @@ class Client {
             provider: res.payload.provider,
           };
           this.send_message(request, info);
-          this._socket.on('message', (msg) =>
+          this.socket.on('message', (msg) =>
             this.error_wrap_socket(() => this.handle_request(msg)));
         }
       };
       this.user_info = res.payload;
 
       if (this.user_info.id != null) {
-        return this._metadata.get_user_feed(this.user_info.id).then((feed) => {
+        // RSI: move to permissions plugin
+        return this.metadata.get_user_feed(this.user_info.id).then((feed) => {
           this.user_feed = feed;
           return feed.eachAsync((change) => {
             if (!change.new_val) {
               throw new Error('User account has been deleted.');
             }
             Object.assign(this.user_info, change.new_val);
-            this._requests.forEach((req) => req.evaluate_rules());
+            this.responses.forEach((response) => response.evaluate_rules());
             finish_handshake();
           }).then(() => {
             throw new Error('User account feed has been lost.');
@@ -155,22 +158,22 @@ class Client {
       return this.send_message(raw_request, {state: 'complete'});
     }
 
-    const resp = new Response((obj) => this.send_message(raw_request, obj));
-    this.responses.set(raw_request.request_id, resp);
-    this._middleware_cb(raw_request, resp);
+    const response = new Response((obj) => this.send_message(raw_request, obj));
+    this.responses.set(raw_request.request_id, response);
+    this.request_middleware_cb(raw_request, response);
   }
 
 
   remove_response(request_id) {
-    const response = this._responses.get(request_id);
-    this._responses.delete(request_id);
+    const response = this.responses.get(request_id);
+    this.responses.delete(request_id);
     if (response) {
       response.close();
     }
   }
 
   is_open() {
-    return this._socket.readyState === websocket.OPEN;
+    return this.socket.readyState === websocket.OPEN;
   }
 
   close(info) {
@@ -181,9 +184,9 @@ class Client {
                    `${info.error || 'Unspecified reason.'}`);
       logger.debug(`info: ${JSON.stringify(info)}`);
       if (info.request_id !== undefined) {
-        this._socket.send(JSON.stringify(info));
+        this.socket.send(JSON.stringify(info));
       }
-      this._socket.close(1002, close_msg);
+      this.socket.close(1002, close_msg);
     }
   }
 
@@ -192,7 +195,7 @@ class Client {
     if (this.is_open()) {
       data.request_id = request.request_id;
       logger.debug(`Sending response: ${JSON.stringify(data)}`);
-      this._socket.send(JSON.stringify(data));
+      this.socket.send(JSON.stringify(data));
     }
   }
 
