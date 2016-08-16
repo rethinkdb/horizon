@@ -73,7 +73,7 @@ class PluginRouter {
   }
 
   hzMiddleware() {
-    return (req, res, next) {
+    return (req, res, next) => {
       const method = (req.type && this.methods[req.type]) || next;
       let cb = method;
       if (req.options) {
