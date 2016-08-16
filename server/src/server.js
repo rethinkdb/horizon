@@ -2,20 +2,13 @@
 
 const Auth = require('./auth').Auth;
 const Client = require('./client').Client;
-const ReqlConnection = require('./reql_connection').ReqlConnection;
 const logger = require('./logger');
+const {ReliableConn} = require('./reliable');
+const {ReliableMetadata} = require('./metadata/reliable_metadata');
 const options_schema = require('./schema/server_options').server;
-const getType = require('mime-types').contentType;
 
-// TODO: dynamically serve different versions of the horizon
-// library. Minified, Rx included etc.
-const horizon_client_path = require.resolve('@horizon/client/dist/horizon');
-
-const assert = require('assert');
-const fs = require('fs');
+const EventEmitter = require('events');
 const Joi = require('joi');
-const path = require('path');
-const url = require('url');
 const websocket = require('ws');
 
 const protocol_name = 'rethinkdb-horizon-v0';
@@ -27,10 +20,11 @@ function handleProtocols(protocols, cb) {
     logger.debug(`Rejecting client without "${protocol_name}" protocol (${protocols}).`);
     cb(false, null);
   }
-};
+}
 
 class Server extends EventEmitter {
   constructor(http_servers, user_opts) {
+    super();
     const opts = Joi.attempt(user_opts || { }, options_schema);
     this._original_user_opts = user_opts;
     this._auth_methods = { };
@@ -58,19 +52,16 @@ class Server extends EventEmitter {
     this._clear_clients_subscription = this._reliable_metadata.subscribe({
       onReady: () => {
         this.emit('ready', this);
-      }
+      },
       onUnready: (err) => {
         this.emit('unready', this);
         const msg = (err && err.message) || 'Connection became unready.';
-        this._clients.forEach((client) => client.close({ error: msg }));
+        this._clients.forEach((client) => client.close({error: msg}));
         this._clients.clear();
-      }
+      },
     });
 
     this._auth = new Auth(this, opts.auth);
-    for (const key in endpoints) {
-      this.add_request_handler(key, endpoints[key].run);
-    }
 
     const verifyClient = (info, cb) => {
       // Reject connections if we aren't synced with the database
@@ -81,11 +72,11 @@ class Server extends EventEmitter {
       }
     };
 
-    const ws_options = { handleProtocols, verifyClient, path: opts.path };
+    const ws_options = {handleProtocols, verifyClient, path: opts.path};
 
     // RSI: only become ready when this and metadata are both ready.
     const add_websocket = (server) => {
-      const ws_server = new websocket.Server(Object.assign({ server }, ws_options))
+      const ws_server = new websocket.Server(Object.assign({server}, ws_options))
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
         .on('connection', (socket) => new Client(socket, this));
 
@@ -115,19 +106,17 @@ class Server extends EventEmitter {
   // them to be closed.
   close() {
     if (!this._close_promise) {
-      this._close_promise = this._reliable_metadata.close().then(() => {
-        return Promise.all(this._ws_servers.map((s) => new Promise((resolve) => {
+      this._close_promise = this._reliable_metadata.close().then(
+        () => Promise.all(this._ws_servers.map((s) => new Promise((resolve) => {
           s.close(resolve);
-        }))).then(() => {
-          return this._reliable_conn.close();
-        });
-      });
+        })))
+      ).then(
+        () => this._reliable_conn.close()
+      );
     }
     return this._close_promise;
   }
 }
-
-
 
 module.exports = {
   Server,

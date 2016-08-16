@@ -12,7 +12,7 @@ class Response {
       this._reject = reject;
     }).then((data) => {
       this._completed = true;
-      write(data, 'complete');
+      this.write(data, 'complete');
     }).catch((err) => {
       this._completed = true;
       this._socketSend({
@@ -128,4 +128,4 @@ class Request {
   }
 }
 
-module.exports = {Request};
+module.exports = {Response, Request};

@@ -1,5 +1,9 @@
 'use strict';
 
+const logger = require('./logger');
+
+const r = require('rethinkdb');
+
 class Reliable {
   constructor(initialCbs) {
     this.subs = {};
@@ -12,10 +16,10 @@ class Reliable {
 
   subscribe(cbs) {
     if (this.closed) {
-      throw new Error("Cannot subscribe to a closed ReliableConn.");
+      throw new Error('Cannot subscribe to a closed ReliableConn.');
     }
     const subId = Symbol();
-    subs[subId] = {
+    this.subs[subId] = {
       cbs: cbs,
       close: () => delete this.subs[subId],
     };
@@ -26,7 +30,7 @@ class Reliable {
         // log e
       }
     }
-    return subs[subId];
+    return this.subs[subId];
   }
 
   emit() {
@@ -40,12 +44,12 @@ class Reliable {
     // TODO: consider checking to make sure we don't send two
     // `onReady` or `onUnready`s in a row (or even just returning
     // early if we would).
-    if (eventType == "onReady") {
+    if (eventType === 'onReady') {
       this.ready = arguments;
-    } else if (eventType == "onUnready") {
+    } else if (eventType === 'onUnready') {
       this.ready = false;
     }
-    for (let s of Object.getOwnPropertySymbols(this.subs)) {
+    for (const s of Object.getOwnPropertySymbols(this.subs)) {
       try {
         const cbs = this.subs[s].cbs;
         const event = cbs[eventType];
@@ -66,7 +70,7 @@ class Reliable {
   }
 }
 
-class ReliableConn extends Reliable{
+class ReliableConn extends Reliable {
   constructor(connOpts) {
     super();
     this.connOpts = connOpts;
@@ -85,24 +89,24 @@ class ReliableConn extends Reliable{
               this.connect();
             }
           }
-        })
+        });
       } else {
         conn.close();
       }
     }).catch((e) => {
       if (this.conn) {
-        // RSI: log a scary error.
+        logger.error(`Error in ${JSON.stringify(this)}: ${e.stack}`);
       }
       if (!this.closed) {
         setTimeout(1000, () => this.connect());
       }
-    })
+    });
   }
 
   close(reason) {
     let retProm = super.close(reason);
     if (this.conn) {
-      retProm = Promise.all([retProm, this.conn.close()]);
+      retProm = Promise.all([ retProm, this.conn.close() ]);
     }
     return retProm;
   }
@@ -119,7 +123,7 @@ class ReliableCfeed extends Reliable {
       onReady: (conn) => {
         reql.run(conn, {includeTypes: true, includeStates: true}).then((cursor) => {
           this.cursor = cursor;
-          return cursor.eachAsync(change) {
+          return cursor.eachAsync((change) => {
             switch (change.type) {
             case 'state':
               if (change.state === 'ready') {
@@ -129,21 +133,21 @@ class ReliableCfeed extends Reliable {
             default:
               this.emit('onChange', change);
             }
-          }
-        }).then((res) => {
-          // If we get here the cursor closed for some reason.
-          throw new Error("cursor closed for some reason");
-        }).catch((e) => {
-          this.emit('onUnready', e);
+          }).then((res) => {
+            // If we get here the cursor closed for some reason.
+            throw new Error(`cursor closed for some reason: ${res}`);
+          }).catch((e) => {
+            this.emit('onUnready', e);
+          });
         });
-      }
+      },
     });
   }
 
   close(reason) {
     let retProm = super.close(reason);
     if (this.cursor) {
-      retProm = Promise.all([retProm, this.cursor.close()]);
+      retProm = Promise.all([ retProm, this.cursor.close() ]);
     }
     this.subscription.close();
     return retProm;
@@ -176,9 +180,9 @@ class ReliableUnion extends Reliable {
 
   maybeEmit() {
     if (this.readyNeeded === 0 && !this.ready) {
-      this.emit('onReady', emitArg);
+      this.emit('onReady', this.emitArg);
     } else if (this.readyNeeded !== 0 && this.ready) {
-      this.emit('onUnready', emitArg);
+      this.emit('onUnready', this.emitArg);
     }
   }
 
@@ -189,3 +193,10 @@ class ReliableUnion extends Reliable {
     return super.close(reason);
   }
 }
+
+module.exports = {
+  Reliable,
+  ReliableConn,
+  ReliableCfeed,
+  ReliableUnion,
+};

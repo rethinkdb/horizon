@@ -7,8 +7,6 @@ const ast = require('@horizon/client/lib/ast');
 const validIndexValue = require('@horizon/client/lib/util/valid-index-value').default;
 const vm = require('vm');
 
-let template_compare;
-
 class Any {
   constructor(values) {
     this._values = values || [ ];
@@ -167,7 +165,7 @@ const make_template = (str) => {
 };
 
 // eslint-disable-next-line prefer-const
-template_compare = (query, template, context) => {
+function template_compare(query, template, context) {
   if (template === undefined) {
     return false;
   } else if (template instanceof Any ||
@@ -216,7 +214,7 @@ template_compare = (query, template, context) => {
   }
 
   return true;
-};
+}
 
 const incomplete_template_message = (str) =>
   `Incomplete template "${str}", ` +
