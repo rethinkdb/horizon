@@ -43,13 +43,14 @@ const initialize_metadata = (db, conn) =>
 class StaleAttemptError extends Error { }
 
 class ReliableInit extends Reliable {
-  constructor(db, reliable_conn) {
+  constructor(db, reliable_conn, auto_create_collection) {
     super();
     this._db = db;
+    this._auto_create_collection = auto_create_collection;
     this._conn_subs = reliable_conn.subscribe({
       onReady: (conn) => {
         this.current_attempt = Symbol();
-        do_init(conn);
+        do_init(conn, this.current_attempt);
       },
       onUnready: () => {
         this.current_attempt = null;
@@ -268,11 +269,11 @@ class ReliableMetadata extends Reliable {
         },
       });
 
-    this._ready_union = new ReliableUnion([
-      this._reliable_init,
-      this._collection_changefeed,
-      this._index_changefeed,
-    ], {
+    this._ready_union = new ReliableUnion({
+      reliable_init: this._reliable_init,
+      collection_changefeed: this._collection_changefeed,
+      index_changefeed: this._index_changefeed,
+    }, {
       onReady: () => {
         this.emit('onReady');
       },

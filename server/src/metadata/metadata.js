@@ -42,7 +42,6 @@ const initialize_metadata = (db, conn) =>
       ])
     );
 
-// RSI: pick up here, make this reliable.
 class Metadata {
   constructor(project_name,
               reliable_conn,

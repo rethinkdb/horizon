@@ -6,7 +6,7 @@ class Reliable {
     this.ready = false;
     this.closed = false;
     if (initialCbs) {
-      subscribe(initialCbs);
+      this.subscribe(initialCbs);
     }
   }
 
@@ -31,7 +31,7 @@ class Reliable {
 
   emit() {
     if (!this.closed) {
-      emitInternal.apply(this, arguments);
+      this.emitInternal.apply(this, arguments);
     }
   }
 
@@ -51,7 +51,7 @@ class Reliable {
         const event = cbs[eventType];
         if (event) { event.apply(cbs, arguments); }
       } catch (e) {
-        // log e
+        // TODO: log e
       }
     }
   }
@@ -59,7 +59,7 @@ class Reliable {
   close(reason) {
     this.closed = true;
     if (this.ready) {
-      emitInternal('onUnready', new Error('closed: ' + reason));
+      this.emitInternal('onUnready', new Error(`closed: ${reason}`));
     }
     this.subs = {}; // Just to make sure no subclasses do anything clever.
     return Promise.resolve();
@@ -70,19 +70,19 @@ class ReliableConn extends Reliable{
   constructor(connOpts) {
     super();
     this.connOpts = connOpts;
-    connect();
+    this.connect();
   }
 
   connect() {
     r.connect(this.connOpts).then((conn) => {
       if (!this.closed) {
         this.conn = conn;
-        emit('onReady', conn);
+        this.emit('onReady', conn);
         conn.on('close', () => {
           if (this.ready) {
-            emit('onUnready', new Error('connection closed'));
+            this.emit('onUnready', new Error('connection closed'));
             if (!this.closed) {
-              connect();
+              this.connect();
             }
           }
         })
@@ -94,7 +94,7 @@ class ReliableConn extends Reliable{
         // RSI: log a scary error.
       }
       if (!this.closed) {
-        setTimeout(1000, connect);
+        setTimeout(1000, () => this.connect());
       }
     })
   }
@@ -123,18 +123,18 @@ class ReliableCfeed extends Reliable {
             switch (change.type) {
             case 'state':
               if (change.state === 'ready') {
-                emit('onReady');
+                this.emit('onReady');
               }
               break;
             default:
-              emit('onChange', change);
+              this.emit('onChange', change);
             }
           }
         }).then((res) => {
           // If we get here the cursor closed for some reason.
           throw new Error("cursor closed for some reason");
         }).catch((e) => {
-          emit('onUnready', e);
+          this.emit('onUnready', e);
         });
       }
     });
@@ -147,5 +147,45 @@ class ReliableCfeed extends Reliable {
     }
     this.subscription.close();
     return retProm;
+  }
+}
+
+class ReliableUnion extends Reliable {
+  constructor(reqs, cbs) {
+    super(cbs);
+    this.reqs = reqs;
+    this.subs = {};
+    this.emitArg = {};
+    this.readyNeeded = 0;
+    for (const k in reqs) {
+      this.subs[k] = reqs[k].subscribe({
+        onReady: (...rest) => {
+          this.readyNeeded -= 1;
+          this.emitArg[k] = rest;
+          this.maybeEmit();
+        },
+        onUnready: (...rest) => {
+          this.readyNeeded += 1;
+          this.emitArg[k] = rest;
+          this.maybeEmit();
+        },
+      });
+      this.readyNeeded += 1;
+    }
+  }
+
+  maybeEmit() {
+    if (this.readyNeeded === 0 && !this.ready) {
+      this.emit('onReady', emitArg);
+    } else if (this.readyNeeded !== 0 && this.ready) {
+      this.emit('onUnready', emitArg);
+    }
+  }
+
+  close(reason) {
+    for (const k in this.subs) {
+      this.subs[k].close();
+    }
+    return super.close(reason);
   }
 }
