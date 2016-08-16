@@ -2,11 +2,12 @@
   "name": "@horizon/server",
   "version": "2.0.0-beta-5",
   "description": "Server for RethinkDB Horizon, an open-source developer platform for building realtime, scalable web apps.",
-  "main": "src/horizon.js",
+  "main": "dist/horizon.js",
   "scripts": {
     "lint": "eslint src test",
     "test": "mocha test/test.js test/schema.js test/permissions.js --timeout 10000",
-    "coverage": "istanbul cover _mocha test/test.js"
+    "coverage": "istanbul cover _mocha test/test.js",
+    "build": "babel src -d dist -s true"
   },
   "repository": {
     "type": "git",
@@ -38,6 +39,8 @@
     "eslint": "^2.3.0",
     "istanbul": "^0.4.3",
     "mocha": "^2.3.3",
-    "nodemon": "^1.8.1"
+    "nodemon": "^1.8.1",
+    "babel-cli": "^6.10.1",
+    "babel-preset-es2015": "^6.9.0"
   }
 }

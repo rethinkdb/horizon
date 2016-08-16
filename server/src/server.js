@@ -78,7 +78,15 @@ class Server extends EventEmitter {
     const add_websocket = (server) => {
       const ws_server = new websocket.Server(Object.assign({server}, ws_options))
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
-        .on('connection', (socket) => new Client(socket, this));
+        .on('connection', (socket) => {
+          try {
+            const client = new Client(socket, this, () => ...);
+            this._clients.add(client);
+            socket.on('close', () => this._clients.delete(client));
+          } catch (e) {
+            // RSI: do something.
+          }
+        });
 
       this._ws_servers.push(ws_server);
     };

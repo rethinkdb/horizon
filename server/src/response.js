@@ -4,8 +4,8 @@ const logger = require('./logger');
 const rule = require('./permissions/rule');
 
 class Response {
-  constructor(requestId, socketSend) {
-    this._requestId = requestId;
+  // RSI: make sure socketSend sets `request_id`.
+  constructor(socketSend) {
     this._socketSend = socketSend;
     this.complete = new Promise((resolve, reject) => {
       this._resolve = resolve;
@@ -16,7 +16,6 @@ class Response {
     }).catch((err) => {
       this._completed = true;
       this._socketSend({
-        request_id: this._requestId,
         error: `${err}`,
         error_code: err.code || -1,
       });
@@ -32,7 +31,7 @@ class Response {
         '`.write()` cannot be used to send a `state: complete` message.' +
           '  Use `.end()` to complete a Response.');
     }
-    this._socketSend({state, data, request_id: this._requestId});
+    this._socketSend({state, data});
   }
 
   end(dataOrError) {

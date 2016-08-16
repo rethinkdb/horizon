@@ -2,23 +2,20 @@
 
 const logger = require('./logger');
 const schemas = require('./schema/horizon_protocol');
-const Request = require('./request').Request;
+const Response = require('./response').Response;
 
 const Joi = require('joi');
 const websocket = require('ws');
 
 class Client {
-  constructor(socket, server) {
+  constructor(socket, reliable_metadata, middleware_cb) {
     logger.debug('Client connection established.');
     this._socket = socket;
-    this._server = server;
+    this._reliable_metadata = reliable_metadata;
+    this._middleware_cb = middleware_cb;
     this._auth = this._server._auth;
-    this._permissions_enabled = this._server._permissions_enabled;
-    this._metadata = this._server._reql_conn.metadata();
     this._requests = new Map();
     this.user_info = { };
-
-    this._server._reql_conn._clients.add(this);
 
     this._socket.on('close', (code, msg) =>
       this.handle_websocket_close(code, msg));
@@ -107,8 +104,12 @@ class Client {
       const finish_handshake = () => {
         if (!responded) {
           responded = true;
-          const info = {token: res.token, id: res.payload.id, provider: res.payload.provider};
-          this.send_response(request, info);
+          const info = {
+            token: res.token,
+            id: res.payload.id,
+            provider: res.payload.provider,
+          };
+          this.send_message(request, info);
           this._socket.on('message', (msg) =>
             this.error_wrap_socket(() => this.handle_request(msg)));
         }
@@ -149,32 +150,22 @@ class Client {
       return;
     } else if (raw_request.type === 'end_subscription') {
       // there is no response for end_subscription
-      return this.remove_request(raw_request);
+      return this.remove_response(raw_request.request_id);
     } else if (raw_request.type === 'keepalive') {
-      return this.send_response(raw_request, {state: 'complete'});
+      return this.send_message(raw_request, {state: 'complete'});
     }
 
-    this._server.handle(raw_request);
-
-    const endpoint = this._server.get_request_handler(raw_request);
-    if (endpoint === undefined) {
-      return this.send_error(raw_request,
-        `"${raw_request.type}" is not a registered request type.`);
-    } else if (this._requests.has(raw_request.request_id)) {
-      return this.send_error(raw_request,
-        `Request ${raw_request.request_id} already exists for this client.`);
-    }
-
-    const request = new Request(raw_request, endpoint, this);
-    this._requests.set(raw_request.request_id, request);
-    request.run();
+    const resp = new Response((obj) => this.send_message(raw_request, obj));
+    this.responses.set(raw_request.request_id, resp);
+    this._middleware_cb(raw_request, resp);
   }
 
-  remove_request(raw_request) {
-    const request = this._requests.get(raw_request.request_id);
-    this._requests.delete(raw_request.request_id);
-    if (request) {
-      request.close();
+
+  remove_response(request_id) {
+    const response = this._responses.get(request_id);
+    this._responses.delete(request_id);
+    if (response) {
+      response.close();
     }
   }
 
@@ -196,7 +187,7 @@ class Client {
     }
   }
 
-  send_response(request, data) {
+  send_message(request, data) {
     // Ignore responses for disconnected clients
     if (this.is_open()) {
       data.request_id = request.request_id;
@@ -211,7 +202,7 @@ class Client {
 
     const error = err instanceof Error ? err.message : err;
     const error_code = code === undefined ? -1 : code;
-    this.send_response(request, {error, error_code});
+    this.send_message(request, {error, error_code});
   }
 }
 
