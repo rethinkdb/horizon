@@ -134,9 +134,14 @@ export class HorizonSocket extends WebSocketSubject {
       this._handshakeSub = this.makeRequest(this._handshakeMaker())
         .subscribe({
           next: n => {
-            this.status.next(STATUS_READY)
-            this.handshake.next(n)
-            this.handshake.complete()
+            if (n.error) {
+              this.status.next(STATUS_ERROR)
+              this.handshake.error(new ProtocolError(n.error, n.error_code))
+            } else {
+              this.status.next(STATUS_READY)
+              this.handshake.next(n)
+              this.handshake.complete()
+            }
           },
           error: e => {
             this.status.next(STATUS_ERROR)
