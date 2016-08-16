@@ -194,30 +194,4 @@ export class HorizonSocket extends WebSocketSubject {
       })
       .share()
   }
-
-  // This is a hack to fix the parent's _subscribe method. Overriding
-  // _subscribe like this can be removed once
-  // https://github.com/ReactiveX/rxjs/pull/1831 is merged.
-  _subscribe(subscriber) {
-    const { source } = this
-    if (source) {
-      return source.subscribe(subscriber)
-    }
-    if (!this.socket) {
-      this._connectSocket()
-    }
-    const subscription = new Subscription()
-    subscription.add(this._output.subscribe(subscriber))
-    subscription.add(() => {
-      const { socket } = this
-      if (socket && socket.readyState === 1) {
-        if (this._output.observers.length === 0 &&
-            socket && socket.readyState === 1) {
-          socket.close()
-          this.socket = null
-        }
-      }
-    })
-    return subscription
-  }
 }
