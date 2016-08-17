@@ -265,7 +265,7 @@ class ReliableMetadata extends Reliable {
                 collection._update_table(change.old_val.id, null, this._connection);
                 if (collection._is_safe_to_remove()) {
                   this._collections.delete(collection);
-                  collection._close();
+                  collection.close();
                 }
               }
             }
@@ -339,7 +339,7 @@ class ReliableMetadata extends Reliable {
     }).catch((err) => {
       if (collection._is_safe_to_remove()) {
         this._collections.delete(name);
-        collection._close();
+        collection.close();
       }
       done(err);
     });

@@ -14,7 +14,7 @@ class Collection {
     this._waiters = [ ];
   }
 
-  _close() {
+  close() {
     this._tables.forEach((table) => {
       table._waiters.forEach((w) => w(new Error('collection deleted')));
       table._waiters = [ ];

@@ -10,6 +10,10 @@ const websocket = require('ws');
 class Client {
   constructor(socket, auth, reliable_metadata,
               auth_middleware_cb, request_middleware_cb) {
+    if (!reliable_metadata.ready) {
+      throw new Error('No connection to the database.');
+    }
+
     logger.debug('Client connection established.');
     this.socket = socket;
     this.auth = auth;
@@ -29,10 +33,6 @@ class Client {
     // The first message should always be the handshake
     this.socket.once('message', (data) =>
       this.error_wrap_socket(() => this.handle_handshake(data)));
-
-    if (!this.metadata.ready) {
-      throw new Error('No connection to the database.');
-    }
   }
 
   handle_websocket_close() {
