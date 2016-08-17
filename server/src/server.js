@@ -88,7 +88,8 @@ class Server {
                                            opts.rdb_user || null,
                                            opts.rdb_password || null,
                                            opts.rdb_timeout || null,
-                                           this._interruptor);
+                                           this._interruptor,
+                                           opts.rdb_ca || null);
       this._auth = new Auth(this, opts.auth);
       for (const key in endpoints) {
         this.add_request_handler(key, endpoints[key].run);

@@ -12,7 +12,7 @@ class ReqlConnection {
   constructor(host, port, db,
               auto_create_collection, auto_create_index,
               user, pass, connect_timeout,
-              interruptor) {
+              interruptor, ca) {
     this._rdb_options = {
       host,
       port,
@@ -21,6 +21,9 @@ class ReqlConnection {
       password: pass || default_pass,
       timeout: connect_timeout || null,
     };
+    if (ca != null) {
+      this._rdb_options.ssl = { ca };
+    }
 
     this._auto_create_collection = auto_create_collection;
     this._auto_create_index = auto_create_index;
