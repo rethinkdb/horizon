@@ -1,11 +1,11 @@
 'use strict';
 
-const horizon = require('../src/server');
-const logger = require('../src/logger');
+const horizon = require('../server');
+const logger = require('../logger');
 
-const rm_sync_recursive = require('../../cli/src/utils/rm_sync_recursive');
-const start_rdb_server = require('../../cli/src/utils/start_rdb_server');
-const each_line_in_pipe = require('../../cli/src/utils/each_line_in_pipe');
+const rm_sync_recursive = require('../../../cli/src/utils/rm_sync_recursive');
+const start_rdb_server = require('../../../cli/src/utils/start_rdb_server');
+const each_line_in_pipe = require('../../../cli/src/utils/each_line_in_pipe');
 
 const assert = require('assert');
 const http = require('http');
@@ -136,15 +136,24 @@ const start_horizon_server = (done) => {
           allow_unauthenticated: true,
         },
       });
-    horizon_server.ready().catch((err) => logger.info(`horizon server error: ${err}`));
-    horizon_server.ready().then(() => logger.info('horizon server ready'));
-    horizon_server.ready().then(() => done());
+
+    horizon_server.on('ready', (server) => {
+      logger.info('horizon server ready');
+      done();
+    });
+    horizon_server.on('unready', (server, err) => {
+      logger.info(`horizon server unready: ${err}`);
+    });
   });
   http_server.on('error', (err) => done(err));
 };
 
 const close_horizon_server = () => {
-  if (horizon_server !== undefined) { horizon_server.close(); }
+  if (horizon_server !== undefined) {
+    horizon_server.removeAllListeners('ready');
+    horizon_server.removeAllListeners('unready');
+    horizon_server.close();
+  }
   horizon_server = undefined;
 };
 

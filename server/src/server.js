@@ -47,6 +47,7 @@ class Server extends EventEmitter {
     });
     this._clients = new Set();
 
+    // TODO: consider emitting errors sometimes.
     this._reliable_metadata = new ReliableMetadata(
       opts.project_name,
       this._reliable_conn,
@@ -58,7 +59,7 @@ class Server extends EventEmitter {
         this.emit('ready', this);
       },
       onUnready: (err) => {
-        this.emit('unready', this);
+        this.emit('unready', this, err);
         const msg = (err && err.message) || 'Connection became unready.';
         this._clients.forEach((client) => client.close({error: msg}));
         this._clients.clear();

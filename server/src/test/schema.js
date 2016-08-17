@@ -1,6 +1,6 @@
 'use strict';
 
-const horizon_protocol = require('../src/schema/horizon_protocol');
+const horizon_protocol = require('../schema/horizon_protocol');
 const utils = require('./utils');
 
 const assert = require('assert');

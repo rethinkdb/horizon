@@ -1,7 +1,7 @@
 'use strict';
 
 const utils = require('./utils');
-const horizon_writes = require('../src/endpoint/writes');
+const horizon_writes = require('../endpoint/writes');
 
 const assert = require('assert');
 const crypto = require('crypto');

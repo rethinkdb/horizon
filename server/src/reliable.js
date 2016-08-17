@@ -6,6 +6,7 @@ const r = require('rethinkdb');
 
 class Reliable {
   constructor(initialCbs) {
+    console.log(`${this.constructor} CONSTRUCTING`);
     this.subs = {};
     this.ready = false;
     this.closed = false;
@@ -45,6 +46,7 @@ class Reliable {
     // `onReady` or `onUnready`s in a row (or even just returning
     // early if we would).
     if (eventType === 'onReady') {
+      console.log(`${this.constructor} READY`);
       this.ready = arguments;
     } else if (eventType === 'onUnready') {
       this.ready = false;
