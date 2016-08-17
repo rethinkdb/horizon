@@ -1,26 +1,11 @@
 ## Customize the test machine
 machine:
 
-  #timezone:
-  #  America/Los_Angeles # Set the timezone
-
-  # Set version of node to use
-  #node:
-  #  version:
-  #    5.7.0
-
   post:
     - source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
     - wget -qO- https://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -
     - sudo apt-get update -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/rethinkdb.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
     - sudo apt-get install rethinkdb
-
-## Set artifacts
-# general:
-#   artifacts:
-#     - "client/npm-debug.log"
-#     - "server/npm-debug.log"
-#     - "cli/npm-debug.log"
 
 ## Customize dependencies
 dependencies:
@@ -42,9 +27,10 @@ test:
     # Switch to node v4.3.0
     - nvm use v4.3.0
     # Run client tests
-    - ./node_modules/.bin/mocha --timeout 100000 dist/test.js:
+    - ./node_modules/.bin/mocha --timeout 100000:
         pwd: client
-        parallel: false
+        parallel: true
+        files: dist/test.js
     # Run server tests
     - ./node_modules/.bin/mocha --timeout 100000:
         pwd: server
@@ -61,9 +47,29 @@ test:
     # Switch to v5.7.0
     - nvm use v5.7.0
     # Run client tests
-    - ./node_modules/.bin/mocha --timeout 100000 dist/test.js:
+    - ./node_modules/.bin/mocha --timeout 100000:
         pwd: client
-        parallel: false
+        parallel: true
+        files: dist/test.js
+    # Run server tests
+    - ./node_modules/.bin/mocha --timeout 100000:
+        pwd: server
+        parallel: true
+        files: 
+            - test/test.js
+            - test/schema.js 
+    # Run cli tests
+    - ./node_modules/.bin/mocha --timeout 100000:
+        pwd: cli
+        parallel: true
+        files:
+            - test/**/*.js
+    - nvm use v6.1.0
+    # Run client tests
+    - ./node_modules/.bin/mocha --timeout 100000:
+        pwd: client
+        parallel: true
+        files: dist/test.js
     # Run server tests
     - ./node_modules/.bin/mocha --timeout 100000:
         pwd: server
