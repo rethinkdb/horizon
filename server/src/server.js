@@ -119,8 +119,8 @@ class Server extends EventEmitter {
     return this._reliable_conn;
   }
 
-  add_middleware(mw) {
-    this._middlewares.push(mw);
+  add_middleware(new_mw) {
+    this._middlewares.push(new_mw);
     this._run_middleware = this._default_run_middleware;
     for (let i = this._middlewares.length - 1; i >= 0; --i) {
       const mw = this._middlewares[i];

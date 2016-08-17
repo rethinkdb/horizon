@@ -137,7 +137,7 @@ const start_horizon_server = (done) => {
         },
       });
 
-    horizon_server.on('ready', (server) => {
+    horizon_server.on('ready', () => {
       logger.info('horizon server ready');
       done();
     });
