@@ -27,11 +27,9 @@ test:
     # Switch to node v4.3.0
     - nvm use v4.3.0
     # Run client tests
-    - ./node_modules/.bin/mocha --timeout 100000:
+    - ./node_modules/.bin/mocha --timeout 100000 dist/test.js:
         pwd: client
         parallel: true
-        files: 
-            - dist/test.js
     # Run server tests
     - ./node_modules/.bin/mocha --timeout 100000:
         pwd: server
@@ -48,11 +46,9 @@ test:
     # Switch to v5.7.0
     - nvm use v5.7.0
     # Run client tests
-    - ./node_modules/.bin/mocha --timeout 100000:
+    - ./node_modules/.bin/mocha --timeout 100000 dist/test.js:
         pwd: client
         parallel: true
-        files: 
-            - dist/test.js
     # Run server tests
     - ./node_modules/.bin/mocha --timeout 100000:
         pwd: server
@@ -68,11 +64,9 @@ test:
             - test/**/*.js
     - nvm use v6.1.0
     # Run client tests
-    - ./node_modules/.bin/mocha --timeout 100000:
+    - ./node_modules/.bin/mocha --timeout 100000 dist/test.js:
         pwd: client
         parallel: true
-        files: 
-            - dist/test.js
     # Run server tests
     - ./node_modules/.bin/mocha --timeout 100000:
         pwd: server
