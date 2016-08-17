@@ -3,11 +3,11 @@ const chalk = require('chalk');
 const r = require('rethinkdb');
 const Promise = require('bluebird');
 const argparse = require('argparse');
-const child_process = require('child_process');
 const runSaveCommand = require('./schema').runSaveCommand;
 const fs = require('fs');
 const accessAsync = Promise.promisify(fs.access);
 const config = require('./utils/config');
+const procPromise = require('./utils/proc-promise').procPromise;
 const interrupt = require('./utils/interrupt');
 const change_to_project_dir = require('./utils/change_to_project_dir');
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
@@ -92,7 +92,18 @@ function processConfig(cmdArgs) {
     default: 'no',
     constant: 'yes',
     nargs: '?',
-    help: 'Whether to perform a backup of rethinkdb_data before migrating',
+    help: 'Whether to perform a backup of rethinkdb_data' +
+      ' before migrating',
+  });
+
+  parser.addArgument([ '--unportable-backup' ], {
+    metavar: 'yes|no',
+    default: 'no',
+    constant: 'yes',
+    nargs: '?',
+    help: "Allows creating a backup that is not portable, " +
+      "but doesn't require the RethinkDB Python driver to be " +
+      "installed.",
   });
 
   const parsed = parser.parseArgs(cmdArgs);
@@ -107,8 +118,9 @@ function processConfig(cmdArgs) {
     rdb_port: parsed.rdb_port || confOptions.rdb_port || 28015,
     rdb_user: parsed.rdb_user || confOptions.rdb_user || 'admin',
     rdb_password: parsed.rdb_password || confOptions.rdb_password || '',
-    skip_backup: parse_yes_no_option(parsed.skip_backup),
     start_rethinkdb: parse_yes_no_option(parsed.start_rethinkdb),
+    skip_backup: parse_yes_no_option(parsed.skip_backup),
+    unportable_backup: parse_yes_no_option(parsed.unportable_backup),
   };
   // sets rdb_host and rdb_port from connect if necessary
   if (parsed.connect) {
@@ -219,24 +231,48 @@ function makeBackup() {
     return Promise.resolve();
   }
 
-  return new Promise((resolve, reject) => {
-    white('Backing up rethinkdb_data directory');
-    const proc = child_process.spawn('rethinkdb', [
+  if (this.options.unportable_backup) {
+    return unportableBackup()
+  }
+
+  white('Backing up rethinkdb_data directory');
+  return procPromise('rethinkdb', [
       'dump',
       '--connect',
       `${rdbHost}:${rdbPort}`,
-    ]);
-    proc.on('exit', (code) => {
-      if (code === 0) {
-        green(' └── Backup completed');
-        resolve();
+    ]).then((proc) => {
+      green(' └── Backup completed');
+    }).catch((e) => {
+      if (e.message.match(/Python driver/)) {
+        throw new Error(`\
+The RethinkDB Python driver is not installed, so we can't \
+do a backup before migrating.
+
+You can install the Python driver with the instructions \
+found at:
+http://www.rethinkdb.com/docs/install-drivers/python/
+
+Alternately, you may pass the --unportable-backup flag \
+to hz migrate. This flag uses the tar command to make a \
+backup, but the backup is not safe to use on another \
+machine or to create replicas from.
+`)
       } else {
-        proc.stderr.setEncoding('utf8');
-        const err = proc.stderr.read();
-        reject(new Error(`rethinkdb dump exited with an error:\n\n${err}`));
+        throw e;
       }
     });
-  });
+}
+
+function unportableBackup() {
+  // Uses tar to do an unsafe backup
+  const timestamp = new Date().toISOString().replace(/:/g, '_');
+  return procPromise('tar', [
+    '-zcvf', // gzip, compress, verbose, filename is...
+    `rethinkdb_data.unportable-backup.${timestamp}.tar.gz`,
+    'rethinkdb_data', // directory to back up
+  ]).then(() => {
+    green(' └── Unportable backup completed')
+  })
 }
 
 function renameUserTables() {
