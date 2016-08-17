@@ -79,7 +79,7 @@ function processConfig(cmdArgs) {
     default: 'yes',
     constant: 'yes',
     nargs: '?',
-    help: 'Start up a RethinkDB server in the current directory'
+    help: 'Start up a RethinkDB server in the current directory',
   });
 
   parser.addArgument([ '--config' ], {
@@ -96,14 +96,14 @@ function processConfig(cmdArgs) {
       ' before migrating',
   });
 
-  parser.addArgument([ '--unportable-backup' ], {
+  parser.addArgument([ '--nonportable-backup' ], {
     metavar: 'yes|no',
     default: 'no',
     constant: 'yes',
     nargs: '?',
-    help: "Allows creating a backup that is not portable, " +
+    help: 'Allows creating a backup that is not portable, ' +
       "but doesn't require the RethinkDB Python driver to be " +
-      "installed.",
+      'installed.',
   });
 
   const parsed = parser.parseArgs(cmdArgs);
@@ -120,7 +120,7 @@ function processConfig(cmdArgs) {
     rdb_password: parsed.rdb_password || confOptions.rdb_password || '',
     start_rethinkdb: parse_yes_no_option(parsed.start_rethinkdb),
     skip_backup: parse_yes_no_option(parsed.skip_backup),
-    unportable_backup: parse_yes_no_option(parsed.unportable_backup),
+    nonportable_backup: parse_yes_no_option(parsed.nonportable_backup),
   };
   // sets rdb_host and rdb_port from connect if necessary
   if (parsed.connect) {
@@ -231,20 +231,21 @@ function makeBackup() {
     return Promise.resolve();
   }
 
-  if (this.options.unportable_backup) {
-    return unportableBackup()
+  white('Backing up rethinkdb_data directory');
+
+  if (this.options.nonportable_backup) {
+    return nonportableBackup();
   }
 
-  white('Backing up rethinkdb_data directory');
   return procPromise('rethinkdb', [
-      'dump',
-      '--connect',
-      `${rdbHost}:${rdbPort}`,
-    ]).then((proc) => {
-      green(' └── Backup completed');
-    }).catch((e) => {
-      if (e.message.match(/Python driver/)) {
-        throw new Error(`\
+    'dump',
+    '--connect',
+    `${rdbHost}:${rdbPort}`,
+  ]).then(() => {
+    green(' └── Backup completed');
+  }).catch((e) => {
+    if (e.message.match(/Python driver/)) {
+      throw new Error(`\
 The RethinkDB Python driver is not installed, so we can't \
 do a backup before migrating.
 
@@ -252,27 +253,29 @@ You can install the Python driver with the instructions \
 found at:
 http://www.rethinkdb.com/docs/install-drivers/python/
 
-Alternately, you may pass the --unportable-backup flag \
+Alternately, you may pass the --nonportable-backup flag \
 to hz migrate. This flag uses the tar command to make a \
 backup, but the backup is not safe to use on another \
-machine or to create replicas from.
-`)
-      } else {
-        throw e;
-      }
-    });
+machine or to create replicas from. This option should \
+not be used if RethinkDB is already running and if the \
+rethinkdb_data directory is in the current directory.
+`);
+    } else {
+      throw e;
+    }
+  });
 }
 
-function unportableBackup() {
+function nonportableBackup() {
   // Uses tar to do an unsafe backup
   const timestamp = new Date().toISOString().replace(/:/g, '_');
   return procPromise('tar', [
     '-zcvf', // gzip, compress, verbose, filename is...
-    `rethinkdb_data.unportable-backup.${timestamp}.tar.gz`,
+    `rethinkdb_data.nonportable-backup.${timestamp}.tar.gz`,
     'rethinkdb_data', // directory to back up
   ]).then(() => {
-    green(' └── Unportable backup completed')
-  })
+    green(' └── Nonportable backup completed');
+  });
 }
 
 function renameUserTables() {
@@ -323,11 +326,12 @@ function renameIndices() {
   const project = this.options.project_name;
   return Promise.resolve().then(() => {
     white('Renaming indices to new JSON format');
-    return r.db(project).tableList().forEach((tableName) => {
-      return r.db(project).table(tableName).indexList().forEach((indexName) => {
-        return r.db(project).table(tableName).indexRename(indexName, rename(indexName));
-      });
-    }).run(this.conn)
+    return r.db(project).tableList().forEach((tableName) =>
+      r.db(project).table(tableName).indexList().forEach((indexName) =>
+        r.db(project).table(tableName)
+          .indexRename(indexName, rename(indexName))
+      )
+    ).run(this.conn)
     .then(() => green(' └── Indices renamed.'));
   });
 
@@ -339,8 +343,8 @@ function renameIndices() {
       fields: [ ],
     };
     return name.split('')
-      .fold(initialState, (acc, c) => {
-        return r.branch(
+      .fold(initialState, (acc, c) =>
+        r.branch(
           acc('escaped'),
             acc.merge({
               escaped: false,
@@ -354,9 +358,8 @@ function renameIndices() {
               field: '',
             }),
           acc.merge({ field: acc('field').add(c) })
-        );
-      })
-      .do((state) =>
+        )
+      ).do((state) =>
           // last field needs to be appended to running list
           state('fields').append(state('field'))
           // wrap each field in an array

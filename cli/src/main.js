@@ -72,6 +72,6 @@ const done = (err) => {
 
 try {
   command.run(cmdArgs).then(() => done()).catch(done);
-} catch(err) {
-  done(err)
+} catch (err) {
+  done(err);
 }

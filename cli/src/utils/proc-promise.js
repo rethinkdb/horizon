@@ -1,3 +1,4 @@
+'use strict';
 const Promise = require('bluebird');
 const childProcess = require('child_process');
 
@@ -12,12 +13,12 @@ function procPromise() {
       if (code === 0) {
         resolve(proc);
       } else {
-        reject(new Error(proc.stderr.read()));
+        const err = new Error(proc.stderr.read());
+        err.exitCode = code;
+        reject(err);
       }
-    })
+    });
   });
 }
 
-module.exports = {
-  procPromise
-}
+module.exports = procPromise;

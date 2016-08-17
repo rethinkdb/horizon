@@ -107,7 +107,7 @@ const parse_connect = (connect, config) => {
 const read_from_config_file = (project_path, config_file) => {
   const config = { auth: { } };
 
-  let fileData, configFilename;
+  let fileData, configFilename, fileConfig;
 
   if (config_file) {
     configFilename = config_file;
@@ -123,14 +123,13 @@ const read_from_config_file = (project_path, config_file) => {
     return config;
   }
 
-  let fileConfig
   try {
     fileConfig = toml.parse(fileData);
-  } catch(e) {
+  } catch (e) {
     if (e.name === 'SyntaxError') {
-      throw niceTomlSyntaxError(e, configFilename, fileData)
+      throw niceTomlSyntaxError(e, configFilename, fileData);
     } else {
-      throw e
+      throw e;
     }
   }
   for (const field in fileConfig) {
@@ -348,26 +347,18 @@ function sourceLine(lineNum, source) {
     `${chalk.white(source)}`;
 }
 
-function leftPad(length) {
-  let leftPadding = '';
-  for (let i = 0; i < length; i++) {
-    leftPadding += ' ';
-  }
-  return leftPadding;
-}
-
 function niceTomlSyntaxError(e, configFilename, fileData) {
   const context = fileData
           .toString()
           .split('\n')
-          .slice(e.line-2, e.line+1);
+          .slice(e.line - 2, e.line + 1);
   return new Error(`\
 There was a syntax error when parsing ${configFilename}
 Check out line ${e.line}, column ${e.column}:
 
 ${sourceLine(e.line - 1, context[0])}
 ${sourceLine(e.line, context[1])}
-${leftPad(`${e.line}: `.length)}${leftPad(e.column-1)}${chalk.green.bold('^')}
+${' '.repeat(`${e.line}: `.length + e.column - 1)}${chalk.green.bold('^')}
 ${sourceLine(e.line + 1, context[2])}
 
 Common problems are:
