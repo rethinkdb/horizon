@@ -122,7 +122,7 @@ class ReliableInit extends Reliable {
           .do((res) =>
             r.branch(res('new_val').eq(null),
                      r.error(res('error')),
-                     res('new_val'))).run(this._conn),
+                     res('new_val'))).run(conn),
         r.db(this._db).table('hz_groups').get('admin')
           .replace((old_row) =>
             r.branch(old_row.eq(null),
@@ -136,7 +136,7 @@ class ReliableInit extends Reliable {
           .do((res) =>
             r.branch(res('new_val').eq(null),
                      r.error(res('error')),
-                     res('new_val'))).run(this._conn),
+                     res('new_val'))).run(conn),
       ]);
     }).then(() => {
       this.check_attempt(attempt);
@@ -172,6 +172,15 @@ class ReliableMetadata extends Reliable {
 
     this._reliable_init = new ReliableInit(
       this._db, reliable_conn, auto_create_collection);
+
+    this._conn_subscription = this._reliable_conn.subscribe({
+      onReady: (conn) => {
+        this._connection = conn;
+      },
+      onUnready: () => {
+        this._connection = null;
+      },
+    });
 
     this._collection_changefeed = new ReliableChangefeed(
       r.db(this._db)
@@ -231,6 +240,7 @@ class ReliableMetadata extends Reliable {
       reliable_conn,
       {
         onChange: (change) => {
+          if (!this._connection) { return; }
           switch (change.type) {
           case 'initial':
           case 'add':
@@ -244,7 +254,7 @@ class ReliableMetadata extends Reliable {
                 collection = new Collection(this._db, collection_name);
                 this._collections.set(collection_name, collection);
               }
-              collection._update_table(table_id, change.new_val.indexes, this._reliable_conn.connection());
+              collection._update_table(table_id, change.new_val.indexes, this._connection);
             }
             break;
           case 'uninitial':
@@ -252,7 +262,7 @@ class ReliableMetadata extends Reliable {
             {
               const collection = this._collections.get(change.old_val.name);
               if (collection) {
-                collection._update_table(change.old_val.id, null, this._reliable_conn.connection());
+                collection._update_table(change.old_val.id, null, this._connection);
                 if (collection._is_safe_to_remove()) {
                   this._collections.delete(collection);
                   collection._close();
@@ -277,6 +287,7 @@ class ReliableMetadata extends Reliable {
       },
       onUnready: () => {
         // TODO: fill in the reason for `close`.
+        this.emit('onUnready');
         this._collections.forEach((collection) => collection.close());
         this._collections.clear();
       },
@@ -284,12 +295,13 @@ class ReliableMetadata extends Reliable {
   }
 
   close(reason) {
-    super.close(reason);
-
-    this._reliable_init.close(reason);
-    this._collection_changefeed.close(reason);
-    this._index_changefeed.close(reason);
-    this._ready_union.close(reason);
+    return Promise.all([
+      super.close(reason),
+      this._reliable_init.close(reason),
+      this._collection_changefeed.close(reason),
+      this._index_changefeed.close(reason),
+      this._ready_union.close(reason),
+    ]);
   }
 
   // Public interface for use by plugins or other classes

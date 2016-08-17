@@ -38,8 +38,8 @@ class Server extends EventEmitter {
     this._run_middleware = this._default_run_middleware;
 
     this._reliable_conn = new ReliableConn({
-      host: opts.rbd_host,
-      port: opts.rdb_pot,
+      host: opts.rdb_host,
+      port: opts.rdb_port,
       db: opts.project_name,
       user: opts.rdb_user || 'admin',
       password: opts.rdb_password || '',
@@ -70,7 +70,7 @@ class Server extends EventEmitter {
 
     const verifyClient = (info, cb) => {
       // Reject connections if we aren't synced with the database
-      if (!this._reliable_metadata.isReady()) {
+      if (!this._reliable_metadata.ready) {
         cb(false, 503, 'Connection to the database is down.');
       } else {
         cb(true);
