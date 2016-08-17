@@ -20,7 +20,7 @@ const all_tests = (collection) => {
        let finished = 0;
        for (let i = 0; i < query_count; ++i) {
          utils.stream_test(
-           { request_id: i, type: 'query', options: { collection: rand_collection } },
+           {request_id: i, type: 'query', options: {collection: rand_collection}},
            (err, res) => {
              assert.ifError(err);
              assert.strictEqual(res.length, 0);
@@ -100,4 +100,4 @@ const all_tests = (collection) => {
 
 const suite = (collection) => describe('Prereqs', () => all_tests(collection));
 
-module.exports = { suite };
+module.exports = {suite};

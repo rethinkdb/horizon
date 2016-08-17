@@ -46,12 +46,12 @@ const all_tests = () => {
         if (transport === 'http') {
           http_server = new http.createServer(four_o_four);
         } else {
-          http_server = new https.createServer({ key: fs.readFileSync(key_file),
-                                                 cert: fs.readFileSync(cert_file) },
+          http_server = new https.createServer({key: fs.readFileSync(key_file),
+                                                 cert: fs.readFileSync(cert_file)},
                                                four_o_four);
         }
 
-        horizon(http_server, { auth: { token_secret: 'hunter2' } });
+        horizon(http_server, {auth: {token_secret: 'hunter2'}});
 
         http_server.listen(0, done);
       });
@@ -61,10 +61,10 @@ const all_tests = () => {
       });
 
       it('localhost/horizon/horizon.js', (done) => {
-        require(transport).get({ host: 'localhost',
+        require(transport).get({host: 'localhost',
                                  port: http_server.address().port,
                                  path: '/horizon/horizon.js',
-                                 rejectUnauthorized: false }, (res) => {
+                                 rejectUnauthorized: false}, (res) => {
           const client_js = path.resolve(__dirname, '../node_modules/@horizon/client/dist/horizon.js');
           const code = fs.readFileSync(client_js);
           let buffer = '';
@@ -79,4 +79,4 @@ const all_tests = () => {
 
 const suite = (collection) => describe('Webserver', () => all_tests(collection));
 
-module.exports = { suite };
+module.exports = {suite};

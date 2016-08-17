@@ -98,7 +98,7 @@ class ReliableConn extends Reliable {
         logger.error(`Error in ${JSON.stringify(this)}: ${e.stack}`);
       }
       if (!this.closed) {
-        setTimeout(1000, () => this.connect());
+        setTimeout(() => this.connect(), 1000);
       }
     });
   }
@@ -112,7 +112,7 @@ class ReliableConn extends Reliable {
   }
 }
 
-class ReliableCfeed extends Reliable {
+class ReliableChangefeed extends Reliable {
   constructor(reql, reliableConn, cbs) {
     super(cbs);
     this.reql = reql;
@@ -197,6 +197,6 @@ class ReliableUnion extends Reliable {
 module.exports = {
   Reliable,
   ReliableConn,
-  ReliableCfeed,
+  ReliableChangefeed,
   ReliableUnion,
 };

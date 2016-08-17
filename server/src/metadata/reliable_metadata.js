@@ -1,7 +1,6 @@
 'use strict';
 
 const error = require('../error');
-const version_field = require('../endpoints/writes').version_field;
 const {Reliable, ReliableChangefeed, ReliableUnion} = require('../reliable');
 const logger = require('../logger');
 const Collection = require('./collection').Collection;
@@ -9,6 +8,7 @@ const utils = require('../utils');
 
 const r = require('rethinkdb');
 
+const version_field = '$hz_v$';
 const metadata_version = [ 2, 0, 0 ];
 
 const create_collection = (db, name, conn) =>
@@ -145,7 +145,7 @@ class ReliableInit extends Reliable {
     }).catch((err) => {
       if (!(err instanceof StaleAttemptError)) {
         logger.debug(`Metadata initialization failed: ${err}`);
-        setTimeout(1000, () => { this.do_init(conn, attempt); });
+        setTimeout(() => { this.do_init(conn, attempt); }, 1000);
       }
     });
   }
@@ -170,7 +170,8 @@ class ReliableMetadata extends Reliable {
     this._auto_create_index = auto_create_index;
     this._collections = new Map();
 
-    this._reliable_init = new ReliableInit(reliable_conn);
+    this._reliable_init = new ReliableInit(
+      this._db, reliable_conn, auto_create_collection);
 
     this._collection_changefeed = new ReliableChangefeed(
       r.db(this._db)

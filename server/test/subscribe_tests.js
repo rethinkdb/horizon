@@ -12,4 +12,4 @@ const all_tests = (collection) => {
 
 const suite = (collection) => describe('Subscribe', () => all_tests(collection));
 
-module.exports = { suite };
+module.exports = {suite};

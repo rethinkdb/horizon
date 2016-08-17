@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-'use strict'
+'use strict';
+
+require('../server/node_modules/source-map-support').install();
 
 Error.stackTraceLimit = Infinity;
 

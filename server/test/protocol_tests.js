@@ -30,7 +30,7 @@ const all_tests = (collection) => {
   });
 
   it('no type', (done) => {
-    utils.stream_test({ request_id: 0 }, (err, res) => {
+    utils.stream_test({request_id: 0}, (err, res) => {
       assert.deepStrictEqual(res, [ ]);
       utils.check_error(err, '"type" is required');
       done();
@@ -38,7 +38,7 @@ const all_tests = (collection) => {
   });
 
   it('no options', (done) => {
-    utils.stream_test({ request_id: 1, type: 'fake' }, (err, res) => {
+    utils.stream_test({request_id: 1, type: 'fake'}, (err, res) => {
       assert.deepStrictEqual(res, [ ]);
       utils.check_error(err, '"options" is required');
       done();
@@ -46,7 +46,7 @@ const all_tests = (collection) => {
   });
 
   it('invalid endpoint', (done) => {
-    utils.stream_test({ request_id: 2, type: 'fake', options: { } }, (err, res) => {
+    utils.stream_test({request_id: 2, type: 'fake', options: { }}, (err, res) => {
       assert.deepStrictEqual(res, [ ]);
       assert.strictEqual(err.message, '"fake" is not a registered request type.');
       done();
@@ -62,7 +62,7 @@ const all_tests = (collection) => {
       {
         request_id: 3,
         type: 'subscribe',
-        options: { collection },
+        options: {collection},
       }));
     utils.add_horizon_listener(3, (msg) => {
       if (msg.error !== undefined) {
@@ -93,4 +93,4 @@ const all_tests = (collection) => {
 
 const suite = (collection) => describe('Protocol', () => all_tests(collection));
 
-module.exports = { suite };
+module.exports = {suite};

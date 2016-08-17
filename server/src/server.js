@@ -32,6 +32,10 @@ class Server extends EventEmitter {
     this._ws_servers = [ ];
     this._close_promise = null;
     this._middlewares = [ ];
+    this._default_run_middleware = (req, res, next) => {
+      next(new Error('No terminal middleware to handle the request.'));
+    };
+    this._run_middleware = this._default_run_middleware;
 
     this._reliable_conn = new ReliableConn({
       host: opts.rbd_host,
@@ -74,40 +78,18 @@ class Server extends EventEmitter {
 
     const ws_options = {handleProtocols, verifyClient, path: opts.path};
 
-    // TODO: precedence, error handling middleware
-    const run_middleware = (request, response) => {
-      let cb = () => {
-        response.end(new Error('No terminal middleware to handle the request.'));
-      };
-
-      for (let i = this._middlewares.length - 1; i >= 0; --i) {
-        const mw = this._middlewares[i];
-        const old_cb = cb;
-        cb = (maybeErr) => {
-          if (maybeErr instanceof Error) {
-            response.end(maybeErr);
-          } else {
-            try {
-              mw(request, response, old_cb);
-            } catch (err) {
-              response.end(err);
-            }
-          }
-        };
-      }
-      cb();
-    };
-
     // RSI: only become ready when this and metadata are both ready.
     const add_websocket = (server) => {
       const ws_server = new websocket.Server(Object.assign({server}, ws_options))
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
         .on('connection', (socket) => {
           try {
-            const client = new Client(socket,
-                                      this._auth,
-                                      this._reliable_metadata,
-                                      run_middleware);
+            const client = new Client(
+              socket,
+              this._auth,
+              this._reliable_metadata,
+              (...rest) => this._run_middleware.apply(this, rest)
+            );
             this._clients.add(client);
             socket.on('close', () => this._clients.delete(client));
           } catch (err) {
@@ -138,6 +120,26 @@ class Server extends EventEmitter {
 
   add_middleware(mw) {
     this._middlewares.push(mw);
+    this._run_middleware = this._default_run_middleware;
+    for (let i = this._middlewares.length - 1; i >= 0; --i) {
+      const mw = this._middlewares[i];
+      const old_cb = this._run_middleware;
+      this._run_middleware = (req, res, next) => {
+        try {
+          mw(req,
+             res,
+             (maybeErr) => {
+               if (maybeErr instanceof Error) {
+                 next(maybeErr);
+               } else {
+                 old_cb(req, res, next);
+               }
+             });
+        } catch (e) {
+          next(e);
+        }
+      };
+    }
   }
 
   // TODO: We close clients in `onUnready` above, but don't wait for

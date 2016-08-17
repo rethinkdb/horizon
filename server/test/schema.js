@@ -70,12 +70,12 @@ describe('Schema', () => {
     describe('Write', () => {
       const write_without_id = {
         collection: 'horizon',
-        data: [ { field: 4 } ],
+        data: [ {field: 4} ],
       };
 
       const write_with_id = {
         collection: 'horizon',
-        data: [ { id: 5, field: 4 } ],
+        data: [ {id: 5, field: 4} ],
       };
 
       // In order to reduce the number of tests, these were written assuming
@@ -242,7 +242,7 @@ describe('Schema', () => {
         it('above', () => {
           const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'ascending' ];
-          request.above = [ { id: 10 }, 'open' ];
+          request.above = [ {id: 10}, 'open' ];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -251,7 +251,7 @@ describe('Schema', () => {
         it('below', () => {
           const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'ascending' ];
-          request.below = [ { id: 5 }, 'open' ];
+          request.below = [ {id: 5}, 'open' ];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -268,8 +268,8 @@ describe('Schema', () => {
         it('above and below and limit', () => {
           const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'ascending' ];
-          request.below = [ { id: 0 }, 'closed' ];
-          request.below = [ { id: 5 }, 'closed' ];
+          request.below = [ {id: 0}, 'closed' ];
+          request.below = [ {id: 5}, 'closed' ];
           request.limit = 4;
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
@@ -324,7 +324,7 @@ describe('Schema', () => {
 
         it('"above" without "order"', () => {
           const request = Object.assign({}, valid);
-          request.above = [ { id: 5 }, 'open' ];
+          request.above = [ {id: 5}, 'open' ];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -352,11 +352,11 @@ describe('Schema', () => {
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"value" must have 1 child');
           } {
-            request.above = [ { id: 4 }, 5 ];
+            request.above = [ {id: 4}, 5 ];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"bound_type" must be a string');
           } {
-            request.above = [ { id: 3 }, 'ajar' ];
+            request.above = [ {id: 3}, 'ajar' ];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"bound_type" must be one of [open, closed]');
           }
@@ -364,7 +364,7 @@ describe('Schema', () => {
 
         it('"below" without "order"', () => {
           const request = Object.assign({}, valid);
-          request.below = [ { id: 1 }, 'open' ];
+          request.below = [ {id: 1}, 'open' ];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -394,11 +394,11 @@ describe('Schema', () => {
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"value" must have 1 child');
           } {
-            request.below = [ { id: 4 }, 5 ];
+            request.below = [ {id: 4}, 5 ];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"bound_type" must be a string');
           } {
-            request.below = [ { id: 3 }, 'ajar' ];
+            request.below = [ {id: 3}, 'ajar' ];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"bound_type" must be one of [open, closed]');
           }
@@ -428,7 +428,7 @@ describe('Schema', () => {
       describe('find', () => {
         const valid = {
           collection: 'horizon',
-          find: { score: 4 },
+          find: {score: 4},
         };
 
         it('valid', () => {
@@ -446,14 +446,14 @@ describe('Schema', () => {
 
         it('above', () => {
           const request = Object.assign({}, valid);
-          request.above = [ { id: 3 }, 'open' ];
+          request.above = [ {id: 3}, 'open' ];
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"above" is not allowed');
         });
 
         it('below', () => {
           const request = Object.assign({}, valid);
-          request.below = [ { id: 4 }, 'closed' ];
+          request.below = [ {id: 4}, 'closed' ];
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"below" is not allowed');
         });
@@ -476,7 +476,7 @@ describe('Schema', () => {
       describe('find_all multiple', () => {
         const valid = {
           collection: 'horizon',
-          find_all: [ { score: 2 }, { score: 5, id: 0 } ],
+          find_all: [ {score: 2}, {score: 5, id: 0} ],
         };
 
         it('valid', () => {
@@ -503,7 +503,7 @@ describe('Schema', () => {
         it('above', () => {
           const request = Object.assign({}, valid);
           {
-            request.above = [ { id: 3 }, 'closed' ];
+            request.above = [ {id: 3}, 'closed' ];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"above" is not allowed');
           } {
@@ -516,7 +516,7 @@ describe('Schema', () => {
         it('below', () => {
           const request = Object.assign({}, valid);
           {
-            request.below = [ { id: 9 }, 'closed' ];
+            request.below = [ {id: 9}, 'closed' ];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"below" is not allowed');
           } {
@@ -530,7 +530,7 @@ describe('Schema', () => {
       describe('find_all one', () => {
         const valid = {
           collection: 'horizon',
-          find_all: [ { score: 8, id: 5 } ],
+          find_all: [ {score: 8, id: 5} ],
         };
 
         it('valid', () => {
@@ -558,7 +558,7 @@ describe('Schema', () => {
         it('above', () => {
           const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'ascending' ];
-          request.above = [ { id: 3 }, 'closed' ];
+          request.above = [ {id: 3}, 'closed' ];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -567,7 +567,7 @@ describe('Schema', () => {
         it('below', () => {
           const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'descending' ];
-          request.below = [ { id: 9 }, 'closed' ];
+          request.below = [ {id: 9}, 'closed' ];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -576,8 +576,8 @@ describe('Schema', () => {
         it('above and below and limit', () => {
           const request = Object.assign({}, valid);
           request.order = [ [ 'id' ], 'descending' ];
-          request.above = [ { id: 'foo' }, 'open' ];
-          request.below = [ { id: 'bar' }, 'closed' ];
+          request.above = [ {id: 'foo'}, 'open' ];
+          request.below = [ {id: 'bar'}, 'closed' ];
           request.limit = 59;
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
@@ -606,7 +606,7 @@ describe('Schema', () => {
 
         it('with "find"', () => {
           const request = Object.assign({}, valid);
-          request.find = { id: 7 };
+          request.find = {id: 7};
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"find" is not allowed'); // TODO: better message?
         });

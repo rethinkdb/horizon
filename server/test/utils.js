@@ -17,7 +17,7 @@ const data_dir = './rethinkdb_data_test';
 
 const log_file = `./horizon_test_${process.pid}.log`;
 logger.level = 'debug';
-logger.add(logger.transports.File, { filename: log_file });
+logger.add(logger.transports.File, {filename: log_file});
 logger.remove(logger.transports.Console);
 
 // Variables used by most tests
@@ -29,13 +29,13 @@ const start_rethinkdb = () => {
   rm_sync_recursive(data_dir);
 
   logger.info('creating server');
-  return start_rdb_server({ dataDir: data_dir }).then((server) => {
+  return start_rdb_server({dataDir: data_dir}).then((server) => {
     rdb_server = server;
     rdb_port = server.driver_port;
     rdb_http_port = server.http_port;
     logger.info('server created, connecting');
 
-    return r.connect({ db: project_name, port: rdb_port });
+    return r.connect({db: project_name, port: rdb_port});
   }).then((conn) => {
     logger.info('connected');
     rdb_conn = conn;
@@ -61,7 +61,7 @@ const table = (collection) =>
 const make_admin_token = () => {
   const jwt = horizon_server && horizon_server._auth && horizon_server._auth._jwt;
   assert(jwt);
-  return jwt.sign({ id: 'admin', provider: null }).token;
+  return jwt.sign({id: 'admin', provider: null}).token;
 };
 
 // Creates a collection, no-op if it already exists, uses horizon server prereqs
@@ -70,10 +70,10 @@ const create_collection = (collection, done) => {
   assert.notStrictEqual(horizon_port, undefined);
   const conn = new websocket(`ws://localhost:${horizon_port}/horizon`,
                              horizon.protocol,
-                             { rejectUnauthorized: false })
+                             {rejectUnauthorized: false})
     .once('error', (err) => assert.ifError(err))
     .on('open', () => {
-      conn.send(JSON.stringify({ request_id: 123, method: 'token', token: make_admin_token() }));
+      conn.send(JSON.stringify({request_id: 123, method: 'token', token: make_admin_token()}));
       conn.once('message', (data) => {
         const res = JSON.parse(data);
         assert.strictEqual(res.request_id, 123);
@@ -85,7 +85,7 @@ const create_collection = (collection, done) => {
         conn.send(JSON.stringify({
           request_id: 0,
           type: 'query',
-          options: { collection, limit: 0 },
+          options: {collection, limit: 0},
         }));
 
         conn.once('message', () => {
@@ -110,7 +110,7 @@ const populate_collection = (collection, rows, done) => {
   if (rows.constructor.name !== 'Array') {
     table(collection).insert(
       r.range(rows).map(
-        (i) => ({ id: i, value: i.mod(4) })
+        (i) => ({id: i, value: i.mod(4)})
       )).run(rdb_conn).then(() => done());
   } else {
     table(collection).insert(rows).run(rdb_conn).then(() => done());
@@ -126,7 +126,7 @@ const start_horizon_server = (done) => {
     logger.info('creating horizon server');
     horizon_port = http_server.address().port;
     horizon_server = new horizon.Server(http_server,
-      { project_name,
+      {project_name,
         rdb_port,
         auto_create_collection: true,
         auto_create_index: true,
@@ -183,7 +183,7 @@ const open_horizon_conn = (done) => {
   horizon_conn =
     new websocket(`ws://localhost:${horizon_port}/horizon`,
                   horizon.protocol,
-                  { rejectUnauthorized: false })
+                  {rejectUnauthorized: false})
       .once('error', (err) => assert.ifError(err))
       .on('open', () => done());
 };
@@ -209,7 +209,7 @@ const horizon_auth = (req, cb) => {
 
 // Create a token for the admin user and use that to authenticate
 const horizon_admin_auth = (done) => {
-  horizon_auth({ request_id: -1, method: 'token', token: make_admin_token() }, (res) => {
+  horizon_auth({request_id: -1, method: 'token', token: make_admin_token()}, (res) => {
     assert.strictEqual(res.request_id, -1);
     assert.strictEqual(typeof res.token, 'string');
     assert.strictEqual(res.id, 'admin');
@@ -219,7 +219,7 @@ const horizon_admin_auth = (done) => {
 };
 
 const horizon_default_auth = (done) => {
-  horizon_auth({ request_id: -1, method: 'unauthenticated' }, (res) => {
+  horizon_auth({request_id: -1, method: 'unauthenticated'}, (res) => {
     assert.strictEqual(res.request_id, -1);
     assert.strictEqual(typeof res.token, 'string');
     assert.strictEqual(res.id, null);

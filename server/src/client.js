@@ -54,9 +54,11 @@ class Client {
       cb();
     } catch (err) {
       logger.debug(`Unhandled error in request: ${err.stack}`);
-      this.close({request_id: null,
-                  error: `Unhandled error: ${err}`,
-                  error_code: 0});
+      this.close({
+        request_id: null,
+        error: `Unhandled error: ${err}`,
+        error_code: 0,
+      });
     }
   }
 
@@ -65,9 +67,11 @@ class Client {
     try {
       request = JSON.parse(data);
     } catch (err) {
-      return this.close({request_id: null,
-                         error: `Invalid JSON: ${err}`,
-                         error_code: 0});
+      return this.close({
+        request_id: null,
+        error: `Invalid JSON: ${err}`,
+        error_code: 0,
+      });
     }
 
     try {
