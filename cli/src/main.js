@@ -63,13 +63,15 @@ if (!command) {
 
 const done = (err) => {
   if (err) {
-    console.error(chalk.red.bold(
-      `${cmdName} failed ` +
-      `with ${err.stack}`));
+    console.error(chalk.red.bold(err.message));
     process.exit(1);
   } else {
     process.exit(0);
   }
 };
 
-command.run(cmdArgs).then(() => done()).catch(done);
+try {
+  command.run(cmdArgs).then(() => done()).catch(done);
+} catch(err) {
+  done(err)
+}
