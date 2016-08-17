@@ -30,19 +30,6 @@ dependencies:
     - server/node_modules
     - cli/node_modules
   override:
-    # Stop default services
-    #- sudo service redis-server stop
-    #- sudo service postgresql stop
-    #- sudo service mysql stop
-
-    # Prepare for client tests
-    #- npm prune --production:
-    #    pwd: client
-    # Prepare for server tests
-    #- npm prune --production:
-    #    pwd: server
-    #- npm prune --production:
-    #    pwd: cli
     - ./setupDev.sh:
         pwd: test
 
@@ -51,20 +38,42 @@ test:
   pre:
     - ./test/serve.js:
         background: true
-    # - mkdir -p $CIRCLE_TEST_REPORTS/xunit
-    # - touch $CIRCLE_TEST_REPORTS/xunit/cli-tests.xml
-    # - touch $CIRCLE_TEST_REPORTS/xunit/client-tests.xml
-    # - touch $CIRCLE_TEST_REPORTS/xunit/server-tests.xml
   override:
+    # Switch to node v4.3.0
+    - nvm use v4.3.0
     # Run client tests
     - ./node_modules/.bin/mocha --timeout 100000 dist/test.js:
         pwd: client
         parallel: false
     # Run server tests
-    - ./node_modules/.bin/mocha --timeout 100000 test/test.js test/schema.js:
+    - ./node_modules/.bin/mocha --timeout 100000:
         pwd: server
-        parallel: false
+        parallel: true
+        files: 
+            - test/test.js
+            - test/schema.js 
     # Run cli tests
-    - ./node_modules/.bin/mocha --timeout 100000 test:
+    - ./node_modules/.bin/mocha --timeout 100000:
         pwd: cli
+        parallel: true
+        files:
+            - test/**/*.js
+    # Switch to v5.7.0
+    - nvm use v5.7.0
+    # Run client tests
+    - ./node_modules/.bin/mocha --timeout 100000 dist/test.js:
+        pwd: client
         parallel: false
+    # Run server tests
+    - ./node_modules/.bin/mocha --timeout 100000:
+        pwd: server
+        parallel: true
+        files: 
+            - test/test.js
+            - test/schema.js 
+    # Run cli tests
+    - ./node_modules/.bin/mocha --timeout 100000:
+        pwd: cli
+        parallel: true
+        files:
+            - test/**/*.js
