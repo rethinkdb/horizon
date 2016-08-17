@@ -30,7 +30,8 @@ test:
     - ./node_modules/.bin/mocha --timeout 100000:
         pwd: client
         parallel: true
-        files: dist/test.js
+        files: 
+            - dist/test.js
     # Run server tests
     - ./node_modules/.bin/mocha --timeout 100000:
         pwd: server
@@ -50,7 +51,8 @@ test:
     - ./node_modules/.bin/mocha --timeout 100000:
         pwd: client
         parallel: true
-        files: dist/test.js
+        files: 
+            - dist/test.js
     # Run server tests
     - ./node_modules/.bin/mocha --timeout 100000:
         pwd: server
@@ -69,7 +71,8 @@ test:
     - ./node_modules/.bin/mocha --timeout 100000:
         pwd: client
         parallel: true
-        files: dist/test.js
+        files: 
+            - dist/test.js
     # Run server tests
     - ./node_modules/.bin/mocha --timeout 100000:
         pwd: server
