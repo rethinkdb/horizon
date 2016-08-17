@@ -6,6 +6,7 @@ const fs = require('fs');
 const url = require('url');
 
 const toml = require('toml');
+const chalk = require('chalk');
 
 const default_config_file = '.hz/config.toml';
 const default_secrets_file = '.hz/secrets.toml';
@@ -122,7 +123,16 @@ const read_from_config_file = (project_path, config_file) => {
     return config;
   }
 
-  const fileConfig = toml.parse(fileData);
+  let fileConfig
+  try {
+    fileConfig = toml.parse(fileData);
+  } catch(e) {
+    if (e.name === 'SyntaxError') {
+      throw niceTomlSyntaxError(e, configFilename, fileData)
+    } else {
+      throw e
+    }
+  }
   for (const field in fileConfig) {
     if (field === 'connect') {
       parse_connect(fileConfig.connect, config);
@@ -332,6 +342,39 @@ const merge_options = (old_options, new_options) => {
 
   return old_options;
 };
+
+function sourceLine(lineNum, source) {
+  return `${chalk.green(lineNum + ':')} ` +
+    `${chalk.white(source)}`;
+}
+
+function leftPad(length) {
+  let leftPadding = '';
+  for (let i = 0; i < length; i++) {
+    leftPadding += ' ';
+  }
+  return leftPadding;
+}
+
+function niceTomlSyntaxError(e, configFilename, fileData) {
+  const context = fileData
+          .toString()
+          .split('\n')
+          .slice(e.line-2, e.line+1);
+  return new Error(`\
+There was a syntax error when parsing ${configFilename}
+Check out line ${e.line}, column ${e.column}:
+
+${sourceLine(e.line - 1, context[0])}
+${sourceLine(e.line, context[1])}
+${leftPad(`${e.line}: `.length)}${leftPad(e.column-1)}${chalk.green.bold('^')}
+${sourceLine(e.line + 1, context[2])}
+
+Common problems are:
+  * Forgetting to put quotes around strings
+  * Using colons instead of equals for key/val pairs
+`);
+}
 
 module.exports = {
   default_config_file,
