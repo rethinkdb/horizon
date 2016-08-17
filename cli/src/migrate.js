@@ -116,7 +116,10 @@ function processConfig(cmdArgs) {
   }
 
   if (options.project_name == null) {
-    throw new Error('No project_name given');
+    throw new Error(
+      'No project_name given: either pass the --project-name ' +
+        'option or add the "project_name" key to your ' +
+        '.hz/config.toml');
   }
   return options;
 }
@@ -199,9 +202,10 @@ function validateMigration() {
       .run(this.conn)
       .then(() => green(' └── Pre-2.0 schema found'))
       .catch((e) => {
-        throw new Error(
-          `v1.x schema not found (${e.msg}). ` +
-            'Have you already migrated?');
+        throw new Error(`\
+${e.msg}.
+This could happen if you don't have a Horizon app in this database \
+or if you've already migrated to the version 2.0 format.`);
       });
   });
 }
@@ -351,8 +355,9 @@ function rewriteHzCollectionDocs() {
 function exportNewSchema() {
   // Import and run schema save process, giving it a different
   // filename than schema.toml
+  const timestamp = new Date().toISOString().replace(/:/g, '_');
   return accessAsync('.hz/schema.toml', fs.R_OK | fs.F_OK)
-    .then(() => `.hz/schema.toml.migrated.${new Date()}`)
+    .then(() => `.hz/schema.toml.migrated.${timestamp}`)
     .catch(() => '.hz/schema.toml') // if no schema.toml
     .then((schemaFile) => {
       white(`Exporting the new schema to ${schemaFile}`);
