@@ -1,5 +1,7 @@
 'use strict';
 
+require('source-map-support').install();
+
 const logger = require('../src/logger');
 const utils = require('./utils');
 
