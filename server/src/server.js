@@ -31,11 +31,10 @@ class Server extends EventEmitter {
     this._request_handlers = new Map();
     this._ws_servers = [ ];
     this._close_promise = null;
-    this._middlewares = [ ];
-    this._default_run_middleware = (req, res, next) => {
-      next(new Error('No terminal middleware to handle the request.'));
+    this._default_middleware = (req, res, next) => {
+      next(new Error('No middleware to handle the request.'));
     };
-    this._run_middleware = this._default_run_middleware;
+    this._middleware = this._default_middleware;
 
     this._reliable_conn = new ReliableConn({
       host: opts.rdb_host,
@@ -54,6 +53,7 @@ class Server extends EventEmitter {
       this._clients,
       opts.auto_create_collection,
       opts.auto_create_index);
+
     this._clear_clients_subscription = this._reliable_metadata.subscribe({
       onReady: () => {
         this.emit('ready', this);
@@ -89,7 +89,7 @@ class Server extends EventEmitter {
               socket,
               this._auth,
               this._reliable_metadata,
-              (...rest) => this._run_middleware.apply(this, rest)
+              this._middleware
             );
             this._clients.add(client);
             socket.on('close', () => this._clients.delete(client));
@@ -119,28 +119,8 @@ class Server extends EventEmitter {
     return this._reliable_conn;
   }
 
-  add_middleware(new_mw) {
-    this._middlewares.push(new_mw);
-    this._run_middleware = this._default_run_middleware;
-    for (let i = this._middlewares.length - 1; i >= 0; --i) {
-      const mw = this._middlewares[i];
-      const old_cb = this._run_middleware;
-      this._run_middleware = (req, res, next) => {
-        try {
-          mw(req,
-             res,
-             (maybeErr) => {
-               if (maybeErr instanceof Error) {
-                 next(maybeErr);
-               } else {
-                 old_cb(req, res, next);
-               }
-             });
-        } catch (e) {
-          next(e);
-        }
-      };
-    }
+  set_middleware(mw) {
+    this._middleware = mw ? mw : this._default_middleware;
   }
 
   // TODO: We close clients in `onUnready` above, but don't wait for

@@ -60,13 +60,15 @@ class PluginRouter {
         if (!graph[m]) {
           graph[m] = {name: m, inDegree: 0, children: {}};
         }
-        for (const r in this.methods[m].requires) {
-          graph[m].inDegree += 1;
-          if (!graph[r]) {
-            // RSI: assert that `r` is in `this.methods`.
-            graph[r] = {name: m, inDegree: 0, children: {}};
+        if (this.methods[m].requires) {
+          for (const r in this.methods[m].requires) {
+            graph[m].inDegree += 1;
+            if (!graph[r]) {
+              // RSI: assert that `r` is in `this.methods`.
+              graph[r] = {name: m, inDegree: 0, children: {}};
+            }
+            graph[r].children[m] = true;
           }
-          graph[r].children[m] = true;
         }
       }
 
