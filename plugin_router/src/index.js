@@ -1,19 +1,5 @@
 'use strict';
 
-const examplePluginActivateResult = {
-  name: 'graphql',
-  deactivate: () => { },
-
-  httpRoute: (req, res, next) => { },
-  commands: {
-    'repair': ...,
-  }
-  methods: {
-    'insert': ...,
-    'delete': ...,
-  },
-}
-
 class PluginRouter {
   constructor(server) {
     this.server = server
@@ -43,6 +29,7 @@ class PluginRouter {
       this.httpRoutes[plugin.name] = active;
       for (const m in active.methods) {
         this.methods[m] = active.methods[m];
+        this._requiresOrdering = null;
       }
     });
     return this.plugins[plugin.name];
@@ -52,11 +39,62 @@ class PluginRouter {
     if (!this.plugins[plugin.name]) {
       return Promise.reject(new Error(`Plugin '${plugin.name}' is not present.`));
     }
-    return this.plugins[plugin.name].then(() => {
+    return this.plugins[plugin.name].then((active) => {
+      for (const m in active.methods) {
+        delete this.methods[m];
+        this._requiresOrdering = null;
+      }
       if (plugin.deactivate) {
         plugin.deactivate(reason || "Removed from PluginRouter.");
       }
+    });
+  }
+
+  requiresOrdering() {
+    if (!this._requiresOrdering) {
+      this._requiresOrdering = {};
+
+      // RSI: use tsort instead of doing this ourselves like mega chumps.
+      const graph = {};
+      for (const m in this.methods) {
+        if (!graph[m]) {
+          graph[m] = {name: m, inDegree: 0, children: {}};
+        }
+        for (const r in this.methods[m].requires) {
+          graph[m].inDegree += 1;
+          if (!graph[r]) {
+            // RSI: assert that `r` is in `this.methods`.
+            graph[r] = {name: m, inDegree: 0, children: {}};
+          }
+          graph[r].children[m] = true;
+        }
+      }
+
+      const order = [];
+      const heap = new Heap((a, b) => a.inDegree - b.inDegree);
+      for (const g in graph) {
+        heap.push(graph[g]);
+      }
+      while (heap.size() > 0) {
+        const minItem = heap.pop();
+        if (minItem.inDegree != 0) {
+          // ERROR: cycle (!!!)
+        }
+        for (const c in minItem.children) {
+          if (graph[c].inDegree <= 0) {
+            // ERROR: algorithm mistake
+          }
+          graph[c].inDegree -= 1;
+          heap.updateItem(graph[c]);
+        }
+        order.push(minItem.name)
+      }
+
+      for (const i in order) {
+        this._requiresOrdering[order[i]] = i;
+      }
     }
+    return this._requiresOrdering;
   }
 
   httpMiddleware() {
@@ -74,30 +112,53 @@ class PluginRouter {
 
   hzMiddleware() {
     return (req, res, next) => {
-      const method = (req.type && this.methods[req.type]) || next;
-      let cb = method;
+      let terminalName = null;
+      const requirements = {};
       if (req.options) {
         for (const o in req.options) {
-          if (o !== req.type) {
-            const m = this.methods[o];
-            if (m) {
-              const old_cb = cb;
-              cb = (maybeErr) => {
-                if (maybeErr instanceof Error) {
-                  next(maybeErr);
-                } else {
-                  try {
-                    m(req, res, old_cb);
-                  } catch (e) {
-                    next(e);
-                  }
-                }
+          const m = this.methods[o];
+          if (m) {
+            if (m.type == 'terminal') {
+              if (terminalName !== null) {
+                next(new Error('multiple terminals in request: ' +
+                               `${terminalName}, ${o}`));
+              } else {
+                terminalName = o;
               }
+            } else {
+              requirements[o] = true;
+            }
+            for (const r of m.requires) {
+              requirements[r] = true;
             }
           }
         }
       }
-      cb();
+
+      if (terminalName === null) {
+        next(new Error('no terminal in request'));
+      } else if (requirements[terminalName]) {
+        next(new Error('terminal ${terminalName} is also a requirement'));
+      } else {
+        const ordering = requiresOrdering();
+        const middlewareChain = Object.keys(requirements).sort(
+          (a, b) => ordering[a] - ordering[b]);
+        middlewareChain.push(terminalName);
+
+        middlewareChain.reduceRight((cb, methodName) => {
+          return (maybeErr) => {
+            if (maybeErr instanceof Error) {
+              next(maybeErr);
+            } else {
+              try {
+                this.methods[methodName].impl(req, res, cb)
+              } catch (e) {
+                next(e);
+              }
+            }
+          }
+        }, next)();
+      }
     }
   }
 }

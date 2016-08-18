@@ -17,9 +17,13 @@ module.exports = (config) => {
           res.send("healthy");
         },
         methods: {
-          'healthCheck': (req, res, next) => {
-            console.log(`healthCheck method: ${[req, res, next]}`)
-            res.send("healthy");
+          'healthCheck': {
+            requires: ['hz_permissions'],
+            type: 'terminal', // or `middleware` or `preReq`
+            impl: (req, res, next) => {
+              console.log(`healthCheck method: ${[req, res, next]}`)
+              res.send("healthy");
+            },
           },
         },
         middleware: (req, res, next) => {
