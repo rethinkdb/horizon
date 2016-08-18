@@ -20,7 +20,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
       r.expr(rows.map((row) => (row.id === undefined ? null : row.id)))
         .map((id) => r.branch(id.eq(null), null, collection.table.get(id)))
         .run(conn, reql_options),
-    (row, info) => writes.validate_old_row_optional(row, info, row, ruleset),
+    (row, info) => writes.validate_old_row_optional(context, row, info, row, ruleset),
     (rows) => // write to database, all valid rows
       r.expr(rows)
         .forEach((new_row) =>
