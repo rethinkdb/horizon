@@ -2,27 +2,27 @@
 
 class PluginRouter {
   constructor(server) {
-    this.server = server
-    this.plugins = {}
-    this.httpRoutes = {}
-    this.methods = {}
+    this.server = server;
+    this.plugins = {};
+    this.httpRoutes = {};
+    this.methods = {};
   }
 
   add(plugin) {
     if (this.plugins[plugin.name]) {
       return Promise.reject(
-        new Error(`Plugin conflict: '${plugin.name}' already present.`));
+        new Error(`Plugin conflict: "${plugin.name}" already present.`));
     }
-    const activePlugin = Promise.resolve(server.ctx()).then(plugin.activate)
+    const activePlugin = Promise.resolve(this.server.ctx()).then(plugin.activate);
     this.plugins[plugin.name] = activePlugin.then((active) => {
       if (this.httpRoutes[plugin.name]) {
-        throw new Error(`Plugin conflict: '${plugin.name}' already present.`);
+        throw new Error(`Plugin conflict: "${plugin.name}" already present.`);
       }
       // RSI: validate method name is a legal identifier and doesn't
       // conflict with our methods.
       for (const m in active.methods) {
         if (this.methods[m]) {
-          throw new Error(`Method name conflict: '${m}');
+          throw new Error(`Method name conflict: "${m}"`);
         }
       }
 
@@ -37,7 +37,7 @@ class PluginRouter {
 
   remove(plugin, reason) {
     if (!this.plugins[plugin.name]) {
-      return Promise.reject(new Error(`Plugin '${plugin.name}' is not present.`));
+      return Promise.reject(new Error(`Plugin "${plugin.name}" is not present.`));
     }
     return this.plugins[plugin.name].then((active) => {
       for (const m in active.methods) {
@@ -45,7 +45,7 @@ class PluginRouter {
         this._requiresOrdering = null;
       }
       if (plugin.deactivate) {
-        plugin.deactivate(reason || "Removed from PluginRouter.");
+        plugin.deactivate(reason || 'Removed from PluginRouter.');
       }
     });
   }
@@ -77,7 +77,7 @@ class PluginRouter {
       }
       while (heap.size() > 0) {
         const minItem = heap.pop();
-        if (minItem.inDegree != 0) {
+        if (minItem.inDegree !== 0) {
           // ERROR: cycle (!!!)
         }
         for (const c in minItem.children) {
@@ -87,7 +87,7 @@ class PluginRouter {
           graph[c].inDegree -= 1;
           heap.updateItem(graph[c]);
         }
-        order.push(minItem.name)
+        order.push(minItem.name);
       }
 
       for (const i in order) {
@@ -107,7 +107,7 @@ class PluginRouter {
       } else {
         next();
       }
-    }
+    };
   }
 
   hzMiddleware() {
@@ -118,7 +118,7 @@ class PluginRouter {
         for (const o in req.options) {
           const m = this.methods[o];
           if (m) {
-            if (m.type == 'terminal') {
+            if (m.type === 'terminal') {
               if (terminalName !== null) {
                 next(new Error('multiple terminals in request: ' +
                                `${terminalName}, ${o}`));
@@ -140,26 +140,25 @@ class PluginRouter {
       } else if (requirements[terminalName]) {
         next(new Error('terminal ${terminalName} is also a requirement'));
       } else {
-        const ordering = requiresOrdering();
+        const ordering = this.requiresOrdering();
         const middlewareChain = Object.keys(requirements).sort(
           (a, b) => ordering[a] - ordering[b]);
         middlewareChain.push(terminalName);
 
-        middlewareChain.reduceRight((cb, methodName) => {
-          return (maybeErr) => {
+        middlewareChain.reduceRight((cb, methodName) =>
+          (maybeErr) => {
             if (maybeErr instanceof Error) {
               next(maybeErr);
             } else {
               try {
-                this.methods[methodName].impl(req, res, cb)
+                this.methods[methodName].impl(req, res, cb);
               } catch (e) {
                 next(e);
               }
             }
-          }
-        }, next)();
+          }, next)();
       }
-    }
+    };
   }
 }
 
