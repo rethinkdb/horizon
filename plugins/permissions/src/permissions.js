@@ -4,18 +4,53 @@
 // token/anonymous: this should be the user id
 // unauthenticated: this should be null, and will use the default rules
 
+
 module.exports = (config) => {
+  class User {
+    constructor(user_id, reliable_conn) {
+      this.feed = r.db(config.project_name)
+                   .table(config.user_table)
+                   .
+    }
+
+    group_changed(group_name) {
+      if (this.data && this.data.groups && this.data.groups.indexOf(group_name) !== -1) {
+        this.active_rulesets.forEach((ruleset) => );
+      }
+    }
+    
+    add_request(req, res, next) {
+      // Create a changefeed for the user unless it exists
+
+      // Template-match the request options
+      
+      // Add a ruleset to request.context.rules
+      const ruleset = new Ruleset();
+      request.context.rules = ruleset;
+      this.active_rulesets.add(ruleset);
+
+      const cleanup = () => this.active_rulesets.delete(ruleset);
+
+      // On changes to the rules in any of the user's groups, re-evaluate rules
+
+      // On response completion, stop tracking the ruleset
+      res.complete.then(cleanup).catch(cleanup);
+    }
+  }
+
   return {
     name: 'permissions',
     activate: (server) => {
       const reliable_conn = server.conn();
-      const user_feeds = new Map();
+      const users = new Map();
+      const groups = new Map();
+      const ready = false;
       
       // TODO: need to save/close the subscription?
       reliable_conn.subscribe({
         onUnready: (reason) => {
-          user_feeds.forEach((feed) => feed.close(reason));
-          user_feeds.clear();
+          users.forEach((user) => user.close(reason));
+          users.clear();
         },
       });
       
@@ -27,13 +62,46 @@ module.exports = (config) => {
         reliable_conn,
         {
           onReady: () => {
+            ready = true;
           },
           onUnready: () => {
+            ready = false;
+            groups.forEach((g) => g.close());
+            groups.clear();
           },
-          onChange: () => {
+          onChange: (change) => {
+            switch(change.type) {
+            'initial':
+            'add':
+            'change':
+              {
+                const group = new Group(change.new_val);
+                groups.set(group.name, group);
+                users.forEach((user) => user.group_changed(group.name));
+              }
+              break;
+            'uninitial':
+            'remove':
+              {
+                const name = change.old_val.id;
+                const group = groups.delete(change.old_val.id);
+              }
+              break;
+            default:
+              // RSI: log error
+              break;
+            }
           },
         });
 
+      const get_user = (user_id) => {
+        let user = users.get(user_id);
+        if (!user) {
+          user = new User(user_id, reliable_conn);
+          users.set(user_id, user);
+        }
+        return user;
+      };
 
       ctx.logger.info('Activating permissions.');
       return {
@@ -45,26 +113,26 @@ module.exports = (config) => {
           'permissions': {
             type: 'prereq',
             run: (req, res, next) => {
-              const user = request.context.user;
-              if (user === undefined) {
+              if (!ready) {
+                throw new Error('Groups are not synced with the server, cannot validate requests.');
+              }
+
+              const user_id = request.context.user_id;
+              if (user_id !== undefined) {
                 throw new Error('Client has not been authenticated');
               }
 
-              // Create a changefeed for the user unless it exists
-              if (user_feeds
-
-
-              // Template-match the request options
-              
-              // Add a ruleset to request.context.rules
-
-              // On changes to the user's groups, re-evaluate rules
-
-              // On changes to the rules in any of the user's groups, re-evaluate rules
+              // Find the user and register this request
+              const user = get_user(user_id);
+              user.add_request(req, res, next);
             },
           }
         },
       };
     },
   };
+}
+
+module.exports.validate = (rules, context, ...args) => [
+  
 }
