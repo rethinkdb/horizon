@@ -53,6 +53,7 @@
     "webpack": "^1.12.14"
   },
   "main": "lib/index.js",
+  "jsmain:next": "src/index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/rethinkdb/horizon.git"
