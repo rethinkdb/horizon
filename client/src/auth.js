@@ -127,19 +127,18 @@ export class TokenStorage {
 
   // Whether there is an auth token for the provided authType
   hasAuthToken() {
-    const token = this.get();
-    if(!Boolean(token)){
-      return false;
+    const token = this.get()
+    if (!token) {
+      return false
     }
     try {
-      const meta = JSON.parse(atob(token.split('.')[1]));
-      const exp = meta.exp;
-      const now = new Date().getTime() / 1000;
-      return (now < exp);
-    } catch (e){
-      return false;
+      const meta = JSON.parse(atob(token.split('.')[1]))
+      const exp = meta.exp
+      const now = new Date().getTime() / 1000
+      return (now < exp)
+    } catch (e) {
+      return false
     }
-    return Boolean(token)
   }
 }
 
