@@ -45,7 +45,7 @@ function auth0(horizon, raw_options) {
     https.request({ host, path: '/userinfo',
                     headers: { Authorization: `Bearer ${access_token}` } });
 
-  const extract_id = (user_info) => user_info && user_info.identities[0].user_id;
+  const extract_id = (user_info) => user_info && user_info.user_id;
 
 
   auth_utils.oauth2({
