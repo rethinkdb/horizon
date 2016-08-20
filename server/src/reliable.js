@@ -8,7 +8,7 @@ const subs = Symbol('subs');
 
 class Reliable {
   constructor(initialCbs) {
-    this[subs] = {};
+    this[subs] = new Map();
     this.ready = false;
     this.closed = false;
     if (initialCbs) {
@@ -16,23 +16,28 @@ class Reliable {
     }
   }
 
+  numSubs() {
+    return this[subs].size;
+  }
+
   subscribe(cbs) {
     if (this.closed) {
       throw new Error('Cannot subscribe to a closed ReliableConn.');
     }
     const subId = Symbol();
-    this[subs][subId] = {
+    this[subs].set(subId, {
       cbs: cbs,
-      close: () => delete this[subs][subId],
-    };
+      close: () => this[subs].delete(subId),
+    });
     if (this.ready && cbs.onReady) {
       try {
         cbs.onReady.apply(cbs, this.ready);
       } catch (e) {
-        logger.error(`Unexpected error in reliable callback, event: subscribe onReady, error: ${e.stack}`);
+        logger.error(`Unexpected error in reliable callback, `+
+                     `event: subscribe onReady, error: ${e.stack}`);
       }
     }
-    return this[subs][subId];
+    return this[subs].get(subId);
   }
 
   emit() {
@@ -50,17 +55,17 @@ class Reliable {
     } else if (eventType === 'onUnready') {
       this.ready = false;
     }
-    for (const s of Object.getOwnPropertySymbols(this[subs])) {
+    this[subs].forEach((sub) => {
       try {
-        const cbs = this[subs][s].cbs;
-        const event = cbs[eventType];
+        const event = sub.cbs[eventType];
         if (event) {
-          event.apply(cbs, args);
+          event.apply(sub.cbs, args);
         }
       } catch (e) {
-        logger.error(`Unexpected error in reliable callback, event: ${eventType}, error: ${e.stack}`);
+        logger.error(`Unexpected error in reliable callback, `+
+                     `event: ${eventType}, error: ${e.stack}`);
       }
-    }
+    });
   }
 
   close(reason) {
@@ -68,7 +73,7 @@ class Reliable {
     if (this.ready) {
       this.emitInternal('onUnready', new Error(`closed: ${reason}`));
     }
-    this[subs] = {}; // Just to make sure no subclasses do anything clever.
+    this[subs].clear(); // Just to make sure no subclasses do anything clever.
     return Promise.resolve();
   }
 }

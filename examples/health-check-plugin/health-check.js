@@ -26,6 +26,12 @@ module.exports = (config) => {
             },
           },
         },
+        onClientEvent: {
+          connect: (clientCtx) => {
+          },
+          auth: (clientCtx) => {
+          },
+        },
         middleware: (req, res, next) => {
           req.healthy = true;
           next();
