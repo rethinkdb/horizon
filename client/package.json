@@ -75,7 +75,7 @@
     "dist/horizon-core-dev.js.map",
     "lib/*"
   ],
-  "_babel": {
+  "babel": {
     "presets": [
       "es2015-loose",
       {
