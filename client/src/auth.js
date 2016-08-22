@@ -102,7 +102,8 @@ export class TokenStorage {
   }
 
   setAuthFromQueryParams() {
-    const parsed = typeof window !== 'undefined' ?
+    const parsed = typeof window !== 'undefined' &&
+      typeof window.location !== 'undefined' ?
             queryParse(window.location.search) : {}
 
     if (parsed.horizon_token != null) {
