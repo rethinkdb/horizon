@@ -1,6 +1,7 @@
 'use strict';
 
 const parse_yes_no_option = require('./parse_yes_no_option');
+const NiceError = require('./nice_error.js');
 
 const fs = require('fs');
 const url = require('url');
@@ -127,7 +128,22 @@ const read_from_config_file = (project_path, config_file) => {
     fileConfig = toml.parse(fileData);
   } catch (e) {
     if (e.name === 'SyntaxError') {
-      throw niceTomlSyntaxError(e, configFilename, fileData);
+      throw new NiceError(
+        `There was a syntax error when parsing ${configFilename}`, {
+          description: `Something was wrong with the format of \
+${configFilename}, causing it not be a valid TOML file.`,
+          src: {
+            filename: configFilename,
+            contents: fileData,
+            line: e.line,
+            column: e.column,
+          },
+          suggestions: [
+            'Check that all strings values have quotes around them',
+            'Check that key/val pairs use equals and not colons',
+            'See https://github.com/toml-lang/toml#user-content-spec',
+          ],
+        });
     } else {
       throw e;
     }
@@ -341,31 +357,6 @@ const merge_options = (old_options, new_options) => {
 
   return old_options;
 };
-
-function sourceLine(lineNum, source) {
-  return `${chalk.green(lineNum + ':')} ` +
-    `${chalk.white(source)}`;
-}
-
-function niceTomlSyntaxError(e, configFilename, fileData) {
-  const context = fileData
-          .toString()
-          .split('\n')
-          .slice(e.line - 2, e.line + 1);
-  return new Error(`\
-There was a syntax error when parsing ${configFilename}
-Check out line ${e.line}, column ${e.column}:
-
-${sourceLine(e.line - 1, context[0])}
-${sourceLine(e.line, context[1])}
-${' '.repeat(`${e.line}: `.length + e.column - 1)}${chalk.green.bold('^')}
-${sourceLine(e.line + 1, context[2])}
-
-Common problems are:
-  * Forgetting to put quotes around strings
-  * Using colons instead of equals for key/val pairs
-`);
-}
 
 module.exports = {
   default_config_file,
