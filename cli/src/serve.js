@@ -14,6 +14,7 @@ const url = require('url');
 const config = require('./utils/config');
 const start_rdb_server = require('./utils/start_rdb_server');
 const change_to_project_dir = require('./utils/change_to_project_dir');
+const NiceError = require('./utils/nice_error.js');
 const interrupt = require('./utils/interrupt');
 const schema = require('./schema');
 
@@ -244,18 +245,50 @@ const create_insecure_servers = (opts) => {
   return initialize_servers(() => new http.Server(), opts);
 };
 
-const read_cert_file = (file) => {
+const read_cert_file = (file, type) => {
   try {
     return fs.readFileSync(path.resolve(file));
   } catch (err) {
-    throw new Error(
-      `Could not access file "${file}" for running HTTPS server: ${err}`);
+    const wasDefault = file.endsWith(`horizon-${type}.pem`);
+    let description;
+    const suggestions = [
+      `If you're running horizon for the first time, we recommend \
+running horizon like ${chalk.white('hz serve --dev')} to get started without \
+having to configure certificates.`,
+    ];
+    if (wasDefault) {
+      suggestions.push(
+        `If you have a ${type} file you'd like to use but they aren't in the \
+default location, pass them in with the \
+${chalk.white(`hz serve --${type}-file`)} option.`,
+        `You can explicitly disable security by passing \
+${chalk.white('--secure=no')} to ${chalk.white('hz serve')}.`,
+        `You can generate a cert and key file for development by using the \
+${chalk.white('hz create-cert')} command. Note that these certs won't be \
+signed by a certificate authority, so you will need to explicitly authorize \
+them in your browser.`
+      );
+      description = `In order to run the server in secure mode (the default), \
+Horizon needs both a certificate file and a key file to encrypt websockets. \
+By default, it looks for horizon-key.pem and horizon-cert.pem \
+files in the current directory.`;
+    } else {
+      // They supplied a cert or key file, so don't give the long
+      // explanation and irrelevant suggestions.
+      suggestions.unshift(`See if the ${type} filename was misspelled.`);
+      description = null;
+    }
+    throw new NiceError(
+      `Could not access the ${type} file ${file}`, {
+        description,
+        suggestions,
+      });
   }
 };
 
 const create_secure_servers = (opts) => {
-  const key = read_cert_file(opts.key_file);
-  const cert = read_cert_file(opts.cert_file);
+  const cert = read_cert_file(opts.cert_file, 'cert');
+  const key = read_cert_file(opts.key_file, 'key');
   return initialize_servers(() => new https.Server({ key, cert }), opts);
 };
 
