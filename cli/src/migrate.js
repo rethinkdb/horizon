@@ -7,11 +7,12 @@ const runSaveCommand = require('./schema').runSaveCommand;
 const fs = require('fs');
 const accessAsync = Promise.promisify(fs.access);
 const config = require('./utils/config');
-const procPromise = require('./utils/proc-promise').procPromise;
+const procPromise = require('./utils/proc-promise');
 const interrupt = require('./utils/interrupt');
 const change_to_project_dir = require('./utils/change_to_project_dir');
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const start_rdb_server = require('./utils/start_rdb_server');
+const NiceError = require('./utils/nice_error.js');
 
 const VERSION_2_0 = [ 2, 0, 0 ];
 
@@ -128,10 +129,14 @@ function processConfig(cmdArgs) {
   }
 
   if (options.project_name == null) {
-    throw new Error(
-      'No project_name given: either pass the --project-name ' +
-        'option or add the "project_name" key to your ' +
-        '.hz/config.toml');
+    throw new NiceError('No project_name given', {
+      description: `\
+The project_name is needed to migrate from the v1.x format the v.2.0 format. \
+It wasn't passed on the command line or found in your config.`,
+      suggestions: [
+        'pass the --project-name option to hz migrate',
+        'add the "project_name" key to your .hz/config.toml',
+      ] });
   }
   return options;
 }
@@ -189,13 +194,13 @@ function teardown() {
 function validateMigration() {
   // check that `${project}_internal` exists
   const project = this.options.project_name;
-
+  const internalNotFound = `Database named '${project}_internal' wasn't found`;
+  const tablesHaveHzPrefix = `Some tables in ${project} have an hz_ prefix`;
   const checkForHzTables = r.db('rethinkdb')
           .table('table_config')
           .filter({ db: project })('name')
           .contains((x) => x.match('^hz_'))
-          .branch(r.error(
-            `Some tables in ${project} have an hz_ prefix`), true);
+          .branch(r.error(tablesHaveHzPrefix), true);
   const waitForCollections = r.db(`${project}_internal`)
           .table('collections')
           .wait({ timeout: 30 })
@@ -207,17 +212,26 @@ function validateMigration() {
   return Promise.resolve().then(() => {
     white('Validating current schema version');
     return r.dbList().contains(`${project}_internal`)
-      .branch(true, r.error(
-        `Database named '${project}_internal' wasn't found`))
+      .branch(true, r.error(internalNotFound))
       .do(() => checkForHzTables)
       .do(() => waitForCollections)
       .run(this.conn)
       .then(() => green(' └── Pre-2.0 schema found'))
       .catch((e) => {
-        throw new Error(`\
-${e.msg}.
-This could happen if you don't have a Horizon app in this database \
-or if you've already migrated to the version 2.0 format.`);
+        if (e.msg === internalNotFound) {
+          throw new NiceError(e.msg, {
+            description: `\
+This could happen if you don't have a Horizon app in this database, or if \
+you've already migrated this database to the v2.0 format.`,
+          });
+        } else if (e.msg === tablesHaveHzPrefix) {
+          throw new NiceError(e.msg, {
+            description: `This could happen if you've already migrated \
+this database to the v2.0 format.`,
+          });
+        } else {
+          throw e;
+        }
       });
   });
 }
@@ -245,21 +259,20 @@ function makeBackup() {
     green(' └── Backup completed');
   }).catch((e) => {
     if (e.message.match(/Python driver/)) {
-      throw new Error(`\
-The RethinkDB Python driver is not installed, so we can't \
-do a backup before migrating.
-
-You can install the Python driver with the instructions \
-found at:
-http://www.rethinkdb.com/docs/install-drivers/python/
-
-Alternately, you may pass the --nonportable-backup flag \
-to hz migrate. This flag uses the tar command to make a \
-backup, but the backup is not safe to use on another \
-machine or to create replicas from. This option should \
-not be used if RethinkDB is already running and if the \
-rethinkdb_data directory is in the current directory.
-`);
+      throw new NiceError('The RethinkDB Python driver is not installed.', {
+        description: `Before we migrate to the v2.0 format, we should do a \
+backup of your RethinkDB database in case anything goes wrong. Unfortunately, \
+we can't use the rethinkdb dump command to do a backup because you don't have \
+the RethinkDB Python driver installed on your system.`,
+        suggestions: [
+          `Install the Python driver with the instructions found at: \
+http://www.rethinkdb.com/docs/install-drivers/python/`,
+          `Pass the --nonportable-backup flag to hz migrate. This flag uses \
+the tar command to make a backup, but the backup is not safe to use on \
+another machine or to create replicas from. This option should not be used \
+if RethinkDB is currently running. It should also not be used if the \
+rethinkdb_data/ directory is not in the current directory.`,
+        ] });
     } else {
       throw e;
     }

@@ -15,6 +15,7 @@ const schemaCommand = require('./schema');
 const makeTokenCommand = require('./make-token');
 const migrateCommand = require('./migrate');
 
+const NiceError = require('./utils/nice_error');
 // Mapping from command line strings to modules. To add a new command,
 // add an entry in this object, and create a module with the following
 // exported:
@@ -63,7 +64,9 @@ if (!command) {
 
 const done = (err) => {
   if (err) {
-    console.error(chalk.red.bold(err.message));
+    const errMsg = (err instanceof NiceError) ?
+            err.niceString({ contextSize: 2 }) : err.message;
+    console.error(chalk.red.bold(errMsg));
     process.exit(1);
   } else {
     process.exit(0);
