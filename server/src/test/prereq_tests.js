@@ -49,7 +49,7 @@ const all_tests = (collection) => {
              type: 'insert',
              options: {
                collection: rand_collection,
-               data: [ { } ],
+               data: [{ }],
              },
            },
            (err, res) => {
@@ -80,7 +80,7 @@ const all_tests = (collection) => {
             type: 'query',
             options: {
               collection,
-              order: [ [ field_name ], 'ascending' ],
+              order: [[field_name], 'ascending'],
             },
           },
           (err, res) => {

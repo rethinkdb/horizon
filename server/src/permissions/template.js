@@ -9,7 +9,7 @@ const vm = require('vm');
 
 class Any {
   constructor(values) {
-    this._values = values || [ ];
+    this._values = values || [];
   }
 
   matches(value, context) {
@@ -55,7 +55,7 @@ class AnyObject {
 // specified at construction.
 class AnyArray {
   constructor(values) {
-    this._values = values || [ ];
+    this._values = values || [];
   }
 
   matches(value, context) {
@@ -87,7 +87,7 @@ const wrap_write = (query, docs) => {
       Array.isArray(docs)) {
     query.data = docs;
   } else {
-    query.data = [ docs ];
+    query.data = [docs];
   }
   return query;
 };
@@ -101,7 +101,7 @@ const wrap_remove = (doc) => {
 
 // Add helper methods to match any subset of the current query for reads or writes
 ast.TermBase.prototype.anyRead = function() {
-  return this._sendRequest(new Any([ 'query', 'subscribe' ]),
+  return this._sendRequest(new Any(['query', 'subscribe']),
                            new AnyObject(this._query));
 };
 
@@ -110,7 +110,7 @@ ast.Collection.prototype.anyWrite = function() {
   if (arguments.length === 0) {
     docs = new AnyArray(new Any());
   }
-  return this._sendRequest(new Any([ 'store', 'upsert', 'insert', 'replace', 'update', 'remove' ]),
+  return this._sendRequest(new Any(['store', 'upsert', 'insert', 'replace', 'update', 'remove']),
                            wrap_write(new AnyObject(this._query), docs));
 };
 

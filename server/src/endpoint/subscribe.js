@@ -24,7 +24,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
                    (item.new_val && !ruleset.validate(context, item.new_val))) {
           throw new Error('Operation not permitted.');
         } else {
-          send({data: [ item ]});
+          send({data: [item]});
         }
       }).then(() => {
         done({state: 'complete'});

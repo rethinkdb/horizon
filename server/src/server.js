@@ -29,7 +29,7 @@ class Server extends EventEmitter {
     this._original_user_opts = user_opts;
     this._auth_methods = { };
     this._request_handlers = new Map();
-    this._ws_servers = [ ];
+    this._ws_servers = [];
     this._close_promise = null;
     this._default_middleware = (req, res, next) => {
       next(new Error('No middleware to handle the request.'));

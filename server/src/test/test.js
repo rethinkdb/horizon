@@ -5,11 +5,11 @@ require('source-map-support').install();
 const logger = require('../logger');
 const utils = require('./utils');
 
-const all_suites = [ 'prereq_tests',
+const all_suites = ['prereq_tests',
                      'protocol_tests',
                      'query_tests',
                      'subscribe_tests',
-                     'write_tests' ];
+                     'write_tests'];
 const collection = 'test';
 
 before('Start RethinkDB Server', () => utils.start_rethinkdb());

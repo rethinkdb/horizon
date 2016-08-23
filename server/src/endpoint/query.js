@@ -11,9 +11,9 @@ const object_to_fields = (obj) =>
   Object.keys(obj).map((key) => {
     const value = obj[key];
     if (value !== null && typeof value === 'object' && !value.$reql_type$) {
-      return object_to_fields(value).map((subkeys) => [ key ].concat(subkeys));
+      return object_to_fields(value).map((subkeys) => [key].concat(subkeys));
     } else {
-      return [ key ];
+      return [key];
     }
   });
 
@@ -30,7 +30,7 @@ const make_reql = (raw_request, metadata) => {
     const fuzzy_fields = object_to_fields(obj);
     const order_keys = (options.order && options.order[0]) ||
                        (options.above && Object.keys(options.above[0])) ||
-                       (options.below && Object.keys(options.below[0])) || [ ];
+                       (options.below && Object.keys(options.below[0])) || [];
 
     if (order_keys.length >= 1) {
       const k = order_keys[0];
@@ -45,7 +45,7 @@ const make_reql = (raw_request, metadata) => {
             `"${k}" cannot be used in "order", "above", or "below" when finding by that field.`);
     });
 
-    const index = collection.get_matching_index(fuzzy_fields, order_keys.map((k) => [ k ]));
+    const index = collection.get_matching_index(fuzzy_fields, order_keys.map((k) => [k]));
 
     const get_bound = (name) => {
       const eval_key = (key) => {
@@ -107,10 +107,10 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           done(new Error('Operation not permitted.'));
           cursor.close().catch(() => { });
         } else {
-          send({data: [ item ]});
+          send({data: [item]});
         }
       }).then(() => {
-        done({data: [ ], state: 'complete'});
+        done({data: [], state: 'complete'});
       });
     } else if (res !== null && res.constructor.name === 'Array') {
       for (const item of res) {
@@ -122,7 +122,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
     } else if (!ruleset.validate(context, res)) {
       done(new Error('Operation not permitted.'));
     } else {
-      done({data: [ res ], state: 'complete'});
+      done({data: [res], state: 'complete'});
     }
   }).catch(done);
 

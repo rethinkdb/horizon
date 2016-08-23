@@ -11,16 +11,16 @@ const invalidated_msg = horizon_writes.invalidated_msg;
 
 // Before each test, ids [0, 4) will be present in the collection
 const original_data = [
-  {id: 0, old_field: [ ], [hz_v]: 0},
-  {id: 1, old_field: [ ], [hz_v]: 0},
-  {id: 2, old_field: [ ], [hz_v]: 0},
-  {id: 3, old_field: [ ], [hz_v]: 0},
+  {id: 0, old_field: [], [hz_v]: 0},
+  {id: 1, old_field: [], [hz_v]: 0},
+  {id: 2, old_field: [], [hz_v]: 0},
+  {id: 3, old_field: [], [hz_v]: 0},
 ];
 
-const new_id = [ 4 ];
-const conflict_id = [ 3 ];
-const new_ids = [ 4, 5, 6 ];
-const conflict_ids = [ 2, 3, 4 ];
+const new_id = [4];
+const conflict_id = [3];
+const new_ids = [4, 5, 6];
+const conflict_ids = [2, 3, 4];
 
 const without_version = (item) => {
   const res = Object.assign({ }, item);
@@ -43,7 +43,7 @@ const all_tests = (collection) => {
   const new_row_from_id = (id) => ({id, new_field: 'a'});
   const merged_row_from_id = (id) => {
     if (id >= 4) { return new_row_from_id(id); }
-    return {id, new_field: 'a', old_field: [ ]};
+    return {id, new_field: 'a', old_field: []};
   };
 
   const make_request = (type, data, options) => ({
@@ -212,25 +212,25 @@ const all_tests = (collection) => {
   describe('Versioned', () => {
     beforeEach('Authenticate', (done) => utils.horizon_admin_auth(done));
 
-    const test_data = [ {id: 'versioned', [hz_v]: 11, foo: 'bar'} ];
+    const test_data = [{id: 'versioned', [hz_v]: 11, foo: 'bar'}];
     beforeEach('Populate collection', (done) => utils.populate_collection(collection, test_data, done));
 
     describe('Store', () => {
-      const request = (row) => make_request('store', [ row ]);
+      const request = (row) => make_request('store', [row]);
 
       it('correct version', (done) => {
         utils.stream_test(request({id: 'versioned', value: 1, [hz_v]: 11}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {id: 'versioned', [hz_v]: 12} ];
+          const expected = [{id: 'versioned', [hz_v]: 12}];
           assert.deepStrictEqual(res, expected);
-          check_collection([ {id: 'versioned', [hz_v]: 12, value: 1} ], done);
+          check_collection([{id: 'versioned', [hz_v]: 12, value: 1}], done);
         });
       });
 
       it('incorrect version', (done) => {
         utils.stream_test(request({id: 'versioned', value: 2, [hz_v]: 5}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {error: invalidated_msg} ];
+          const expected = [{error: invalidated_msg}];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done);
         });
@@ -238,21 +238,21 @@ const all_tests = (collection) => {
     });
 
     describe('Replace', () => {
-      const request = (row) => make_request('replace', [ row ]);
+      const request = (row) => make_request('replace', [row]);
 
       it('correct version', (done) => {
         utils.stream_test(request({id: 'versioned', value: 1, [hz_v]: 11}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {id: 'versioned', [hz_v]: 12} ];
+          const expected = [{id: 'versioned', [hz_v]: 12}];
           assert.deepStrictEqual(res, expected);
-          check_collection([ {id: 'versioned', [hz_v]: 12, value: 1} ], done);
+          check_collection([{id: 'versioned', [hz_v]: 12, value: 1}], done);
         });
       });
 
       it('incorrect version', (done) => {
         utils.stream_test(request({id: 'versioned', value: 2, [hz_v]: 5}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {error: invalidated_msg} ];
+          const expected = [{error: invalidated_msg}];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done);
         });
@@ -260,21 +260,21 @@ const all_tests = (collection) => {
     });
 
     describe('Upsert', () => {
-      const request = (row) => make_request('upsert', [ row ]);
+      const request = (row) => make_request('upsert', [row]);
 
       it('correct version', (done) => {
         utils.stream_test(request({id: 'versioned', value: 1, [hz_v]: 11}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {id: 'versioned', [hz_v]: 12} ];
+          const expected = [{id: 'versioned', [hz_v]: 12}];
           assert.deepStrictEqual(res, expected);
-          check_collection([ {id: 'versioned', [hz_v]: 12, value: 1, foo: 'bar'} ], done);
+          check_collection([{id: 'versioned', [hz_v]: 12, value: 1, foo: 'bar'}], done);
         });
       });
 
       it('incorrect version', (done) => {
         utils.stream_test(request({id: 'versioned', value: 2, [hz_v]: 5}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {error: invalidated_msg} ];
+          const expected = [{error: invalidated_msg}];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done);
         });
@@ -282,21 +282,21 @@ const all_tests = (collection) => {
     });
 
     describe('Update', () => {
-      const request = (row) => make_request('update', [ row ]);
+      const request = (row) => make_request('update', [row]);
 
       it('correct version', (done) => {
         utils.stream_test(request({id: 'versioned', value: 1, [hz_v]: 11}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {id: 'versioned', [hz_v]: 12} ];
+          const expected = [{id: 'versioned', [hz_v]: 12}];
           assert.deepStrictEqual(res, expected);
-          check_collection([ {id: 'versioned', [hz_v]: 12, value: 1, foo: 'bar'} ], done);
+          check_collection([{id: 'versioned', [hz_v]: 12, value: 1, foo: 'bar'}], done);
         });
       });
 
       it('incorrect version', (done) => {
         utils.stream_test(request({id: 'versioned', value: 2, [hz_v]: 5}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {error: invalidated_msg} ];
+          const expected = [{error: invalidated_msg}];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done);
         });
@@ -304,21 +304,21 @@ const all_tests = (collection) => {
     });
 
     describe('Remove', () => {
-      const request = (row) => make_request('remove', [ row ]);
+      const request = (row) => make_request('remove', [row]);
 
       it('correct version', (done) => {
         utils.stream_test(request({id: 'versioned', value: 1, [hz_v]: 11}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {id: 'versioned', [hz_v]: 11} ];
+          const expected = [{id: 'versioned', [hz_v]: 11}];
           assert.deepStrictEqual(res, expected);
-          check_collection([ ], done);
+          check_collection([], done);
         });
       });
 
       it('incorrect version', (done) => {
         utils.stream_test(request({id: 'versioned', value: 2, [hz_v]: 5}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {error: invalidated_msg} ];
+          const expected = [{error: invalidated_msg}];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done);
         });
@@ -329,25 +329,25 @@ const all_tests = (collection) => {
   describe('Versionless', () => {
     beforeEach('Authenticate', (done) => utils.horizon_admin_auth(done));
 
-    const test_data = [ {id: 'versionless', foo: 'bar'} ];
+    const test_data = [{id: 'versionless', foo: 'bar'}];
     beforeEach('Populate collection', (done) => utils.populate_collection(collection, test_data, done));
 
     describe('Store', () => {
-      const request = (row) => make_request('store', [ row ]);
+      const request = (row) => make_request('store', [row]);
 
       it('unspecified version', (done) => {
         utils.stream_test(request({id: 'versionless', value: 3}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {id: 'versionless', [hz_v]: 0} ];
+          const expected = [{id: 'versionless', [hz_v]: 0}];
           assert.deepStrictEqual(res, expected);
-          check_collection([ {id: 'versionless', [hz_v]: 0, value: 3} ], done);
+          check_collection([{id: 'versionless', [hz_v]: 0, value: 3}], done);
         });
       });
 
       it('specified version', (done) => {
         utils.stream_test(request({id: 'versionless', value: 4, [hz_v]: 5}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {error: invalidated_msg} ];
+          const expected = [{error: invalidated_msg}];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done);
         });
@@ -355,21 +355,21 @@ const all_tests = (collection) => {
     });
 
     describe('Replace', () => {
-      const request = (row) => make_request('replace', [ row ]);
+      const request = (row) => make_request('replace', [row]);
 
       it('unspecified version', (done) => {
         utils.stream_test(request({id: 'versionless', value: 3}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {id: 'versionless', [hz_v]: 0} ];
+          const expected = [{id: 'versionless', [hz_v]: 0}];
           assert.deepStrictEqual(res, expected);
-          check_collection([ {id: 'versionless', [hz_v]: 0, value: 3} ], done);
+          check_collection([{id: 'versionless', [hz_v]: 0, value: 3}], done);
         });
       });
 
       it('specified version', (done) => {
         utils.stream_test(request({id: 'versionless', value: 4, [hz_v]: 5}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {error: invalidated_msg} ];
+          const expected = [{error: invalidated_msg}];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done);
         });
@@ -377,21 +377,21 @@ const all_tests = (collection) => {
     });
 
     describe('Upsert', () => {
-      const request = (row) => make_request('upsert', [ row ]);
+      const request = (row) => make_request('upsert', [row]);
 
       it('unspecified version', (done) => {
         utils.stream_test(request({id: 'versionless', value: 3}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {id: 'versionless', [hz_v]: 0} ];
+          const expected = [{id: 'versionless', [hz_v]: 0}];
           assert.deepStrictEqual(res, expected);
-          check_collection([ {id: 'versionless', [hz_v]: 0, value: 3, foo: 'bar'} ], done);
+          check_collection([{id: 'versionless', [hz_v]: 0, value: 3, foo: 'bar'}], done);
         });
       });
 
       it('specified version', (done) => {
         utils.stream_test(request({id: 'versionless', value: 4, [hz_v]: 5}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {error: invalidated_msg} ];
+          const expected = [{error: invalidated_msg}];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done);
         });
@@ -399,21 +399,21 @@ const all_tests = (collection) => {
     });
 
     describe('Update', () => {
-      const request = (row) => make_request('update', [ row ]);
+      const request = (row) => make_request('update', [row]);
 
       it('unspecified version', (done) => {
         utils.stream_test(request({id: 'versionless', value: 3}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {id: 'versionless', [hz_v]: 0} ];
+          const expected = [{id: 'versionless', [hz_v]: 0}];
           assert.deepStrictEqual(res, expected);
-          check_collection([ {id: 'versionless', [hz_v]: 0, value: 3, foo: 'bar'} ], done);
+          check_collection([{id: 'versionless', [hz_v]: 0, value: 3, foo: 'bar'}], done);
         });
       });
 
       it('specified version', (done) => {
         utils.stream_test(request({id: 'versionless', value: 4, [hz_v]: 5}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {error: invalidated_msg} ];
+          const expected = [{error: invalidated_msg}];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done);
         });
@@ -421,21 +421,21 @@ const all_tests = (collection) => {
     });
 
     describe('Remove', () => {
-      const request = (row) => make_request('remove', [ row ]);
+      const request = (row) => make_request('remove', [row]);
 
       it('unspecified version', (done) => {
         utils.stream_test(request({id: 'versionless', value: 3}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {id: 'versionless'} ];
+          const expected = [{id: 'versionless'}];
           assert.deepStrictEqual(res, expected);
-          check_collection([ ], done);
+          check_collection([], done);
         });
       });
 
       it('specified version', (done) => {
         utils.stream_test(request({id: 'versionless', value: 4, [hz_v]: 5}), (err, res) => {
           assert.ifError(err);
-          const expected = [ {error: invalidated_msg} ];
+          const expected = [{error: invalidated_msg}];
           assert.deepStrictEqual(res, expected);
           check_collection(test_data, done);
         });
@@ -472,9 +472,9 @@ const all_tests = (collection) => {
       const latest_index = res.findIndex((x) => x[hz_v] === 2);
       assert(latest_index !== -1);
       res.sort(by_version);
-      assert.deepStrictEqual(res, [ {id: 0, [hz_v]: 0},
+      assert.deepStrictEqual(res, [{id: 0, [hz_v]: 0},
                                     {id: 0, [hz_v]: 1},
-                                    {id: 0, [hz_v]: 2} ]);
+                                    {id: 0, [hz_v]: 2}]);
       return writes[latest_index];
     };
 
@@ -495,14 +495,14 @@ const all_tests = (collection) => {
     };
 
     describe('Existing Row', () => {
-      const test_data = [ {id: 0, value: 0} ];
+      const test_data = [{id: 0, value: 0}];
       beforeEach('Populate collection', (done) => utils.populate_collection(collection, test_data, done));
 
       it('Store', (done) => {
         utils.stream_test(make_request('store', writes), (err, res) => {
           assert.ifError(err);
           const latest_write = check_and_get_latest_write(res);
-          check_collection([ Object.assign({[hz_v]: 2}, latest_write) ], done);
+          check_collection([Object.assign({[hz_v]: 2}, latest_write)], done);
         });
       });
 
@@ -510,7 +510,7 @@ const all_tests = (collection) => {
         utils.stream_test(make_request('replace', writes), (err, res) => {
           assert.ifError(err);
           const latest_write = check_and_get_latest_write(res);
-          check_collection([ Object.assign({[hz_v]: 2}, latest_write) ], done);
+          check_collection([Object.assign({[hz_v]: 2}, latest_write)], done);
         });
       });
 
@@ -518,7 +518,7 @@ const all_tests = (collection) => {
         utils.stream_test(make_request('upsert', writes), (err, res) => {
           assert.ifError(err);
           check_and_get_latest_write(res);
-          check_collection([ {id: 0, value: 0, a: 1, b: 2, c: 3, [hz_v]: 2} ], done);
+          check_collection([{id: 0, value: 0, a: 1, b: 2, c: 3, [hz_v]: 2}], done);
         });
       });
 
@@ -526,16 +526,16 @@ const all_tests = (collection) => {
         utils.stream_test(make_request('update', writes), (err, res) => {
           assert.ifError(err);
           check_and_get_latest_write(res);
-          check_collection([ {id: 0, value: 0, a: 1, b: 2, c: 3, [hz_v]: 2} ], done);
+          check_collection([{id: 0, value: 0, a: 1, b: 2, c: 3, [hz_v]: 2}], done);
         });
       });
 
       it('Remove', (done) => {
         utils.stream_test(make_request('remove', writes), (err, res) => {
           assert.ifError(err);
-          assert.deepStrictEqual(res.map((x) => x[hz_v]).sort(), [ undefined, undefined, undefined ]);
-          assert.deepStrictEqual(res.map((x) => x.id), [ 0, 0, 0 ]);
-          check_collection([ ], done);
+          assert.deepStrictEqual(res.map((x) => x[hz_v]).sort(), [undefined, undefined, undefined]);
+          assert.deepStrictEqual(res.map((x) => x.id), [0, 0, 0]);
+          check_collection([], done);
         });
       });
     });
@@ -545,7 +545,7 @@ const all_tests = (collection) => {
         utils.stream_test(make_request('insert', writes), (err, res) => {
           assert.ifError(err);
           const success_write = check_one_successful_write(res, 'The document already exists.');
-          check_collection([ Object.assign({[hz_v]: 0}, success_write) ], done);
+          check_collection([Object.assign({[hz_v]: 0}, success_write)], done);
         });
       });
 
@@ -553,16 +553,16 @@ const all_tests = (collection) => {
         utils.stream_test(make_request('store', writes), (err, res) => {
           assert.ifError(err);
           const latest_write = check_and_get_latest_write(res);
-          check_collection([ Object.assign({[hz_v]: 2}, latest_write) ], done);
+          check_collection([Object.assign({[hz_v]: 2}, latest_write)], done);
         });
       });
 
       it('Upsert', (done) => {
         utils.stream_test(make_request('upsert', writes), (err, res) => {
           assert.ifError(err);
-          assert.deepStrictEqual(res.map((x) => x[hz_v]).sort(), [ 0, 1, 2 ]);
-          assert.deepStrictEqual(res.map((x) => x.id), [ 0, 0, 0 ]);
-          check_collection([ {id: 0, a: 1, b: 2, c: 3, [hz_v]: 2} ], done);
+          assert.deepStrictEqual(res.map((x) => x[hz_v]).sort(), [0, 1, 2]);
+          assert.deepStrictEqual(res.map((x) => x.id), [0, 0, 0]);
+          check_collection([{id: 0, a: 1, b: 2, c: 3, [hz_v]: 2}], done);
         });
       });
     });
@@ -573,14 +573,14 @@ const all_tests = (collection) => {
     // timeout of zero, so the other rows should immediately error.
     describe('Zero Timeout', () => {
       const timeout = {timeout: 0};
-      const test_data = [ {id: 0, value: 0} ];
+      const test_data = [{id: 0, value: 0}];
       beforeEach('Populate collection', (done) => utils.populate_collection(collection, test_data, done));
 
       it('Store', (done) => {
         utils.stream_test(make_request('store', writes, timeout), (err, res) => {
           assert.ifError(err);
           const success_write = check_one_successful_write(res, 'Operation timed out.');
-          check_collection([ Object.assign({[hz_v]: 0}, success_write) ], done);
+          check_collection([Object.assign({[hz_v]: 0}, success_write)], done);
         });
       });
 
@@ -588,7 +588,7 @@ const all_tests = (collection) => {
         utils.stream_test(make_request('replace', writes, timeout), (err, res) => {
           assert.ifError(err);
           const success_write = check_one_successful_write(res, 'Operation timed out.');
-          check_collection([ Object.assign({[hz_v]: 0}, success_write) ], done);
+          check_collection([Object.assign({[hz_v]: 0}, success_write)], done);
         });
       });
 
@@ -596,7 +596,7 @@ const all_tests = (collection) => {
         utils.stream_test(make_request('upsert', writes, timeout), (err, res) => {
           assert.ifError(err);
           const success_write = check_one_successful_write(res, 'Operation timed out.');
-          check_collection([ Object.assign({[hz_v]: 0}, test_data[0], success_write) ], done);
+          check_collection([Object.assign({[hz_v]: 0}, test_data[0], success_write)], done);
         });
       });
 
@@ -604,7 +604,7 @@ const all_tests = (collection) => {
         utils.stream_test(make_request('update', writes, timeout), (err, res) => {
           assert.ifError(err);
           const success_write = check_one_successful_write(res, 'Operation timed out.');
-          check_collection([ Object.assign({[hz_v]: 0}, test_data[0], success_write) ], done);
+          check_collection([Object.assign({[hz_v]: 0}, test_data[0], success_write)], done);
         });
       });
     });

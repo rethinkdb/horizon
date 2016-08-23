@@ -38,7 +38,7 @@ class JWT {
   }
 
   verify(token) {
-    return jwt.verifyAsync(token, this.secret, {algorithms: [ this.algorithm ]})
+    return jwt.verifyAsync(token, this.secret, {algorithms: [this.algorithm]})
     .then((payload) => ({token, payload}));
   }
 }
@@ -82,16 +82,16 @@ class Auth {
   // Can't use objects in primary keys, so convert those to JSON in the db (deterministically)
   auth_key(provider, info) {
     if (info === null || Array.isArray(info) || typeof info !== 'object') {
-      return [ provider, info ];
+      return [provider, info];
     } else {
-      return [ provider, r.expr(info).toJSON() ];
+      return [provider, r.expr(info).toJSON()];
     }
   }
 
   new_user_row(id) {
     return {
       id,
-      groups: [ 'default', this._new_user_group ],
+      groups: ['default', this._new_user_group],
       [writes.version_field]: 0,
     };
   }

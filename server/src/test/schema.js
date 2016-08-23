@@ -38,7 +38,7 @@ describe('Schema', () => {
 
       it('required fields', () => {
         test_required_fields(horizon_protocol.request, valid,
-                             [ 'request_id', 'type', 'options' ]);
+                             ['request_id', 'type', 'options']);
       });
 
       it('wrong "request_id" type', () => {
@@ -57,7 +57,7 @@ describe('Schema', () => {
 
       it('wrong "options" type', () => {
         const request = Object.assign({}, valid);
-        request.options = [ 5, 6 ];
+        request.options = [5, 6];
         const error = horizon_protocol.request.validate(request).error;
         utils.check_error(error, '"options" must be an object');
       });
@@ -70,12 +70,12 @@ describe('Schema', () => {
     describe('Write', () => {
       const write_without_id = {
         collection: 'horizon',
-        data: [ {field: 4} ],
+        data: [{field: 4}],
       };
 
       const write_with_id = {
         collection: 'horizon',
-        data: [ {id: 5, field: 4} ],
+        data: [{id: 5, field: 4}],
       };
 
       // In order to reduce the number of tests, these were written assuming
@@ -105,7 +105,7 @@ describe('Schema', () => {
 
         it('required fields', () => {
           test_required_fields(horizon_protocol.insert, write_with_id,
-                               [ 'collection', 'data' ]);
+                               ['collection', 'data']);
         });
 
         it('extra field', () => {
@@ -135,14 +135,14 @@ describe('Schema', () => {
 
         it('wrong "data" member type', () => {
           const request = Object.assign({}, write_with_id);
-          request.data = [ 7 ];
+          request.data = [7];
           const error = horizon_protocol.insert.validate(request).error;
           utils.check_error(error, '"0" must be an object');
         });
 
         it('empty "data" array', () => {
           const request = Object.assign({}, write_with_id);
-          request.data = [ ];
+          request.data = [];
           const error = horizon_protocol.insert.validate(request).error;
           utils.check_error(error, '"data" must contain at least 1 items');
         });
@@ -161,7 +161,7 @@ describe('Schema', () => {
 
         it('required fields', () => {
           test_required_fields(horizon_protocol.replace, write_with_id,
-                               [ 'collection', 'data' ]);
+                               ['collection', 'data']);
         });
 
         it('extra field', () => {
@@ -191,14 +191,14 @@ describe('Schema', () => {
 
         it('wrong "data" member type', () => {
           const request = Object.assign({}, write_with_id);
-          request.data = [ 7 ];
+          request.data = [7];
           const error = horizon_protocol.replace.validate(request).error;
           utils.check_error(error, '"0" must be an object');
         });
 
         it('empty "data" array', () => {
           const request = Object.assign({}, write_with_id);
-          request.data = [ ];
+          request.data = [];
           const error = horizon_protocol.replace.validate(request).error;
           utils.check_error(error, '"data" must contain at least 1 items');
         });
@@ -224,7 +224,7 @@ describe('Schema', () => {
 
         it('required fields', () => {
           test_required_fields(horizon_protocol.query, valid,
-                               [ 'collection' ]);
+                               ['collection']);
         });
 
         it('extra field', () => {
@@ -233,7 +233,7 @@ describe('Schema', () => {
 
         it('order', () => {
           const request = Object.assign({}, valid);
-          request.order = [ [ 'id' ], 'ascending' ];
+          request.order = [['id'], 'ascending'];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -241,8 +241,8 @@ describe('Schema', () => {
 
         it('above', () => {
           const request = Object.assign({}, valid);
-          request.order = [ [ 'id' ], 'ascending' ];
-          request.above = [ {id: 10}, 'open' ];
+          request.order = [['id'], 'ascending'];
+          request.above = [{id: 10}, 'open'];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -250,8 +250,8 @@ describe('Schema', () => {
 
         it('below', () => {
           const request = Object.assign({}, valid);
-          request.order = [ [ 'id' ], 'ascending' ];
-          request.below = [ {id: 5}, 'open' ];
+          request.order = [['id'], 'ascending'];
+          request.below = [{id: 5}, 'open'];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -267,9 +267,9 @@ describe('Schema', () => {
 
         it('above and below and limit', () => {
           const request = Object.assign({}, valid);
-          request.order = [ [ 'id' ], 'ascending' ];
-          request.below = [ {id: 0}, 'closed' ];
-          request.below = [ {id: 5}, 'closed' ];
+          request.order = [['id'], 'ascending'];
+          request.below = [{id: 0}, 'closed'];
+          request.below = [{id: 5}, 'closed'];
           request.limit = 4;
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
@@ -300,23 +300,23 @@ describe('Schema', () => {
         it('wrong "order" value', () => {
           const request = Object.assign({}, valid);
           {
-            request.order = [ ];
+            request.order = [];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"order" does not contain [fields, direction]');
           } {
-            request.order = [ [ 'id' ] ];
+            request.order = [['id']];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"order" does not contain [direction]');
           } {
-            request.order = [ { }, 'ascending' ];
+            request.order = [{ }, 'ascending'];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"fields" must be an array');
           } {
-            request.order = [ [ ], 'descending' ];
+            request.order = [[], 'descending'];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"fields" must contain at least 1 item');
           } {
-            request.order = [ [ 'field' ], 'baleeted' ];
+            request.order = [['field'], 'baleeted'];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"direction" must be one of [ascending, descending]');
           }
@@ -324,7 +324,7 @@ describe('Schema', () => {
 
         it('"above" without "order"', () => {
           const request = Object.assign({}, valid);
-          request.above = [ {id: 5}, 'open' ];
+          request.above = [{id: 5}, 'open'];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -340,23 +340,23 @@ describe('Schema', () => {
         it('wrong "above" value', () => {
           const request = Object.assign({}, valid);
           {
-            request.above = [ ];
+            request.above = [];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"above" does not contain [value, bound_type]');
           } {
-            request.above = [ 1, 'closed' ];
+            request.above = [1, 'closed'];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"value" must be an object');
           } {
-            request.above = [ { }, 'open' ];
+            request.above = [{ }, 'open'];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"value" must have 1 child');
           } {
-            request.above = [ {id: 4}, 5 ];
+            request.above = [{id: 4}, 5];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"bound_type" must be a string');
           } {
-            request.above = [ {id: 3}, 'ajar' ];
+            request.above = [{id: 3}, 'ajar'];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"bound_type" must be one of [open, closed]');
           }
@@ -364,7 +364,7 @@ describe('Schema', () => {
 
         it('"below" without "order"', () => {
           const request = Object.assign({}, valid);
-          request.below = [ {id: 1}, 'open' ];
+          request.below = [{id: 1}, 'open'];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -372,7 +372,7 @@ describe('Schema', () => {
 
         it('wrong "below" type', () => {
           const request = Object.assign({}, valid);
-          request.order = [ [ 'id' ], 'ascending' ];
+          request.order = [['id'], 'ascending'];
           request.below = true;
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"below" must be an array');
@@ -380,25 +380,25 @@ describe('Schema', () => {
 
         it('wrong "below" value', () => {
           const request = Object.assign({}, valid);
-          request.order = [ [ 'id' ], 'ascending' ];
+          request.order = [['id'], 'ascending'];
           {
-            request.below = [ ];
+            request.below = [];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"below" does not contain [value, bound_type]');
           } {
-            request.below = [ 1, 'closed' ];
+            request.below = [1, 'closed'];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"value" must be an object');
           } {
-            request.below = [ { }, 'open' ];
+            request.below = [{ }, 'open'];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"value" must have 1 child');
           } {
-            request.below = [ {id: 4}, 5 ];
+            request.below = [{id: 4}, 5];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"bound_type" must be a string');
           } {
-            request.below = [ {id: 3}, 'ajar' ];
+            request.below = [{id: 3}, 'ajar'];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"bound_type" must be one of [open, closed]');
           }
@@ -439,21 +439,21 @@ describe('Schema', () => {
 
         it('order', () => {
           const request = Object.assign({}, valid);
-          request.order = [ [ 'id' ], 'ascending' ];
+          request.order = [['id'], 'ascending'];
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"order" is not allowed');
         });
 
         it('above', () => {
           const request = Object.assign({}, valid);
-          request.above = [ {id: 3}, 'open' ];
+          request.above = [{id: 3}, 'open'];
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"above" is not allowed');
         });
 
         it('below', () => {
           const request = Object.assign({}, valid);
-          request.below = [ {id: 4}, 'closed' ];
+          request.below = [{id: 4}, 'closed'];
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"below" is not allowed');
         });
@@ -476,7 +476,7 @@ describe('Schema', () => {
       describe('find_all multiple', () => {
         const valid = {
           collection: 'horizon',
-          find_all: [ {score: 2}, {score: 5, id: 0} ],
+          find_all: [{score: 2}, {score: 5, id: 0}],
         };
 
         it('valid', () => {
@@ -487,7 +487,7 @@ describe('Schema', () => {
 
         it('order', () => {
           const request = Object.assign({}, valid);
-          request.order = [ [ 'id' ], 'descending' ];
+          request.order = [['id'], 'descending'];
           const error = horizon_protocol.query.validate(request).error;
           utils.check_error(error, '"order" is not allowed');
         });
@@ -503,11 +503,11 @@ describe('Schema', () => {
         it('above', () => {
           const request = Object.assign({}, valid);
           {
-            request.above = [ {id: 3}, 'closed' ];
+            request.above = [{id: 3}, 'closed'];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"above" is not allowed');
           } {
-            request.order = [ [ 'id' ], 'ascending' ];
+            request.order = [['id'], 'ascending'];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"order" is not allowed');
           }
@@ -516,11 +516,11 @@ describe('Schema', () => {
         it('below', () => {
           const request = Object.assign({}, valid);
           {
-            request.below = [ {id: 9}, 'closed' ];
+            request.below = [{id: 9}, 'closed'];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"below" is not allowed');
           } {
-            request.order = [ [ 'id' ], 'descending' ];
+            request.order = [['id'], 'descending'];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"order" is not allowed');
           }
@@ -530,7 +530,7 @@ describe('Schema', () => {
       describe('find_all one', () => {
         const valid = {
           collection: 'horizon',
-          find_all: [ {score: 8, id: 5} ],
+          find_all: [{score: 8, id: 5}],
         };
 
         it('valid', () => {
@@ -541,7 +541,7 @@ describe('Schema', () => {
 
         it('order', () => {
           const request = Object.assign({}, valid);
-          request.order = [ [ 'id' ], 'descending' ];
+          request.order = [['id'], 'descending'];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -557,8 +557,8 @@ describe('Schema', () => {
 
         it('above', () => {
           const request = Object.assign({}, valid);
-          request.order = [ [ 'id' ], 'ascending' ];
-          request.above = [ {id: 3}, 'closed' ];
+          request.order = [['id'], 'ascending'];
+          request.above = [{id: 3}, 'closed'];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -566,8 +566,8 @@ describe('Schema', () => {
 
         it('below', () => {
           const request = Object.assign({}, valid);
-          request.order = [ [ 'id' ], 'descending' ];
-          request.below = [ {id: 9}, 'closed' ];
+          request.order = [['id'], 'descending'];
+          request.below = [{id: 9}, 'closed'];
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
           assert.deepStrictEqual(parsed.value, request);
@@ -575,9 +575,9 @@ describe('Schema', () => {
 
         it('above and below and limit', () => {
           const request = Object.assign({}, valid);
-          request.order = [ [ 'id' ], 'descending' ];
-          request.above = [ {id: 'foo'}, 'open' ];
-          request.below = [ {id: 'bar'}, 'closed' ];
+          request.order = [['id'], 'descending'];
+          request.above = [{id: 'foo'}, 'open'];
+          request.below = [{id: 'bar'}, 'closed'];
           request.limit = 59;
           const parsed = horizon_protocol.query.validate(request);
           assert.ifError(parsed.error);
@@ -594,11 +594,11 @@ describe('Schema', () => {
         it('wrong "find_all" value', () => {
           const request = Object.assign({}, valid);
           {
-            request.find_all = [ ];
+            request.find_all = [];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"find_all" must contain at least 1 items');
           } {
-            request.find_all = [ { } ];
+            request.find_all = [{ }];
             const error = horizon_protocol.query.validate(request).error;
             utils.check_error(error, '"item" must have at least 1 child');
           }

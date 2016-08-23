@@ -81,7 +81,7 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
           check(infos.length === row_data.length);
 
           // For each row to write (and info), validate it with permissions
-          const valid_rows = [ ];
+          const valid_rows = [];
           row_data.forEach((data, i) => {
             const res = validate_row(data.row, infos[i]);
 
@@ -96,14 +96,14 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
       }
     }).then(() => { // For the set of valid rows, call the write step
       if (row_data.length === 0) {
-        return [ ];
+        return [];
       }
       return do_write(row_data.map((data) => data.row)).then((res) => res.changes);
     }).then((changes) => {
       check(changes.length === row_data.length);
 
       // Remove successful writes and invalidated writes that had an initial version
-      const retry_rows = [ ];
+      const retry_rows = [];
       row_data.forEach((data, index) => {
         const res = changes[index];
         if (res.error !== undefined) {

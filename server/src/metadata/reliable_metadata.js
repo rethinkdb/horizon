@@ -9,7 +9,7 @@ const utils = require('../utils');
 const r = require('rethinkdb');
 
 const version_field = '$hz_v$';
-const metadata_version = [ 2, 0, 0 ];
+const metadata_version = [2, 0, 0];
 
 const create_collection = (db, name, conn) =>
   r.db(db).table('hz_collections').get(name).replace({id: name}).do((res) =>
@@ -25,7 +25,7 @@ const create_collection = (db, name, conn) =>
 const initialize_metadata = (db, conn) =>
   r.branch(r.dbList().contains(db), null, r.dbCreate(db)).run(conn)
     .then(() =>
-      Promise.all([ 'hz_collections', 'hz_users_auth', 'hz_groups' ].map((table) =>
+      Promise.all(['hz_collections', 'hz_users_auth', 'hz_groups'].map((table) =>
         r.branch(r.db(db).tableList().contains(table),
                  { },
                  r.db(db).tableCreate(table))
@@ -103,7 +103,7 @@ class ReliableInit extends Reliable {
     }).then(() => {
       this.check_attempt(attempt);
       logger.debug('waiting for internal tables');
-      return r.expr([ 'hz_collections', 'hz_users_auth', 'hz_groups', 'users' ])
+      return r.expr(['hz_collections', 'hz_users_auth', 'hz_groups', 'users'])
         .forEach((table) => r.db(this._db).table(table).wait({timeout: 30})).run(conn);
     }).then(() => {
       this.check_attempt(attempt);
@@ -114,7 +114,7 @@ class ReliableInit extends Reliable {
             r.branch(old_row.eq(null),
               {
                 id: 'admin',
-                groups: [ 'admin' ],
+                groups: ['admin'],
                 [version_field]: 0,
               },
               old_row),

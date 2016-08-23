@@ -56,7 +56,7 @@ class Request {
     if (this._client._permissions_enabled) {
       const metadata = this._client._metadata;
       const user_info = this._client.user_info;
-      const matching_rules = [ ];
+      const matching_rules = [];
       for (const group_name of user_info.groups) {
         const group = metadata.get_group(group_name);
         if (group !== undefined) {
@@ -69,7 +69,7 @@ class Request {
       }
       this._ruleset.update(matching_rules);
     } else {
-      this._ruleset.update([ rule.any_rule ]);
+      this._ruleset.update([rule.any_rule]);
     }
   }
 

@@ -11,7 +11,7 @@ class Table {
     this.table = reql_table;
     this.indexes = new Map();
 
-    this._waiters = [ ];
+    this._waiters = [];
     this._result = null;
 
     this.table
@@ -20,17 +20,17 @@ class Table {
       .then(() => {
         this._result = true;
         this._waiters.forEach((w) => w());
-        this._waiters = [ ];
+        this._waiters = [];
       }).catch((err) => {
         this._result = err;
         this._waiters.forEach((w) => w(err));
-        this._waiters = [ ];
+        this._waiters = [];
       });
   }
 
   close() {
     this._waiters.forEach((w) => w(new Error('collection deleted')));
-    this._waiters = [ ];
+    this._waiters = [];
 
     this.indexes.forEach((i) => i.close());
     this.indexes.clear();
@@ -64,7 +64,7 @@ class Table {
         if (old_index) {
           // Steal any waiters from the old index
           new_index._waiters = old_index._waiters;
-          old_index._waiters = [ ];
+          old_index._waiters = [];
         }
         new_index_map.set(name, new_index);
       } catch (err) {

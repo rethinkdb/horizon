@@ -22,7 +22,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           collection.table.get(new_row('id')).do((old_row) =>
             r.branch(old_row.eq(null),
                      null,
-                     [ old_row, old_row.merge(new_row) ])))
+                     [old_row, old_row.merge(new_row)])))
         .run(conn, reql_options),
     (row, info) => writes.validate_old_row_required(row, info[0], info[1], ruleset),
     (rows) => // write to database, all valid rows

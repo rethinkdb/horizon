@@ -11,17 +11,17 @@ class Collection {
     this.table = r.db(db).table(name); // This is the ReQL Table object
     this._tables = new Map(); // A Map of Horizon Table objects
     this._registered = false; // Whether the `hz_collections` table says this collection exists
-    this._waiters = [ ];
+    this._waiters = [];
   }
 
   close() {
     this._tables.forEach((table) => {
       table._waiters.forEach((w) => w(new Error('collection deleted')));
-      table._waiters = [ ];
+      table._waiters = [];
       table.close();
     });
     this._waiters.forEach((w) => w(new Error('collection deleted')));
-    this._waiters = [ ];
+    this._waiters = [];
   }
 
   _update_table(table_id, indexes, conn) {
@@ -33,12 +33,12 @@ class Collection {
       }
       table.update_indexes(indexes, conn);
       this._waiters.forEach((w) => table.on_ready(w));
-      this._waiters = [ ];
+      this._waiters = [];
     } else {
       this._tables.delete(table_id);
       if (table) {
         table._waiters.forEach((w) => this.on_ready(w));
-        table._waiters = [ ];
+        table._waiters = [];
         table.close();
       }
     }

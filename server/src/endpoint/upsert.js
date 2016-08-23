@@ -22,9 +22,9 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           r.branch(new_row.hasFields('id'),
                    collection.table.get(new_row('id')).do((old_row) =>
                      r.branch(old_row.eq(null),
-                              [ null, new_row ],
-                              [ old_row, old_row.merge(new_row) ])),
-                   [ null, new_row ]))
+                              [null, new_row],
+                              [old_row, old_row.merge(new_row)])),
+                   [null, new_row]))
         .run(conn, reql_options),
     (row, info) => writes.validate_old_row_optional(row, info[0], info[1], ruleset),
     (rows) => // write to database, all valid rows

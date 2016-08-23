@@ -33,7 +33,7 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          order: [ [ 'id' ], 'ascending' ],
+          order: [['id'], 'ascending'],
         },
       },
       (err, res) => {
@@ -67,7 +67,7 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          order: [ [ 'id' ], 'descending' ],
+          order: [['id'], 'descending'],
           limit: 4,
         },
       },
@@ -85,7 +85,7 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          above: [ {id: 5}, 'closed' ],
+          above: [{id: 5}, 'closed'],
         },
       },
       (err, res) => {
@@ -102,7 +102,7 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          below: [ {id: 5}, 'closed' ],
+          below: [{id: 5}, 'closed'],
         },
       },
       (err, res) => {
@@ -119,8 +119,8 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          above: [ {id: 5}, 'open' ],
-          below: [ {id: 7}, 'open' ],
+          above: [{id: 5}, 'open'],
+          below: [{id: 7}, 'open'],
         },
       },
       (err, res) => {
@@ -159,7 +159,7 @@ const all_tests = (collection) => {
       },
       (err, res) => {
         assert.ifError(err);
-        assert.deepStrictEqual(res, [ ]);
+        assert.deepStrictEqual(res, []);
         done();
       });
   });
@@ -171,7 +171,7 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {id: 4}, {id: 6}, {id: 9} ],
+          find_all: [{id: 4}, {id: 6}, {id: 9}],
         },
       },
       (err, res) => {
@@ -188,8 +188,8 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {id: 1} ],
-          order: [ [ 'value' ], 'descending' ],
+          find_all: [{id: 1}],
+          order: [['value'], 'descending'],
         },
       },
       (err, res) => {
@@ -206,7 +206,7 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {id: 4}, {id: 8}, {id: 2}, {id: 1} ],
+          find_all: [{id: 4}, {id: 8}, {id: 2}, {id: 1}],
           limit: 3,
         },
       },
@@ -224,8 +224,8 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {id: 4} ],
-          order: [ [ 'value' ], 'descending' ],
+          find_all: [{id: 4}],
+          order: [['value'], 'descending'],
           limit: 3,
         },
       },
@@ -243,8 +243,8 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {value: 1} ],
-          above: [ {id: 3}, 'open' ],
+          find_all: [{value: 1}],
+          above: [{id: 3}, 'open'],
         },
       },
       (err, res) => {
@@ -261,8 +261,8 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {value: 1} ],
-          below: [ {id: 5}, 'open' ],
+          find_all: [{value: 1}],
+          below: [{id: 5}, 'open'],
         },
       },
       (err, res) => {
@@ -279,9 +279,9 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {value: 1} ],
-          above: [ {id: 1}, 'closed' ],
-          below: [ {id: 9}, 'open' ],
+          find_all: [{value: 1}],
+          above: [{id: 1}, 'closed'],
+          below: [{id: 9}, 'open'],
         },
       },
       (err, res) => {
@@ -298,9 +298,9 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {value: 1} ],
-          order: [ [ 'id' ], 'ascending' ],
-          above: [ {id: 7}, 'open' ],
+          find_all: [{value: 1}],
+          order: [['id'], 'ascending'],
+          above: [{id: 7}, 'open'],
         },
       },
       (err, res) => {
@@ -317,9 +317,9 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {value: 0} ],
-          order: [ [ 'id' ], 'descending' ],
-          below: [ {id: 8}, 'open' ],
+          find_all: [{value: 0}],
+          order: [['id'], 'descending'],
+          below: [{id: 8}, 'open'],
         },
       },
       (err, res) => {
@@ -336,10 +336,10 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {value: 0} ],
-          order: [ [ 'id' ], 'descending' ],
-          above: [ {id: 3}, 'closed' ],
-          below: [ {id: 9}, 'closed' ],
+          find_all: [{value: 0}],
+          order: [['id'], 'descending'],
+          above: [{id: 3}, 'closed'],
+          below: [{id: 9}, 'closed'],
         },
       },
       (err, res) => {
@@ -358,9 +358,9 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {value: 0} ],
-          order: [ [ 'value', 'a' ], 'descending' ],
-          above: [ {b: 4}, 'closed' ],
+          find_all: [{value: 0}],
+          order: [['value', 'a'], 'descending'],
+          above: [{b: 4}, 'closed'],
         },
       },
       (err) => {
@@ -376,9 +376,9 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {value: 0} ],
-          order: [ [ 'value', 'a' ], 'descending' ],
-          above: [ {a: 4}, 'closed' ],
+          find_all: [{value: 0}],
+          order: [['value', 'a'], 'descending'],
+          above: [{a: 4}, 'closed'],
         },
       },
       (err) => {
@@ -394,9 +394,9 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {value: 0} ],
-          order: [ [ 'value', 'a' ], 'descending' ],
-          below: [ {b: 4}, 'closed' ],
+          find_all: [{value: 0}],
+          order: [['value', 'a'], 'descending'],
+          below: [{b: 4}, 'closed'],
         },
       },
       (err) => {
@@ -412,9 +412,9 @@ const all_tests = (collection) => {
         type: 'query',
         options: {
           collection,
-          find_all: [ {value: 0} ],
-          order: [ [ 'value', 'a' ], 'descending' ],
-          below: [ {a: 4}, 'closed' ],
+          find_all: [{value: 0}],
+          order: [['value', 'a'], 'descending'],
+          below: [{a: 4}, 'closed'],
         },
       },
       (err) => {

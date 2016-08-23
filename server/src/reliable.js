@@ -33,7 +33,7 @@ class Reliable {
       try {
         cbs.onReady.apply(cbs, this.ready);
       } catch (e) {
-        logger.error(`Unexpected error in reliable callback, `+
+        logger.error('Unexpected error in reliable callback, ' +
                      `event: subscribe onReady, error: ${e.stack}`);
       }
     }
@@ -62,7 +62,7 @@ class Reliable {
           event.apply(sub.cbs, args);
         }
       } catch (e) {
-        logger.error(`Unexpected error in reliable callback, `+
+        logger.error('Unexpected error in reliable callback, ' +
                      `event: ${eventType}, error: ${e.stack}`);
       }
     });
@@ -114,7 +114,7 @@ class ReliableConn extends Reliable {
   close(reason) {
     let retProm = super.close(reason);
     if (this.conn) {
-      retProm = Promise.all([ retProm, this.conn.close() ]);
+      retProm = Promise.all([retProm, this.conn.close()]);
     }
     return retProm;
   }
@@ -170,7 +170,7 @@ class ReliableChangefeed extends Reliable {
   close(reason) {
     let retProm = super.close(reason);
     if (this.cursor) {
-      retProm = Promise.all([ retProm, this.cursor.close() ]);
+      retProm = Promise.all([retProm, this.cursor.close()]);
     }
     if (this.subscription) {
       this.subscription.close();

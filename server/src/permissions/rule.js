@@ -29,7 +29,7 @@ class Ruleset {
   }
 
   clear() {
-    this._rules = [ ];
+    this._rules = [];
   }
 
   empty() {

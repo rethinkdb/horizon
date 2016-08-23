@@ -16,7 +16,7 @@ const primary_index_name = 'id';
 
 const name_to_info = (name) => {
   if (name === primary_index_name) {
-    return {geo: false, multi: false, fields: [ 'id' ]};
+    return {geo: false, multi: false, fields: ['id']};
   }
 
   const re = /^hz_(?:(geo)_)?(?:multi_([0-9])+_)?\[/;
@@ -110,7 +110,7 @@ class Index {
     this.multi = info.multi; // false or the offset of the multi field
     this.fields = info.fields; // array of fields or nested field paths
 
-    this._waiters = [ ];
+    this._waiters = [];
     this._result = null;
 
     if (this.geo) {
@@ -124,11 +124,11 @@ class Index {
         logger.debug(`${table} index ready: ${name}`);
         this._result = true;
         this._waiters.forEach((w) => w());
-        this._waiters = [ ];
+        this._waiters = [];
       }).catch((err) => {
         this._result = err;
         this._waiters.forEach((w) => w(err));
-        this._waiters = [ ];
+        this._waiters = [];
       });
     } else {
       logger.debug(`${table} index ready: ${name}`);
@@ -138,7 +138,7 @@ class Index {
 
   close() {
     this._waiters.forEach((w) => w(new Error('index deleted')));
-    this._waiters = [ ];
+    this._waiters = [];
   }
 
   ready() {

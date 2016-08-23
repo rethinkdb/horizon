@@ -138,7 +138,7 @@ class Client {
           });
         });
       } else {
-        this.user_info.groups = [ 'default' ];
+        this.user_info.groups = ['default'];
         finish_handshake();
       }
     }).catch((err) => {
