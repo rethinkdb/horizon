@@ -66,7 +66,6 @@ const serve_file = (file_path, res) => {
 
 class Server {
   constructor(http_servers, user_opts) {
-    console.log(`server constructed, rdb_host: ${opts.rdb_host}, rdb_port: ${opts.rdb_port}`);
     const opts = Joi.attempt(user_opts || { }, options_schema);
     this._path = opts.path;
     this._name = opts.project_name;
