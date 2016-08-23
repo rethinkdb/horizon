@@ -231,7 +231,6 @@ const read_from_env = () => {
 };
 
 // Handles reading configuration from the parsed flags
-//  NOTE: New flags must be manually added here or they will not apply correctly
 const read_from_flags = (parsed) => {
   const config = { auth: { } };
 
@@ -253,77 +252,26 @@ const read_from_flags = (parsed) => {
     }
   }
 
-  if (parsed.project_name !== null && parsed.project_name !== undefined) {
-    config.project_name = parsed.project_name;
-  }
-
-  if (parsed.project_path !== null && parsed.project_path !== undefined) {
-    config.project_path = parsed.project_path;
-  }
-
-  // Normalize RethinkDB connection options
-  if (parsed.connect !== null && parsed.connect !== undefined) {
-    parse_connect(parsed.connect, config);
-  }
-
-  // Simple 'yes' or 'no' (or 'true' or 'false') flags
-  yes_no_options.forEach((key) => {
-    const value = parse_yes_no_option(parsed[key], key);
-    if (value !== undefined) {
-      config[key] = value;
+  for (const key in parsed) {
+    if (key === 'auth' && parsed.auth != null) {
+      // Auth options
+      parsed.auth.forEach((auth_options) => {
+        const params = auth_options.split(',');
+        if (params.length !== 3) {
+          throw new Error(`Expected --auth PROVIDER,ID,SECRET, but found "${auth_options}"`);
+        }
+        config.auth[params[0]] = { id: params[1], secret: params[2] };
+      });
+    } else if (key === 'connect' && parsed.connect != null) {
+      // Normalize RethinkDB connection options
+      parse_connect(parsed.connect, config);
+    } else if (yes_no_options.indexOf(key) !== -1 && parsed[key] != null) {
+      // Simple 'yes' or 'no' (or 'true' or 'false') flags
+      config[key] = parse_yes_no_option(parsed[key], key);
+    } else if (parsed[key] != null) {
+      config[key] = parsed[key];
     }
-  });
-
-  if (parsed.serve_static !== null && parsed.serve_static !== undefined) {
-    config.serve_static = parsed.serve_static;
   }
-
-  if (parsed.schema_file !== null && parsed.schema_file !== undefined) {
-    config.schema_file = parsed.schema_file;
-  }
-
-  // Normalize horizon socket options
-  if (parsed.port !== null && parsed.port !== undefined) {
-    config.port = parsed.port;
-  }
-  if (parsed.bind !== null && parsed.bind !== undefined) {
-    config.bind = parsed.bind;
-  }
-
-  if (parsed.rdb_timeout !== null && parsed.rdb_timeout !== undefined) {
-    config.rdb_timeout = parsed.rdb_timeout;
-  }
-
-  if (parsed.rdb_user !== null && parsed.rdb_user !== undefined) {
-    config.rdb_user = parsed.rdb_user;
-  }
-
-  if (parsed.rdb_password !== null && parsed.rdb_password !== undefined) {
-    config.rdb_password = parsed.rdb_password;
-  }
-
-  if (parsed.token_secret !== null && parsed.token_secret !== undefined) {
-    config.token_secret = parsed.token_secret;
-  }
-
-  if (parsed.access_control_allow_origin !== null &&
-      parsed.access_control_allow_origin !== undefined) {
-    config.access_control_allow_origin = parsed.access_control_allow_origin;
-  }
-
-  // Auth options
-  if (parsed.auth !== null && parsed.auth !== undefined) {
-    parsed.auth.forEach((auth_options) => {
-      const params = auth_options.split(',');
-      if (params.length !== 3) {
-        throw new Error(`Expected --auth PROVIDER,ID,SECRET, but found "${auth_options}"`);
-      }
-      config.auth[params[0]] = { id: params[1], secret: params[2] };
-    });
-  }
-
-  // Set open config from flag
-  config.open = parsed.open;
 
   return config;
 };
