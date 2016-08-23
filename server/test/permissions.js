@@ -147,6 +147,7 @@ describe('Permissions', () => {
       assert(!rule.is_match(make_request('query', 'test', { find_all: [ { bar: 'baz' } ] }), context));
       assert(!rule.is_match(make_request('query', 'test', { find_all: [ { owner: (context.id + 1) } ] }), context));
       assert(!rule.is_match(make_request('query', 'test', { find_all: [ { owner: context.id, bar: 'baz' } ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { find_all: [ { owner: context.id }, { other: context.id } ] }), context));
       assert(rule.is_match(make_request('query', 'test', { find_all: [ { owner: context.id } ] }), context));
     });
 
@@ -160,6 +161,22 @@ describe('Permissions', () => {
       assert(!rule.is_match(make_request('query', 'test', { find_all: [ { owner: (context.id + 1) } ] }), context));
       assert(!rule.is_match(make_request('query', 'test', { find_all: [ { owner: context.id, bar: 'baz' } ] }), context));
       assert(rule.is_match(make_request('query', 'test', { find_all: [ { owner: context.id, key: 3 } ] }), context));
+    });
+
+    it('multiple items in findAll', () => {
+      const rule = new Rule('foo', { template: 'collection("test").findAll({ a: userId() }, { b: userId() })' });
+      assert(rule.is_valid());
+      assert(!rule.is_match(make_request('query', 'test', { find_all: { } }), context));
+      assert(!rule.is_match(make_request('query', 'test', { find_all: true }), context));
+      assert(!rule.is_match(make_request('query', 'test', { find_all: [ ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { find_all: [ { bar: 'baz' } ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { find_all: [ { a: (context.id + 1) }, { b: context.id } ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { find_all: [ { a: context.id, bar: 'baz' } ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { find_all: [ { a: context.id, b: context.id } ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { find_all: [ { a: context.id } ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { find_all: [ { b: context.id } ] }), context));
+      assert(!rule.is_match(make_request('query', 'test', { find_all: [ { a: context.id }, { b: context.id, bar: 'baz' } ] }), context));
+      assert(rule.is_match(make_request('query', 'test', { find_all: [ { a: context.id }, { b: context.id } ] }), context));
     });
 
     it('collection fetch', () => {
