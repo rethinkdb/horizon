@@ -16,7 +16,7 @@ const primary_index_name = 'id';
 
 const name_to_info = (name) => {
   if (name === primary_index_name) {
-    return { geo: false, multi: false, fields: [ 'id' ] };
+    return { geo: false, multi: false, fields: [ [ 'id' ] ] };
   }
 
   const re = /^hz_(?:(geo)_)?(?:multi_([0-9])+_)?\[/;
