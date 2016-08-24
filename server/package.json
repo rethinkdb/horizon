@@ -5,7 +5,7 @@
   "main": "src/horizon.js",
   "scripts": {
     "lint": "eslint src test",
-    "test": "mocha test/test.js test/schema.js test/permissions.js --timeout 10000",
+    "test": "mocha test/test.js test/schema.js --timeout 10000",
     "coverage": "istanbul cover _mocha test/test.js"
   },
   "repository": {

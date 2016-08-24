@@ -1,7 +1,7 @@
 'use strict';
 
 const Auth = require('./auth').Auth;
-const Client = require('./client').Client;
+const make_client = require('./client').make_client;
 const ReqlConnection = require('./reql_connection').ReqlConnection;
 const logger = require('./logger');
 const options_schema = require('./schema/server_options').server;
@@ -110,7 +110,7 @@ class Server {
       const add_websocket = (server) => {
         const ws_server = new websocket.Server(Object.assign({ server }, ws_options))
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
-        .on('connection', (socket) => new Client(socket, this));
+        .on('connection', (socket) => make_client(socket, this));
 
         this._ws_servers.push(ws_server);
       };

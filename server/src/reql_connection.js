@@ -123,6 +123,7 @@ class ReqlConnection {
 
   metadata() {
     check(this.is_ready(), 'Connection to the database is down.');
+    check(this._metadata, 'Connection to the database is initializing.');
     return this._metadata;
   }
 }

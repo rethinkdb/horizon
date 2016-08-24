@@ -8,17 +8,15 @@ const Joi = require('joi');
 const websocket = require('ws');
 
 class Client {
-  constructor(socket, server) {
+  constructor(socket, server, metadata) {
     logger.debug('Client connection established.');
     this._socket = socket;
     this._server = server;
     this._auth = this._server._auth;
     this._permissions_enabled = this._server._permissions_enabled;
-    this._metadata = this._server._reql_conn.metadata();
+    this._metadata = metadata;
     this._requests = new Map();
     this.user_info = { };
-
-    this._server._reql_conn._clients.add(this);
 
     this._socket.on('close', (code, msg) =>
       this.handle_websocket_close(code, msg));
@@ -29,10 +27,6 @@ class Client {
     // The first message should always be the handshake
     this._socket.once('message', (data) =>
       this.error_wrap_socket(() => this.handle_handshake(data)));
-
-    if (!this._metadata.is_ready()) {
-      this.close({ error: 'No connection to the database.' });
-    }
   }
 
   handle_websocket_close() {
@@ -103,7 +97,7 @@ class Client {
     }
 
     let responded = false;
-    this._server._auth.handshake(request).then((res) => {
+    this._auth.handshake(request).then((res) => {
       const finish_handshake = () => {
         if (!responded) {
           responded = true;
@@ -210,4 +204,15 @@ class Client {
   }
 }
 
-module.exports = { Client };
+const make_client = (socket, server) => {
+  try {
+    const metadata = server._reql_conn.metadata();
+    const client = new Client(socket, server, metadata);
+    server._reql_conn._clients.add(client);
+  } catch (err) {
+    logger.debug(`Rejecting client connection because of error: ${err.message}`);
+    socket.close(1002, err.message.substr(0, 64));
+  }
+};
+
+module.exports = { make_client };
