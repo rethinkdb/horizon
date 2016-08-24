@@ -1,6 +1,6 @@
 {
   "name": "@horizon/client",
-  "version": "2.0.0-beta-6",
+  "version": "2.0.0-beta-7",
   "description": "RethinkDB Horizon is an open-source developer platform for building realtime, scalable web apps.",
   "scripts": {
     "coverage": "cross-env NODE_ENV=test nyc mocha test/test.js",
@@ -53,6 +53,7 @@
     "webpack": "^1.12.14"
   },
   "main": "lib/index.js",
+  "jsmain:next": "src/index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/rethinkdb/horizon.git"

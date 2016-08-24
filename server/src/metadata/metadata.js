@@ -122,10 +122,8 @@ class Metadata {
                   this._clients.forEach((c) => c.group_changed(group.name));
                 } else if (change.type === 'uninitial' ||
                            change.type === 'remove') {
-                  const group = this._groups.delete(change.old_val.id);
-                  if (group) {
-                    this._clients.forEach((c) => c.group_changed(group.name));
-                  }
+                  this._groups.delete(change.old_val.id);
+                  this._clients.forEach((c) => c.group_changed(change.old_val.id));
                 }
               }).catch(reject);
             });
