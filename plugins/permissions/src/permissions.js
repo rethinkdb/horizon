@@ -1,5 +1,9 @@
 'use strict';
 
+// We can be desynced from the database for up to 5 seconds before we
+// start rejecting queries.
+const staleLimit = 5000;
+
 // auth plugins should set 'request.context.user'
 // token/anonymous: this should be the user id
 // unauthenticated: this should be null, and will use the default rules
@@ -15,6 +19,7 @@ addToMapSet(map, name, el) {
   set.add(el);
 }
 
+// Returns whether or not it deleted an empty set from the map.
 delFromMapSet(map, name, el) {
   let set = map.get(name);
   assert(set, `delFromMapSet: ${name} not in map`);
@@ -22,13 +27,16 @@ delFromMapSet(map, name, el) {
   set.delete(el);
   if (set.size === 0) {
     map.delete(name);
+    return true;
   }
+  return false;
 }
 
 getMapSet(map, name) {
   return map.get(name) || new Set();
 }
 
+const emptyRulesetSymbol = Symbol();
 class RuleMap {
   constructor() {
     this.groupToRulenames = new Map();
@@ -36,8 +44,19 @@ class RuleMap {
     this.groupToUsers = new Map();
 
     this.userToRulenames = new Map(); // computed
-    // RSI: pick up here, update this in the functions below.
-    this.userToTimestamps = new Map(); // updated when user's rules change
+    this.userToRulesetSymbol = new Map(); // updated when user's rules change
+  }
+
+  getUserRulesetSymbol(user) {
+    return this.userToRulesetSymbol.get(user) || emptyRulesetSymbol;
+  }
+
+  forEachUserRule(user, cb) {
+    this.userToRulenames.forEach((rn) => {
+      const rule = this.RulenameToRule.get(rn);
+      assert(rule);
+      cb(rule);
+    });
   }
 
   addUserGroup(user, group) {
@@ -45,13 +64,21 @@ class RuleMap {
     getMapSet(this.groupToRulenames, group).forEach((rn) => {
       addToMapSet(this.userToRulenames, user, rn);
     });
+    this.userToRulesetSymbol.set(user, Symbol());
   }
 
   delUserGroup(user, group) {
     delFromMapSet(this.groupToUsers, group, user);
+    let clearRuleset = false;
     getMapSet(this.groupToRulenames, group).forEach((rn) => {
-      delFromMapSet(this.userToRulenames, user, rn);
+      const deletedEmptySet = delFromMapSet(this.userToRulenames, user, rn);
+      if (deletedEmptySet) { clearRuleset = true; }
     });
+    if (clearRuleset) {
+      this.userToRulesetSymbol.delete(user);
+    } else {
+      this.userToRulesetSymbol.set(user, Symbol());
+    }
   }
 
   addGroupRule(group, ruleName, rule) {
@@ -59,6 +86,7 @@ class RuleMap {
     addToMapSet(this.groupToRulenames, group, ruleName);
     getMapSet(this.groupToUsers, group).forEach((user) => {
       addToMapSet(this.userToRulenames, user, ruleName);
+      this.userToRulesetSymbol.set(user, Symbol());
     });
   }
 
@@ -67,7 +95,12 @@ class RuleMap {
     this.rulenameToRule.delete(ruleName);
     delFromMapSet(this.groupToRulenames, group, ruleName);
     getMapSet(this.groupToUsers, group).forEach((user) => {
-      delFromMapSet(this.userToRulenames, user, ruleName);
+      const deletedEmptySet = delFromMapSet(this.userToRulenames, user, ruleName);
+      if (deletedEmptySet) {
+        this.userToRulesetSymbol.delete(user);
+      } else {
+        this.userToRulesetSymbol.set(user, Symbol());
+      }
     });
   }
 
@@ -76,6 +109,7 @@ class RuleMap {
     this.groupToRulenames.clear();
     this.RulenameToRule.clear();
     this.userToRulenames.clear();
+    this.userToRulesetSymbol.clear();
   }
 }
 
@@ -175,12 +209,43 @@ class UserCache {
     }
 
     return {
-      getValidatePromise(req) {
+      getValidatePromise: (req) => {
         return cfeed.readyPromise.then(() => {
-          return (...args) => 
+          let rulesetSymbol = Symbol();
+          let ruleset = [];
+          return (...args) => {
+            const userStale = cfeed.unreadyAt;
+            const groupsStale = this.groupsUnreadyAt;
+            if (userStale || groupsStale) {
+              let staleSince = null
+              const curTime = Number(new Date());
+              if (userStale && (curTime - Number(userStale) > staleLimit)) {
+                staleSince = userStale;
+              }
+              if (groupsStale && (curTime - Number(groupsStale) > staleLimit)) {
+                if (!staleSince || Number(groupsStale) < Number(staleSince)) {
+                  staleSince = groupsStale;
+                }
+              }
+              if (staleSince) {
+                throw new Error(`permissions desynced since ${staleSince}`);
+              }
+            }
+            const curSymbol = this.ruleMap.getUserRulesetSymbol(userId);
+            if (curSymbol !== rulesetSymbol) {
+              rulesetSymbol = curSymbol;
+              ruleset = [];
+              this.ruleMap.forEachUserRule(userId, (rule) => {
+                if (rule.isMatch(req.options)) {
+                  ruleset.push(rule);
+                }
+              });
+            }
+            // RSI: pick up here, call validator functions.
+          };
         });
       },
-      close() {
+      close: () => {
 
       },
     };
