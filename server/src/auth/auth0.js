@@ -14,6 +14,7 @@ const options_schema = Joi.object().keys({
   id: Joi.string().required(),
   secret: Joi.string().required(),
   host: Joi.string().required(),
+  rethinkdb_uri: Joi.string().required(),
 }).unknown(false);
 
 function auth0(horizon, raw_options) {
