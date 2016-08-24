@@ -19,6 +19,8 @@ import checkArgs from './util/check-args'
 import validIndexValue from './util/valid-index-value.js'
 import { serialize } from './serialization.js'
 
+import watchRewrites from './hacks/watch-rewrites'
+
 
 /**
  @this TermBase
@@ -76,7 +78,8 @@ export class TermBase {
   // returned which will lazily emit the query when it is subscribed
   // to
   watch({ rawChanges = false } = {}) {
-    const raw = this._sendRequest('subscribe', this._query)
+    const query = watchRewrites(this, this._query)
+    const raw = this._sendRequest('subscribe', query)
     if (rawChanges) {
       return raw
     } else {
