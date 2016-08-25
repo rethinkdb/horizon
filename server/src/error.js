@@ -1,10 +1,6 @@
 'use strict';
 
-const check = (pred, message) => {
-  if (!pred) {
-    throw new Error(message);
-  }
-};
+const assert = require('assert');
 
 const fail = (message) => check(false, message);
 
@@ -39,7 +35,6 @@ class CollectionNotReady extends Error {
 }
 
 module.exports = {
-  check,
   fail,
   IndexMissing,
   IndexNotReady,

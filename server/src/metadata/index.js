@@ -1,6 +1,6 @@
 'use strict';
 
-const check = require('../error').check;
+const assert = require('assert');
 const logger = require('../logger');
 
 // Index names are of the format "hz_[<flags>_]<JSON>" where <flags> may be

@@ -6,6 +6,8 @@ const logger = require('../logger');
 const Collection = require('./collection').Collection;
 const utils = require('../utils');
 
+const assert = require('assert');
+
 const r = require('rethinkdb');
 
 const version_field = '$hz_v$';
@@ -333,7 +335,7 @@ class ReliableMetadata extends Reliable {
     this._collections.set(name, collection);
 
     create_collection(this._db, name, this._reliable_conn.connection()).then((res) => {
-      error.check(!res.error, `Collection "${name}" creation failed: ${res.error}`);
+      assert(!res.error, `Collection "${name}" creation failed: ${res.error}`);
       logger.warn(`Collection created: "${name}"`);
       collection._on_ready(done);
     }).catch((err) => {
