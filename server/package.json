@@ -2,7 +2,7 @@
   "name": "@horizon/server",
   "version": "2.0.0-beta-5",
   "description": "Server for RethinkDB Horizon, an open-source developer platform for building realtime, scalable web apps.",
-  "main": "dist/horizon.js",
+  "main": "dist/index.js",
   "scripts": {
     "lint": "eslint src test",
     "test": "mocha dist/test --timeout 10000",
