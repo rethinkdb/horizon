@@ -123,10 +123,6 @@ const parseArguments = (args) => {
       '--allow-anonymous=yes ' +
       'and --serve-static=./dist.' });
 
-  parser.addArgument([ '--config' ],
-    { type: 'string', metavar: 'PATH',
-      help: 'Path to the config file to use, defaults to "${config.default_config_file}".' });
-
   parser.addArgument([ '--schema-file' ],
     { type: 'string', metavar: 'SCHEMA_FILE_PATH',
       help: 'Path to the schema file to use, ' +
@@ -267,10 +263,10 @@ const processConfig = (parsed) => {
   options = config.default_options();
 
   options = config.merge_options(options,
-    config.read_from_config_file(parsed.project_path, parsed.config));
+    config.read_from_config_file(parsed.project_path));
 
   options = config.merge_options(options,
-    config.read_from_secrets_file(parsed.project_path, parsed.config));
+    config.read_from_secrets_file(parsed.project_path));
 
   options = config.merge_options(options, config.read_from_env());
 

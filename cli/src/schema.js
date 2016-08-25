@@ -65,10 +65,6 @@ const parseArguments = (args) => {
       { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
         help: 'Start up a RethinkDB server in the current directory' });
 
-    subcmd.addArgument([ '--config' ],
-      { type: 'string', metavar: 'PATH',
-        help: 'Path to the config file to use, defaults to ".hz/config.toml".' });
-
     subcmd.addArgument([ '--debug' ],
       { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
         help: 'Enable debug logging.' });
@@ -189,7 +185,7 @@ const processApplyConfig = (parsed) => {
 
   options = config.default_options();
   options = config.merge_options(options,
-    config.read_from_config_file(parsed.project_path, parsed.config));
+    config.read_from_config_file(parsed.project_path));
   options = config.merge_options(options, config.read_from_env());
   options = config.merge_options(options, config.read_from_flags(parsed));
 
@@ -224,7 +220,7 @@ const processSaveConfig = (parsed) => {
   options.start_rethinkdb = true;
 
   options = config.merge_options(options,
-    config.read_from_config_file(parsed.project_path, parsed.config));
+    config.read_from_config_file(parsed.project_path));
   options = config.merge_options(options, config.read_from_env());
   options = config.merge_options(options, config.read_from_flags(parsed));
 

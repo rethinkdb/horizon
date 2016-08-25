@@ -15,11 +15,6 @@ const parseArguments = (args) => {
   const parser = new argparse.ArgumentParser({ prog: 'hz make-token' });
 
   parser.addArgument(
-    [ '--config' ],
-    { type: 'string', metavar: 'PATH',
-      help: 'Path to the config file to use, defaults to ".hz/config.toml".' });
-
-  parser.addArgument(
     [ '--token-secret' ],
     { type: 'string', metavar: 'SECRET',
       help: 'Secret key for signing the token.' });
@@ -38,9 +33,9 @@ const processConfig = (parsed) => {
   options = config.default_options();
 
   options = config.merge_options(
-    options, config.read_from_config_file(parsed.project_path, parsed.config));
+    options, config.read_from_config_file(parsed.project_path));
   options = config.merge_options(
-    options, config.read_from_secrets_file(parsed.project_path, parsed.config));
+    options, config.read_from_secrets_file(parsed.project_path));
   options = config.merge_options(options, config.read_from_env());
   options = config.merge_options(options, config.read_from_flags(parsed));
 
