@@ -26,8 +26,7 @@ function handleProtocols(protocols, cb) {
 class Server extends EventEmitter {
   constructor(http_servers, user_opts) {
     super();
-    const opts = Joi.attempt(user_opts || { }, optionsSchema);
-    this._original_user_opts = user_opts;
+    this.options = Joi.attempt(user_opts || { }, optionsSchema);
     this._auth_methods = { };
     this._request_handlers = new Map();
     this._ws_servers = [];
@@ -47,18 +46,9 @@ class Server extends EventEmitter {
       timeout: opts.rdb_timeout || null,
     });
     this._clients = new Set();
-    this._clientEvents = new EventEmitter();
 
-    // server context passed to plugins when activated
-    this._pluginContext = {
-      r,
-      opts,
-      logger,
-      ReliableChangefeed,
-      auth: this._auth,
-      clientEvents: this._clientEvents,
-      reliableConn: this._reliableConn,
-    };
+    this.r = r;
+    this.logger = logger;
 
     // TODO: consider emitting errors sometimes.
     this._reliableMetadata = new ReliableMetadata(
@@ -102,13 +92,16 @@ class Server extends EventEmitter {
             }
 
             const client = new ClientConnection(
-              socket, this._auth, this._middlewareCb, this._clientEvents
+              socket,
+              this._auth,
+              this._middlewareCb,
+              this // Used to emit a client auth event
             );
             this._clients.add(client);
-            this._clientEvents.emit('connect', client.context());
+            this.emit('connect', client.context());
             socket.on('close', () => {
               this._clients.delete(client);
-              this._clientEvents.emit('disconnect', client.context());
+              this.emit('disconnect', client.context());
             });
           } catch (err) {
             logger.error(`Failed to construct client: ${err}`);
@@ -128,8 +121,8 @@ class Server extends EventEmitter {
     }
   }
 
-  context() {
-    return this._pluginContext;
+  auth() {
+    return this._auth;
   }
 
   metadata() {
