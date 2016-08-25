@@ -17,7 +17,7 @@ class ClientConnection {
     this.auth = auth;
     this.middlewareCb = middlewareCb;
     this.clientEvents = clientEvents;
-    this.context = { };
+    this._context = { };
 
     this.responses = new Map();
 
@@ -33,7 +33,7 @@ class ClientConnection {
   }
 
   context() {
-    return this.context;
+    return this._context;
   }
 
   handle_websocket_close() {
@@ -96,7 +96,7 @@ class ClientConnection {
     }
 
     this.auth.handshake(request).then((res) => {
-      this.context.user = res.payload;
+      this._context.user = res.payload;
       const info = {
         token: res.token,
         id: res.payload.id,
@@ -105,7 +105,7 @@ class ClientConnection {
       this.send_message(request, info);
       this.socket.on('message', (msg) =>
         this.error_wrap_socket(() => this.handle_request(msg)));
-      this.clientEvents.emit('auth', this.context);
+      this.clientEvents.emit('auth', this._context);
     }).catch((err) => {
       this.close({request_id: request.request_id, error: `${err}`, error_code: 0});
     });

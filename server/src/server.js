@@ -35,15 +35,15 @@ class Server extends EventEmitter {
       next(new Error('No middleware to handle the request.'));
     };
     this._middlewareCb = this._defaultMiddlewareCb;
-    this._auth = new Auth(this, opts.auth);
+    this._auth = new Auth(this, this.options.auth);
 
     this._reliableConn = new ReliableConn({
-      host: opts.rdb_host,
-      port: opts.rdb_port,
-      db: opts.project_name,
-      user: opts.rdb_user || 'admin',
-      password: opts.rdb_password || '',
-      timeout: opts.rdb_timeout || null,
+      host: this.options.rdb_host,
+      port: this.options.rdb_port,
+      db: this.options.project_name,
+      user: this.options.rdb_user || 'admin',
+      password: this.options.rdb_password || '',
+      timeout: this.options.rdb_timeout || null,
     });
     this._clients = new Set();
 
@@ -52,11 +52,11 @@ class Server extends EventEmitter {
 
     // TODO: consider emitting errors sometimes.
     this._reliableMetadata = new ReliableMetadata(
-      opts.project_name,
+      this.options.project_name,
       this._reliableConn,
       this._clients,
-      opts.auto_create_collection,
-      opts.auto_create_index);
+      this.options.auto_create_collection,
+      this.options.auto_create_index);
 
     this._clear_clients_subscription = this._reliableMetadata.subscribe({
       onReady: () => {
@@ -79,7 +79,7 @@ class Server extends EventEmitter {
       }
     };
 
-    const ws_options = {handleProtocols, verifyClient, path: opts.path};
+    const ws_options = {handleProtocols, verifyClient, path: this.options.path};
 
     // RSI: only become ready when this and metadata are both ready.
     const add_websocket = (server) => {
