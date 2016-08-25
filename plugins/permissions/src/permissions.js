@@ -290,7 +290,16 @@ class UserCache {
 
 // RSI: remove the extra level of function calling.
 module.exports = (config) => {
-  const name = config.name || 'permissions';
+  config = config || { };
+  // RSI: better default handling, use Joi?
+  if (config.cacheTimeout === undefined) {
+    config.cacheTimeout = 5000;
+  }
+  config.name = config.name || 'permissions';
+  config.usersTable = config.usersTable || 'hz_users';
+  config.groupsTable = config.groupsTable || 'hz_groups';
+
+  const name = config.name;
   const userCache = Symbol(`${name}_userCache`);
   const userSub = Symbol(`${name}_userSub`);
   return {

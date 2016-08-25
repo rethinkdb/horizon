@@ -21,6 +21,7 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
+    "toposort-class": "^1.0.1"
   },
   "devDependencies": {
     "eslint": "^2.3.0",

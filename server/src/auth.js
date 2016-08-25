@@ -98,28 +98,35 @@ class Auth {
 
   // TODO: maybe we should write something into the user data to track open sessions/tokens
   generate(provider, info) {
-    const key = this.auth_key(provider, info);
-    const db = r.db(this._parent._reql_conn.metadata()._db);
+    return Promise.resolve().then(() => {
+      const conn = this._parent.conn().connection();
+      if (!conn) {
+        throw new Error('No connection with the database.');
+      }
 
-    const insert = (table, row) =>
-      db.table(table)
-        .insert(row, {conflict: 'error', returnChanges: 'always'})
-        .bracket('changes')(0)('new_val');
+      const key = this.auth_key(provider, info);
+      const db = r.db(this._parent.options.project_name);
 
-    let query = db.table('users')
-                  .get(db.table('hz_users_auth').get(key)('user_id'))
-                  .default(r.error('User not found and new user creation is disabled.'));
+      const insert = (table, row) =>
+        db.table(table)
+          .insert(row, {conflict: 'error', returnChanges: 'always'})
+          .bracket('changes')(0)('new_val');
 
-    if (this._create_new_users) {
-      query = insert('hz_users_auth', {id: key, user_id: r.uuid()})
-        .do((auth_user) => insert('users', this.new_user_row(auth_user('user_id'))));
-    }
+      let query = db.table('users')
+                    .get(db.table('hz_users_auth').get(key)('user_id'))
+                    .default(r.error('User not found and new user creation is disabled.'));
 
-    return query.run(this._parent._reql_conn.connection()).catch((err) => {
-      // TODO: if we got a `Duplicate primary key` error, it was likely a race condition
-      // and we should succeed if we try again.
-      logger.debug(`Failed user lookup or creation: ${err}`);
-      throw new Error('User lookup or creation in database failed.');
+      if (this._create_new_users) {
+        query = insert('hz_users_auth', {id: key, user_id: r.uuid()})
+          .do((auth_user) => insert('users', this.new_user_row(auth_user('user_id'))));
+      }
+
+      return query.run(conn).catch((err) => {
+        // TODO: if we got a `Duplicate primary key` error, it was likely a race condition
+        // and we should succeed if we try again.
+        logger.debug(`Failed user lookup or creation: ${err}`);
+        throw new Error('User lookup or creation in database failed.');
+      });
     }).then((user) =>
       this._jwt.sign({id: user.id, provider}));
   }

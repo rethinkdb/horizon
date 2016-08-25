@@ -38,7 +38,7 @@ class ClientConnection {
 
   handle_websocket_close() {
     logger.debug('ClientConnection closed.');
-    this.responses.forEach((response) => response.close());
+    this.responses.forEach((response) => response.end());
     this.responses.clear();
   }
 
@@ -126,16 +126,17 @@ class ClientConnection {
 
     const response = new Response((obj) => this.send_message(raw_request, obj));
     this.responses.set(raw_request.request_id, response);
-    this.middlewareCb(raw_request, response);
+    response.complete.then(() => this.remove_request(raw_request.request_id));
+
+    this.middlewareCb(raw_request, response, (err) =>
+      response.end(err || new Error(`Request ran past the end of the middleware stack.`)));
   }
 
 
   remove_response(request_id) {
     const response = this.responses.get(request_id);
     this.responses.delete(request_id);
-    if (response) {
-      response.close();
-    }
+    response.end();
   }
 
   is_open() {

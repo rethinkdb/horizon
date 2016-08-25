@@ -111,6 +111,10 @@ class ReliableConn extends Reliable {
     });
   }
 
+  connection() {
+    return this.ready ? this.conn : null;
+  }
+
   close(reason) {
     let retProm = super.close(reason);
     if (this.conn) {

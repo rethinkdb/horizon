@@ -1,5 +1,7 @@
 'use strict';
 
+const Toposort = require('toposort-class');
+
 class PluginRouter {
   constructor(server) {
     this.server = server;
@@ -13,13 +15,12 @@ class PluginRouter {
       return Promise.reject(
         new Error(`Plugin conflict: "${plugin.name}" already present.`));
     }
-    const activePlugin = Promise.resolve(this.server.ctx()).then(plugin.activate);
+    const activePlugin = Promise.resolve(this.server).then(plugin.activate);
     this.plugins[plugin.name] = activePlugin.then((active) => {
       if (this.httpRoutes[plugin.name]) {
         throw new Error(`Plugin conflict: "${plugin.name}" already present.`);
       }
-      // RSI: validate method name is a legal identifier and doesn't
-      // conflict with our methods.
+
       for (const m in active.methods) {
         if (this.methods[m]) {
           throw new Error(`Method name conflict: "${m}"`);
@@ -29,7 +30,7 @@ class PluginRouter {
       this.httpRoutes[plugin.name] = active;
       for (const m in active.methods) {
         this.methods[m] = active.methods[m];
-        this._requiresOrdering = null;
+        this._requirementsOrdering = null;
       }
     });
     return this.plugins[plugin.name];
@@ -42,7 +43,7 @@ class PluginRouter {
     return this.plugins[plugin.name].then((active) => {
       for (const m in active.methods) {
         delete this.methods[m];
-        this._requiresOrdering = null;
+        this._requirementsOrdering = null;
       }
       if (plugin.deactivate) {
         plugin.deactivate(reason || 'Removed from PluginRouter.');
@@ -50,53 +51,28 @@ class PluginRouter {
     });
   }
 
-  requiresOrdering() {
-    if (!this._requiresOrdering) {
-      this._requiresOrdering = {};
+  requirementsOrdering() {
+    // RSI: move dependencies and topological sorting into the server
+    if (!this._requirementsOrdering) {
+      this._requirementsOrdering = {};
 
-      // RSI: use tsort instead of doing this ourselves like mega chumps.
-      const graph = {};
+      const topo = new Toposort();
       for (const m in this.methods) {
-        if (!graph[m]) {
-          graph[m] = {name: m, inDegree: 0, children: {}};
-        }
-        if (this.methods[m].requires) {
-          for (const r in this.methods[m].requires) {
-            graph[m].inDegree += 1;
-            if (!graph[r]) {
-              // RSI: assert that `r` is in `this.methods`.
-              graph[r] = {name: m, inDegree: 0, children: {}};
+        const reqs = this.methods[m].requires;
+        if (reqs) {
+          topo.add(m, reqs);
+          for (const r of reqs) {
+            if (!this.methods[r]) {
+              throw new Error(
+                `Missing method "${r}", which is required by method "${m}".`);
             }
-            graph[r].children[m] = true;
           }
         }
       }
 
-      const order = [];
-      const heap = new Heap((a, b) => a.inDegree - b.inDegree);
-      for (const g in graph) {
-        heap.push(graph[g]);
-      }
-      while (heap.size() > 0) {
-        const minItem = heap.pop();
-        if (minItem.inDegree !== 0) {
-          // ERROR: cycle (!!!)
-        }
-        for (const c in minItem.children) {
-          if (graph[c].inDegree <= 0) {
-            // ERROR: algorithm mistake
-          }
-          graph[c].inDegree -= 1;
-          heap.updateItem(graph[c]);
-        }
-        order.push(minItem.name);
-      }
-
-      for (const i in order) {
-        this._requiresOrdering[order[i]] = i;
-      }
+      this._requirementsOrdering = topo.sort().reverse();
     }
-    return this._requiresOrdering;
+    return this._requirementsOrdering;
   }
 
   httpMiddleware() {
@@ -142,7 +118,7 @@ class PluginRouter {
       } else if (requirements[terminalName]) {
         next(new Error('terminal ${terminalName} is also a requirement'));
       } else {
-        const ordering = this.requiresOrdering();
+        const ordering = this.requirementsOrdering();
         const middlewareChain = Object.keys(requirements).sort(
           (a, b) => ordering[a] - ordering[b]);
         middlewareChain.push(terminalName);
@@ -164,10 +140,5 @@ class PluginRouter {
   }
 }
 
-function createPluginRouter() {
-  return new PluginRouter();
-}
-
-module.exports = createPluginRouter();
-module.exports.PluginRouter = PluginRouter;
+module.exports = PluginRouter;
 

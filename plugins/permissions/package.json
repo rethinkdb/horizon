@@ -1,11 +1,12 @@
 {
-  "name": "@horizon/plugins/permissions",
+  "name": "@horizon/plugin-permissions",
   "version": "1.0.0",
   "description": "Default permissions plugin for Horizon.",
-  "main": "src/permissions.js",
+  "main": "dist/permissions.js",
   "scripts": {
     "lint": "eslint src test",
-    "test": "mocha test"
+    "test": "mocha test",
+    "build": "babel src -d dist -s true"
   },
   "repository": {
     "type": "git",
@@ -21,10 +22,14 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
+    "@horizon/client": "2.0.0-beta-5"
   },
   "devDependencies": {
+
     "eslint": "^2.3.0",
     "istanbul": "^0.4.3",
-    "mocha": "^2.3.3"
+    "mocha": "^2.3.3",
+    "babel-cli": "^6.10.1",
+    "babel-preset-es2015": "^6.9.0"
   }
 }
