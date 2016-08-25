@@ -5,20 +5,20 @@ const ClientConnection = require('./client');
 const logger = require('./logger');
 const {ReliableConn, ReliableChangefeed} = require('./reliable');
 const {ReliableMetadata} = require('./metadata/reliable_metadata');
-const options_schema = require('./schema/server_options').server;
+const optionsSchema = require('./schema/server_options').server;
 
 const EventEmitter = require('events');
 const Joi = require('joi');
 const websocket = require('ws');
 const r = require('rethinkdb');
 
-const protocol_name = 'rethinkdb-horizon-v0';
+const protocolName = 'rethinkdb-horizon-v0';
 
 function handleProtocols(protocols, cb) {
-  if (protocols.findIndex((x) => x === protocol_name) !== -1) {
-    cb(true, protocol_name);
+  if (protocols.findIndex((x) => x === protocolName) !== -1) {
+    cb(true, protocolName);
   } else {
-    logger.debug(`Rejecting client without "${protocol_name}" protocol (${protocols}).`);
+    logger.debug(`Rejecting client without "${protocolName}" protocol (${protocols}).`);
     cb(false, null);
   }
 }
@@ -26,7 +26,7 @@ function handleProtocols(protocols, cb) {
 class Server extends EventEmitter {
   constructor(http_servers, user_opts) {
     super();
-    const opts = Joi.attempt(user_opts || { }, options_schema);
+    const opts = Joi.attempt(user_opts || { }, optionsSchema);
     this._original_user_opts = user_opts;
     this._auth_methods = { };
     this._request_handlers = new Map();
@@ -162,5 +162,5 @@ class Server extends EventEmitter {
 
 module.exports = {
   Server,
-  protocol: protocol_name,
+  protocol: protocolName,
 };
