@@ -82,7 +82,7 @@ class Table {
   create_index(fields, conn, done) {
     const info = {geo: false, multi: false, fields};
     const index_name = index.info_to_name(info);
-    error.check(!this.indexes.get(index_name), 'index already exists');
+    assert(!this.indexes.get(index_name), 'index already exists');
 
     const success = () => {
       // Create the Index object now so we don't try to create it again before the

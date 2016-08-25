@@ -1,6 +1,6 @@
 'use strict';
 
-const check = require('../error').check;
+const assert = require('assert');
 
 const r = require('rethinkdb');
 
@@ -78,7 +78,7 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
       if (ruleset.validation_required()) {
         // For the set of rows to write, gather info for the validation step
         return Promise.resolve(pre_validate(row_data.map((data) => data.row))).then((infos) => {
-          check(infos.length === row_data.length);
+          assert(infos.length === row_data.length);
 
           // For each row to write (and info), validate it with permissions
           const valid_rows = [];
@@ -100,7 +100,7 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
       }
       return do_write(row_data.map((data) => data.row)).then((res) => res.changes);
     }).then((changes) => {
-      check(changes.length === row_data.length);
+      assert(changes.length === row_data.length);
 
       // Remove successful writes and invalidated writes that had an initial version
       const retry_rows = [];

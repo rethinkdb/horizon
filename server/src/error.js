@@ -2,8 +2,6 @@
 
 const assert = require('assert');
 
-const fail = (message) => check(false, message);
-
 class IndexMissing extends Error {
   constructor(collection, fields) {
     super(`Collection "${collection.name}" has no index matching ${JSON.stringify(fields)}.`);
@@ -35,7 +33,6 @@ class CollectionNotReady extends Error {
 }
 
 module.exports = {
-  fail,
   IndexMissing,
   IndexNotReady,
   CollectionMissing,

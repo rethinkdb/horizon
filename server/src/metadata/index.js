@@ -22,7 +22,7 @@ const name_to_info = (name) => {
   const re = /^hz_(?:(geo)_)?(?:multi_([0-9])+_)?\[/;
 
   const matches = name.match(re);
-  check(matches !== null, `Unexpected index name (invalid format): "${name}"`);
+  assert(matches !== null, `Unexpected index name (invalid format): "${name}"`);
 
   const json_offset = matches[0].length - 1;
 
@@ -32,20 +32,20 @@ const name_to_info = (name) => {
   try {
     info.fields = JSON.parse(name.slice(json_offset));
   } catch (err) {
-    check(false, `Unexpected index name (invalid JSON): "${name}"`);
+    assert(false, `Unexpected index name (invalid JSON): "${name}"`);
   }
 
   // Sanity check fields
   const validate_field = (f) => {
-    check(Array.isArray(f), `Unexpected index name (invalid field): "${name}"`);
-    f.forEach((s) => check(typeof s === 'string',
-                           `Unexpected index name (invalid field): "${name}"`));
+    assert(Array.isArray(f), `Unexpected index name (invalid field): "${name}"`);
+    f.forEach((s) => assert(typeof s === 'string',
+                            `Unexpected index name (invalid field): "${name}"`));
   };
 
-  check(Array.isArray(info.fields),
-        `Unexpected index name (fields are not an array): "${name}"`);
-  check((info.multi === false) || (info.multi < info.fields.length),
-        `Unexpected index name (multi index out of bounds): "${name}"`);
+  assert(Array.isArray(info.fields),
+         `Unexpected index name (fields are not an array): "${name}"`);
+  assert((info.multi === false) || (info.multi < info.fields.length),
+         `Unexpected index name (multi index out of bounds): "${name}"`);
   info.fields.forEach(validate_field);
   return info;
 };

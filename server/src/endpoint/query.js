@@ -1,8 +1,9 @@
 'use strict';
 
 const query = require('../schema/horizon_protocol').query;
-const check = require('../error.js').check;
 const reql_options = require('./common').reql_options;
+
+const assert = require('assert');
 
 const Joi = require('joi');
 const r = require('rethinkdb');
@@ -34,15 +35,15 @@ const make_reql = (raw_request, metadata) => {
 
     if (order_keys.length >= 1) {
       const k = order_keys[0];
-      check(!options.above || options.above[0][k] !== undefined,
-            '"above" must be on the same field as the first in "order".');
-      check(!options.below || options.below[0][k] !== undefined,
-            '"below" must be on the same field as the first in "order".');
+      assert(!options.above || options.above[0][k] !== undefined,
+             '"above" must be on the same field as the first in "order".');
+      assert(!options.below || options.below[0][k] !== undefined,
+             '"below" must be on the same field as the first in "order".');
     }
 
     order_keys.forEach((k) => {
-      check(obj[k] === undefined,
-            `"${k}" cannot be used in "order", "above", or "below" when finding by that field.`);
+      assert(obj[k] === undefined,
+             `"${k}" cannot be used in "order", "above", or "below" when finding by that field.`);
     });
 
     const index = collection.get_matching_index(fuzzy_fields, order_keys.map((k) => [k]));
