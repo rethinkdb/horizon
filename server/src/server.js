@@ -1,15 +1,16 @@
 'use strict';
 
 const Auth = require('./auth').Auth;
-const Client = require('./client').Client;
+const ClientConnection = require('./client');
 const logger = require('./logger');
-const {ReliableConn} = require('./reliable');
+const {ReliableConn, ReliableChangefeed} = require('./reliable');
 const {ReliableMetadata} = require('./metadata/reliable_metadata');
 const options_schema = require('./schema/server_options').server;
 
 const EventEmitter = require('events');
 const Joi = require('joi');
 const websocket = require('ws');
+const r = require('rethinkdb');
 
 const protocol_name = 'rethinkdb-horizon-v0';
 
@@ -31,12 +32,13 @@ class Server extends EventEmitter {
     this._request_handlers = new Map();
     this._ws_servers = [];
     this._close_promise = null;
-    this._default_middleware = (req, res, next) => {
+    this._defaultMiddlewareCb = (req, res, next) => {
       next(new Error('No middleware to handle the request.'));
     };
-    this._middleware = this._default_middleware;
+    this._middlewareCb = this._defaultMiddlewareCb;
+    this._auth = new Auth(this, opts.auth);
 
-    this._reliable_conn = new ReliableConn({
+    this._reliableConn = new ReliableConn({
       host: opts.rdb_host,
       port: opts.rdb_port,
       db: opts.project_name,
@@ -45,16 +47,28 @@ class Server extends EventEmitter {
       timeout: opts.rdb_timeout || null,
     });
     this._clients = new Set();
+    this._clientEvents = new EventEmitter();
+
+    // server context passed to plugins when activated
+    this._pluginContext = {
+      r,
+      opts,
+      logger,
+      ReliableChangefeed,
+      auth: this._auth,
+      clientEvents: this._clientEvents,
+      reliableConn: this._reliableConn,
+    };
 
     // TODO: consider emitting errors sometimes.
-    this._reliable_metadata = new ReliableMetadata(
+    this._reliableMetadata = new ReliableMetadata(
       opts.project_name,
-      this._reliable_conn,
+      this._reliableConn,
       this._clients,
       opts.auto_create_collection,
       opts.auto_create_index);
 
-    this._clear_clients_subscription = this._reliable_metadata.subscribe({
+    this._clear_clients_subscription = this._reliableMetadata.subscribe({
       onReady: () => {
         this.emit('ready', this);
       },
@@ -66,11 +80,9 @@ class Server extends EventEmitter {
       },
     });
 
-    this._auth = new Auth(this, opts.auth);
-
     const verifyClient = (info, cb) => {
       // Reject connections if we aren't synced with the database
-      if (!this._reliable_metadata.ready) {
+      if (!this._reliableMetadata.ready) {
         cb(false, 503, 'Connection to the database is down.');
       } else {
         cb(true);
@@ -85,14 +97,19 @@ class Server extends EventEmitter {
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
         .on('connection', (socket) => {
           try {
-            const client = new Client(
-              socket,
-              this._auth,
-              this._reliable_metadata,
-              this._middleware
+            if (!this._reliableMetadata.ready) {
+              throw new Error('No connection to the database.');
+            }
+
+            const client = new ClientConnection(
+              socket, this._auth, this._middlewareCb, this._clientEvents
             );
             this._clients.add(client);
-            socket.on('close', () => this._clients.delete(client));
+            this._clientEvents.emit('connect', client.context());
+            socket.on('close', () => {
+              this._clients.delete(client);
+              this._clientEvents.emit('disconnect', client.context());
+            });
           } catch (err) {
             logger.error(`Failed to construct client: ${err}`);
             if (socket.readyState === websocket.OPEN) {
@@ -111,28 +128,32 @@ class Server extends EventEmitter {
     }
   }
 
+  context() {
+    return this._pluginContext;
+  }
+
   metadata() {
-    return this._reliable_metadata;
+    return this._reliableMetadata;
   }
 
   conn() {
-    return this._reliable_conn;
+    return this._reliableConn;
   }
 
   set_middleware(mw) {
-    this._middleware = mw ? mw : this._default_middleware;
+    this._middlewareCb = mw ? mw : this._defaultMiddlewareCb;
   }
 
   // TODO: We close clients in `onUnready` above, but don't wait for
   // them to be closed.
   close() {
     if (!this._close_promise) {
-      this._close_promise = this._reliable_metadata.close().then(
+      this._close_promise = this._reliableMetadata.close().then(
         () => Promise.all(this._ws_servers.map((s) => new Promise((resolve) => {
           s.close(resolve);
         })))
       ).then(
-        () => this._reliable_conn.close()
+        () => this._reliableConn.close()
       );
     }
     return this._close_promise;

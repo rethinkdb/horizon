@@ -6,11 +6,13 @@ const assert = require('assert');
 
 // We can be desynced from the database for up to 5 seconds before we
 // start rejecting queries.
-const staleLimit = 5000;
+const staleMs = 5000;
 
 // auth plugins should set 'request.context.user'
 // token/anonymous: this should be the user id
 // unauthenticated: this should be null, and will use the default rules
+
+// RSI: do something drastic when a user's account is deleted
 
 function addToMapSet(map, name, el) {
   let set = map.get(name);
@@ -230,10 +232,10 @@ class UserCache {
             if (userStale || groupsStale) {
               let staleSince = null;
               const curTime = Number(new Date());
-              if (userStale && (curTime - Number(userStale) > staleLimit)) {
+              if (userStale && (curTime - Number(userStale) > staleMs)) {
                 staleSince = userStale;
               }
-              if (groupsStale && (curTime - Number(groupsStale) > staleLimit)) {
+              if (groupsStale && (curTime - Number(groupsStale) > staleMs)) {
                 if (!staleSince || Number(groupsStale) < Number(staleSince)) {
                   staleSince = groupsStale;
                 }
