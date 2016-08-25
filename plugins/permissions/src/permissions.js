@@ -150,6 +150,7 @@ class UserCache {
       if (cfeed.unreadyAt === undefined) {
         cfeed.unreadyAt = new Date(0); // epoch
       }
+      cfeed.refcount = 0;
       return cfeed;
     };
 
@@ -201,19 +202,21 @@ class UserCache {
   subscribe(userId) {
     let cfeed = this.userCfeeds.get(userId);
     if (!cfeed) {
-      this.userCfeeds.set(userId, cfeed = newUserCfeed());
+      this.userCfeeds.set(userId, cfeed = this.newUserCfeed());
       cfeed.readyPromise = new Promise((resolve, reject) => {
         cfeed.subscribe({onReady: () => resolve()});
         setTimeout(() => reject(new Error('timed out')), this.timeout)
       });
     }
+    cfeed.refcount += 1;
 
     return {
       getValidatePromise: (req) => {
         return cfeed.readyPromise.then(() => {
           let rulesetSymbol = Symbol();
           let ruleset = [];
-          return (...args) => {
+          let needsValidation = true;
+          return () => {
             const userStale = cfeed.unreadyAt;
             const groupsStale = this.groupsUnreadyAt;
             if (userStale || groupsStale) {
@@ -235,18 +238,35 @@ class UserCache {
             if (curSymbol !== rulesetSymbol) {
               rulesetSymbol = curSymbol;
               ruleset = [];
+              needsValidation = true;
               this.ruleMap.forEachUserRule(userId, (rule) => {
                 if (rule.isMatch(req.options)) {
+                  if (!rule.validator) {
+                    needsValidation = false;
+                  }
                   ruleset.push(rule);
                 }
               });
             }
-            // RSI: pick up here, call validator functions.
+            if (!needsValidation) {
+              return null;
+            }
+            return (...args) => {
+              for (const rule of ruleset) {
+                if (rule.is_valid(...args)) {
+                  return rule;
+                }
+              }
+            };
           };
         });
       },
       close: () => {
-
+        cfeed.refcount -= 1;
+        if (cfeed.refcount === 0) {
+          this.userCfeeds.delete(userId);
+          return cfeed.close();
+        }
       },
     };
   }
@@ -298,134 +318,4 @@ module.exports = (config) => {
       }
     },
   };
-}
-
-module.exports = (config) => {
-  class User {
-    constructor(user_id, reliable_conn) {
-      this.feed = r.table(config.user_table);
-    }
-
-    group_changed(group_name) {
-      if (this.data && this.data.groups && this.data.groups.indexOf(group_name) !== -1) {
-        this.active_rulesets.forEach((ruleset) => );
-      }
-    }
-
-    add_request(req, res, next) {
-      // Create a changefeed for the user unless it exists
-
-      // Template-match the request options
-
-      // Add a ruleset to request.context.rules
-      const ruleset = new Ruleset();
-      request.context.rules = ruleset;
-      this.active_rulesets.add(ruleset);
-
-      const cleanup = () => this.active_rulesets.delete(ruleset);
-
-      // On changes to the rules in any of the user's groups, re-evaluate rules
-
-      // On response completion, stop tracking the ruleset
-      res.complete.then(cleanup).catch(cleanup);
-    }
-  }
-
-  return {
-    name: 'permissions',
-    activate: (server) => {
-      const reliable_conn = server.conn();
-      const users = new Map();
-      const groups = new Map();
-      const ready = false;
-
-      // TODO: need to save/close the subscription?
-      reliable_conn.subscribe({
-        onUnready: (reason) => {
-          users.forEach((user) => user.close(reason));
-          users.clear();
-        },
-      });
-
-      // Set up a reliable changefeed on the 'groups' table to track rules by group name
-      const groups_feed = new ReliableChangefeed(
-        r.db(server.project_name)
-          .table('hz_groups')
-          .changes({squash: false, includeInitial: true, includeTypes: true}),
-        reliable_conn,
-        {
-          onReady: () => {
-            ready = true;
-          },
-          onUnready: () => {
-            ready = false;
-            groups.forEach((g) => g.close());
-            groups.clear();
-          },
-          onChange: (change) => {
-            switch(change.type) {
-            'initial':
-            'add':
-            'change':
-              {
-                const group = new Group(change.new_val);
-                groups.set(group.name, group);
-                users.forEach((user) => user.group_changed(group.name));
-              }
-              break;
-            'uninitial':
-            'remove':
-              {
-                const name = change.old_val.id;
-                const group = groups.delete(change.old_val.id);
-              }
-              break;
-            default:
-              // RSI: log error
-              break;
-            }
-          },
-        });
-
-      const get_user = (user_id) => {
-        let user = users.get(user_id);
-        if (!user) {
-          user = new User(user_id, reliable_conn);
-          users.set(user_id, user);
-        }
-        return user;
-      };
-
-      ctx.logger.info('Activating permissions.');
-      return {
-        deactivate: (reason) => {
-          user_feeds.forEach((feed) => feed.close(reason));
-          user_feeds.clear();
-        },
-        methods: {
-          'permissions': {
-            type: 'prereq',
-            run: (req, res, next) => {
-              if (!ready) {
-                throw new Error(
-                  'Groups are not synced with the server, cannot validate requests.');
-              }
-
-              const user_id = request.context.user_id;
-              if (user_id !== undefined) {
-                throw new Error('Client has not been authenticated');
-              }
-
-              // Find the user and register this request
-              const user = get_user(user_id);
-              user.add_request(req, res, next);
-            },
-          }
-        },
-      };
-    },
-  };
-}
-
-module.exports.validate = (rules, context, ...args) => {
 }
