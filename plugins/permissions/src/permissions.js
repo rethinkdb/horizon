@@ -1,5 +1,9 @@
 'use strict';
 
+const Rule = require('./rule');
+
+const assert = require('assert');
+
 // We can be desynced from the database for up to 5 seconds before we
 // start rejecting queries.
 const staleLimit = 5000;
@@ -8,7 +12,7 @@ const staleLimit = 5000;
 // token/anonymous: this should be the user id
 // unauthenticated: this should be null, and will use the default rules
 
-addToMapSet(map, name, el) {
+function addToMapSet(map, name, el) {
   let set = map.get(name);
   if (!set) {
     set = new Set();
@@ -20,8 +24,8 @@ addToMapSet(map, name, el) {
 }
 
 // Returns whether or not it deleted an empty set from the map.
-delFromMapSet(map, name, el) {
-  let set = map.get(name);
+function delFromMapSet(map, name, el) {
+  const set = map.get(name);
   assert(set, `delFromMapSet: ${name} not in map`);
   assert(set.has(el), `delFromMapSet: ${name} does not have ${el}`);
   set.delete(el);
@@ -32,7 +36,7 @@ delFromMapSet(map, name, el) {
   return false;
 }
 
-getMapSet(map, name) {
+function getMapSet(map, name) {
   return map.get(name) || new Set();
 }
 
@@ -40,7 +44,7 @@ const emptyRulesetSymbol = Symbol();
 class RuleMap {
   constructor() {
     this.groupToRulenames = new Map();
-    this.RulenameToRule = new Map();
+    this.rulenameToRule = new Map();
     this.groupToUsers = new Map();
 
     this.userToRulenames = new Map(); // computed
@@ -53,7 +57,7 @@ class RuleMap {
 
   forEachUserRule(user, cb) {
     this.userToRulenames.forEach((rn) => {
-      const rule = this.RulenameToRule.get(rn);
+      const rule = this.rulenameToRule.get(rn);
       assert(rule);
       cb(rule);
     });
@@ -82,7 +86,7 @@ class RuleMap {
   }
 
   addGroupRule(group, ruleName, rule) {
-    this.RulenameToRule.set(ruleName, rule);
+    this.rulenameToRule.set(ruleName, rule);
     addToMapSet(this.groupToRulenames, group, ruleName);
     getMapSet(this.groupToUsers, group).forEach((user) => {
       addToMapSet(this.userToRulenames, user, ruleName);
@@ -91,7 +95,7 @@ class RuleMap {
   }
 
   delGroupRule(group, ruleName) {
-    assert(rulenameToRule.has(ruleName), `unrecognized ${group} rule ${ruleName}`);
+    assert(this.rulenameToRule.has(ruleName), `unrecognized ${group} rule ${ruleName}`);
     this.rulenameToRule.delete(ruleName);
     delFromMapSet(this.groupToRulenames, group, ruleName);
     getMapSet(this.groupToUsers, group).forEach((user) => {
@@ -107,7 +111,7 @@ class RuleMap {
   // This should be equivalent to calling `delGroupRule` for all rules.
   delAllGroupRules() {
     this.groupToRulenames.clear();
-    this.RulenameToRule.clear();
+    this.rulenameToRule.clear();
     this.userToRulenames.clear();
     this.userToRulesetSymbol.clear();
   }
@@ -115,15 +119,17 @@ class RuleMap {
 
 class UserCache {
   constructor(config, ctx) {
+    const r = ctx.r;
+
+    this.ctx = ctx;
     this.timeout = config.cacheTimeout;
 
     this.ruleMap = new RuleMap();
-    this.groupsUnreadyAt = new Date(0); // epoch
 
     this.userCfeeds = new Map();
     this.newUserCfeed = (userId) => {
       let oldGroups = new Set();
-      const cfeed = new ReliableChangefeed(
+      const cfeed = new ctx.ReliableChangefeed(
         r.table(config.usersTable).get(userId).changes({includeInitial: true}),
         ctx.reliableConn,
         {
@@ -154,12 +160,14 @@ class UserCache {
       return cfeed;
     };
 
-    this.groupCfeed = new ReliableChangefeed(
+    this.queuedGroups = new Map();
+    this.groupsUnreadyAt = new Date(0); // epoch
+    this.groupCfeed = new ctx.ReliableChangefeed(
       r.table(config.groupsTable).changes({includeInitial: true}),
       ctx.reliableConn,
       {
         onReady: () => {
-          this.ruleMap.delAllGroupRules(),
+          this.ruleMap.delAllGroupRules();
           this.queuedGroups.forEach(
             (rules, groupId) => rules.forEach(
               (rule) => this.ruleMap.addGroupRule(
@@ -177,7 +185,7 @@ class UserCache {
         onChange: (change) => {
           const id = change.old_val ? change.old_val.id : change.new_val.id;
           if (this.groupsUnreadyAt !== null) {
-            queuedGroups.set(id, change.rules);
+            this.queuedGroups.set(id, change.rules);
           } else {
             const oldRules = change.old_val ? change.old_val.rules : {};
             const newRules = change.new_val ? change.new_val.rules : {};
@@ -205,14 +213,14 @@ class UserCache {
       this.userCfeeds.set(userId, cfeed = this.newUserCfeed());
       cfeed.readyPromise = new Promise((resolve, reject) => {
         cfeed.subscribe({onReady: () => resolve()});
-        setTimeout(() => reject(new Error('timed out')), this.timeout)
+        setTimeout(() => reject(new Error('timed out')), this.timeout);
       });
     }
     cfeed.refcount += 1;
 
     return {
-      getValidatePromise: (req) => {
-        return cfeed.readyPromise.then(() => {
+      getValidatePromise: (req) =>
+        cfeed.readyPromise.then(() => {
           let rulesetSymbol = Symbol();
           let ruleset = [];
           let needsValidation = true;
@@ -220,7 +228,7 @@ class UserCache {
             const userStale = cfeed.unreadyAt;
             const groupsStale = this.groupsUnreadyAt;
             if (userStale || groupsStale) {
-              let staleSince = null
+              let staleSince = null;
               const curTime = Number(new Date());
               if (userStale && (curTime - Number(userStale) > staleLimit)) {
                 staleSince = userStale;
@@ -252,15 +260,21 @@ class UserCache {
               return null;
             }
             return (...args) => {
-              for (const rule of ruleset) {
-                if (rule.is_valid(...args)) {
-                  return rule;
+              try {
+                for (const rule of ruleset) {
+                  if (rule.is_valid(...args)) {
+                    return rule;
+                  }
                 }
+              } catch (err) {
+                // We don't want to pass the error message on to the user because
+                // it might leak information about the data.
+                this.ctx.logger.error(`Exception in validator function: ${err.stack}`);
+                throw new Error('Validation error');
               }
             };
           };
-        });
-      },
+        }),
       close: () => {
         cfeed.refcount -= 1;
         if (cfeed.refcount === 0) {
@@ -274,7 +288,7 @@ class UserCache {
 
 // RSI: remove the extra level of function calling.
 module.exports = (config) => {
-  const name = config.name || 'permissions',
+  const name = config.name || 'permissions';
   const userCache = Symbol(`${name}_userCache`);
   const userSub = Symbol(`${name}_userSub`);
   return {
@@ -285,7 +299,7 @@ module.exports = (config) => {
       ctx[userCache] = new UserCache(config, ctx);
       return {
         methods: {
-          'hz_permissions': {
+          hz_permissions: {
             type: 'preReq',
             handler: (req, res, next) => {
               if (!req.clientCtx[userSub]) {
@@ -318,4 +332,4 @@ module.exports = (config) => {
       }
     },
   };
-}
+};
