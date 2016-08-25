@@ -105,14 +105,12 @@ const parse_connect = (connect, config) => {
   }
 };
 
-const read_from_config_file = (project_path, config_file) => {
+const read_from_config_file = (project_path) => {
   const config = { auth: { } };
 
   let fileData, configFilename, fileConfig;
 
-  if (config_file) {
-    configFilename = config_file;
-  } else if (project_path && !config_file) {
+  if (project_path) {
     configFilename = `${project_path}/${default_config_file}`;
   } else {
     configFilename = default_config_file;
@@ -162,14 +160,12 @@ ${configFilename}, causing it not be a valid TOML file.`,
   return config;
 };
 
-const read_from_secrets_file = (projectPath, secretsFile) => {
+const read_from_secrets_file = (projectPath) => {
   const config = { auth: { } };
 
   let fileData, secretsFilename;
 
-  if (secretsFile) {
-    secretsFilename = secretsFile;
-  } else if (projectPath && !secretsFile) {
+  if (projectPath) {
     secretsFilename = `${projectPath}/${default_secrets_file}`;
   } else {
     secretsFilename = default_secrets_file;

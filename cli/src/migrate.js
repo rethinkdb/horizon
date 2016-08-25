@@ -83,11 +83,6 @@ function processConfig(cmdArgs) {
     help: 'Start up a RethinkDB server in the current directory',
   });
 
-  parser.addArgument([ '--config' ], {
-    default: '.hz/config.toml',
-    help: 'Path to the config file to use, defaults to ".hz/config.toml".',
-  });
-
   parser.addArgument([ '--skip-backup' ], {
     metavar: 'yes|no',
     default: 'no',
@@ -108,7 +103,7 @@ function processConfig(cmdArgs) {
   });
 
   const parsed = parser.parseArgs(cmdArgs);
-  const confOptions = config.read_from_config_file(parsed.project_path, parsed.config);
+  const confOptions = config.read_from_config_file(parsed.project_path);
   const envOptions = config.read_from_env();
   config.merge_options(confOptions, envOptions);
   // Pull out the relevant settings from the config file
