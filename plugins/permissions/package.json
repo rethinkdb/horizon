@@ -25,7 +25,6 @@
     "@horizon/client": "2.0.0-beta-5"
   },
   "devDependencies": {
-
     "eslint": "^2.3.0",
     "istanbul": "^0.4.3",
     "mocha": "^2.3.3",

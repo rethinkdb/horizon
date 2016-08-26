@@ -133,7 +133,7 @@ class UserCache {
       let oldGroups = new Set();
       const cfeed = new ctx.ReliableChangefeed(
         r.table(config.usersTable).get(userId).changes({includeInitial: true}),
-        ctx.reliableConn,
+        ctx.rdb_connection(),
         {
           onUnready: () => {
             cfeed.unreadyAt = new Date();
@@ -166,14 +166,17 @@ class UserCache {
     this.groupsUnreadyAt = new Date(0); // epoch
     this.groupCfeed = new ctx.ReliableChangefeed(
       r.table(config.groupsTable).changes({includeInitial: true}),
-      ctx.reliableConn,
+      ctx.rdb_connection(),
       {
         onReady: () => {
           this.ruleMap.delAllGroupRules();
           this.queuedGroups.forEach(
-            (rules, groupId) => rules.forEach(
-              (rule) => this.ruleMap.addGroupRule(
-                groupId, JSON.stringify([groupId, rule.name]), new Rule(rule))));
+            (rules, groupId) => {
+              for (const name in rules) {
+                const ruleId = JSON.stringify([groupId, name]);
+                this.ruleMap.addGroupRule(groupId, ruleId, new Rule(rules[name]));
+              }
+            });
           this.queuedGroups.clear();
 
           assert(this.groupsUnreadyAt !== null);
@@ -187,7 +190,11 @@ class UserCache {
         onChange: (change) => {
           const id = change.old_val ? change.old_val.id : change.new_val.id;
           if (this.groupsUnreadyAt !== null) {
-            this.queuedGroups.set(id, change.rules);
+            if (change.new_val) {
+              this.queuedGroups.set(id, change.new_val.rules);
+            } else {
+              this.queuedGroups.delete(id);
+            }
           } else {
             const oldRules = change.old_val ? change.old_val.rules : {};
             const newRules = change.new_val ? change.new_val.rules : {};
@@ -289,9 +296,9 @@ class UserCache {
 }
 
 // RSI: remove the extra level of function calling.
-module.exports = (config) => {
-  config = config || { };
+module.exports = (raw_config) => {
   // RSI: better default handling, use Joi?
+  const config = raw_config || { };
   if (config.cacheTimeout === undefined) {
     config.cacheTimeout = 5000;
   }
@@ -302,12 +309,27 @@ module.exports = (config) => {
   const name = config.name;
   const userCache = Symbol(`${name}_userCache`);
   const userSub = Symbol(`${name}_userSub`);
+  let authCb;
+  let disconnectCb;
   return {
     name,
 
     activate(ctx) {
       ctx.logger.info('Activating plugins module.');
       ctx[userCache] = new UserCache(config, ctx);
+
+      authCb = (clientCtx) => {
+        clientCtx[userSub] = ctx[userCache].subscribe(clientCtx.user.id);
+      };
+      ctx.on('auth', authCb);
+
+      disconnectCb = (clientCtx) => {
+        if (clientCtx[userSub]) {
+          clientCtx[userSub].close();
+        }
+      };
+      ctx.on('disconnect', disconnectCb);
+
       return {
         methods: {
           hz_permissions: {
@@ -324,20 +346,16 @@ module.exports = (config) => {
             },
           },
         },
-        onClientEvent: {
-          auth: (clientCtx) => {
-            clientCtx[userSub] = ctx[userCache].subscribe(clientCtx.user.id);
-          },
-          disconnect: (clientCtx) => {
-            if (clientCtx[userSub]) {
-              clientCtx[userSub].close();
-            }
-          },
-        },
       };
     },
 
     deactivate(ctx) {
+      if (authCb) {
+        ctx.removeListener('auth', authCb);
+      }
+      if (disconnectCb) {
+        ctx.removeListener('disconnect', disconnectCb);
+      }
       if (ctx[userCache]) {
         ctx[userCache].close();
       }

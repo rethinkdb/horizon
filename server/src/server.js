@@ -49,6 +49,7 @@ class Server extends EventEmitter {
 
     this.r = r;
     this.logger = logger;
+    this.ReliableChangefeed = ReliableChangefeed; // RSI: better place to put this that on the context?  Should plugins require the server?
 
     // TODO: consider emitting errors sometimes.
     this._reliableMetadata = new ReliableMetadata(
@@ -129,7 +130,7 @@ class Server extends EventEmitter {
     return this._reliableMetadata;
   }
 
-  conn() {
+  rdb_connection() {
     return this._reliableConn;
   }
 

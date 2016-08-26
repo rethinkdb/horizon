@@ -3,8 +3,7 @@ const Template = require('./template').Template;
 const Validator = require('./validator').Validator;
 
 class Rule {
-  constructor(name, info) {
-    this.name = name;
+  constructor(info) {
     this.template = new Template(info.template);
     if (info.validator) {
       this.validator = new Validator(info.validator);

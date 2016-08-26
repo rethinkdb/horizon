@@ -32,6 +32,10 @@ class PluginRouter {
         this.methods[m] = active.methods[m];
         this._requirementsOrdering = null;
       }
+    }).catch((err) => {
+      this.server.logger.error(`Error when adding plugin ${plugin.name}: ${err}`);
+      this.server.logger.debug(`${err.stack}`);
+      throw err;
     });
     return this.plugins[plugin.name];
   }

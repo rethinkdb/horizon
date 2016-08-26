@@ -1,11 +1,5 @@
-cert.pem
-key.pem
 node_modules
 *.log
 
 # Coverage directory used by tools like istanbul
 coverage
-
-# RethinkDB stuff
-rethinkdb_data/
-rethinkdb_data_test/
