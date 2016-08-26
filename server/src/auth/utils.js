@@ -68,15 +68,15 @@ const make_nonce = (cb) => crypto.randomBytes(64, (err, res) => {
 const nonce_to_state = (nonce) =>
   crypto.createHash('sha256').update(nonce, 'base64').digest('base64');
 
-const set_nonce = (res, name, nonce) =>
+const set_nonce = (res, name, nonce, secure) =>
   res.setHeader('set-cookie',
                 cookie.serialize(nonce_cookie(name), nonce,
-                                 { maxAge: 3600, secure: true, httpOnly: true }));
+                                 { maxAge: 3600, secure, httpOnly: true }));
 
-const clear_nonce = (res, name) =>
+const clear_nonce = (res, name, secure) =>
   res.setHeader('set-cookie',
                 cookie.serialize(nonce_cookie(name), 'invalid',
-                                 { maxAge: -1, secure: true, httpOnly: true }));
+                                 { maxAge: -1, secure, httpOnly: true }));
 
 const get_nonce = (req, name) => {
   const field = nonce_cookie(name);
@@ -106,8 +106,8 @@ const oauth2 = (raw_options) => {
   const make_inspect_request = options.make_inspect_request;
   const extract_id = options.extract_id;
 
-  const self_url = (host, path) =>
-    url.format({ protocol: 'https', host: host, pathname: path });
+  const self_url = (protocol, host, path) =>
+    url.format({ protocol: horizon._auth._secure ? 'https' : protocol, host, pathname: path });
 
   const make_success_url = (horizon_token) =>
     url.format(extend_url_query(horizon._auth._success_redirect, { horizon_token }));
@@ -116,8 +116,9 @@ const oauth2 = (raw_options) => {
     url.format(extend_url_query(horizon._auth._failure_redirect, { horizon_error }));
 
   horizon.add_http_handler(provider, (req, res) => {
+    const request_protocol = (horizon._auth._secure || req.connection.encrypted) ? 'https' : 'http';
     const request_url = url.parse(req.url, true);
-    const return_url = self_url(req.headers.host, request_url.pathname);
+    const return_url = self_url(request_protocol, req.headers.host, request_url.pathname);
     const code = request_url.query && request_url.query.code;
     const error = request_url.query && request_url.query.error;
 
@@ -134,7 +135,7 @@ const oauth2 = (raw_options) => {
           res.statusCode = 503;
           res.end('error generating nonce');
         } else {
-          set_nonce(res, horizon._name, nonce);
+          set_nonce(res, horizon._name, nonce, horizon._auth._secure);
           do_redirect(res, make_acquire_url(nonce_to_state(nonce), return_url));
         }
       });
@@ -176,7 +177,7 @@ const oauth2 = (raw_options) => {
               } else {
                 horizon._auth.generate(provider, user_id).nodeify((err3, jwt) => {
                   // Clear the nonce just so we aren't polluting clients' cookies
-                  clear_nonce(res, horizon._name);
+                  clear_nonce(res, horizon._name, horizon._auth._secure);
                   do_redirect(res, err3 ?
                     make_failure_url('invalid user') :
                     make_success_url(jwt.token));

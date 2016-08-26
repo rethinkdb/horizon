@@ -60,6 +60,7 @@ function twitter(horizon, raw_options) {
     url.format(auth_utils.extend_url_query(horizon._auth._failure_redirect, { horizon_error }));
 
   horizon.add_http_handler(provider, (req, res) => {
+    const request_protocol = (horizon._auth._secure || req.connection.encrypted) ? 'https' : 'http';
     const request_url = url.parse(req.url, true);
     const user_token = request_url.query && request_url.query.oauth_token;
     const verifier = request_url.query && request_url.query.oauth_verifier;
@@ -74,7 +75,7 @@ function twitter(horizon, raw_options) {
           auth_utils.do_redirect(res, make_failure_url('error generating nonce'));
         } else {
           oa._authorize_callback =
-            url.format({ protocol: 'https',
+            url.format({ protocol: request_protocol,
                          host: req.headers.host,
                          pathname: request_url.pathname,
                          query: { state: auth_utils.nonce_to_state(nonce) } });
@@ -85,7 +86,7 @@ function twitter(horizon, raw_options) {
               auth_utils.do_redirect(res, make_failure_url('error acquiring app oauth token'));
             } else {
               store_app_token(nonce, app_token_secret);
-              auth_utils.set_nonce(res, horizon._name, nonce);
+              auth_utils.set_nonce(res, horizon._name, nonce, horizon._auth._secure);
               auth_utils.do_redirect(res, url.format({ protocol: 'https',
                                                        host: 'api.twitter.com',
                                                        pathname: '/oauth/authenticate',
@@ -120,7 +121,7 @@ function twitter(horizon, raw_options) {
                 auth_utils.do_redirect(res, make_failure_url('unparseable inspect response'));
               } else {
                 horizon._auth.generate(provider, user_id).nodeify((err3, jwt) => {
-                  auth_utils.clear_nonce(res, horizon._name);
+                  auth_utils.clear_nonce(res, horizon._name, horizon._auth._secure);
                   auth_utils.do_redirect(res, err3 ?
                     make_failure_url('invalid user') :
                     make_success_url(jwt.token));

@@ -23,6 +23,7 @@ const server = Joi.object({
 }).unknown(false);
 
 const auth = Joi.object({
+  secure: Joi.boolean().default(true),
   success_redirect: Joi.string().default('/'),
   failure_redirect: Joi.string().default('/'),
 
