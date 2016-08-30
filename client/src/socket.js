@@ -58,7 +58,7 @@ export class HorizonSocket extends WebSocketSubject {
     url,              // Full url to connect to
     handshakeMaker, // function that returns handshake to emit
     keepalive = 60,   // seconds between keepalive messages
-    WebSocketCtor,    // optionally provide a WebSocket constructor
+    WebSocketCtor = WebSocket,    // optionally provide a WebSocket constructor
     websocket,
   } = {}) {
     super({

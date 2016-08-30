@@ -1,3 +1,5 @@
+import { BehaviorSubject } from 'rxjs/BehaviorSubject'
+
 import 'rxjs/add/observable/of'
 import 'rxjs/add/observable/from'
 import 'rxjs/add/operator/catch'
@@ -32,16 +34,22 @@ function Horizon({
   tokenStorage.setAuthFromQueryParams()
 
   const url = `ws${secure ? 's' : ''}:\/\/${host}\/${path}`
-  const hzSocket = new HorizonSocket({
-    url,
-    handshakeMaker: tokenStorage.handshake.bind(tokenStorage),
-    keepalive,
-    WebSocketCtor,
-    websocket,
-  })
+
+  // This is the object returned by the Horizon function. It's a
+  // function so we can construct a collection simply by calling it
+  // like horizon('my_collection')
+  function horizon(name) {
+    return new Collection(sendRequest, name, lazyWrites)
+  }
+  const self = horizon  // For clarity below
+
+  const sockets = createSockets()
+
 
   // We need to filter out null/undefined handshakes in several places
-  const filteredHandshake = hzSocket.handshake.filter(x => x != null)
+  const filteredHandshake = sockets
+          .switchMap(socket => socket.handshake)
+          .filter(handshake => handshake != null)
 
   // Store whatever token we get back from the server when we get a
   // handshake response
@@ -59,79 +67,97 @@ function Horizon({
     },
   })
 
-  // This is the object returned by the Horizon function. It's a
-  // function so we can construct a collection simply by calling it
-  // like horizon('my_collection')
-  function horizon(name) {
-    return new Collection(sendRequest, name, lazyWrites)
-  }
-
-  horizon.currentUser = () =>
+  self.currentUser = () =>
     new UserDataTerm(
-      horizon,
+      self,
       filteredHandshake,
-      hzSocket
+      self._hzSocket
     )
 
-  horizon.disconnect = () => {
-    hzSocket.complete()
+  self.disconnect = () => {
+    self._hzSocket.complete()
   }
 
   // Dummy subscription to force it to connect to the
   // server. Optionally provide an error handling function if the
   // socket experiences an error.
   // Note: Users of the Observable interface shouldn't need this
-  horizon.connect = (
+  self.connect = (
     onError = err => { console.error(`Received an error: ${err}`) }
   ) => {
-    hzSocket.subscribe(
-      () => {},
-      onError
-    )
+    return sockets.switch().take(1).subscribe({
+      error: e => {
+        onError(e)
+      },
+    })
   }
+
+  const status = createStatus()
 
   // Either subscribe to status updates, or return an observable with
   // the current status and all subsequent status changes.
-  horizon.status = subscribeOrObservable(hzSocket.status)
+  self.status = subscribeOrObservable(status)
 
   // Convenience method for finding out when disconnected
-  horizon.onDisconnected = subscribeOrObservable(
-    hzSocket.status.filter(x => x.type === 'disconnected'))
+  self.onDisconnected = subscribeOrObservable(
+    status.filter(x => x.type === 'disconnected'))
 
   // Convenience method for finding out when ready
-  horizon.onReady = subscribeOrObservable(
-    hzSocket.status.filter(x => x.type === 'ready'))
+  self.onReady = subscribeOrObservable(
+    status.filter(x => x.type === 'ready'))
 
   // Convenience method for finding out when an error occurs
-  horizon.onSocketError = subscribeOrObservable(
-    hzSocket.status.filter(x => x.type === 'error'))
+  self.onSocketError = subscribeOrObservable(
+    status.filter(x => x.type === 'error'))
 
-  horizon.utensils = {
+  self.utensils = {
     sendRequest,
     tokenStorage,
-    handshake: hzSocket.handshake,
-    horizonSocket: hzSocket,
   }
-  Object.freeze(horizon.utensils)
+  Object.freeze(self.utensils)
 
-  horizon._authMethods = null
-  horizon._root = `http${(secure) ? 's' : ''}://${host}`
-  horizon._horizonPath = `${horizon._root}/${path}`
-  horizon.authEndpoint = authEndpoint
-  horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
-  horizon.aggregate = aggregate
-  horizon.model = model
+  self._authMethods = null
+  self._root = `http${(secure) ? 's' : ''}://${host}`
+  self._horizonPath = `${self._root}/${path}`
 
-  return horizon
+  self.authEndpoint = authEndpoint
+  self.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
+  self.aggregate = aggregate
+  self.model = model
+
+  return self
 
   // Sends a horizon protocol request to the server, and pulls the data
   // portion of the response out.
   function sendRequest(type, options) {
     // Both remove and removeAll use the type 'remove' in the protocol
     const normalizedType = type === 'removeAll' ? 'remove' : type
-    return hzSocket
+    return sockets.switchMap(socket => socket
       .hzRequest({ type: normalizedType, options }) // send the raw request
-      .takeWhile(resp => resp.state !== 'complete')
+      .takeWhile(resp => resp.state !== 'complete'))
+  }
+
+  function createSockets() {
+    const socketsSubject = new BehaviorSubject()
+
+    socketsSubject.next(new HorizonSocket({
+      url,
+      handshakeMaker: tokenStorage.handshake.bind(tokenStorage),
+      keepalive,
+      WebSocketCtor,
+      websocket,
+    }))
+
+    return socketsSubject
+  }
+
+  function createStatus() {
+    // Since the underlying socket is going to be swapped out, we need
+    // to create a wrapper BehaviorSubject that is subscribed in turn
+    // to each subsequent HorizonSocket that is created.
+    const statusSubject = new BehaviorSubject()
+    sockets.switchMap(socket => socket.status).subscribe(statusSubject)
+    return statusSubject
   }
 }
 
