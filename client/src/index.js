@@ -22,7 +22,8 @@ function Horizon({
   lazyWrites = false,
   authType = 'unauthenticated',
   keepalive = 60,
-  WebSocketCtor = WebSocket,
+  WebSocketCtor,
+  websocket,
 } = {}) {
   // If we're in a redirection from OAuth, store the auth token for
   // this user in localStorage.
@@ -31,16 +32,20 @@ function Horizon({
   tokenStorage.setAuthFromQueryParams()
 
   const url = `ws${secure ? 's' : ''}:\/\/${host}\/${path}`
-  const socket = new HorizonSocket({
+  const hzSocket = new HorizonSocket({
     url,
     handshakeMaker: tokenStorage.handshake.bind(tokenStorage),
     keepalive,
     WebSocketCtor,
+    websocket,
   })
+
+  // We need to filter out null/undefined handshakes in several places
+  const filteredHandshake = hzSocket.handshake.filter(x => x != null)
 
   // Store whatever token we get back from the server when we get a
   // handshake response
-  socket.handshake.subscribe({
+  filteredHandshake.subscribe({
     next(handshake) {
       if (authType !== 'unauthenticated') {
         tokenStorage.set(handshake.token)
@@ -62,10 +67,14 @@ function Horizon({
   }
 
   horizon.currentUser = () =>
-    new UserDataTerm(horizon, socket.handshake, socket)
+    new UserDataTerm(
+      horizon,
+      filteredHandshake,
+      hzSocket
+    )
 
   horizon.disconnect = () => {
-    socket.complete()
+    hzSocket.complete()
   }
 
   // Dummy subscription to force it to connect to the
@@ -75,7 +84,7 @@ function Horizon({
   horizon.connect = (
     onError = err => { console.error(`Received an error: ${err}`) }
   ) => {
-    socket.subscribe(
+    hzSocket.subscribe(
       () => {},
       onError
     )
@@ -83,24 +92,25 @@ function Horizon({
 
   // Either subscribe to status updates, or return an observable with
   // the current status and all subsequent status changes.
-  horizon.status = subscribeOrObservable(socket.status)
+  horizon.status = subscribeOrObservable(hzSocket.status)
 
   // Convenience method for finding out when disconnected
   horizon.onDisconnected = subscribeOrObservable(
-    socket.status.filter(x => x.type === 'disconnected'))
+    hzSocket.status.filter(x => x.type === 'disconnected'))
 
   // Convenience method for finding out when ready
   horizon.onReady = subscribeOrObservable(
-    socket.status.filter(x => x.type === 'ready'))
+    hzSocket.status.filter(x => x.type === 'ready'))
 
   // Convenience method for finding out when an error occurs
   horizon.onSocketError = subscribeOrObservable(
-    socket.status.filter(x => x.type === 'error'))
+    hzSocket.status.filter(x => x.type === 'error'))
 
   horizon.utensils = {
     sendRequest,
     tokenStorage,
-    handshake: socket.handshake,
+    handshake: hzSocket.handshake,
+    horizonSocket: hzSocket,
   }
   Object.freeze(horizon.utensils)
 
@@ -119,7 +129,7 @@ function Horizon({
   function sendRequest(type, options) {
     // Both remove and removeAll use the type 'remove' in the protocol
     const normalizedType = type === 'removeAll' ? 'remove' : type
-    return socket
+    return hzSocket
       .hzRequest({ type: normalizedType, options }) // send the raw request
       .takeWhile(resp => resp.state !== 'complete')
   }

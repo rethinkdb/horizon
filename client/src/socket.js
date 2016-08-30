@@ -1,8 +1,6 @@
-import { AsyncSubject } from 'rxjs/AsyncSubject'
 import { BehaviorSubject } from 'rxjs/BehaviorSubject'
 import { WebSocketSubject } from 'rxjs/observable/dom/WebSocketSubject'
 import { Observable } from 'rxjs/Observable'
-import { Subscription } from 'rxjs/Subscription'
 import 'rxjs/add/observable/merge'
 import 'rxjs/add/observable/timer'
 import 'rxjs/add/operator/filter'
@@ -14,7 +12,7 @@ import 'rxjs/add/operator/publish'
 
 import { serialize, deserialize } from './serialization.js'
 
-const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
+export const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
 
 // Before connecting the first time
 const STATUS_UNCONNECTED = { type: 'unconnected' }
@@ -22,6 +20,8 @@ const STATUS_UNCONNECTED = { type: 'unconnected' }
 const STATUS_READY = { type: 'ready' }
 // After unconnected, maybe before or after connected. Any socket level error
 const STATUS_ERROR = { type: 'error' }
+// Occurs right before socket closes
+const STATUS_CLOSING = { type: 'closing' }
 // Occurs when the socket closes
 const STATUS_DISCONNECTED = { type: 'disconnected' }
 
@@ -58,34 +58,41 @@ export class HorizonSocket extends WebSocketSubject {
     url,              // Full url to connect to
     handshakeMaker, // function that returns handshake to emit
     keepalive = 60,   // seconds between keepalive messages
-    WebSocketCtor = WebSocket,    // optionally provide a WebSocket constructor
+    WebSocketCtor,    // optionally provide a WebSocket constructor
+    websocket,
   } = {}) {
     super({
       url,
       protocol: PROTOCOL_VERSION,
+      socket: websocket,
       WebSocketCtor,
       openObserver: {
-        next: () => this.sendHandshake(),
+        next: () => {
+          this.sendHandshake()
+        },
+      },
+      closingObserver: {
+        next: () => {
+          this.status.next(STATUS_CLOSING)
+          this.cleanupHandshake()
+        },
       },
       closeObserver: {
         next: () => {
-          if (this._handshakeSub) {
-            this._handshakeSub.unsubscribe()
-            this._handshakeSub = null
-          }
           this.status.next(STATUS_DISCONNECTED)
+          this.cleanupHandshake()
         },
       },
     })
     // Completes or errors based on handshake success. Buffers
     // handshake response for later subscribers (like a Promise)
-    this.handshake = new AsyncSubject()
+    this.handshake = new BehaviorSubject()
     this._handshakeMaker = handshakeMaker
     this._handshakeSub = null
 
     this.keepalive = Observable
       .timer(keepalive * 1000, keepalive * 1000)
-      .map(n => this.makeRequest({ type: 'keepalive' }).subscribe())
+      .map(() => this.makeRequest({ type: 'keepalive' }).subscribe())
       .publish()
 
     // This is used to emit status changes that others can hook into.
@@ -102,6 +109,14 @@ export class HorizonSocket extends WebSocketSubject {
       // failure to connect)
       error: () => this.status.next(STATUS_ERROR),
     })
+  }
+
+  cleanupHandshake() {
+    if (this._handshakeSub) {
+      this._handshakeSub.unsubscribe()
+      this._handshakeSub = null
+      this.handshake.next(null)
+    }
   }
 
   deactivateRequest(req) {
@@ -140,12 +155,12 @@ export class HorizonSocket extends WebSocketSubject {
             } else {
               this.status.next(STATUS_READY)
               this.handshake.next(n)
-              this.handshake.complete()
             }
           },
           error: e => {
             this.status.next(STATUS_ERROR)
-            this.handshake.error(e)
+            this.cleanupHandshake()
+            this.error(e)
           },
         })
 
@@ -153,7 +168,7 @@ export class HorizonSocket extends WebSocketSubject {
       // killed when the handshake is cleaned up
       this._handshakeSub.add(this.keepalive.connect())
     }
-    return this.handshake
+    return this.handshake.filter(x => x != null).take(1)
   }
 
   // Incorporates shared logic between the inital handshake request and
@@ -179,7 +194,8 @@ export class HorizonSocket extends WebSocketSubject {
   // * Emits `state: synced` as a separate document for easy filtering
   // * Reference counts subscriptions
   hzRequest(rawRequest) {
-    return this.sendHandshake().ignoreElements()
+    return this.sendHandshake()
+      .ignoreElements()
       .concat(this.makeRequest(rawRequest))
       .concatMap(resp => {
         if (resp.error !== undefined) {

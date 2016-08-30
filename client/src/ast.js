@@ -417,13 +417,13 @@ export class UserDataTerm {
 
   fetch() {
     return this._before.mergeMap(handshake => {
-        if (handshake.id == null) {
-          throw new Error('Unauthenticated users have no user document')
-        } else {
-          return this._query(handshake.id).fetch()
-        }
-      }).take(1) // necessary so that we complete, since _before is
-                 // infinite
+      if (handshake.id == null) {
+        throw new Error('Unauthenticated users have no user document')
+      } else {
+        return this._query(handshake.id).fetch()
+      }
+    }).take(1) // necessary so that we complete, since _before is
+               // infinite
   }
 
   watch(...args) {
