@@ -2,6 +2,7 @@
 
 const logger = require('./logger');
 const schemas = require('./schema/horizon_protocol');
+const Request = require('./request');
 const Response = require('./response');
 
 const Joi = require('joi');
@@ -76,13 +77,13 @@ class ClientConnection {
     } catch (err) {
       const detail = err.details[0];
       const err_str = `Request validation error at "${detail.path}": ${detail.message}`;
-      const request_id = request.request_id === undefined ? null : request.request_id;
+      const reqId = request.request_id === undefined ? null : request.request_id;
 
       if (request.request_id === undefined) {
         // This is pretty much an unrecoverable protocol error, so close the connection
-        this.close({request_id, error: `Protocol error: ${err}`, error_code: 0});
+        this.close({reqId, error: `Protocol error: ${err}`, error_code: 0});
       } else {
-        this.send_error({request_id}, err_str);
+        this.send_error(reqId, new Error(err_str));
       }
     }
   }
@@ -95,19 +96,20 @@ class ClientConnection {
       return this.close({error: 'Invalid handshake.', error_code: 0});
     }
 
+    const reqId = request.request_id;
     this.auth.handshake(request).then((res) => {
       this._context.user = res.payload;
-      const info = {
+      this.send_message(reqId, {
         token: res.token,
         id: res.payload.id,
         provider: res.payload.provider,
-      };
-      this.send_message(request, info);
+      });
       this.socket.on('message', (msg) =>
         this.error_wrap_socket(() => this.handle_request(msg)));
       this.clientEvents.emit('auth', this._context);
     }).catch((err) => {
-      this.close({request_id: request.request_id, error: `${err}`, error_code: 0});
+      logger.debug(`Error during client handshake: ${err.stack}`);
+      this.close({request_id: reqId, error: `${err}`, error_code: 0});
     });
   }
 
@@ -117,16 +119,25 @@ class ClientConnection {
 
     if (raw_request === undefined) {
       return;
-    } else if (raw_request.type === 'end_subscription') {
-      // there is no response for end_subscription
-      return this.remove_response(raw_request.request_id);
-    } else if (raw_request.type === 'keepalive') {
-      return this.send_message(raw_request, {state: 'complete'});
     }
 
-    const response = new Response((obj) => this.send_message(raw_request, obj));
-    this.responses.set(raw_request.request_id, response);
-    response.complete.then(() => this.remove_request(raw_request.request_id));
+    const reqId = raw_request.request_id;
+    if (raw_request.type === 'keepalive') {
+      return this.send_message(reqId, {state: 'complete'});
+    } else if (raw_request.type === 'end_subscription') {
+      // there is no response for end_subscription
+      return this.remove_response(reqId);
+    } else if (this.responses.get(reqId)) {
+      return this.close({ error: `Received duplicate request_id: ${reqId}` });
+    }
+
+    Object.freeze(raw_request.options);
+    raw_request.clientCtx = this._context;
+    raw_request._parameters = {};
+
+    const response = new Response((obj) => this.send_message(reqId, obj));
+    this.responses.set(reqId, response);
+    response.complete.then(() => this.remove_request(reqId));
 
     this.middlewareCb(raw_request, response, (err) =>
       response.end(err || new Error(`Request ran past the end of the middleware stack.`)));
@@ -145,34 +156,34 @@ class ClientConnection {
 
   close(info) {
     if (this.is_open()) {
-      const close_msg =
+      const reason =
         (info.error && info.error.substr(0, 64)) || 'Unspecified reason.';
-      logger.debug('Closing ClientConnection with message: ' +
-                   `${info.error || 'Unspecified reason.'}`);
-      logger.debug(`info: ${JSON.stringify(info)}`);
+      logger.debug('Closing ClientConnection with reason: ' +
+                   `${reason}`);
+      logger.debug(`Final message: ${JSON.stringify(info)}`);
       if (info.request_id !== undefined) {
         this.socket.send(JSON.stringify(info));
       }
-      this.socket.close(1002, close_msg);
+      this.socket.close(1002, reason);
     }
   }
 
-  send_message(request, data) {
+  send_message(reqId, data) {
     // Ignore responses for disconnected clients
     if (this.is_open()) {
-      data.request_id = request.request_id;
+      data.request_id = reqId;
       logger.debug(`Sending response: ${JSON.stringify(data)}`);
       this.socket.send(JSON.stringify(data));
     }
   }
 
-  send_error(request, err, code) {
+  send_error(reqId, err, code) {
     logger.debug(
-      `Sending error result for request ${request.request_id}:\n${err.stack}`);
+      `Sending error result for request ${reqId}:\n${err.stack}`);
 
     const error = err instanceof Error ? err.message : err;
     const error_code = code === undefined ? -1 : code;
-    this.send_message(request, {error, error_code});
+    this.send_message(reqId, {error, error_code});
   }
 }
 

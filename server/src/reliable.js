@@ -155,9 +155,10 @@ class ReliableChangefeed extends Reliable {
             }
           }).then((res) => {
             // If we get here the cursor closed for some reason.
-            throw new Error(`cursor closed for some reason: ${res}`);
+            throw new Error(`cursor closed unexpectedly: ${res}`);
           });
         }).catch((e) => {
+          logger.debug(`Changefeed error (${this.reql}): ${e}`);
           if (this.ready) {
             this.emit('onUnready', e);
           }

@@ -7,7 +7,11 @@ Error.stackTraceLimit = Infinity;
 
 const horizon = require('../server');
 const PluginRouter = require('../plugin_router');
-const permissions = require('../plugins/permissions');
+const permit_all = require('../plugins/permit_all');
+const reads = require('../plugins/reads');
+const writes = require('../plugins/writes');
+const collection = require('../plugins/collection');
+const timeout = require('../plugins/timeout');
 
 // Utilities provided by the CLI library
 const each_line_in_pipe = require('../cli/src/utils/each_line_in_pipe');
@@ -175,7 +179,7 @@ new Promise((resolve) => {
     auto_create_index: true,
     rdb_port: server.driver_port,
     permissions: parse_yes_no_option(options.permissions),
-    project_name: 'test',
+    project_name: 'hz_test',
     auth: {
       allow_unauthenticated: true,
       allow_anonymous: true,
@@ -185,7 +189,11 @@ new Promise((resolve) => {
   console.log('starting http servers');
 
   const plugins = new PluginRouter(horizon_server);
-  plugins.add(permissions());
+  plugins.add(permit_all());
+  plugins.add(collection());
+  plugins.add(timeout());
+  plugins.add(reads());
+  plugins.add(writes());
 
   horizon_server.set_middleware(plugins.hzMiddleware());
 

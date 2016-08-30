@@ -219,7 +219,7 @@ class UserCache {
   subscribe(userId) {
     let cfeed = this.userCfeeds.get(userId);
     if (!cfeed) {
-      this.userCfeeds.set(userId, cfeed = this.newUserCfeed());
+      this.userCfeeds.set(userId, cfeed = this.newUserCfeed(userId));
       cfeed.readyPromise = new Promise((resolve, reject) => {
         cfeed.subscribe({onReady: () => resolve()});
         setTimeout(() => reject(new Error('timed out')), this.timeout);
@@ -268,6 +268,8 @@ class UserCache {
             if (!needsValidation) {
               return null;
             }
+
+            // The validator function returns the matching rule if allowed, or undefined
             return (...args) => {
               try {
                 for (const rule of ruleset) {
@@ -279,7 +281,6 @@ class UserCache {
                 // We don't want to pass the error message on to the user because
                 // it might leak information about the data.
                 this.ctx.logger.error(`Exception in validator function: ${err.stack}`);
-                throw new Error('Validation error');
               }
             };
           };
@@ -303,7 +304,7 @@ module.exports = (raw_config) => {
     config.cacheTimeout = 5000;
   }
   config.name = config.name || 'permissions';
-  config.usersTable = config.usersTable || 'hz_users';
+  config.usersTable = config.usersTable || 'users';
   config.groupsTable = config.groupsTable || 'hz_groups';
 
   const name = config.name;
@@ -315,7 +316,7 @@ module.exports = (raw_config) => {
     name,
 
     activate(ctx) {
-      ctx.logger.info('Activating plugins module.');
+      ctx.logger.info('Activating permissions plugin.');
       ctx[userCache] = new UserCache(config, ctx);
 
       authCb = (clientCtx) => {

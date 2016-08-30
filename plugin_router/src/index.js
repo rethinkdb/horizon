@@ -110,8 +110,10 @@ class PluginRouter {
             } else {
               requirements[o] = true;
             }
-            for (const r of m.requires) {
-              requirements[r] = true;
+            if (m.requires) {
+              for (const r of m.requires) {
+                requirements[r] = true;
+              }
             }
           }
         }
@@ -133,7 +135,7 @@ class PluginRouter {
               next(maybeErr);
             } else {
               try {
-                this.methods[methodName].impl(req, res, cb);
+                this.methods[methodName].handler(new Request(req, methodName), res, cb);
               } catch (e) {
                 next(e);
               }

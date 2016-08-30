@@ -2,7 +2,6 @@
 
 const logger = require('./logger');
 const options_schema = require('./schema/server_options').auth;
-const writes = require('./endpoint/writes');
 
 const Joi = require('joi');
 const Promise = require('bluebird');
@@ -92,14 +91,13 @@ class Auth {
     return {
       id,
       groups: ['default', this._new_user_group],
-      [writes.version_field]: 0,
     };
   }
 
   // TODO: maybe we should write something into the user data to track open sessions/tokens
   generate(provider, info) {
     return Promise.resolve().then(() => {
-      const conn = this._parent.conn().connection();
+      const conn = this._parent.rdb_connection().connection();
       if (!conn) {
         throw new Error('No connection with the database.');
       }
