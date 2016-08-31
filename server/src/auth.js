@@ -98,10 +98,6 @@ class Auth {
   generate(provider, info) {
     return Promise.resolve().then(() => {
       const conn = this._parent.rdb_connection().connection();
-      if (!conn) {
-        throw new Error('No connection with the database.');
-      }
-
       const key = this.auth_key(provider, info);
       const db = r.db(this._parent.options.project_name);
 

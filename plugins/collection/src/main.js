@@ -18,7 +18,7 @@ module.exports = (raw_config) => ({
   name: (raw_config && raw_config.name) || 'permissions',
   activate: (server) => {
     const metadata = new ReliableMetadata(...);
-
+    // RSI: instantiate metadata
     return {
       methods: {
         collection: {
@@ -26,6 +26,7 @@ module.exports = (raw_config) => ({
           handler: collection(server, metadata),
         },
       },
+      deactivate: () => metadata.close(),
     };
   },
 });

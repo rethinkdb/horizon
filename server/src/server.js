@@ -142,8 +142,8 @@ class Server extends EventEmitter {
   // them to be closed.
   close() {
     if (!this._close_promise) {
-      this._close_promise = this._reliableMetadata.close().then(
-        () => Promise.all(this._ws_servers.map((s) => new Promise((resolve) => {
+      this._close_promise =
+        Promise.all(this._ws_servers.map((s) => new Promise((resolve) => {
           s.close(resolve);
         })))
       ).then(
