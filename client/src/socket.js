@@ -1,7 +1,10 @@
+import { AsyncSubject } from 'rxjs/AsyncSubject'
 import { BehaviorSubject } from 'rxjs/BehaviorSubject'
+import { Subject } from 'rxjs/Subject'
 import { WebSocketSubject } from 'rxjs/observable/dom/WebSocketSubject'
 import { Observable } from 'rxjs/Observable'
 import 'rxjs/add/observable/merge'
+import 'rxjs/add/observable/never'
 import 'rxjs/add/observable/timer'
 import 'rxjs/add/operator/filter'
 import 'rxjs/add/operator/share'
@@ -9,6 +12,7 @@ import 'rxjs/add/operator/ignoreElements'
 import 'rxjs/add/operator/concat'
 import 'rxjs/add/operator/takeWhile'
 import 'rxjs/add/operator/publish'
+import 'rxjs/add/operator/cache'
 
 import { serialize, deserialize } from './serialization.js'
 
@@ -67,9 +71,7 @@ export class HorizonSocket extends WebSocketSubject {
       socket: websocket,
       WebSocketCtor,
       openObserver: {
-        next: () => {
-          this.sendHandshake()
-        },
+        next: () => this.sendHandshake(),
       },
       closingObserver: {
         next: () => {
@@ -86,7 +88,7 @@ export class HorizonSocket extends WebSocketSubject {
     })
     // Completes or errors based on handshake success. Buffers
     // handshake response for later subscribers (like a Promise)
-    this.handshake = new BehaviorSubject()
+    this.handshake = new AsyncSubject()
     this._handshakeMaker = handshakeMaker
     this._handshakeSub = null
 
@@ -114,8 +116,6 @@ export class HorizonSocket extends WebSocketSubject {
   cleanupHandshake() {
     if (this._handshakeSub) {
       this._handshakeSub.unsubscribe()
-      this._handshakeSub = null
-      this.handshake.next(null)
     }
   }
 
@@ -155,10 +155,12 @@ export class HorizonSocket extends WebSocketSubject {
             } else {
               this.status.next(STATUS_READY)
               this.handshake.next(n)
+              this.handshake.complete()
             }
           },
           error: e => {
             this.status.next(STATUS_ERROR)
+            this.handshake.error(e)
             this.cleanupHandshake()
             this.error(e)
           },
@@ -168,7 +170,7 @@ export class HorizonSocket extends WebSocketSubject {
       // killed when the handshake is cleaned up
       this._handshakeSub.add(this.keepalive.connect())
     }
-    return this.handshake.filter(x => x != null).take(1)
+    return this.handshake
   }
 
   // Incorporates shared logic between the inital handshake request and
@@ -184,35 +186,77 @@ export class HorizonSocket extends WebSocketSubject {
       this.filterRequest(request)
     )
   }
+}
 
-  // Wrapper around the makeRequest with the following additional
-  // features we need for horizon's protocol:
-  // * Sends handshake on subscription if it hasn't happened already
-  // * Wait for the handshake to complete before sending the request
-  // * Errors when a document with an `error` field is received
-  // * Completes when `state: complete` is received
-  // * Emits `state: synced` as a separate document for easy filtering
-  // * Reference counts subscriptions
-  hzRequest(rawRequest) {
-    return this.sendHandshake()
-      .ignoreElements()
-      .concat(this.makeRequest(rawRequest))
-      .concatMap(resp => {
-        if (resp.error !== undefined) {
-          throw new ProtocolError(resp.error, resp.error_code)
-        }
-        const data = resp.data || []
+export function connectionSmoother(horizonParams) {
+  const controlSignals = new Subject()
+  const sockets = infiniteHorizonSockets(controlSignals, horizonParams)
+  const statuses = sockets.switchMap(socket => socket.status).cache(1)
 
-        if (resp.state !== undefined) {
-          // Create a little dummy object for sync notifications
-          data.push({
-            type: 'state',
-            state: resp.state,
-          })
-        }
-
-        return data
-      })
-      .share()
+  return {
+    controlSignals,
+    sockets,
+    handshakes: sockets.switchMap(socket => socket.handshake),
+    statuses,
+    sendRequest(type, options) {
+      const normalizedType = type === 'removeAll' ? 'remove' : type
+      return sockets
+        // Each time we get a new socket, we'll send the request
+        .switchMap(
+          socket => socket
+            .sendHandshake()
+            .ignoreElements()
+            .concat(socket.makeRequest({ type: normalizedType, options }))
+            .concatMap(expandResponse)
+            .share())
+        // End the request observable when there's a completion
+        // notification
+        .takeWhile(resp => resp.state !== 'complete')
+    },
+    connect() {
+      controlSignals.next('connect')
+    },
+    disconnect() {
+      controlSignals.next('disconnect')
+    },
   }
+}
+
+function infiniteHorizonSockets(signals, horizonParams) {
+  return signals
+    // We only care about two signals
+    .filter(x => x === 'connect' || x === 'disconnect')
+    // Create a new socket if we're to connect
+    .map(signalName => {
+      if (signalName === 'connect') {
+        return new HorizonSocket(horizonParams)
+      } else {
+        return 'FAKE_SOCKET'
+      }
+    })
+    // Cache the last socket so we don't keep creating them on subscribe
+    .cache(1)
+    // Filter out fake sockets so new subscribers don't get the cached
+    // horizon socket after a disconnect message
+    .filter(x => x === 'FAKE_SOCKET')
+}
+
+// Process a response to throw an exception if a request error was
+// received, and to break out state messages into their own responses.
+// Used only by concatMap in sendRequest
+function expandResponse(resp) {
+  if (resp.error !== undefined) {
+    throw new ProtocolError(resp.error, resp.error_code)
+  }
+  const data = resp.data || []
+
+  if (resp.state !== undefined) {
+    // Create a little dummy object for sync notifications
+    data.push({
+      type: 'state',
+      state: resp.state,
+    })
+  }
+
+  return data
 }

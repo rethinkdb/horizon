@@ -17,7 +17,7 @@ const defaultHost = typeof window !== 'undefined' && window.location &&
 const defaultSecure = typeof window !== 'undefined' && window.location &&
         window.location.protocol === 'https:' || false
 
-function Horizon({
+export default function Horizon({
   host = defaultHost,
   secure = defaultSecure,
   path = 'horizon',
@@ -173,5 +173,3 @@ function subscribeOrObservable(observable) {
 
 Horizon.Socket = HorizonSocket
 Horizon.clearAuthTokens = clearAuthTokens
-
-module.exports = Horizon
