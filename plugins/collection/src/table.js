@@ -1,4 +1,4 @@
-'use strict';
+use strict';
 
 const index = require('./index');
 const logger = require('../logger');

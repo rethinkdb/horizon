@@ -6,8 +6,9 @@ const Table = require('./table').Table;
 const r = require('rethinkdb');
 
 class Collection {
-  constructor(db, name) {
+  constructor(db, name, reliableConn) {
     this.name = name;
+    this.reliableConn = reliableConn;
     this.table = r.db(db).table(name); // This is the ReQL Table object
     this._tables = new Map(); // A Map of Horizon Table objects
     this._registered = false; // Whether the `hz_collections` table says this collection exists
@@ -71,20 +72,29 @@ class Collection {
     return this._tables.values().next().value;
   }
 
-  _create_index(fields, conn, done) {
-    return this._get_table().create_index(fields, conn, done);
+  _create_index(fields, done) {
+    return this._get_table().create_index(fields, this.reliableConn.connection(), done);
   }
 
   get_matching_index(fuzzy_fields, ordered_fields) {
-    const match = this._get_table().get_matching_index(fuzzy_fields, ordered_fields);
-    
-    if (match && !match.ready()) {
-      throw new error.IndexNotReady(this, match);
-    } else if (!match) {
-      throw new error.IndexMissing(this, fuzzy_fields.concat(ordered_fields));
-    }
+    return new Promise((resolve, reject) => {
+      const done = (indexOrErr) => {
+        if (indexOrErr instanceof Error) {
+          reject(indexOrErr);
+        } else {
+          resolve(indexOrErr);
+        }
+      };
 
-    return match;
+      const match = this._get_table().get_matching_index(fuzzy_fields, ordered_fields);
+      if (match && !match.ready()) {
+        match.on_ready(done);
+      } else if (!match) {
+        this._create_index(fuzzy_fields.concat(ordered_fields), done);
+      } else {
+        resolve(match);
+      }
+    });
   }
 }
 

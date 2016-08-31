@@ -123,7 +123,7 @@ class Index {
       table.indexWait(name).run(conn).then(() => {
         logger.debug(`${table} index ready: ${name}`);
         this._result = true;
-        this._waiters.forEach((w) => w());
+        this._waiters.forEach((w) => w(this));
         this._waiters = [];
       }).catch((err) => {
         this._result = err;
@@ -149,7 +149,7 @@ class Index {
     if (this._result === true) {
       done();
     } else if (this._result) {
-      done(this._result);
+      done(this);
     } else {
       this._waiters.push(done);
     }

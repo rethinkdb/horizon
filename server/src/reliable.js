@@ -111,8 +111,15 @@ class ReliableConn extends Reliable {
     });
   }
 
-  connection() {
+  maybeConnection() {
     return this.ready ? this.conn : null;
+  }
+
+  connection() {
+    if (!this.ready) {
+      throw new Error('Not connected');
+    }
+    return this.conn;
   }
 
   close(reason) {

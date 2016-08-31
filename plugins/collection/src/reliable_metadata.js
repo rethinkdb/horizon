@@ -320,8 +320,20 @@ class ReliableMetadata extends Reliable {
       const collection = this._collections.get(name);
       if (!collection && !this._auto_create_collection) {
         throw new Error(`Collection "${name}" does not exist.`);
+      } else if (collection) {
+        if (!collection.ready()) {
+          return new Promise((resolve, reject) =>
+            collection._on_ready((maybeErr) => {
+              if (maybeErr instanceof Error) {
+                resolve(collection);
+              } else {
+                reject(maybeErr);
+              }
+            }));
+        }
+        return collection;
       }
-      return collection || this.create_collection(name);
+      return this.create_collection(name);
     });
   }
 
