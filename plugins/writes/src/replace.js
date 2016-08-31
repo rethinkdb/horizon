@@ -37,7 +37,8 @@ module.exports = (server) => (request, response, next) => {
                        r.error(common.invalidated_msg),
 
                        // Otherwise, we can safely replace the row
-                       common.apply_version(new_row, old_row(hz_v).default(-1).add(1))),
+                       common.apply_version(
+                         r, new_row, old_row(hz_v).default(-1).add(1))),
               {returnChanges: 'always'}))
       .run(conn, common.reql_options)
   ).then((msg) => response.end(msg)).catch(next);

@@ -1,19 +1,15 @@
 'use strict';
 
-const error = require('../error');
 const {Reliable, ReliableChangefeed, ReliableUnion} = require('../reliable');
-const logger = require('../logger');
 const Collection = require('./collection').Collection;
 const utils = require('../utils');
 
 const assert = require('assert');
 
-const r = require('rethinkdb');
-
 const version_field = '$hz_v$';
 const metadata_version = [2, 0, 0];
 
-const create_collection = (db, name, conn) =>
+const create_collection = (r, db, name, conn) =>
   r.db(db).table('hz_collections').get(name).replace({id: name}).do((res) =>
     r.branch(
       res('errors').ne(0),
@@ -24,7 +20,7 @@ const create_collection = (db, name, conn) =>
     )
   ).run(conn);
 
-const initialize_metadata = (db, conn) =>
+const initialize_metadata = (r, db, conn) =>
   r.branch(r.dbList().contains(db), null, r.dbCreate(db)).run(conn)
     .then(() =>
       Promise.all(['hz_collections', 'hz_users_auth', 'hz_groups'].map((table) =>
@@ -37,7 +33,7 @@ const initialize_metadata = (db, conn) =>
     .then(() =>
       Promise.all([
         r.db(db).tableList().contains('users').not().run(conn).then(() =>
-          create_collection(db, 'users', conn)),
+          create_collection(r, db, 'users', conn)),
         r.db(db).table('hz_collections')
           .insert({id: 'hz_metadata', version: metadata_version})
           .run(conn),
@@ -46,6 +42,7 @@ const initialize_metadata = (db, conn) =>
 
 class StaleAttemptError extends Error { }
 
+// RSI: fix all this shit.
 class ReliableInit extends Reliable {
   constructor(db, reliable_conn, auto_create_collection) {
     super();
@@ -92,7 +89,7 @@ class ReliableInit extends Reliable {
       this.check_attempt(attempt);
       logger.debug('checking for internal tables');
       if (this._auto_create_collection) {
-        return initialize_metadata(this._db, conn);
+        return initialize_metadata(this.r, this._db, conn);
       } else {
         return r.dbList().contains(this._db).run(conn).then((has_db) => {
           if (!has_db) {
@@ -163,8 +160,12 @@ class ReliableMetadata extends Reliable {
   constructor(project_name,
               reliable_conn,
               auto_create_collection,
-              auto_create_index) {
+              auto_create_index,
+              logger,
+              r) {
     super();
+    this.logger = logger;
+    this.r = r;
 
     this._db = project_name;
     this._reliable_conn = reliable_conn;
@@ -200,7 +201,8 @@ class ReliableMetadata extends Reliable {
               const collection_name = change.new_val.id;
               let collection = this._collections.get(collection_name);
               if (!collection) {
-                collection = new Collection(this._db, collection_name);
+                collection = new Collection(
+                  this._db, collection_name, this.logger, this.r);
                 this._collections.set(collection_name, collection);
               }
               collection._register();
@@ -253,10 +255,12 @@ class ReliableMetadata extends Reliable {
 
               let collection = this._collections.get(collection_name);
               if (!collection) {
-                collection = new Collection(this._db, collection_name);
+                collection = new Collection(
+                  this._db, collection_name, this.logger, this.r);
                 this._collections.set(collection_name, collection);
               }
-              collection._update_table(table_id, change.new_val.indexes, this._connection);
+              collection._update_table(
+                table_id, change.new_val.indexes, this._connection);
             }
             break;
           case 'uninitial':
@@ -348,13 +352,13 @@ class ReliableMetadata extends Reliable {
         throw new Error(`Collection "${name}" already exists.`);
       }
 
-      const collection = new Collection(this._db, name);
+      const collection = new Collection(this._db, name, this.logger, this.r);
       this._collections.set(name, collection);
 
-      return create_collection(this._db, name, this._reliable_conn.connection());
+      return create_collection(this.r, this._db, name, this._reliable_conn.connection());
     }).then((res) => {
       assert(!res.error, `Collection "${name}" creation failed: ${res.error}`);
-      logger.warn(`Collection created: "${name}"`);
+      this.logger.warn(`Collection created: "${name}"`);
       return new Promise((resolve, reject) =>
         collection._on_ready((maybeErr) => {
           if (maybeErr instanceof Error) {

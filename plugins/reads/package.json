@@ -2,7 +2,7 @@
   "name": "@horizon/plugin-reads",
   "version": "1.0.0",
   "description": "Plugin that provides default Horizon read operations.",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "lint": "eslint src test",
     "test": "mocha test",

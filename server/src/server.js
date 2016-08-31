@@ -4,7 +4,6 @@ const Auth = require('./auth').Auth;
 const ClientConnection = require('./client');
 const logger = require('./logger');
 const {ReliableConn, ReliableChangefeed} = require('./reliable');
-const {ReliableMetadata} = require('./metadata/reliable_metadata');
 const optionsSchema = require('./schema/server_options').server;
 
 const EventEmitter = require('events');
@@ -49,17 +48,11 @@ class Server extends EventEmitter {
 
     this.r = r;
     this.logger = logger;
-    this.ReliableChangefeed = ReliableChangefeed; // RSI: better place to put this that on the context?  Should plugins require the server?
+    // RSI: better place to put this that on the context?  Should plugins
+    // require the server?
+    this.ReliableChangefeed = ReliableChangefeed;
 
-    // TODO: consider emitting errors sometimes.
-    this._reliableMetadata = new ReliableMetadata(
-      this.options.project_name,
-      this._reliableConn,
-      this._clients,
-      this.options.auto_create_collection,
-      this.options.auto_create_index);
-
-    this._clear_clients_subscription = this._reliableMetadata.subscribe({
+    this._clear_clients_subscription = this._reliableConn.subscribe({
       onReady: () => {
         this.emit('ready', this);
       },
@@ -73,7 +66,7 @@ class Server extends EventEmitter {
 
     const verifyClient = (info, cb) => {
       // Reject connections if we aren't synced with the database
-      if (!this._reliableMetadata.ready) {
+      if (!this._reliableConn.ready) {
         cb(false, 503, 'Connection to the database is down.');
       } else {
         cb(true);
@@ -82,13 +75,14 @@ class Server extends EventEmitter {
 
     const ws_options = {handleProtocols, verifyClient, path: this.options.path};
 
-    // RSI: only become ready when this and metadata are both ready.
+    // RSI: only become ready when the websocket servers and the
+    // connection are both ready.
     const add_websocket = (server) => {
       const ws_server = new websocket.Server(Object.assign({server}, ws_options))
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
         .on('connection', (socket) => {
           try {
-            if (!this._reliableMetadata.ready) {
+            if (!this._reliableConn.ready) {
               throw new Error('No connection to the database.');
             }
 
@@ -126,10 +120,6 @@ class Server extends EventEmitter {
     return this._auth;
   }
 
-  metadata() {
-    return this._reliableMetadata;
-  }
-
   rdb_connection() {
     return this._reliableConn;
   }
@@ -145,10 +135,7 @@ class Server extends EventEmitter {
       this._close_promise =
         Promise.all(this._ws_servers.map((s) => new Promise((resolve) => {
           s.close(resolve);
-        })))
-      ).then(
-        () => this._reliableConn.close()
-      );
+        }))).then(() => this._reliableConn.close());
     }
     return this._close_promise;
   }

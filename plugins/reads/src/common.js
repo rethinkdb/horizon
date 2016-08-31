@@ -117,15 +117,14 @@ const make_reql = (r, req) => Promise.resolve().then(() => {
   if (find) {
     reqlPromise = ordered_between(find).then((subquery) => subquery.limit(1));
   } else if (findAll && findAll.length > 1) {
-    reqlPromise = Promise.all(findAll.map((x) => ordered_between(x))).then((subqueries) =>
-      r.union.apply(subqueries));
+    reqlPromise = Promise.all(
+      findAll.map((x) => ordered_between(x))).then((subqueries) =>
+                                                   r.union.apply(subqueries));
   } else {
     reqlPromise = ordered_between((findAll && findAll[0]) || {});
   }
 
-  return reqlPromise.then((reql) =>
-    limit !== undefined ? reql.limit(limit) : reql;
-  );
+  return reqlPromise.then((reql) => (limit !== undefined ? reql.limit(limit) : reql));
 });
 
 module.exports = {make_reql, isObject, reql_options};

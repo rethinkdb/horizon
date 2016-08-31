@@ -1,15 +1,13 @@
-use strict';
+'use strict';
 
 const index = require('./index');
-const logger = require('../logger');
-
 const assert = require('assert');
 
-const r = require('rethinkdb');
-
 class Table {
-  constructor(reql_table, conn) {
+  constructor(reql_table, conn, logger, r) {
     this.table = reql_table;
+    this.logger = logger;
+    this.r = r;
     this.indexes = new Map();
 
     this._waiters = [];
@@ -52,7 +50,7 @@ class Table {
   }
 
   update_indexes(indexes, conn) {
-    logger.debug(`${this.table} indexes changed, reevaluating`);
+    this.logger.debug(`${this.table} indexes changed, reevaluating`);
 
     // Initialize the primary index, which won't show up in the changefeed
     indexes.push(index.primary_index_name);
@@ -69,13 +67,13 @@ class Table {
         }
         new_index_map.set(name, new_index);
       } catch (err) {
-        logger.warn(`${err}`);
+        this.logger.warn(`${err}`);
       }
     });
 
     this.indexes.forEach((i) => i.close());
     this.indexes = new_index_map;
-    logger.debug(`${this.table} indexes updated`);
+    this.logger.debug(`${this.table} indexes updated`);
   }
 
   // TODO: support geo and multi indexes
@@ -88,7 +86,8 @@ class Table {
       // Create the Index object now so we don't try to create it again before the
       // feed notifies us of the index creation
       const new_index = new index.Index(index_name, this.table, conn);
-      this.indexes.set(index_name, new_index); // TODO: shouldn't this be done before we go async?
+      // TODO: shouldn't this be done before we go async?
+      this.indexes.set(index_name, new_index);
       return new_index.on_ready(done);
     };
 
@@ -97,7 +96,7 @@ class Table {
       .run(conn)
       .then(success)
       .catch((err) => {
-        if (err instanceof r.Error.ReqlError &&
+        if (err instanceof this.r.Error.ReqlError &&
             err.msg.indexOf('already exists') !== -1) {
           success();
         } else {

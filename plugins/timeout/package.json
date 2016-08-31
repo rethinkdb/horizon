@@ -1,8 +1,8 @@
 {
   "name": "@horizon/plugin-timeout",
   "version": "1.0.0",
-  "description": "Plugin that converts timeouts to deadlines for Horizon write operations.",
-  "main": "src/index.js",
+  "description": "Converts timeouts to deadlines for Horizon write operations.",
+  "main": "dist/index.js",
   "scripts": {
     "lint": "eslint src test",
     "test": "mocha test",

@@ -28,7 +28,8 @@ module.exports = (server) => (request, response, next) => {
                    [null, new_row]))
         .run(conn, common.reql_options),
     (validator, row, info) =>
-      common.validate_old_row_optional(validator, request.clientCtx, row, info[0], info[1]),
+      common.validate_old_row_optional(
+        validator, request.clientCtx, row, info[0], info[1]),
     (rows) => // write to database, all valid rows
       r.expr(rows)
         .forEach((new_row) =>
@@ -42,7 +43,7 @@ module.exports = (server) => (request, response, next) => {
                            r.error(common.invalidated_msg),
 
                            // Otherwise, insert the row
-                           common.apply_version(new_row, 0)
+                           common.apply_version(r, new_row, 0)
                          ),
                          r.branch(
                            // The row may have changed from the expected version
@@ -51,13 +52,14 @@ module.exports = (server) => (request, response, next) => {
                            r.error(common.invalidated_msg),
 
                            // Otherwise, we can update the row and increment the version
-                           common.apply_version(old_row.merge(new_row),
+                           common.apply_version(r,
+                                                old_row.merge(new_row),
                                                 old_row(hz_v).default(-1).add(1))
                          )
                        ), {returnChanges: 'always'}),
 
                    // The new row did not have an id, so we insert it with an autogen id
-                   collection.table.insert(common.apply_version(new_row, 0),
+                   collection.table.insert(common.apply_version(r, new_row, 0),
                                            {returnChanges: 'always'})))
         .run(conn, common.reql_options)
   ).then((msg) => response.end(msg)).catch(next);

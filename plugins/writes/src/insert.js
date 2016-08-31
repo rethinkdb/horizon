@@ -25,7 +25,7 @@ module.exports = (server) => (request, response, next) => {
     },
     (rows) => // write to database, all valid rows
       collection.table
-        .insert(rows.map((row) => common.apply_version(r.expr(row), 0)),
+        .insert(rows.map((row) => common.apply_version(r, r.expr(row), 0)),
                 {returnChanges: 'always'})
         .run(conn, common.reql_options)
   ).then((msg) => response.end(msg)).catch(next);

@@ -6,9 +6,11 @@ const Table = require('./table').Table;
 const r = require('rethinkdb');
 
 class Collection {
-  constructor(db, name, reliableConn) {
+  constructor(db, name, reliableConn, logger, r) {
     this.name = name;
     this.reliableConn = reliableConn;
+    this.logger = logger;
+    this.r = r;
     this.table = r.db(db).table(name); // This is the ReQL Table object
     this._tables = new Map(); // A Map of Horizon Table objects
     this._registered = false; // Whether the `hz_collections` table says this collection exists
@@ -29,7 +31,7 @@ class Collection {
     let table = this._tables.get(table_id);
     if (indexes) {
       if (!table) {
-        table = new Table(this.table, conn);
+        table = new Table(this.table, conn, this.logger, this.r);
         this._tables.set(table_id, table);
       }
       table.update_indexes(indexes, conn);
