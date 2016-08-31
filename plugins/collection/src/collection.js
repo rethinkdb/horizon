@@ -77,7 +77,7 @@ class Collection {
 
   get_matching_index(fuzzy_fields, ordered_fields) {
     const match = this._get_table().get_matching_index(fuzzy_fields, ordered_fields);
-
+    
     if (match && !match.ready()) {
       throw new error.IndexNotReady(this, match);
     } else if (!match) {

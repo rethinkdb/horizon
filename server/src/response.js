@@ -1,5 +1,7 @@
 'use strict';
 
+const logger = require('./logger');
+
 class Response {
   constructor(socketSend) {
     this._socketSend = socketSend;
@@ -11,6 +13,7 @@ class Response {
       this.write(data, 'complete');
     }).catch((err) => {
       this._completed = true;
+      logger.debug(`Request failed with error: ${err.stack}`);
       this._socketSend({
         error: `${err}`,
         error_code: err.code || -1,

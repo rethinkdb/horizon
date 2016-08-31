@@ -1,5 +1,7 @@
 'use strict';
 
+const Request = require('./request');
+
 const Toposort = require('toposort-class');
 
 class PluginRouter {
@@ -22,6 +24,7 @@ class PluginRouter {
       }
 
       for (const m in active.methods) {
+        console.log(`adding plugin method: ${m}`);
         if (this.methods[m]) {
           throw new Error(`Method name conflict: "${m}"`);
         }
@@ -100,6 +103,7 @@ class PluginRouter {
         for (const o in req.options) {
           const m = this.methods[o];
           if (m) {
+            console.log(`method for request: ${o}, type: ${m.type}`);
             if (m.type === 'terminal') {
               if (terminalName !== null) {
                 next(new Error('multiple terminals in request: ' +
@@ -115,6 +119,8 @@ class PluginRouter {
                 requirements[r] = true;
               }
             }
+          } else {
+            console.log(`no ${o} method for request`);
           }
         }
       }

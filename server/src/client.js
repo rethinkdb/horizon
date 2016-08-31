@@ -2,7 +2,6 @@
 
 const logger = require('./logger');
 const schemas = require('./schema/horizon_protocol');
-const Request = require('./request');
 const Response = require('./response');
 
 const Joi = require('joi');

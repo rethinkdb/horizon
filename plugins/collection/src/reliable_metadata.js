@@ -306,67 +306,58 @@ class ReliableMetadata extends Reliable {
     ]);
   }
 
-  // Public interface for use by plugins or other classes
+  // Public interface for use by plugins or other classes,
+  //  returns a Promise of a collection object
   collection(name) {
-    if (name.indexOf('hz_') === 0 || name.indexOf('hzp_') === 0) {
-      throw new Error(`Collection "${name}" is reserved for internal use ` +
-                      'and cannot be used in requests.');
-    } else if (!this.ready) {
-      throw new Error('ReliableMetadata is not ready.');
-    }
+    return Promise.resolve().then(() => {
+      if (name.indexOf('hz_') === 0 || name.indexOf('hzp_') === 0) {
+        throw new Error(`Collection "${name}" is reserved for internal use ` +
+                        'and cannot be used in requests.');
+      } else if (!this.ready) {
+        throw new Error('ReliableMetadata is not ready.');
+      }
 
-    const collection = this._collections.get(name);
-    if (!collection) { throw new error.CollectionMissing(name); }
-    if (!collection._get_table().ready()) { throw new error.CollectionNotReady(collection); }
-    return collection;
+      const collection = this._collections.get(name);
+      if (!collection && !this._auto_create_collection) {
+        throw new Error(`Collection "${name}" does not exist.`);
+      }
+      return collection || this.create_collection(name);
+    });
   }
 
-  create_collection(name, done) {
-    if (name.indexOf('hz_') === 0 || name.indexOf('hzp_') === 0) {
-      throw new Error(`Collection "${name}" is reserved for internal use ` +
-                      'and cannot be used in requests.');
-    } else if (!this.ready) {
-      throw new Error('ReliableMetadata is not ready.');
-    } else if (this._collections.get(name)) {
-      throw new Error(`Collection "${name}" already exists.`);
-    }
+  create_collection(name) {
+    return Promise.resolve().then(() => {
+      if (name.indexOf('hz_') === 0 || name.indexOf('hzp_') === 0) {
+        throw new Error(`Collection "${name}" is reserved for internal use ` +
+                        'and cannot be used in requests.');
+      } else if (!this.ready) {
+        throw new Error('ReliableMetadata is not ready.');
+      } else if (this._collections.get(name)) {
+        throw new Error(`Collection "${name}" already exists.`);
+      }
 
-    const collection = new Collection(this._db, name);
-    this._collections.set(name, collection);
+      const collection = new Collection(this._db, name);
+      this._collections.set(name, collection);
 
-    create_collection(this._db, name, this._reliable_conn.connection()).then((res) => {
+      return create_collection(this._db, name, this._reliable_conn.connection());
+    }).then((res) => {
       assert(!res.error, `Collection "${name}" creation failed: ${res.error}`);
       logger.warn(`Collection created: "${name}"`);
-      collection._on_ready(done);
+      return new Promise((resolve, reject) =>
+        collection._on_ready((maybeErr) => {
+          if (maybeErr instanceof Error) {
+            resolve(collection);
+          } else {
+            reject(maybeErr);
+          }
+        }));
     }).catch((err) => {
       if (collection._is_safe_to_remove()) {
         this._collections.delete(name);
         collection.close();
       }
-      done(err);
+      throw err;
     });
-  }
-
-  handle_error(err, done) {
-    logger.debug(`Handling error: ${err.message}`);
-    try {
-      if (err instanceof error.CollectionNotReady) {
-        return err.collection._on_ready(done);
-      } else if (err instanceof error.IndexNotReady) {
-        return err.index.on_ready(done);
-      } else if (this._auto_create_collection && (err instanceof error.CollectionMissing)) {
-        logger.warn(`Auto-creating collection: ${err.name}`);
-        return this.create_collection(err.name, done);
-      } else if (this._auto_create_index && (err instanceof error.IndexMissing)) {
-        logger.warn(`Auto-creating index on collection "${err.collection.name}": ` +
-                    `${JSON.stringify(err.fields)}`);
-        return err.collection._create_index(err.fields, this._reliable_conn.connection(), done);
-      }
-      done(err);
-    } catch (new_err) {
-      logger.debug(`Error when handling error: ${new_err.message}`);
-      done(new_err);
-    }
   }
 
   reliable_connection() {
