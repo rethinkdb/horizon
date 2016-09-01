@@ -16,6 +16,8 @@ import 'rxjs/add/operator/cache'
 
 import { serialize, deserialize } from './serialization.js'
 
+import './hacks/web-socket-subject'
+
 export const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
 
 // Before connecting the first time
@@ -29,7 +31,7 @@ const STATUS_CLOSING = { type: 'closing' }
 // Occurs when the socket closes
 const STATUS_DISCONNECTED = { type: 'disconnected' }
 
-class ProtocolError extends Error {
+export class ProtocolError extends Error {
   constructor(msg, errorCode) {
     super(msg)
     this.errorCode = errorCode
@@ -38,7 +40,6 @@ class ProtocolError extends Error {
     return `${this.message} (Code: ${this.errorCode})`
   }
 }
-
 
 // Wraps native websockets with a Subject, which is both an Subscriber
 // and an Observable (it is bi-directional after all!). This version
@@ -76,7 +77,6 @@ export class HorizonSocket extends WebSocketSubject {
       closingObserver: {
         next: () => {
           this.status.next(STATUS_CLOSING)
-          this.cleanupHandshake()
         },
       },
       closeObserver: {
@@ -94,8 +94,7 @@ export class HorizonSocket extends WebSocketSubject {
 
     this.keepalive = Observable
       .timer(keepalive * 1000, keepalive * 1000)
-      .map(() => this.makeRequest({ type: 'keepalive' }).subscribe())
-      .publish()
+      .switchMap(() => this.makeRequest({ type: 'keepalive' }))
 
     // This is used to emit status changes that others can hook into.
     this.status = new BehaviorSubject(STATUS_UNCONNECTED)
@@ -119,31 +118,13 @@ export class HorizonSocket extends WebSocketSubject {
     }
   }
 
-  deactivateRequest(req) {
-    return () => {
-      this.activeRequests.delete(req.request_id)
-      return { request_id: req.request_id, type: 'end_subscription' }
-    }
-  }
-
-  activateRequest(req) {
-    return () => {
-      this.activeRequests.set(req.request_id, req)
-      return req
-    }
-  }
-
-  filterRequest(req) {
-    return resp => resp.request_id === req.request_id
-  }
-
   getRequest(request) {
     return Object.assign({ request_id: this.requestCounter++ }, request)
   }
 
-  // This is a trimmed-down version of multiplex that only listens for
-  // the handshake requestId. It also starts the keepalive observable
-  // and cleans up after it when the handshake is cleaned up.
+  // Send the handshake if it hasn't been sent already. It also starts
+  // the keepalive observable and cleans up after it when the
+  // handshake is cleaned up.
   sendHandshake() {
     if (!this._handshakeSub) {
       this._handshakeSub = this.makeRequest(this._handshakeMaker())
@@ -177,14 +158,55 @@ export class HorizonSocket extends WebSocketSubject {
   // all subsequent requests.
   // * Generates a request id and filters by it
   // * Send `end_subscription` when observable is unsubscribed
-  makeRequest(rawRequest) {
-    const request = this.getRequest(rawRequest)
+  makeRequest(rawRequest, shouldEndSub = true) {
+    return new Observable(observer => {
+      const self = this
+      const request = this.getRequest(rawRequest)
+      const { request_id } = request
+      let requestSent = false
+      self.sendHandshake().subscribe({
+        error(e) {
+          observer.error(e) // error request if the handshake errors
+        },
+        complete() {
+          self.next(request) // send the request when the handshake is done
+          requestSent = true
+        },
+      })
 
-    return super.multiplex(
-      this.activateRequest(request),
-      this.deactivateRequest(request),
-      this.filterRequest(request)
-    )
+      const subscription = self.subscribe({
+        next(resp) {
+          // Multiplex by request id on all incoming messages
+          if (resp.request_id === request_id) {
+            if (resp.error !== undefined) {
+              observer.error(ProtocolError(resp.error, resp.error_code))
+            }
+            for (const d of resp.data) {
+              observer.next(d)
+            }
+            if (resp.state !== undefined) {
+              // Create a little dummy object for sync notifications
+              observer.next({
+                type: 'state',
+                state: resp.state,
+              })
+            }
+            if (resp.state === 'complete') {
+              observer.complete()
+            }
+          }
+        },
+        error(err) { observer.error(err) },
+        complete() { observer.complete() },
+      })
+
+      return () => {
+        if (requestSent && shouldEndSub) {
+          self.next({ request_id, type: 'end_subscription' })
+        }
+        subscription.unsubscribe()
+      }
+    })
   }
 }
 
@@ -198,20 +220,13 @@ export function connectionSmoother(horizonParams) {
     sockets,
     handshakes: sockets.switchMap(socket => socket.handshake),
     statuses,
-    sendRequest(type, options) {
-      const normalizedType = type === 'removeAll' ? 'remove' : type
+    sendRequest(clientType, options) {
+      const type = clientType === 'removeAll' ? 'remove' : clientType
       return sockets
         // Each time we get a new socket, we'll send the request
-        .switchMap(
-          socket => socket
-            .sendHandshake()
-            .ignoreElements()
-            .concat(socket.makeRequest({ type: normalizedType, options }))
-            .concatMap(expandResponse)
-            .share())
-        // End the request observable when there's a completion
-        // notification
-        .takeWhile(resp => resp.state !== 'complete')
+        .switchMap(socket => socket.makeRequest({ type, options }))
+        // Share to prevent re-sending requests whenever a subscriber shows up
+        .share()
     },
     connect() {
       controlSignals.next('connect')
@@ -239,24 +254,4 @@ function infiniteHorizonSockets(signals, horizonParams) {
     // Filter out fake sockets so new subscribers don't get the cached
     // horizon socket after a disconnect message
     .filter(x => x === 'FAKE_SOCKET')
-}
-
-// Process a response to throw an exception if a request error was
-// received, and to break out state messages into their own responses.
-// Used only by concatMap in sendRequest
-function expandResponse(resp) {
-  if (resp.error !== undefined) {
-    throw new ProtocolError(resp.error, resp.error_code)
-  }
-  const data = resp.data || []
-
-  if (resp.state !== undefined) {
-    // Create a little dummy object for sync notifications
-    data.push({
-      type: 'state',
-      state: resp.state,
-    })
-  }
-
-  return data
 }
