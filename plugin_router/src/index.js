@@ -1,9 +1,8 @@
 'use strict';
 
 const Request = require('./request');
-
-const EventEmitter = require('events');
 const Toposort = require('toposort-class');
+const EventEmitter = require('events');
 
 class PluginRouter extends EventEmitter {
   constructor(server) {
@@ -12,7 +11,7 @@ class PluginRouter extends EventEmitter {
     this.httpRoutes = {};
     this.methods = {};
 
-    this.plugins = new Set();
+    this.plugins = new Map();
     this.readyPlugins = new Set();
   }
 
@@ -20,8 +19,8 @@ class PluginRouter extends EventEmitter {
     if (!this.readyPlugins.has(plugin)) {
       this.readyPlugins.add(plugin);
       this.emit('pluginReady', plugin, this);
-      if (this.readyPlugins.size === plugins.size) {
-        this.emit('ready', this);
+      if (this.readyPlugins.size === this.plugins.size) {
+        setImmediate(() => this.emit('ready', this));
       }
     }
   }
@@ -30,31 +29,32 @@ class PluginRouter extends EventEmitter {
     if (this.readyPlugins.has(plugin)) {
       this.readyPlugins.delete(plugin);
       this.emit('pluginUnready', plugin, this);
-      if (this.readyPlugins.size === plugins.size - 1) {
+      if (this.readyPlugins.size === this.plugins.size - 1) {
         this.emit('unready', this);
       }
     }
   }
 
   add(plugin) {
-    if (this.plugins[plugin.name]) {
+    if (this.plugins.has(plugin.name)) {
       return Promise.reject(
         new Error(`Plugin conflict: "${plugin.name}" already present.`));
     }
     const activePlugin = Promise.resolve(this.server).then((server) => {
+      this.emit('unready', this);
       if (plugin.activate.length > 1) {
         return plugin.activate(
           server,
           () => this.noteReady(plugin.name),
           () => this.noteUnready(plugin.name));
       } else {
-        return plugin.activate(server).then((x) => {
-          noteReady(plugin.name);
+        return Promise.resolve().then(() => plugin.activate(server)).then((x) => {
+          this.noteReady(plugin.name);
           return x;
         });
       }
     });
-    this.plugins[plugin.name] = activePlugin.then((active) => {
+    this.plugins.set(plugin.name, activePlugin.then((active) => {
       if (this.httpRoutes[plugin.name]) {
         throw new Error(`Plugin conflict: "${plugin.name}" already present.`);
       }
@@ -75,15 +75,15 @@ class PluginRouter extends EventEmitter {
       this.server.logger.error(`Error when adding plugin ${plugin.name}: ${err}`);
       this.server.logger.debug(`${err.stack}`);
       throw err;
-    });
-    return this.plugins[plugin.name];
+    }));
+    return this.plugins.get(plugin.name);
   }
 
   remove(plugin, reason) {
-    if (!this.plugins[plugin.name]) {
+    if (!this.plugins.has(plugin.name)) {
       return Promise.reject(new Error(`Plugin "${plugin.name}" is not present.`));
     }
-    return this.plugins[plugin.name].then((active) => {
+    return this.plugins.get(plugin.name).then((active) => {
       for (const m in active.methods) {
         delete this.methods[m];
         this._requirementsOrdering = null;

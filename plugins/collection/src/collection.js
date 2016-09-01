@@ -1,9 +1,6 @@
 'use strict';
 
-const error = require('../error');
 const Table = require('./table').Table;
-
-const r = require('rethinkdb');
 
 class Collection {
   constructor(db, name, reliableConn, logger, r) {

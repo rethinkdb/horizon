@@ -7,15 +7,9 @@ const server = Joi.object({
   rdb_host: Joi.string().hostname().default('localhost'),
   rdb_port: Joi.number().greater(0).less(65536).default(28015),
 
-  auto_create_collection: Joi.boolean().default(false),
-  auto_create_index: Joi.boolean().default(false),
-
-  permissions: Joi.boolean().default(true),
-
   path: Joi.string().default('/horizon'),
 
   auth: Joi.object().default({ }),
-  access_control_allow_origin: Joi.string().allow('').default(''),
 
   rdb_user: Joi.string().allow(null),
   rdb_password: Joi.string().allow(null),

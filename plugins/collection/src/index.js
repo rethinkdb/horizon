@@ -1,7 +1,6 @@
 'use strict';
 
 const assert = require('assert');
-const logger = require('../logger');
 
 // Index names are of the format "hz_[<flags>_]<JSON>" where <flags> may be
 // omitted or "multi_<offset>" or "geo" (at the moment).  <JSON> is a JSON array
@@ -102,7 +101,7 @@ const compare_fields = (a, b) => {
 };
 
 class Index {
-  constructor(name, table, conn) {
+  constructor(logger, name, table, conn) {
     logger.debug(`${table} index registered: ${name}`);
     const info = name_to_info(name);
     this.name = name;

@@ -1,15 +1,15 @@
 'use strict';
 
-const {Reliable, ReliableChangefeed, ReliableUnion} = require('../reliable');
+import {Reliable, ReliableUnion} from '@horizon/server-utils';
 const Collection = require('./collection').Collection;
-const utils = require('../utils');
+const utils = require('./utils');
 
 const assert = require('assert');
 
 const version_field = '$hz_v$';
 const metadata_version = [2, 0, 0];
 
-const create_collection = (r, db, name, conn) =>
+export const create_collection = (r, db, name, conn) =>
   r.db(db).table('hz_collections').get(name).replace({id: name}).do((res) =>
     r.branch(
       res('errors').ne(0),
@@ -20,7 +20,7 @@ const create_collection = (r, db, name, conn) =>
     )
   ).run(conn);
 
-const initialize_metadata = (r, db, conn) =>
+export const initialize_metadata = (r, db, conn) =>
   r.branch(r.dbList().contains(db), null, r.dbCreate(db)).run(conn)
     .then(() =>
       Promise.all(['hz_collections', 'hz_users_auth', 'hz_groups'].map((table) =>
@@ -156,19 +156,16 @@ class ReliableInit extends Reliable {
   }
 }
 
-class ReliableMetadata extends Reliable {
-  constructor(project_name,
-              reliable_conn,
+export class ReliableMetadata extends Reliable {
+  constructor(server,
               auto_create_collection,
-              auto_create_index,
-              logger,
-              r) {
+              auto_create_index) {
     super();
-    this.logger = logger;
-    this.r = r;
+    this.logger = server.logger;
+    this.r = server.r;
 
-    this._db = project_name;
-    this._reliable_conn = reliable_conn;
+    this._db = server.options.project_name;
+    this._reliable_conn = server.rdb_connection();
     this._auto_create_collection = auto_create_collection;
     this._auto_create_index = auto_create_index;
     this._collections = new Map();
@@ -185,12 +182,11 @@ class ReliableMetadata extends Reliable {
       },
     });
 
-    this._collection_changefeed = new ReliableChangefeed(
+    this._collection_changefeed = server.makeReliableChangefeed(
       r.db(this._db)
        .table('hz_collections')
        .filter((row) => row('id').match('^hzp?_').not())
        .changes({squash: false, includeInitial: true, includeTypes: true}),
-      reliable_conn,
       {
         onChange: (change) => {
           switch (change.type) {
@@ -380,5 +376,3 @@ class ReliableMetadata extends Reliable {
     return this._reliable_conn;
   }
 }
-
-module.exports = {ReliableMetadata, create_collection, initialize_metadata};

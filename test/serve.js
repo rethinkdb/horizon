@@ -10,7 +10,7 @@ const PluginRouter = require('../plugin_router');
 const permit_all = require('../plugins/permit_all');
 const reads = require('../plugins/reads');
 const writes = require('../plugins/writes');
-const collection = require('../plugins/collection');
+const collection = require('../plugins/collection').default;
 const timeout = require('../plugins/timeout');
 
 // Utilities provided by the CLI library
@@ -175,10 +175,7 @@ new Promise((resolve) => {
 
   horizon.logger.level = 'debug';
   const horizon_server = new horizon.Server(http_servers, {
-    auto_create_collection: true,
-    auto_create_index: true,
     rdb_port: server.driver_port,
-    permissions: parse_yes_no_option(options.permissions),
     project_name: 'hz_test',
     auth: {
       allow_unauthenticated: true,
@@ -190,28 +187,36 @@ new Promise((resolve) => {
 
   const plugins = new PluginRouter(horizon_server);
   plugins.add(permit_all());
-  plugins.add(collection());
+  plugins.add(collection({
+    auto_create_collection: true,
+    auto_create_index: true,
+  }));
   plugins.add(timeout());
   plugins.add(reads());
   plugins.add(writes());
 
-  horizon_server.set_middleware(plugins.hzMiddleware());
+  plugins.once('ready', () => {
+    console.log('READY OMGZZZZ');
+    horizon_server.set_middleware(plugins.hzMiddleware());
 
-  // Capture requests to `horizon.js` and `horizon.js.map` before the horizon server
-  http_servers.forEach((serv, i) => {
-    const extant_listeners = serv.listeners('request').slice(0);
-    serv.removeAllListeners('request');
-    serv.on('request', (req, res) => {
-      const req_path = url.parse(req.url).pathname;
-      if (req_path === '/horizon/horizon.js' || req_path === '/horizon/horizon.js.map') {
-        serve_file(path.resolve(test_dist_dir, req_path.replace('/horizon/', '')), res);
-      } else {
-        extant_listeners.forEach((l) => l.call(serv, req, res));
-      }
+    // Capture requests to `horizon.js` and `horizon.js.map` before the horizon server
+    http_servers.forEach((serv, i) => {
+      const extant_listeners = serv.listeners('request').slice(0);
+      serv.removeAllListeners('request');
+      serv.on('request', (req, res) => {
+        const req_path = url.parse(req.url).pathname;
+        if (req_path === '/horizon/horizon.js' ||
+            req_path === '/horizon/horizon.js.map') {
+          serve_file(path.resolve(test_dist_dir, req_path.replace('/horizon/', '')),
+                     res);
+        } else {
+          extant_listeners.forEach((l) => l.call(serv, req, res));
+        }
+      });
+
+      serv.listen(options.port, options.bind[i],
+                  () => console.log(`HTTP server listening on ${options.bind[i]}:${options.port}.`));
     });
-
-    serv.listen(options.port, options.bind[i],
-      () => console.log(`HTTP server listening on ${options.bind[i]}:${options.port}.`));
   });
 }).catch((err) => {
   console.log(`Error when starting server:\n${err.stack}`);

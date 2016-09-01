@@ -59,7 +59,7 @@ class Table {
     indexes.forEach((name) => {
       try {
         const old_index = this.indexes.get(name);
-        const new_index = new index.Index(name, this.table, conn);
+        const new_index = new index.Index(this.logger, name, this.table, conn);
         if (old_index) {
           // Steal any waiters from the old index
           new_index._waiters = old_index._waiters;
@@ -85,7 +85,7 @@ class Table {
     const success = () => {
       // Create the Index object now so we don't try to create it again before the
       // feed notifies us of the index creation
-      const new_index = new index.Index(index_name, this.table, conn);
+      const new_index = new index.Index(this.logger, index_name, this.table, conn);
       // TODO: shouldn't this be done before we go async?
       this.indexes.set(index_name, new_index);
       return new_index.on_ready(done);

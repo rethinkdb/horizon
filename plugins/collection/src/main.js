@@ -1,5 +1,7 @@
 'use strict';
 
+import {ReliableMetadata} from './metadata.js';
+
 function collection(server, metadata) {
   return (req, res, next) => {
     const args = req.options.collection;
@@ -16,25 +18,26 @@ function collection(server, metadata) {
   };
 }
 
-module.exports = (raw_config) => ({
-  name: (raw_config && raw_config.name) || 'permissions',
-  // RSI: make sure we check the arity and become ready if people
-  // don't take the callbacks.
-  activate: (server, onReady, onUnready) => {
-    const metadata = new ReliableMetadata(
-      server.options.project_name,
-      server.rdb_connection(),
-      raw_config.auto_create_collection,
-      raw_config.auto_create_index);
-    metadata.subscribe({onReady, onUnready});
-    return {
-      methods: {
-        collection: {
-          type: 'option',
-          handler: collection(server, metadata),
+export default function(raw_config) {
+  return {
+    name: (raw_config && raw_config.name) || 'permissions',
+    // RSI: make sure we check the arity and become ready if people
+    // don't take the callbacks.
+    activate: (server, onReady, onUnready) => {
+      const metadata = new ReliableMetadata(
+        server,
+        raw_config.auto_create_collection,
+        raw_config.auto_create_index);
+      metadata.subscribe({onReady, onUnready});
+      return {
+        methods: {
+          collection: {
+            type: 'option',
+            handler: collection(server, metadata),
+          },
         },
-      },
-      deactivate: () => metadata.close(),
-    };
-  },
-});
+        deactivate: () => metadata.close(),
+      };
+    },
+  };
+}

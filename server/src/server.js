@@ -116,6 +116,10 @@ class Server extends EventEmitter {
     }
   }
 
+  makeReliableChangefeed(reql, ...args) {
+    return new ReliableChangefeed(reql, this._reliableConn, ...args);
+  }
+
   auth() {
     return this._auth;
   }
