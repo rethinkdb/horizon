@@ -186,14 +186,18 @@ new Promise((resolve) => {
   console.log('starting http servers');
 
   const plugins = new PluginRouter(horizon_server);
-  plugins.add(permit_all());
-  plugins.add(collection({
-    auto_create_collection: true,
-    auto_create_index: true,
-  }));
-  plugins.add(timeout());
-  plugins.add(reads());
-  plugins.add(writes());
+  Promise.all([
+    plugins.add(permit_all()),
+    plugins.add(collection({
+      auto_create_collection: true,
+      auto_create_index: true,
+    })),
+    plugins.add(timeout()),
+    plugins.add(reads()),
+    plugins.add(writes()),
+  ]).catch((err) =>
+    console.log(`Plugin initialization failed: ${err.stack}`)
+  );
 
   plugins.once('ready', () => {
     console.log('READY OMGZZZZ');

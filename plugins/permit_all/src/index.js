@@ -8,7 +8,7 @@ module.exports = (raw_config) => ({
       hz_permissions: {
         type: 'preReq',
         handler: (req, res, next) => {
-          req.validate = () => null;
+          req.setParameter(() => null);
           next();
         },
       },

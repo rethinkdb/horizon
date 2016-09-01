@@ -7,7 +7,7 @@ module.exports = (server) => (request, response, next) => {
   const conn = server.rdb_connection().connection();
   const timeout = request.getParameter('timeout');
   const collection = request.getParameter('collection');
-  const permissions = request.getParameter('permissions');
+  const permissions = request.getParameter('hz_permissions');
 
   if (!collection) {
     throw new Error('No collection given for insert operation.');

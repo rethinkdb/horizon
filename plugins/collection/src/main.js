@@ -11,6 +11,7 @@ function collection(server, metadata) {
       next(new Error('First argument to "collection" must be a string.'));
     } else {
       metadata.collection(args[0]).then((collection) => {
+        // RSI: pick up here trucks here reads aren't getting this?
         req.setParameter(collection);
         next();
       }).catch(next);
@@ -20,7 +21,7 @@ function collection(server, metadata) {
 
 export default function(raw_config) {
   return {
-    name: (raw_config && raw_config.name) || 'permissions',
+    name: (raw_config && raw_config.name) || 'collection',
     // RSI: make sure we check the arity and become ready if people
     // don't take the callbacks.
     activate: (server, onReady, onUnready) => {
@@ -28,7 +29,10 @@ export default function(raw_config) {
         server,
         raw_config.auto_create_collection,
         raw_config.auto_create_index);
-      metadata.subscribe({onReady, onUnready});
+      metadata.subscribe({onReady: () => {
+        console.log('metadata ready');
+        onReady();
+      }, onUnready});
       return {
         methods: {
           collection: {

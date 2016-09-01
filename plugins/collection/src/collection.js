@@ -66,7 +66,7 @@ class Collection {
 
   _get_table() {
     if (this._tables.size === 0) {
-      throw new error.CollectionNotReady(this);
+      throw new Error(`Collection ${this.name} is not ready.`);
     }
     return this._tables.values().next().value;
   }

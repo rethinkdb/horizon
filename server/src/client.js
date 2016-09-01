@@ -80,7 +80,7 @@ class ClientConnection {
 
       if (request.request_id === undefined) {
         // This is pretty much an unrecoverable protocol error, so close the connection
-        this.close({reqId, error: `Protocol error: ${err}`, error_code: 0});
+        this.close({reqId, error: `Protocol error: ${err_str}`, error_code: 0});
       } else {
         this.send_error(reqId, new Error(err_str));
       }

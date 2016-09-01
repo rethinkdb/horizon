@@ -4,7 +4,7 @@ const common = require('./common');
 
 module.exports = (server) => (req, res, next) => {
   const args = req.options.fetch;
-  const permissions = req.getParameter('permissions');
+  const permissions = req.getParameter('hz_permissions');
   const conn = server.rdb_connection().connection();
 
   if (args.length !== 0) {

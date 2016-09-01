@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 dirs="server server-utils plugins plugin_router"
 for path in `find $dirs -name .babelrc | grep -v node_modules`; do

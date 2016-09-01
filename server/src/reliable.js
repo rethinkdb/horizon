@@ -2,6 +2,7 @@
 
 import * as r from 'rethinkdb';
 import {Reliable} from '@horizon/server-utils';
+const logger = require('./logger');
 
 export class ReliableConn extends Reliable {
   constructor(connOpts) {
@@ -91,7 +92,7 @@ export class ReliableChangefeed extends Reliable {
             throw new Error(`cursor closed unexpectedly: ${res}`);
           });
         }).catch((e) => {
-          logger.debug(`Changefeed error (${this.reql}): ${e}`);
+          logger.debug(`Changefeed error (${this.reql}): ${e.stack}`);
           if (this.ready) {
             this.emit('onUnready', e);
           }

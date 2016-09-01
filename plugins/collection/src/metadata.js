@@ -44,14 +44,15 @@ class StaleAttemptError extends Error { }
 
 // RSI: fix all this shit.
 class ReliableInit extends Reliable {
-  constructor(db, reliable_conn, auto_create_collection) {
+  constructor(r, logger, db, reliable_conn, auto_create_collection) {
     super();
+    this.logger = logger;
     this._db = db;
     this._auto_create_collection = auto_create_collection;
     this._conn_subs = reliable_conn.subscribe({
       onReady: (conn) => {
         this.current_attempt = Symbol();
-        this.do_init(conn, this.current_attempt);
+        this.do_init(r, conn, this.current_attempt);
       },
       onUnready: () => {
         this.current_attempt = null;
@@ -68,15 +69,15 @@ class ReliableInit extends Reliable {
     }
   }
 
-  do_init(conn, attempt) {
+  do_init(r, conn, attempt) {
     Promise.resolve().then(() => {
       this.check_attempt(attempt);
-      logger.debug('checking rethinkdb version');
+      this.logger.debug('checking rethinkdb version');
       const q = r.db('rethinkdb').table('server_status').nth(0)('process')('version');
       return q.run(conn).then((res) => utils.rethinkdb_version_check(res));
     }).then(() => {
       this.check_attempt(attempt);
-      logger.debug('checking for old metadata version');
+      this.logger.debug('checking for old metadata version');
       const old_metadata_db = `${this._db}_internal`;
       return r.dbList().contains(old_metadata_db).run(conn).then((has_old_db) => {
         if (has_old_db) {
@@ -87,9 +88,9 @@ class ReliableInit extends Reliable {
       });
     }).then(() => {
       this.check_attempt(attempt);
-      logger.debug('checking for internal tables');
+      this.logger.debug('checking for internal tables');
       if (this._auto_create_collection) {
-        return initialize_metadata(this.r, this._db, conn);
+        return initialize_metadata(r, this._db, conn);
       } else {
         return r.dbList().contains(this._db).run(conn).then((has_db) => {
           if (!has_db) {
@@ -101,12 +102,12 @@ class ReliableInit extends Reliable {
       }
     }).then(() => {
       this.check_attempt(attempt);
-      logger.debug('waiting for internal tables');
+      this.logger.debug('waiting for internal tables');
       return r.expr(['hz_collections', 'hz_users_auth', 'hz_groups', 'users'])
         .forEach((table) => r.db(this._db).table(table).wait({timeout: 30})).run(conn);
     }).then(() => {
       this.check_attempt(attempt);
-      logger.debug('adding admin user');
+      this.logger.debug('adding admin user');
       return Promise.all([
         r.db(this._db).table('users').get('admin')
           .replace((old_row) =>
@@ -139,12 +140,12 @@ class ReliableInit extends Reliable {
       ]);
     }).then(() => {
       this.check_attempt(attempt);
-      logger.debug('metadata sync complete');
+      this.logger.debug('metadata sync complete');
       this.emit('onReady');
     }).catch((err) => {
       if (!(err instanceof StaleAttemptError)) {
-        logger.debug(`Metadata initialization failed: ${err}`);
-        setTimeout(() => { this.do_init(conn, attempt); }, 1000);
+        this.logger.debug(`Metadata initialization failed: ${err.stack}`);
+        setTimeout(() => { this.do_init(r, conn, attempt); }, 1000);
       }
     });
   }
@@ -171,7 +172,7 @@ export class ReliableMetadata extends Reliable {
     this._collections = new Map();
 
     this._reliable_init = new ReliableInit(
-      this._db, reliable_conn, auto_create_collection);
+      this.r, this.logger, this._db, this._reliable_conn, auto_create_collection);
 
     this._conn_subscription = this._reliable_conn.subscribe({
       onReady: (conn) => {
@@ -183,7 +184,7 @@ export class ReliableMetadata extends Reliable {
     });
 
     this._collection_changefeed = server.makeReliableChangefeed(
-      r.db(this._db)
+      this.r.db(this._db)
        .table('hz_collections')
        .filter((row) => row('id').match('^hzp?_').not())
        .changes({squash: false, includeInitial: true, includeTypes: true}),
@@ -198,7 +199,7 @@ export class ReliableMetadata extends Reliable {
               let collection = this._collections.get(collection_name);
               if (!collection) {
                 collection = new Collection(
-                  this._db, collection_name, this.logger, this.r);
+                  this._db, collection_name, this._reliable_conn, this.logger, this.r);
                 this._collections.set(collection_name, collection);
               }
               collection._register();
@@ -225,19 +226,17 @@ export class ReliableMetadata extends Reliable {
         },
       });
 
-
-    this._index_changefeed = new ReliableChangefeed(
-      r.db('rethinkdb')
+    this._index_changefeed = server.makeReliableChangefeed(
+      this.r.db('rethinkdb')
         .table('table_config')
-        .filter((row) => r.and(row('db').eq(this._db),
-                               row('name').match('^hzp?_').not()))
+        .filter((row) => this.r.and(row('db').eq(this._db),
+                                    row('name').match('^hzp?_').not()))
         .map((row) => ({
           id: row('id'),
           name: row('name'),
           indexes: row('indexes').filter((idx) => idx.match('^hz_')),
         }))
         .changes({squash: true, includeInitial: true, includeTypes: true}),
-      reliable_conn,
       {
         onChange: (change) => {
           if (!this._connection) { return; }
@@ -252,7 +251,7 @@ export class ReliableMetadata extends Reliable {
               let collection = this._collections.get(collection_name);
               if (!collection) {
                 collection = new Collection(
-                  this._db, collection_name, this.logger, this.r);
+                  this._db, collection_name, this._reliable_conn, this.logger, this.r);
                 this._collections.set(collection_name, collection);
               }
               collection._update_table(
@@ -338,6 +337,7 @@ export class ReliableMetadata extends Reliable {
   }
 
   create_collection(name) {
+    let collection;
     return Promise.resolve().then(() => {
       if (name.indexOf('hz_') === 0 || name.indexOf('hzp_') === 0) {
         throw new Error(`Collection "${name}" is reserved for internal use ` +
@@ -348,7 +348,7 @@ export class ReliableMetadata extends Reliable {
         throw new Error(`Collection "${name}" already exists.`);
       }
 
-      const collection = new Collection(this._db, name, this.logger, this.r);
+      collection = new Collection(this._db, name, this._reliable_conn, this.logger, this.r);
       this._collections.set(name, collection);
 
       return create_collection(this.r, this._db, name, this._reliable_conn.connection());
@@ -364,15 +364,11 @@ export class ReliableMetadata extends Reliable {
           }
         }));
     }).catch((err) => {
-      if (collection._is_safe_to_remove()) {
+      if (collection && collection._is_safe_to_remove()) {
         this._collections.delete(name);
         collection.close();
       }
       throw err;
     });
-  }
-
-  reliable_connection() {
-    return this._reliable_conn;
   }
 }
