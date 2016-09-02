@@ -1,5 +1,5 @@
 {
-  "name": "@horizon/plugins-replace",
+  "name": "@horizon/plugin-replace",
   "version": "1.0.0",
   "description": "Plugin for the 'replace' term in the Horizon Collections API.",
   "main": "dist/replace.js",
@@ -29,10 +29,10 @@
     "@horizon/server": "3.x"
   },
   "devDependencies": {
-    "eslint": "^2.3.0",
+    "eslint": "^3.1.0",
     "istanbul": "^0.4.3",
-    "mocha": "^2.3.3",
-    "babel-cli": "^6.10.1",
+    "mocha": "^2.5.3",
+    "babel-cli": "^6.11.4",
     "babel-preset-es2015": "^6.9.0"
   }
 }

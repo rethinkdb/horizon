@@ -1,6 +1,6 @@
 'use strict';
 
-const ReliableMetadata = require('./metadata.js');
+const ReliableMetadata = require('./types/metadata.js');
 const queries = require('./queries');
 const indexes = require('./indexes');
 

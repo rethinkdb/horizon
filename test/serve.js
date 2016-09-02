@@ -7,13 +7,13 @@ Error.stackTraceLimit = Infinity;
 
 const horizon_server = require('@horizon/server');
 const PluginRouter = require('@horizon/plugin-router');
-const horizon_plugins = require('@horizon/plugins');
+const plugins = require('@horizon/plugin-defaults');
 
 // Utilities provided by the CLI library
-const each_line_in_pipe = require('@horizon/cli/src/utils/each_line_in_pipe');
-const start_rdb_server = require('@horizon/cli/src/utils/start_rdb_server');
-const rm_sync_recursive = require('@horizon/cli/src/utils/rm_sync_recursive');
-const parse_yes_no_option = require('@horizon/cli/src/utils/parse_yes_no_option');
+const each_line_in_pipe = require('horizon/src/utils/each_line_in_pipe');
+const start_rdb_server = require('horizon/src/utils/start_rdb_server');
+const rm_sync_recursive = require('horizon/src/utils/rm_sync_recursive');
+const parse_yes_no_option = require('horizon/src/utils/parse_yes_no_option');
 
 const assert = require('assert');
 const child_process = require('child_process');
@@ -179,29 +179,12 @@ new Promise((resolve) => {
   });
   console.log('starting http servers');
 
-  const plugins = new PluginRouter(hz_server);
-  Promise.all([
-    plugins.add(plugins.collection({
-      auto_create_collection: true,
-      auto_create_index: true,
-    })),
-    plugins.add(plugins.permit_all()),
-    plugins.add(plugins.timeout()),
-    plugins.add(plugins.insert()),
-    plugins.add(plugins.store()),
-    plugins.add(plugins.update()),
-    plugins.add(plugins.upsert()),
-    plugins.add(plugins.remove()),
-    plugins.add(plugins.replace()),
-    plugins.add(plugins.fetch()),
-    plugins.add(plugins.watch()),
-    plugins.add(plugins.above()),
-    plugins.add(plugins.below()),
-    plugins.add(plugins.order()),
-    plugins.add(plugins.limit()),
-    plugins.add(plugins.find()),
-    plugins.add(plugins.findAll()),
-  ]).catch((err) =>
+  const pluginRouter = new PluginRouter(hz_server);
+  pluginRouter.add(plugins({
+    permissions: 'permit-all',
+    auto_create_collection: true,
+    auto_create_index: true,
+  })).catch((err) =>
     console.log(`Plugin initialization failed: ${err.stack}`)
   );
 

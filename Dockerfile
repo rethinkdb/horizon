@@ -11,7 +11,7 @@ RUN apt update && apt install -y git
 
 COPY . /usr/horizon/
 WORKDIR /usr/horizon
-RUN cd test; ./setupDev.sh
+RUN ./setupDev.sh
 
 EXPOSE 8181
 

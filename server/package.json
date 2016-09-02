@@ -1,6 +1,6 @@
 {
   "name": "@horizon/server",
-  "version": "2.0.0-beta-5",
+  "version": "3.0.0-alpha-0",
   "description": "Server for RethinkDB Horizon, an open-source developer platform for building realtime, scalable web apps.",
   "main": "dist/index.js",
   "scripts": {
@@ -23,8 +23,7 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "@horizon/client": "2.0.0-beta-5",
-    "@horizon/server-utils": "1.0.0",
+    "@horizon/client": "3.0.0-alpha-0",
     "bluebird": "^3.4.0",
     "cookie": "^0.2.3",
     "joi": "^8.0.4",
@@ -37,11 +36,11 @@
     "ws": "^1.1.0"
   },
   "devDependencies": {
-    "eslint": "^2.3.0",
+    "eslint": "^3.1.0",
     "istanbul": "^0.4.3",
-    "mocha": "^2.3.3",
+    "mocha": "^2.5.3",
     "nodemon": "^1.8.1",
-    "babel-cli": "^6.10.1",
+    "babel-cli": "^6.11.4",
     "source-map-support": "^0.4.0",
     "babel-preset-es2015": "^6.9.0"
   }

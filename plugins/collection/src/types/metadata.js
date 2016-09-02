@@ -1,7 +1,7 @@
 'use strict';
 
 const queries = require('../queries');
-const Collection = require('./types/collection');
+const Collection = require('./collection');
 
 const assert = require('assert');
 
