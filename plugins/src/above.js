@@ -2,7 +2,7 @@
 
 const isObject = require('./common').isObject;
 
-module.exports = () => (req, res, next) => {
+function above(req, res, next) {
   const args = req.options.above;
   if (args.length < 1 || args.length > 2) {
     next(new Error(`"above" expected 1 or 2 arguments but found ${args.length}.`));
@@ -14,4 +14,16 @@ module.exports = () => (req, res, next) => {
     req.setParameter({value: args[0], bound: args.length === 1 ? 'open' : args[1]});
     next();
   }
-};
+}
+
+module.exports = (options) => ({
+  name: 'hz_above',
+  activate: (ctx) => ({
+    methods: {
+      above: {
+        type: 'option',
+        handler: above,
+      },
+    },
+  }),
+});

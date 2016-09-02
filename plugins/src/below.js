@@ -2,7 +2,7 @@
 
 const isObject = require('./common').isObject;
 
-module.exports = () => (req, res, next) => {
+function below(req, res, next) {
   const args = req.options.below;
   if (args.length < 1 || args.length > 2) {
     next(new Error(`"below" expected 1 or 2 arguments but found ${args.length}.`));
@@ -14,4 +14,16 @@ module.exports = () => (req, res, next) => {
     req.setParameter({value: args[0], bound: args.length === 1 ? 'closed' : args[1]});
     next();
   }
-};
+}
+
+module.exports = (options) => ({
+  name: 'hz_below',
+  activate: (ctx) => ({
+    methods: {
+      below: {
+        type: 'option',
+        handler: below,
+      },
+    },
+  }),
+});

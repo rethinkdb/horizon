@@ -2,7 +2,7 @@
 
 const isObject = require('./common').isObject;
 
-module.exports = () => (req, res, next) => {
+function findAll(req, res, next) {
   const args = req.options.findAll;
   if (args.length < 1) {
     next(new Error(`"findAll" expected 1 or more arguments but found ${args.length}.`));
@@ -12,4 +12,16 @@ module.exports = () => (req, res, next) => {
     req.setParameter(args);
     next();
   }
-};
+}
+
+module.exports = () => ({
+  name: 'hz_findAll',
+  activate: (ctx) => ({
+    methods: {
+      findAll: {
+        type: 'option',
+        handler: findAll,
+      },
+    },
+  }),
+});

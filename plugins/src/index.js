@@ -25,13 +25,13 @@ const allPlugins = {
 };
 
 
-module.exports = function(options) {
+module.exports = function (options) {
   options.methods = options.methods || Object.keys(allPlugins);
   const subplugins = options.methods.map((name) => {
     if (!allPlugins[name]) {
       throw new Error(`"${name}" is not a default Horizon method.`);
     }
-    return allPlugins[name];
+    return allPlugins[name](options);
   });
 
   return {
@@ -44,7 +44,7 @@ module.exports = function(options) {
 
     deactivate: (ctx) =>
       Promise.all(subplugins.map((p) =>
-        Promise.resolve().then(() => p.deactivate(ctx)))),
+        Promise.resolve().then(() => p.deactivate && p.deactivate(ctx)))),
   };
 };
 

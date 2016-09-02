@@ -9,7 +9,7 @@ function convertField(value) {
   return typeof value === 'string' ? [value] : value;
 }
 
-module.exports = () => (req, res, next) => {
+function order(req, res, next) {
   const args = req.options.order;
   if (args.length < 1 || args.length > 2) {
     next(new Error(`"order" expected 1 or 2 arguments but found ${args.length}.`));
@@ -28,4 +28,16 @@ module.exports = () => (req, res, next) => {
     });
     next();
   }
-};
+}
+
+module.exports = () => ({
+  name: 'hz_order',
+  activate: (ctx) => ({
+    methods: {
+      order: {
+        type: 'option',
+        handler: order,
+      },
+    },
+  }),
+});

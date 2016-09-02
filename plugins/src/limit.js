@@ -1,6 +1,6 @@
 'use strict';
 
-module.exports = () => (req, res, next) => {
+function limit(req, res, next) {
   const args = req.options.limit;
   if (args.length !== 1) {
     next(new Error(`"limit" expected 1 argument but found ${args.length}.`));
@@ -10,4 +10,16 @@ module.exports = () => (req, res, next) => {
     req.setParameter(args[0]);
     next();
   }
-};
+}
+
+module.exports = () => ({
+  name: 'hz_limit',
+  activate: (ctx) => ({
+    methods: {
+      limit: {
+        type: 'option',
+        handler: limit,
+      },
+    },
+  }),
+});
