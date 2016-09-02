@@ -17,7 +17,6 @@ class PluginRouter extends EventEmitter {
 
   noteReady(plugin) {
     if (!this.readyPlugins.has(plugin)) {
-      console.log(`noteReady(${plugin}): ${this.readyPlugins.size}/${this.plugins.size}`);
       this.readyPlugins.add(plugin);
       this.emit('pluginReady', plugin, this);
       if (this.readyPlugins.size === this.plugins.size) {
@@ -28,7 +27,6 @@ class PluginRouter extends EventEmitter {
 
   noteUnready(plugin) {
     if (this.readyPlugins.has(plugin)) {
-      console.log(`noteUnready(${plugin}): ${this.readyPlugins.size}/${this.plugins.size}`);
       this.readyPlugins.delete(plugin);
       this.emit('pluginUnready', plugin, this);
       if (this.readyPlugins.size === this.plugins.size - 1) {
@@ -47,7 +45,6 @@ class PluginRouter extends EventEmitter {
     this.plugins.set(plugin.name, Promise.resolve(this.server).then((server) => {
       this.emit('unready', this);
       if (plugin.activate.length > 1) {
-        console.log(`activating ${plugin.name} with ready callbacks`);
         return plugin.activate(
           server,
           () => this.noteReady(plugin.name),

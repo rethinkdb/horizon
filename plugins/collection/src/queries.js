@@ -29,7 +29,7 @@ function initializeMetadata(db, conn) {
     .then(() =>
       Promise.all([
         r.db(db).tableList().contains('users').not().run(conn).then(() =>
-          createCollection(r, db, 'users', conn)),
+          createCollection(db, 'users', conn)),
         r.db(db).table('hz_collections')
           .insert({id: 'hz_metadata', version: metadataVersion})
           .run(conn),

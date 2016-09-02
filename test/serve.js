@@ -188,9 +188,8 @@ new Promise((resolve) => {
     console.log(`Plugin initialization failed: ${err.stack}`)
   );
 
-  plugins.once('ready', () => {
-    console.log('READY OMGZZZZ');
-    hz_server.set_middleware(plugins.hzMiddleware());
+  pluginRouter.once('ready', () => {
+    hz_server.set_middleware(pluginRouter.hzMiddleware());
 
     // Capture requests to `horizon.js` and `horizon.js.map` before the horizon server
     http_servers.forEach((serv, i) => {
