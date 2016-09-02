@@ -1,11 +1,11 @@
 {
-  "name": "@horizon/plugin-permissions",
+  "name": "@horizon/default-plugins",
   "version": "1.0.0",
-  "description": "Default permissions plugin for Horizon.",
-  "main": "dist/permissions.js",
+  "description": "Plugins for the default Horizon Collections API.",
+  "main": "dist/index.js",
   "scripts": {
-    "lint": "eslint src test",
-    "test": "mocha test",
+    "lint": "eslint src",
+    "test": "mocha dist/test",
     "build": "babel src -d dist -s true"
   },
   "repository": {
@@ -22,7 +22,6 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "@horizon/client": "2.0.0-beta-5"
   },
   "peerDependencies": {
     "@horizon/plugin-router": "1.x",
