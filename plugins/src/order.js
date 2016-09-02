@@ -32,7 +32,7 @@ function order(req, res, next) {
 
 module.exports = () => ({
   name: 'hz_order',
-  activate: (ctx) => ({
+  activate: () => ({
     methods: {
       order: {
         type: 'option',

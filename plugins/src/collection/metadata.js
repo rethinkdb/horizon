@@ -5,11 +5,11 @@ const utils = require('./utils');
 
 const assert = require('assert');
 
-import {r, logger, Reliable, ReliableUnion} from '@horizon/server';
+const {r, logger, Reliable, ReliableUnion} = require('@horizon/server');
 
 const metadata_version = [2, 0, 0];
 
-export const create_collection = (db, name, conn) =>
+const createCollection = (db, name, conn) =>
   r.db(db).table('hz_collections').get(name).replace({id: name}).do((res) =>
     r.branch(
       res('errors').ne(0),
@@ -20,7 +20,7 @@ export const create_collection = (db, name, conn) =>
     )
   ).run(conn);
 
-export const initialize_metadata = (db, conn) =>
+const initializeMetadata = (db, conn) =>
   r.branch(r.dbList().contains(db), null, r.dbCreate(db)).run(conn)
     .then(() =>
       Promise.all(['hz_collections', 'hz_users_auth', 'hz_groups'].map((table) =>
@@ -33,7 +33,7 @@ export const initialize_metadata = (db, conn) =>
     .then(() =>
       Promise.all([
         r.db(db).tableList().contains('users').not().run(conn).then(() =>
-          create_collection(r, db, 'users', conn)),
+          createCollection(r, db, 'users', conn)),
         r.db(db).table('hz_collections')
           .insert({id: 'hz_metadata', version: metadata_version})
           .run(conn),
@@ -89,7 +89,7 @@ class ReliableInit extends Reliable {
       this.check_attempt(attempt);
       logger.debug('checking for internal tables');
       if (this._auto_create_collection) {
-        return initialize_metadata(this._db, conn);
+        return initializeMetadata(this._db, conn);
       } else {
         return r.dbList().contains(this._db).run(conn).then((has_db) => {
           if (!has_db) {
@@ -154,7 +154,7 @@ class ReliableInit extends Reliable {
   }
 }
 
-export class ReliableMetadata extends Reliable {
+class ReliableMetadata extends Reliable {
   constructor(server,
               auto_create_collection,
               auto_create_index) {
@@ -346,7 +346,7 @@ export class ReliableMetadata extends Reliable {
       collection = new Collection(this._db, name, this._reliable_conn);
       this._collections.set(name, collection);
 
-      return create_collection(this._db, name, this._reliable_conn.connection());
+      return createCollection(this._db, name, this._reliable_conn.connection());
     }).then((res) => {
       assert(!res.error, `Collection "${name}" creation failed: ${res.error}`);
       logger.warn(`Collection created: "${name}"`);
@@ -367,3 +367,9 @@ export class ReliableMetadata extends Reliable {
     });
   }
 }
+
+module.exports = {
+  createCollection,
+  initializeMetadata,
+  ReliableMetadata,
+};

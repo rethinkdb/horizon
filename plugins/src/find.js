@@ -16,7 +16,7 @@ function find(req, res, next) {
 
 module.exports = () => ({
   name: 'hz_find',
-  activate: (ctx) => ({
+  activate: () => ({
     methods: {
       find: {
         type: 'option',

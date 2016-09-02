@@ -54,13 +54,13 @@ function upsert(server) {
                                    old_row(hz_v).default(-1).ne(new_row(hz_v))),
                              r.error(common.invalidated_msg),
 
-                             // Otherwise, we can update the row and increment the version
+                             // Otherwise, we can update the row and version
                              common.apply_version(old_row.merge(new_row),
                                                   old_row(hz_v).default(-1).add(1))
                            )
                          ), {returnChanges: 'always'}),
 
-                     // The new row did not have an id, so we insert it with an autogen id
+                     // The new row did not have an id, so it will autogenerate
                      collection.table.insert(common.apply_version(new_row, 0),
                                              {returnChanges: 'always'})))
           .run(conn, utils.reqlOptions)

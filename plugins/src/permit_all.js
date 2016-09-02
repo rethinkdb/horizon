@@ -1,6 +1,6 @@
 'use strict';
 
-module.exports = (raw_config) => ({
+module.exports = () => ({
   name: 'hz_permissions',
   activate: () => ({
     methods: {

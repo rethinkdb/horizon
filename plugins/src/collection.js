@@ -2,7 +2,7 @@
 
 const {ReliableMetadata} = require('./common/metadata.js');
 
-function collection(server, metadata) {
+function collection(metadata) {
   return (req, res, next) => {
     const args = req.options.collection;
     if (args.length !== 1) {
@@ -10,36 +10,47 @@ function collection(server, metadata) {
     } else if (typeof args[0] !== 'string') {
       next(new Error('First argument to "collection" must be a string.'));
     } else {
-      metadata.collection(args[0]).then((collection) => {
+      metadata.collection(args[0]).then((c) => {
         // RSI: pick up here trucks here reads aren't getting this?
-        req.setParameter(collection);
+        req.setParameter(c);
         next();
       }).catch(next);
     }
   };
 }
 
-module.exports = (options) => ({
+module.exports = (options) => {
+  const metadataSymbol = Symbol();
+
   return {
     name: 'hz_collection',
-    activate: (server, onReady, onUnready) => {
+    activate: (ctx, onReady, onUnready) => {
       const metadata = new ReliableMetadata(
-        server,
-        raw_config.auto_create_collection,
-        raw_config.auto_create_index);
+        ctx,
+        options.auto_create_collection,
+        options.auto_create_index);
+
+      ctx[metadataSymbol] = metadata;
+
       metadata.subscribe({onReady: () => {
         console.log('metadata ready');
         onReady();
       }, onUnready});
+
       return {
         methods: {
           collection: {
             type: 'option',
-            handler: collection(server, metadata),
+            handler: collection(metadata),
           },
         },
-        deactivate: () => metadata.close(),
       };
     },
+    deactivate: (ctx) => {
+      const metadata = ctx[metadataSymbol];
+      if (metadata) {
+        metadata.close();
+      }
+    },
   };
-});
+};

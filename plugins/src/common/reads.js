@@ -14,7 +14,7 @@ function object_to_fields(obj) {
 }
 
 // This is exposed to be reused by 'subscribe'
-const make_reql = (req) => Promise.resolve().then(() => {
+const makeReadReql = (req) => Promise.resolve().then(() => {
   const find = req.getParameter('find');
   const limit = req.getParameter('limit');
   const order = req.getParameter('order');
@@ -120,4 +120,4 @@ const make_reql = (req) => Promise.resolve().then(() => {
   return reqlPromise.then((reql) => (limit !== undefined ? reql.limit(limit) : reql));
 });
 
-module.exports = {make_reql, reql_options};
+module.exports = {makeReadReql};

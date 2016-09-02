@@ -1,7 +1,7 @@
 'use strict';
 
 const utils = require('./common/utils');
-const common = require('./common/reads');
+const {makeReadReql} = require('./common/reads');
 
 function watch(server) {
   return (req, res, next) => {
@@ -14,8 +14,8 @@ function watch(server) {
     } else if (!permissions) {
       next(new Error('"watch" requires permissions to run'));
     } else {
-      common.make_reql(req).then((reql) =>
-          reql.changes({
+      makeReadReql(req).then((reql) =>
+        reql.changes({
           include_initial: true,
           include_states: true,
           include_types: true,

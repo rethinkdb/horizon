@@ -27,7 +27,11 @@ const name_to_info = (name) => {
 
   const json_offset = matches[0].length - 1;
 
-  const info = {name, geo: Boolean(matches[1]), multi: isNaN(matches[2]) ? false : Number(matches[2])};
+  const info = {
+    name,
+    geo: Boolean(matches[1]),
+    multi: isNaN(matches[2]) ? false : Number(matches[2]),
+  };
 
   // Parse remainder as JSON
   try {
@@ -183,7 +187,9 @@ class Index {
 
     for (let i = 0; i < ordered_fields.length; ++i) {
       const pos = this.fields.length - ordered_fields.length + i;
-      if (pos < 0 || !compare_fields(ordered_fields[i], this.fields[pos])) { return false; }
+      if (pos < 0 || !compare_fields(ordered_fields[i], this.fields[pos])) {
+        return false;
+      }
     }
 
     return true;

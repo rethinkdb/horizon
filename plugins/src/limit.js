@@ -14,7 +14,7 @@ function limit(req, res, next) {
 
 module.exports = () => ({
   name: 'hz_limit',
-  activate: (ctx) => ({
+  activate: () => ({
     methods: {
       limit: {
         type: 'option',

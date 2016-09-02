@@ -24,7 +24,7 @@ function rethinkdbVersionCheck(version_string) {
     // Convert strings to ints and remove first match
     const versions = matches.slice(1).map((val) => parseInt(val));
 
-    if (!version_compare(versions, MIN_VERSION)) {
+    if (!versionCompare(versions, MIN_VERSION)) {
       throw new Error(`RethinkDB (${versions.join('.')}) is below required version ` +
                       `(${MIN_VERSION.join('.')}) for use with Horizon.`);
     }

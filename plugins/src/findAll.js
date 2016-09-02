@@ -16,7 +16,7 @@ function findAll(req, res, next) {
 
 module.exports = () => ({
   name: 'hz_findAll',
-  activate: (ctx) => ({
+  activate: () => ({
     methods: {
       findAll: {
         type: 'option',

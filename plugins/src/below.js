@@ -16,9 +16,9 @@ function below(req, res, next) {
   }
 }
 
-module.exports = (options) => ({
+module.exports = () => ({
   name: 'hz_below',
-  activate: (ctx) => ({
+  activate: () => ({
     methods: {
       below: {
         type: 'option',

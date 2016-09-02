@@ -1,6 +1,6 @@
 'use strict';
 
-const {r, logger} = require('@horizon/server');
+const {r} = require('@horizon/server');
 
 const Table = require('./table').Table;
 
@@ -10,7 +10,7 @@ class Collection {
     this.reliableConn = reliableConn;
     this.table = r.db(db).table(name); // This is the ReQL Table object
     this._tables = new Map(); // A Map of Horizon Table objects
-    this._registered = false; // Whether the `hz_collections` table says this collection exists
+    this._registered = false; // Whether the `hz_collections` table thinks this exists
     this._waiters = [];
   }
 

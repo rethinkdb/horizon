@@ -16,9 +16,9 @@ function above(req, res, next) {
   }
 }
 
-module.exports = (options) => ({
+module.exports = () => ({
   name: 'hz_above',
-  activate: (ctx) => ({
+  activate: () => ({
     methods: {
       above: {
         type: 'option',

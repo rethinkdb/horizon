@@ -6,9 +6,9 @@ const hz_v = utils.versionField;
 
 const {r} = require('@horizon/server');
 
-function store(server) {
+function store(ctx) {
   return (request, response, next) => {
-    const conn = server.rdb_connection().connection();
+    const conn = ctx.rdb_connection().connection();
     const timeout = request.getParameter('timeout');
     const collection = request.getParameter('collection');
     const permissions = request.getParameter('hz_permissions');
@@ -53,7 +53,7 @@ function store(server) {
                            )
                          ), {returnChanges: 'always'}),
 
-                     // The new row does not have an id, so we insert it with an autogen id
+                     // The new row does not have an id, so it will autogenerate
                      collection.table.insert(common.apply_version(new_row, 0),
                                              {returnChanges: 'always'})))
           .run(conn, utils.reqlOptions)

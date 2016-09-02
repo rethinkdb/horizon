@@ -308,8 +308,7 @@ module.exports = (raw_config) => {
   const name = config.name;
   const userCache = Symbol(`${name}_userCache`);
   const userSub = Symbol(`${name}_userSub`);
-  let authCb;
-  let disconnectCb;
+  let authCb, disconnectCb;
   return {
     name: 'hz_permissions',
 
