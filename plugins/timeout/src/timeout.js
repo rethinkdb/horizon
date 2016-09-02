@@ -15,11 +15,11 @@ function timeout(req, res, next) {
 module.exports = () => ({
   name: 'hz_timeout',
   activate: () => ({
-    methods: ({
+    methods: {
       timeout: {
         type: 'option',
         handler: timeout,
       },
-    }),
+    },
   }),
 });

@@ -22,6 +22,24 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
+    "@horizon/plugin-above": "1.0.0",
+    "@horizon/plugin-below": "1.0.0",
+    "@horizon/plugin-collection": "1.0.0",
+    "@horizon/plugin-fetch": "1.0.0",
+    "@horizon/plugin-find": "1.0.0",
+    "@horizon/plugin-findAll": "1.0.0",
+    "@horizon/plugin-insert": "1.0.0",
+    "@horizon/plugin-limit": "1.0.0",
+    "@horizon/plugin-order": "1.0.0",
+    "@horizon/plugin-permissions": "1.0.0",
+    "@horizon/plugin-permit-all": "1.0.0",
+    "@horizon/plugin-remove": "1.0.0",
+    "@horizon/plugin-replace": "1.0.0",
+    "@horizon/plugin-store": "1.0.0",
+    "@horizon/plugin-timeout": "1.0.0",
+    "@horizon/plugin-update": "1.0.0",
+    "@horizon/plugin-upsert": "1.0.0",
+    "@horizon/plugin-watch": "1.0.0"
   },
   "peerDependencies": {
     "@horizon/plugin-router": "1.x",

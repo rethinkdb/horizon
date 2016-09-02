@@ -29,8 +29,8 @@ module.exports = (options) => {
     activate: (ctx, onReady, onUnready) => {
       ctx[metadata] = new ReliableMetadata(
         ctx,
-        options.auto_create_collection,
-        options.auto_create_index);
+        Boolean(options.auto_create_collection),
+        Boolean(options.auto_create_index));
 
       ctx[metadata].subscribe({onReady: () => {
         console.log('metadata ready');
