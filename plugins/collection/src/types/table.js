@@ -1,6 +1,8 @@
 'use strict';
 
-const index = require('./index');
+const Index = require('./index');
+const {primaryIndexName, indexInfoToReql, indexInfoToName} = require('../indexes');
+
 const assert = require('assert');
 
 const {r, logger} = require('@horizon/server');
@@ -53,13 +55,13 @@ class Table {
     logger.debug(`${this.table} indexes changed, reevaluating`);
 
     // Initialize the primary index, which won't show up in the changefeed
-    indexes.push(index.primary_index_name);
+    indexes.push(primaryIndexName);
 
     const new_index_map = new Map();
     indexes.forEach((name) => {
       try {
         const old_index = this.indexes.get(name);
-        const new_index = new index.Index(name, this.table, conn);
+        const new_index = new Index(name, this.table, conn);
         if (old_index) {
           // Steal any waiters from the old index
           new_index._waiters = old_index._waiters;
@@ -79,19 +81,19 @@ class Table {
   // TODO: support geo and multi indexes
   create_index(fields, conn, done) {
     const info = {geo: false, multi: false, fields};
-    const index_name = index.info_to_name(info);
+    const index_name = indexInfoToName(info);
     assert(!this.indexes.get(index_name), 'index already exists');
 
     const success = () => {
       // Create the Index object now so we don't try to create it again before the
       // feed notifies us of the index creation
-      const new_index = new index.Index(index_name, this.table, conn);
+      const new_index = new Index(index_name, this.table, conn);
       // TODO: shouldn't this be done before we go async?
       this.indexes.set(index_name, new_index);
       return new_index.on_ready(done);
     };
 
-    this.table.indexCreate(index_name, index.info_to_reql(info),
+    this.table.indexCreate(index_name, indexInfoToReql(info),
                            {geo: info.geo, multi: (info.multi !== false)})
       .run(conn)
       .then(success)
@@ -109,7 +111,7 @@ class Table {
   // fuzzy_fields and ordered_fields should both be arrays
   get_matching_index(fuzzy_fields, ordered_fields) {
     if (fuzzy_fields.length === 0 && ordered_fields.length === 0) {
-      return this.indexes.get(index.primary_index_name);
+      return this.indexes.get(primaryIndexName);
     }
 
     let match;
@@ -127,4 +129,4 @@ class Table {
   }
 }
 
-module.exports = {Table};
+module.exports = Table;

@@ -1,6 +1,8 @@
 'use strict';
 
-const {ReliableMetadata} = require('./collection/metadata.js');
+const ReliableMetadata = require('./metadata.js');
+const queries = require('./queries');
+const indexes = require('./indexes');
 
 function collection(metadata) {
   return (req, res, next) => {
@@ -20,19 +22,17 @@ function collection(metadata) {
 }
 
 module.exports = (options) => {
-  const metadataSymbol = Symbol();
+  const metadata = Symbol('hz_collection_metadata');
 
   return {
     name: 'hz_collection',
     activate: (ctx, onReady, onUnready) => {
-      const metadata = new ReliableMetadata(
+      ctx[metadata] = new ReliableMetadata(
         ctx,
         options.auto_create_collection,
         options.auto_create_index);
 
-      ctx[metadataSymbol] = metadata;
-
-      metadata.subscribe({onReady: () => {
+      ctx[metadata].subscribe({onReady: () => {
         console.log('metadata ready');
         onReady();
       }, onUnready});
@@ -41,16 +41,21 @@ module.exports = (options) => {
         methods: {
           collection: {
             type: 'option',
-            handler: collection(metadata),
+            handler: collection(ctx[metadata]),
           },
         },
       };
     },
     deactivate: (ctx) => {
-      const metadata = ctx[metadataSymbol];
-      if (metadata) {
-        metadata.close();
+      if (ctx[metadata]) {
+        ctx[metadata].close();
       }
     },
   };
 };
+
+module.exports.createCollection = queries.createCollection;
+module.exports.initializeMetadata = queries.initializeMetadata;
+module.exports.indexNameToInfo = indexes.indexNameToInfo;
+module.exports.indexInfoToName = indexes.indexInfoToName;
+module.exports.indexInfoToReql = indexes.indexInfoToReql;

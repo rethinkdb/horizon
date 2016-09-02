@@ -1,7 +1,5 @@
 'use strict';
 
-const {r} = require('@horizon/server');
-
 const minRethinkdbVersion = [2, 3, 1];
 
 // Recursive version compare, could be flatter but opted for instant return if
@@ -56,9 +54,6 @@ const reqlOptions = {
 const versionField = '$hz_v$';
 
 module.exports = {
-  metadataVersion,
-  createCollection,
-  initializeMetadata,
   rethinkdbVersionCheck,
   remakeError,
   isObject,

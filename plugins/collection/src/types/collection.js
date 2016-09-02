@@ -1,8 +1,8 @@
 'use strict';
 
-const {r} = require('@horizon/server');
+const Table = require('./table');
 
-const Table = require('./table').Table;
+const {r} = require('@horizon/server');
 
 class Collection {
   constructor(db, name, reliableConn) {
@@ -97,4 +97,4 @@ class Collection {
   }
 }
 
-module.exports = {Collection};
+module.exports = Collection;

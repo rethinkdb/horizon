@@ -1,46 +1,19 @@
 'use strict';
 
-const Collection = require('./collection').Collection;
+const queries = require('../queries');
+const Collection = require('./types/collection');
 
 const assert = require('assert');
 
-const {r, logger, Reliable, ReliableUnion} = require('@horizon/server');
+const {
+  r,
+  logger,
+  Reliable,
+  ReliableUnion,
+  ReliableChangefeed,
+} = require('@horizon/server');
+
 const {rethinkdbVersionCheck} = require('@horizon/plugin-utils');
-
-const metadataVersion = [2, 0, 0];
-
-function createCollection(db, name, conn) {
-  return r.db(db).table('hz_collections').get(name).replace({id: name}).do((res) =>
-    r.branch(
-      res('errors').ne(0),
-      r.error(res('first_error')),
-      res('inserted').eq(1),
-      r.db(db).tableCreate(name),
-      res
-    )
-  ).run(conn);
-}
-
-function initializeMetadata(db, conn) {
-  return r.branch(r.dbList().contains(db), null, r.dbCreate(db)).run(conn)
-    .then(() =>
-      Promise.all(['hz_collections', 'hz_users_auth', 'hz_groups'].map((table) =>
-        r.branch(r.db(db).tableList().contains(table),
-                 { },
-                 r.db(db).tableCreate(table))
-          .run(conn))))
-    .then(() =>
-      r.db(db).table('hz_collections').wait({timeout: 30}).run(conn))
-    .then(() =>
-      Promise.all([
-        r.db(db).tableList().contains('users').not().run(conn).then(() =>
-          createCollection(r, db, 'users', conn)),
-        r.db(db).table('hz_collections')
-          .insert({id: 'hz_metadata', version: metadataVersion})
-          .run(conn),
-      ])
-    );
-}
 
 class StaleAttemptError extends Error { }
 
@@ -91,7 +64,7 @@ class ReliableInit extends Reliable {
       this.check_attempt(attempt);
       logger.debug('checking for internal tables');
       if (this._auto_create_collection) {
-        return initializeMetadata(this._db, conn);
+        return queries.initializeMetadata(this._db, conn);
       } else {
         return r.dbList().contains(this._db).run(conn).then((has_db) => {
           if (!has_db) {
@@ -180,11 +153,12 @@ class ReliableMetadata extends Reliable {
     });
 
     // RSI: stop these from running until after ReliableInit?
-    this._collection_changefeed = server.makeReliableChangefeed(
+    this._collection_changefeed = new ReliableChangefeed(
       r.db(this._db)
        .table('hz_collections')
        .filter((row) => row('id').match('^hzp?_').not())
        .changes({squash: false, includeInitial: true, includeTypes: true}),
+      this._reliable_conn,
       {
         onChange: (change) => {
           switch (change.type) {
@@ -223,7 +197,7 @@ class ReliableMetadata extends Reliable {
         },
       });
 
-    this._index_changefeed = server.makeReliableChangefeed(
+    this._index_changefeed = new ReliableChangefeed(
       r.db('rethinkdb')
         .table('table_config')
         .filter((row) => r.and(row('db').eq(this._db),
@@ -234,6 +208,7 @@ class ReliableMetadata extends Reliable {
           indexes: row('indexes').filter((idx) => idx.match('^hz_')),
         }))
         .changes({squash: true, includeInitial: true, includeTypes: true}),
+      this._reliable_conn,
       {
         onChange: (change) => {
           if (!this._connection) { return; }
@@ -348,7 +323,7 @@ class ReliableMetadata extends Reliable {
       collection = new Collection(this._db, name, this._reliable_conn);
       this._collections.set(name, collection);
 
-      return createCollection(this._db, name, this._reliable_conn.connection());
+      return queries.createCollection(this._db, name, this._reliable_conn.connection());
     }).then((res) => {
       assert(!res.error, `Collection "${name}" creation failed: ${res.error}`);
       logger.warn(`Collection created: "${name}"`);
@@ -370,8 +345,4 @@ class ReliableMetadata extends Reliable {
   }
 }
 
-module.exports = {
-  createCollection,
-  initializeMetadata,
-  ReliableMetadata,
-};
+module.exports = ReliableMetadata;
