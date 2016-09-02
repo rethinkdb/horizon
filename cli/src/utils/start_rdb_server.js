@@ -2,7 +2,7 @@
 
 const each_line_in_pipe = require('./each_line_in_pipe');
 const horizon_server = require('@horizon/server');
-const {rethinkdbVersionCheck: versionCheck} = require('@horizon/plugins/common/utils');
+const versionCheck = require('@horizon/plugins/common/utils').rethinkdbVersionCheck;
 
 const execSync = require('child_process').execSync;
 const spawn = require('child_process').spawn;
