@@ -1,5 +1,7 @@
 'use strict';
 
+const {r} = require('@horizon/server');
+
 const reql_options = {
   timeFormat: 'raw',
   binaryFormat: 'raw',
@@ -21,7 +23,7 @@ function object_to_fields(obj) {
 }
 
 // This is exposed to be reused by 'subscribe'
-const make_reql = (r, req) => Promise.resolve().then(() => {
+const make_reql = (req) => Promise.resolve().then(() => {
   const find = req.getParameter('find');
   const limit = req.getParameter('limit');
   const order = req.getParameter('order');

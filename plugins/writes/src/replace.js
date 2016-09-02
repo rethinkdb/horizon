@@ -3,8 +3,9 @@
 const common = require('./common');
 const hz_v = common.version_field;
 
+const {r} = require('@horizon/server');
+
 module.exports = (server) => (request, response, next) => {
-  const r = server.r;
   const conn = server.rdb_connection().connection();
   const timeout = request.getParameter('timeout');
   const collection = request.getParameter('collection');
@@ -38,7 +39,7 @@ module.exports = (server) => (request, response, next) => {
 
                        // Otherwise, we can safely replace the row
                        common.apply_version(
-                         r, new_row, old_row(hz_v).default(-1).add(1))),
+                         new_row, old_row(hz_v).default(-1).add(1))),
               {returnChanges: 'always'}))
       .run(conn, common.reql_options)
   ).then((msg) => response.end(msg)).catch(next);

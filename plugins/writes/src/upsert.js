@@ -3,8 +3,9 @@
 const common = require('./common');
 const hz_v = common.version_field;
 
+const {r} = require('@horizon/server');
+
 module.exports = (server) => (request, response, next) => {
-  const r = server.r;
   const conn = server.rdb_connection().connection();
   const timeout = request.getParameter('timeout');
   const collection = request.getParameter('collection');
@@ -43,7 +44,7 @@ module.exports = (server) => (request, response, next) => {
                            r.error(common.invalidated_msg),
 
                            // Otherwise, insert the row
-                           common.apply_version(r, new_row, 0)
+                           common.apply_version(new_row, 0)
                          ),
                          r.branch(
                            // The row may have changed from the expected version
@@ -52,14 +53,13 @@ module.exports = (server) => (request, response, next) => {
                            r.error(common.invalidated_msg),
 
                            // Otherwise, we can update the row and increment the version
-                           common.apply_version(r,
-                                                old_row.merge(new_row),
+                           common.apply_version(old_row.merge(new_row),
                                                 old_row(hz_v).default(-1).add(1))
                          )
                        ), {returnChanges: 'always'}),
 
                    // The new row did not have an id, so we insert it with an autogen id
-                   collection.table.insert(common.apply_version(r, new_row, 0),
+                   collection.table.insert(common.apply_version(new_row, 0),
                                            {returnChanges: 'always'})))
         .run(conn, common.reql_options)
   ).then((msg) => response.end(msg)).catch(next);

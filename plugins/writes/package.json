@@ -23,6 +23,10 @@
   },
   "dependencies": {
   },
+  "peerDependencies": {
+    "@horizon/plugin-router": "1.x",
+    "@horizon/server": "3.x"
+  },
   "devDependencies": {
     "eslint": "^2.3.0",
     "istanbul": "^0.4.3",

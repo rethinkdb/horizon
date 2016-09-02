@@ -18,14 +18,9 @@ module.exports.Server = server.Server;
 
 module.exports.r = require('rethinkdb');
 module.exports.logger = require('./logger');
-module.exports.utils = require('./utils');
 
-module.exports.auth = {
-  auth0: require('./auth/auth0'),
-  facebook: require('./auth/facebook'),
-  github: require('./auth/github'),
-  google: require('./auth/google'),
-  slack: require('./auth/slack'),
-  twitch: require('./auth/twitch'),
-  twitter: require('./auth/twitter'),
-};
+const reliable = require('./reliable');
+module.exports.Reliable = reliable.Reliable;
+module.exports.ReliableConn = reliable.ReliableConn;
+module.exports.ReliableUnion = reliable.ReliableUnion;
+module.exports.ReliableChangefeed = reliable.ReliableChangefeed;

@@ -4,6 +4,8 @@ const Rule = require('./rule');
 
 const assert = require('assert');
 
+const {r, logger, ReliableChangefeed} = require('@horizon/server');
+
 // We can be desynced from the database for up to 5 seconds before we
 // start rejecting queries.
 const staleMs = 5000;
@@ -121,9 +123,6 @@ class RuleMap {
 
 class UserCache {
   constructor(config, ctx) {
-    const r = ctx.r;
-
-    this.ctx = ctx;
     this.timeout = config.cacheTimeout;
 
     this.ruleMap = new RuleMap();
@@ -131,7 +130,7 @@ class UserCache {
     this.userCfeeds = new Map();
     this.newUserCfeed = (userId) => {
       let oldGroups = new Set();
-      const cfeed = new ctx.ReliableChangefeed(
+      const cfeed = new ReliableChangefeed(
         r.table(config.usersTable).get(userId).changes({includeInitial: true}),
         ctx.rdb_connection(),
         {
@@ -164,7 +163,7 @@ class UserCache {
 
     this.queuedGroups = new Map();
     this.groupsUnreadyAt = new Date(0); // epoch
-    this.groupCfeed = new ctx.ReliableChangefeed(
+    this.groupCfeed = new ReliableChangefeed(
       r.table(config.groupsTable).changes({includeInitial: true}),
       ctx.rdb_connection(),
       {
@@ -280,7 +279,7 @@ class UserCache {
               } catch (err) {
                 // We don't want to pass the error message on to the user because
                 // it might leak information about the data.
-                this.ctx.logger.error(`Exception in validator function: ${err.stack}`);
+                logger.error(`Exception in validator function: ${err.stack}`);
               }
             };
           };
@@ -316,7 +315,7 @@ module.exports = (raw_config) => {
     name,
 
     activate(ctx) {
-      ctx.logger.info('Activating permissions plugin.');
+      logger.info('Activating permissions plugin.');
       ctx[userCache] = new UserCache(config, ctx);
 
       authCb = (clientCtx) => {

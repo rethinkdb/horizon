@@ -22,7 +22,10 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "@horizon/server-utils": "1.0.0"
+  },
+  "peerDependencies": {
+    "@horizon/plugin-router": "1.x",
+    "@horizon/server": "3.x"
   },
   "devDependencies": {
     "eslint": "^2.3.0",

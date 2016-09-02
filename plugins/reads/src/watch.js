@@ -12,7 +12,7 @@ module.exports = (server) => (req, res, next) => {
   } else if (!permissions) {
     next(new Error('"watch" requires permissions to run'));
   } else {
-    common.make_reql(server.r, req).then((reql) =>
+    common.make_reql(req).then((reql) =>
         reql.changes({
         include_initial: true,
         include_states: true,

@@ -12,7 +12,7 @@ module.exports = (server) => (req, res, next) => {
   } else if (!permissions) {
     next(new Error('"fetch" requires permissions to run'));
   } else {
-    common.make_reql(server.r, req).then((reql) =>
+    common.make_reql(req).then((reql) =>
       reql.run(conn, common.reql_options)
     ).then((result) => {
       if (result !== null && result.constructor.name === 'Cursor') {

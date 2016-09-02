@@ -2,6 +2,8 @@
 
 const assert = require('assert');
 
+const {r} = require('@horizon/server');
+
 // Common functionality used by write requests
 
 const reql_options = {
@@ -15,7 +17,7 @@ const timeout_msg = 'Operation timed out.';
 const unauthorized_msg = 'Operation not permitted.';
 
 const hz_v = '$hz_v$';
-function apply_version(r, row, new_version) {
+function apply_version(row, new_version) {
   row.merge(r.object(hz_v, new_version));
 }
 

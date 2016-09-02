@@ -1,13 +1,13 @@
 'use strict';
 
+const {r, logger} = require('@horizon/server');
+
 const Table = require('./table').Table;
 
 class Collection {
-  constructor(db, name, reliableConn, logger, r) {
+  constructor(db, name, reliableConn) {
     this.name = name;
     this.reliableConn = reliableConn;
-    this.logger = logger;
-    this.r = r;
     this.table = r.db(db).table(name); // This is the ReQL Table object
     this._tables = new Map(); // A Map of Horizon Table objects
     this._registered = false; // Whether the `hz_collections` table says this collection exists
@@ -28,7 +28,7 @@ class Collection {
     let table = this._tables.get(table_id);
     if (indexes) {
       if (!table) {
-        table = new Table(this.table, conn, this.logger, this.r);
+        table = new Table(this.table, conn);
         this._tables.set(table_id, table);
       }
       table.update_indexes(indexes, conn);
