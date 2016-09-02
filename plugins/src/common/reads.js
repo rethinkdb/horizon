@@ -2,15 +2,6 @@
 
 const {r} = require('@horizon/server');
 
-const reql_options = {
-  timeFormat: 'raw',
-  binaryFormat: 'raw',
-};
-
-function isObject(x) {
-  return !Array.isArray(x) && x !== null;
-}
-
 function object_to_fields(obj) {
   return Object.keys(obj).map((key) => {
     const value = obj[key];
@@ -129,4 +120,4 @@ const make_reql = (req) => Promise.resolve().then(() => {
   return reqlPromise.then((reql) => (limit !== undefined ? reql.limit(limit) : reql));
 });
 
-module.exports = {make_reql, isObject, reql_options};
+module.exports = {make_reql, reql_options};

@@ -1,12 +1,12 @@
 'use strict';
 
-import {r, logger, Reliable, ReliableUnion} from '@horizon/server';
 const Collection = require('./collection').Collection;
 const utils = require('./utils');
 
 const assert = require('assert');
 
-const version_field = '$hz_v$';
+import {r, logger, Reliable, ReliableUnion} from '@horizon/server';
+
 const metadata_version = [2, 0, 0];
 
 export const create_collection = (db, name, conn) =>
@@ -73,7 +73,7 @@ class ReliableInit extends Reliable {
       this.check_attempt(attempt);
       logger.debug('checking rethinkdb version');
       const q = r.db('rethinkdb').table('server_status').nth(0)('process')('version');
-      return q.run(conn).then((res) => utils.rethinkdb_version_check(res));
+      return q.run(conn).then((res) => utils.rethinkdbVersionCheck(res));
     }).then(() => {
       this.check_attempt(attempt);
       logger.debug('checking for old metadata version');
@@ -114,7 +114,6 @@ class ReliableInit extends Reliable {
               {
                 id: 'admin',
                 groups: ['admin'],
-                [version_field]: 0,
               },
               old_row),
             {returnChanges: 'always'})('changes')(0)
@@ -128,7 +127,6 @@ class ReliableInit extends Reliable {
               {
                 id: 'admin',
                 rules: {carte_blanche: {template: 'any()'}},
-                [version_field]: 0,
               },
               old_row),
             {returnChanges: 'always'})('changes')(0)

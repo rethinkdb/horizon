@@ -302,7 +302,6 @@ module.exports = (raw_config) => {
   if (config.cacheTimeout === undefined) {
     config.cacheTimeout = 5000;
   }
-  config.name = config.name || 'permissions';
   config.usersTable = config.usersTable || 'users';
   config.groupsTable = config.groupsTable || 'hz_groups';
 
@@ -312,7 +311,7 @@ module.exports = (raw_config) => {
   let authCb;
   let disconnectCb;
   return {
-    name,
+    name: 'hz_permissions',
 
     activate(ctx) {
       logger.info('Activating permissions plugin.');

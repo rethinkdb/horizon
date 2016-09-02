@@ -1,6 +1,7 @@
 'use strict';
 
-const common = require('./common');
+const utils = require('./common/utils');
+const common = require('./common/reads');
 
 function watch(server) {
   return (req, res, next) => {
@@ -21,7 +22,7 @@ function watch(server) {
           include_offsets:
             req.getParameter('order') !== undefined &&
             req.getParameter('limit') !== undefined,
-        }).run(conn, common.reql_options)
+        }).run(conn, utils.reqlOptions)
       ).then((feed) => {
         res.complete.then(() => {
           feed.close().catch(() => { });

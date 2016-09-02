@@ -1,8 +1,7 @@
 'use strict';
 
 module.exports = (raw_config) => ({
-  name: (raw_config && raw_config.name) || 'permissions',
-
+  name: 'hz_permissions',
   activate: () => ({
     methods: {
       hz_permissions: {

@@ -1,6 +1,6 @@
 'use strict';
 
-const isObject = require('./common').isObject;
+const {isObject} = require('./common/utils');
 
 function below(req, res, next) {
   const args = req.options.below;

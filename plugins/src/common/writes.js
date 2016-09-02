@@ -1,22 +1,19 @@
 'use strict';
 
+const utils = require('./utils');
+
 const assert = require('assert');
 
 const {r} = require('@horizon/server');
 
+const hz_v = utils.version_field;
+
 // Common functionality used by write requests
-
-const reql_options = {
-  timeFormat: 'raw',
-  binaryFormat: 'raw',
-};
-
 const invalidated_msg = 'Write invalidated by another request, try again.';
 const missing_msg = 'The document was missing.';
 const timeout_msg = 'Operation timed out.';
 const unauthorized_msg = 'Operation not permitted.';
 
-const hz_v = '$hz_v$';
 function apply_version(row, new_version) {
   row.merge(r.object(hz_v, new_version));
 }
@@ -188,11 +185,8 @@ module.exports = {
   missing_msg,
   timeout_msg,
   unauthorized_msg,
-  make_write_response,
-  version_field: hz_v,
   apply_version,
   retry_loop,
   validate_old_row_required,
   validate_old_row_optional,
-  reql_options,
 };

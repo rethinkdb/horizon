@@ -1,6 +1,6 @@
 'use strict';
 
-import {ReliableMetadata} from './metadata.js';
+const {ReliableMetadata} = require('./common/metadata.js');
 
 function collection(server, metadata) {
   return (req, res, next) => {
@@ -19,11 +19,9 @@ function collection(server, metadata) {
   };
 }
 
-export default function(raw_config) {
+module.exports = (options) => ({
   return {
-    name: (raw_config && raw_config.name) || 'collection',
-    // RSI: make sure we check the arity and become ready if people
-    // don't take the callbacks.
+    name: 'hz_collection',
     activate: (server, onReady, onUnready) => {
       const metadata = new ReliableMetadata(
         server,
@@ -44,4 +42,4 @@ export default function(raw_config) {
       };
     },
   };
-}
+});

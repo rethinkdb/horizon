@@ -1,6 +1,6 @@
 'use strict';
 
-const isObject = require('./common').isObject;
+const {isObject} = require('./common/utils');
 
 function findAll(req, res, next) {
   const args = req.options.findAll;

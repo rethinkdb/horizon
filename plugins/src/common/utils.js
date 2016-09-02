@@ -4,7 +4,7 @@ const MIN_VERSION = [2, 3, 1];
 
 // Recursive version compare, could be flatter but opted for instant return if
 //  comparison is greater rather than continuing to compare to end.
-const version_compare = (actual, minimum) => {
+function versionCompare(actual, minimum) {
   for (let i = 0; i < minimum.length; ++i) {
     if (actual[i] > minimum[i]) {
       return true;
@@ -13,10 +13,10 @@ const version_compare = (actual, minimum) => {
     }
   }
   return true;
-};
+}
 
 // Check that RethinkDB matches version requirements
-const rethinkdb_version_check = (version_string) => {
+function rethinkdbVersionCheck(version_string) {
   const rethinkdb_version_regex = /^rethinkdb (\d+)\.(\d+)\.(\d+)/i;
   const matches = rethinkdb_version_regex.exec(version_string);
 
@@ -32,8 +32,31 @@ const rethinkdb_version_check = (version_string) => {
     throw new Error('Unable to determine RethinkDB version, check ' +
                     `RethinkDB is >= ${MIN_VERSION.join('.')}.`);
   }
+}
+
+// Used when evaluating things in a different VM context - the errors
+// thrown from there will not evaluate as `instanceof Error`, so we recreate them.
+function remakeError(err) {
+  const new_err = new Error(err.message || 'Unknown error when evaluating template.');
+  new_err.stack = err.stack || new_err.stack;
+  throw new_err;
+}
+
+function isObject(x) {
+  return !Array.isArray(x) && x !== null;
+}
+
+const reqlOptions = {
+  timeFormat: 'raw',
+  binaryFormat: 'raw',
 };
 
+const versionField = '$hz_v$';
+
 module.exports = {
-  rethinkdb_version_check,
+  rethinkdbVersionCheck,
+  remakeError,
+  isObject,
+  reqlOptions,
+  versionField,
 };
