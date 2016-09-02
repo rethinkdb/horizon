@@ -1,6 +1,6 @@
 'use strict';
 
-const utils = require('./common/utils');
+const {reqlOptions} = require('./common/utils');
 const {makeReadReql} = require('./common/reads');
 
 function watch(server) {
@@ -22,7 +22,7 @@ function watch(server) {
           include_offsets:
             req.getParameter('order') !== undefined &&
             req.getParameter('limit') !== undefined,
-        }).run(conn, utils.reqlOptions)
+        }).run(conn, reqlOptions)
       ).then((feed) => {
         res.complete.then(() => {
           feed.close().catch(() => { });

@@ -1,8 +1,7 @@
 'use strict';
 
-const utils = require('./common/utils');
-const common = require('./common/writes');
-const hz_v = utils.versionField;
+const {reqlOptions, versionField: hz_v} = require('./common/utils');
+const writes = require('./common/writes');
 
 const {r} = require('@horizon/server');
 
@@ -19,13 +18,13 @@ function remove(server) {
       throw new Error('No permissions given for insert operation.');
     }
 
-    common.retry_loop(request.options.remove, permissions, timeout,
+    writes.retry_loop(request.options.remove, permissions, timeout,
       (rows) => // pre-validation, all rows
         r.expr(rows.map((row) => row.id))
           .map((id) => collection.table.get(id))
-          .run(conn, utils.reqlOptions),
+          .run(conn, reqlOptions),
       (validator, row, info) =>
-        common.validate_old_row_required(validator, request.clientCtx, row, info, null),
+        writes.validate_old_row_required(validator, request.clientCtx, row, info, null),
       (rows) => // write to database, all valid rows
         r.expr(rows).do((row_data) =>
           row_data.forEach((info) =>
@@ -37,7 +36,7 @@ function remove(server) {
                          // The row may have been changed between the get and now
                          r.and(info.hasFields(hz_v),
                                row(hz_v).default(-1).ne(info(hz_v))),
-                         r.error(common.invalidated_msg),
+                         r.error(writes.invalidated_msg),
 
                          // Otherwise, we can safely remove the row
                          null),
@@ -52,7 +51,7 @@ function remove(server) {
                              {old_val: {id: row_data(index)('id')}}),
                            res('changes')(index))).coerceTo('array'),
               })))
-          .run(conn, utils.reqlOptions)
+          .run(conn, reqlOptions)
     ).then((msg) => response.end(msg)).catch(next);
   };
 }

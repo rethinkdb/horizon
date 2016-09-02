@@ -18,7 +18,7 @@ const run = (args) => {
   };
 
   // generate the arguments to the command
-  const binArgs = [ 'req', '-x509', '-nodes', '-batch',
+  const binArgs = ['req', '-x509', '-nodes', '-batch',
     '-newkey', `${settings.algo}:${settings.bits}`,
     '-keyout', settings.keyOutName,
     '-out', settings.certOutName,
@@ -39,8 +39,8 @@ const run = (args) => {
       const sslProc = spawn(settings.binaryName, binArgs);
 
       // pipe output appropriately
-      sslProc.stdout.pipe(process.stdout, { end: false });
-      sslProc.stderr.pipe(process.stderr, { end: false });
+      sslProc.stdout.pipe(process.stdout, {end: false});
+      sslProc.stderr.pipe(process.stderr, {end: false});
 
       // say nice things to the user when it's done
       sslProc.on('error', reject);

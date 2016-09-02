@@ -2,6 +2,7 @@
 
 const each_line_in_pipe = require('./each_line_in_pipe');
 const horizon_server = require('@horizon/server');
+const {rethinkdbVersionCheck: versionCheck} = require('@horizon/plugins/common/utils');
 
 const execSync = require('child_process').execSync;
 const spawn = require('child_process').spawn;
@@ -13,12 +14,11 @@ const infoLevelLog = (msg) => /^Running/.test(msg) || /^Listening/.test(msg);
 
 const r = horizon_server.r;
 const logger = horizon_server.logger;
-const version_check = horizon_server.utils.rethinkdb_version_check;
 
 class RethinkdbServer {
   constructor(options) {
     const quiet = Boolean(options.quiet);
-    const bind = options.bind || [ '127.0.0.1' ];
+    const bind = options.bind || ['127.0.0.1'];
     const dataDir = options.dataDir || defaultDatadir;
     const driverPort = options.rdbPort;
     const httpPort = options.rdbHttpPort;
@@ -30,14 +30,14 @@ class RethinkdbServer {
     }
 
     // Check if RethinkDB is sufficient version for Horizon
-    version_check(execSync('rethinkdb --version', { timeout: 5000 }).toString());
+    versionCheck(execSync('rethinkdb --version', {timeout: 5000}).toString());
 
-    const args = [ '--http-port', String(httpPort || 0),
+    const args = ['--http-port', String(httpPort || 0),
                    '--cluster-port', '0',
                    '--driver-port', String(driverPort || 0),
                    '--cache-size', String(cacheSize),
                    '--directory', dataDir,
-                   '--no-update-check' ];
+                   '--no-update-check'];
     bind.forEach((host) => args.push('--bind', host));
 
     this.proc = spawn('rethinkdb', args);
@@ -103,7 +103,7 @@ class RethinkdbServer {
   // This is only used by tests - cli commands use a more generic method as
   // the database may be launched elsewhere.
   connect() {
-    return r.connect({ host: 'localhost', port: this.driver_port });
+    return r.connect({host: 'localhost', port: this.driver_port});
   }
 
   close() {

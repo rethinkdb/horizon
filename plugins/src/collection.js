@@ -1,6 +1,6 @@
 'use strict';
 
-const {ReliableMetadata} = require('./common/metadata.js');
+const {ReliableMetadata} = require('./collection/metadata.js');
 
 function collection(metadata) {
   return (req, res, next) => {

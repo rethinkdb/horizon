@@ -1,7 +1,7 @@
 'use strict';
 
-const utils = require('./common/utils');
-const common = require('./common/writes');
+const {reqlOptions} = require('./common/utils');
+const writes = require('./common/writes');
 
 const {r} = require('@horizon/server');
 
@@ -18,19 +18,19 @@ function insert(server) {
       throw new Error('No permissions given for insert operation.');
     }
 
-    common.retry_loop(request.options.insert, permissions, timeout,
+    writes.retry_loop(request.options.insert, permissions, timeout,
       (rows) => // pre-validation, all rows
         Array(rows.length).fill(null),
       (validator, row, info) => { // validation, each row
         if (!validator(request.clientCtx, info, row)) {
-          return new Error(common.unauthorized_msg);
+          return new Error(writes.unauthorized_msg);
         }
       },
       (rows) => // write to database, all valid rows
         collection.table
-          .insert(rows.map((row) => common.apply_version(r.expr(row), 0)),
+          .insert(rows.map((row) => writes.apply_version(r.expr(row), 0)),
                   {returnChanges: 'always'})
-          .run(conn, utils.reqlOptions)
+          .run(conn, reqlOptions)
     ).then((msg) => response.end(msg)).catch(next);
   };
 }

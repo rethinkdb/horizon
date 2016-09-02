@@ -1,6 +1,6 @@
 'use strict';
 
-const utils = require('./common/utils');
+const {reqlOptions} = require('./common/utils');
 const {makeReadReql} = require('./common/reads');
 
 function fetch(ctx) {
@@ -15,7 +15,7 @@ function fetch(ctx) {
       next(new Error('"fetch" requires permissions to run'));
     } else {
       makeReadReql(req).then((reql) =>
-        reql.run(conn, utils.reqlOptions)
+        reql.run(conn, reqlOptions)
       ).then((result) => {
         if (result !== null && result.constructor.name === 'Cursor') {
           res.complete.then(() => {

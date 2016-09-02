@@ -1,11 +1,12 @@
 {
-  "name": "@horizon/plugin_router",
+  "name": "@horizon/server-test",
   "version": "1.0.0",
-  "description": "Plugin router for Horizon.",
-  "main": "src/index.js",
+  "description": "Embedded horizon server for running tests.",
+  "main": "dist/main.js",
   "scripts": {
     "lint": "eslint src test",
-    "test": "mocha test"
+    "test": "mocha test",
+    "build": "babel src -d dist -s true"
   },
   "repository": {
     "type": "git",
@@ -21,7 +22,11 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "toposort-class": "^1.0.1"
+    "@horizon/cli": "3.0.0",
+    "@horizon/plugin-router": "1.0.0",
+    "@horizon/plugins": "1.0.0",
+    "@horizon/server": "3.0.0",
+    "argparse": "^1.0.7"
   },
   "devDependencies": {
     "eslint": "^2.3.0",

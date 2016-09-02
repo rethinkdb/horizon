@@ -1,6 +1,6 @@
 'use strict';
 
-const remake_error = require('./remake_error');
+const {remakeError} = require('../common/utils');
 
 const assert = require('assert');
 const vm = require('vm');
@@ -162,7 +162,7 @@ const make_template = (str) => {
     const sandbox = Object.assign({}, env);
     return vm.runInNewContext(str, sandbox);
   } catch (err) {
-    throw remake_error(err);
+    throw remakeError(err);
   }
 };
 

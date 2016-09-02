@@ -1,6 +1,6 @@
 'use strict';
 
-const Rule = require('./rule');
+const Rule = require('./permissions/rule');
 
 const assert = require('assert');
 

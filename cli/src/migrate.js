@@ -13,12 +13,12 @@ const change_to_project_dir = require('./utils/change_to_project_dir');
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const start_rdb_server = require('./utils/start_rdb_server');
 
-const VERSION_2_0 = [ 2, 0, 0 ];
+const VERSION_2_0 = [2, 0, 0];
 
 function run(cmdArgs) {
   const options = processConfig(cmdArgs);
   interrupt.on_interrupt(() => teardown());
-  return Promise.resolve().bind({ options })
+  return Promise.resolve().bind({options})
     .then(setup)
     .then(validateMigration)
     .then(makeBackup)
@@ -44,50 +44,50 @@ function white() {
 
 function processConfig(cmdArgs) {
   // do boilerplate to get config args :/
-  const parser = new argparse.ArgumentParser({ prog: 'hz migrate' });
+  const parser = new argparse.ArgumentParser({prog: 'hz migrate'});
 
-  parser.addArgument([ 'project_path' ], {
+  parser.addArgument(['project_path'], {
     default: '.',
     nargs: '?',
     help: 'Change to this directory before migrating',
   });
 
-  parser.addArgument([ '--project-name', '-n' ], {
+  parser.addArgument(['--project-name', '-n'], {
     help: 'Name of the Horizon project server',
   });
 
-  parser.addArgument([ '--connect', '-c' ], {
+  parser.addArgument(['--connect', '-c'], {
     metavar: 'host:port',
     default: undefined,
     help: 'Host and port of the RethinkDB server to connect to.',
   });
 
-  parser.addArgument([ '--rdb-user' ], {
+  parser.addArgument(['--rdb-user'], {
     default: 'admin',
     metavar: 'USER',
     help: 'RethinkDB User',
   });
 
-  parser.addArgument([ '--rdb-password' ], {
+  parser.addArgument(['--rdb-password'], {
     default: undefined,
     metavar: 'PASSWORD',
     help: 'RethinkDB Password',
   });
 
-  parser.addArgument([ '--start-rethinkdb' ], {
+  parser.addArgument(['--start-rethinkdb'], {
     metavar: 'yes|no',
     default: 'yes',
     constant: 'yes',
     nargs: '?',
-    help: 'Start up a RethinkDB server in the current directory'
+    help: 'Start up a RethinkDB server in the current directory',
   });
 
-  parser.addArgument([ '--config' ], {
+  parser.addArgument(['--config'], {
     default: '.hz/config.toml',
     help: 'Path to the config file to use, defaults to ".hz/config.toml".',
   });
 
-  parser.addArgument([ '--skip-backup' ], {
+  parser.addArgument(['--skip-backup'], {
     metavar: 'yes|no',
     default: 'no',
     constant: 'yes',
@@ -134,7 +134,7 @@ function setup() {
     // start rethinkdb server if necessary
     if (this.options.start_rethinkdb) {
       green(' ├── Starting RethinkDB server');
-      return start_rdb_server({ quiet: true }).then((server) => {
+      return start_rdb_server({quiet: true}).then((server) => {
         this.rdb_server = server;
         this.options.rdb_host = 'localhost';
         this.options.rdb_port = server.driver_port;
@@ -177,16 +177,16 @@ function validateMigration() {
 
   const checkForHzTables = r.db('rethinkdb')
           .table('table_config')
-          .filter({ db: project })('name')
+          .filter({db: project})('name')
           .contains((x) => x.match('^hz_'))
           .branch(r.error(
             `Some tables in ${project} have an hz_ prefix`), true);
   const waitForCollections = r.db(`${project}_internal`)
           .table('collections')
-          .wait({ timeout: 30 })
+          .wait({timeout: 30})
           .do(() => r.db(project).tableList())
           .forEach((tableName) =>
-            r.db(project).table(tableName).wait({ timeout: 30 })
+            r.db(project).table(tableName).wait({timeout: 30})
           );
 
   return Promise.resolve().then(() => {
@@ -241,11 +241,11 @@ function renameUserTables() {
   const project = this.options.project_name;
   return Promise.resolve().then(() => {
     white('Removing suffix from user tables');
-    return r.db(`${project}_internal`).wait({ timeout: 30 }).
+    return r.db(`${project}_internal`).wait({timeout: 30}).
       do(() => r.db(`${project}_internal`).table('collections')
          .forEach((collDoc) => r.db('rethinkdb').table('table_config')
-                  .filter({ db: project, name: collDoc('table') })
-                  .update({ name: collDoc('id') }))
+                  .filter({db: project, name: collDoc('table')})
+                  .update({name: collDoc('id')}))
         ).run(this.conn)
       .then(() => green(' └── Suffixes removed'));
   });
@@ -259,7 +259,7 @@ function moveInternalTables() {
   return Promise.resolve().then(() => {
     white(`Moving internal tables from ${project}_internal to ${project}`);
     return r.db('rethinkdb').table('table_config')
-      .filter({ db: `${project}_internal` })
+      .filter({db: `${project}_internal`})
       .update((table) => ({
         db: project,
         name: r.branch(
@@ -283,11 +283,11 @@ function renameIndices() {
   const project = this.options.project_name;
   return Promise.resolve().then(() => {
     white('Renaming indices to new JSON format');
-    return r.db(project).tableList().forEach((tableName) => {
-      return r.db(project).table(tableName).indexList().forEach((indexName) => {
-        return r.db(project).table(tableName).indexRename(indexName, rename(indexName));
-      });
-    }).run(this.conn)
+    return r.db(project).tableList().forEach((tableName) =>
+      r.db(project).table(tableName).indexList().forEach((indexName) =>
+        r.db(project).table(tableName).indexRename(indexName, rename(indexName))
+      )
+    ).run(this.conn)
     .then(() => green(' └── Indices renamed.'));
   });
 
@@ -296,34 +296,31 @@ function renameIndices() {
     const initialState = {
       escaped: false,
       field: '',
-      fields: [ ],
+      fields: [],
     };
     return name.split('')
-      .fold(initialState, (acc, c) => {
-        return r.branch(
+      .fold(initialState, (acc, c) =>
+        r.branch(
           acc('escaped'),
             acc.merge({
               escaped: false,
               field: acc('field').add(c),
             }),
           c.eq('\\'),
-            acc.merge({ escaped: true }),
+            acc.merge({escaped: true}),
           c.eq('_'),
             acc.merge({
               fields: acc('fields').append(acc('field')),
               field: '',
             }),
-          acc.merge({ field: acc('field').add(c) })
-        );
-      })
-      .do((state) =>
-          // last field needs to be appended to running list
-          state('fields').append(state('field'))
+          acc.merge({field: acc('field').add(c)})
+        )
+      ).do((state) =>
+        // last field needs to be appended to running list
+        state('fields').append(state('field'))
           // wrap each field in an array
-          .map((field) => [ field ])
-         )
-      .toJSON()
-      .do((x) => r('hz_').add(x));
+          .map((field) => [field])
+      ).toJSON().do((x) => r('hz_').add(x));
   }
 }
 
@@ -334,15 +331,15 @@ function rewriteHzCollectionDocs() {
   return Promise.resolve().then(() => {
     white('Rewriting hz_collections to new format');
     return r.db(project).table('hz_collections')
-      .update({ table: r.literal() })
+      .update({table: r.literal()})
       .run(this.conn);
   }).then(() => green(' ├── "table" field removed'))
     .then(() => r.db(project).table('hz_collections')
-          .insert({ id: 'users' })
+          .insert({id: 'users'})
           .run(this.conn))
     .then(() => green(' ├── Added document for "users" table'))
     .then(() => r.db(project).table('hz_collections')
-          .insert({ id: 'hz_metadata', version: VERSION_2_0 })
+          .insert({id: 'hz_metadata', version: VERSION_2_0})
           .run(this.conn))
     .then(() => green(' └── Adding the metadata document with schema version:' +
                       `${JSON.stringify(VERSION_2_0)}`));

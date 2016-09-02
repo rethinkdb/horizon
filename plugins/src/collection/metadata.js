@@ -1,7 +1,7 @@
 'use strict';
 
 const Collection = require('./collection').Collection;
-const utils = require('./utils');
+const utils = require('../common/utils');
 
 const assert = require('assert');
 

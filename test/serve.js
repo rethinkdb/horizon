@@ -5,23 +5,15 @@ require('../server/node_modules/source-map-support').install();
 
 Error.stackTraceLimit = Infinity;
 
-const horizon = require('../server');
-const PluginRouter = require('../plugin_router');
-const permit_all = require('../plugins/permit_all');
-const reads = require('../plugins/reads');
-const writes = require('../plugins/writes');
-const collection = require('../plugins/collection').default;
-const timeout = require('../plugins/timeout');
+const horizon_server = require('@horizon/server');
+const PluginRouter = require('@horizon/plugin-router');
+const horizon_plugins = require('@horizon/plugins');
 
 // Utilities provided by the CLI library
-const each_line_in_pipe = require('../cli/src/utils/each_line_in_pipe');
-const start_rdb_server = require('../cli/src/utils/start_rdb_server');
-const rm_sync_recursive = require('../cli/src/utils/rm_sync_recursive');
-const parse_yes_no_option = require('../cli/src/utils/parse_yes_no_option');
-
-// We could make this a module, but we already require the server to be configured,
-// so reuse its argparse module
-const argparse = require('../cli/node_modules/argparse');
+const each_line_in_pipe = require('@horizon/cli/src/utils/each_line_in_pipe');
+const start_rdb_server = require('@horizon/cli/src/utils/start_rdb_server');
+const rm_sync_recursive = require('@horizon/cli/src/utils/rm_sync_recursive');
+const parse_yes_no_option = require('@horizon/cli/src/utils/parse_yes_no_option');
 
 const assert = require('assert');
 const child_process = require('child_process');
@@ -32,6 +24,8 @@ const path = require('path');
 const url = require('url');
 const process = require('process');
 const crypto = require('crypto');
+
+const argparse = require('argparse');
 
 const data_dir = path.resolve(__dirname, 'rethinkdb_data_test');
 const test_dist_dir = path.resolve(__dirname, '../client/dist');
@@ -173,8 +167,8 @@ new Promise((resolve) => {
   console.log(`RethinkDB server listening for HTTP on port ${server.http_port}.`);
   console.log('starting horizon');
 
-  horizon.logger.level = 'debug';
-  const horizon_server = new horizon.Server(http_servers, {
+  horizon_server.logger.level = 'debug';
+  const hz_server = new horizon_server.Server(http_servers, {
     rdb_port: server.driver_port,
     project_name: 'hz_test',
     auth: {
@@ -185,23 +179,35 @@ new Promise((resolve) => {
   });
   console.log('starting http servers');
 
-  const plugins = new PluginRouter(horizon_server);
+  const plugins = new PluginRouter(hz_server);
   Promise.all([
-    plugins.add(permit_all()),
-    plugins.add(collection({
+    plugins.add(plugins.collection({
       auto_create_collection: true,
       auto_create_index: true,
     })),
-    plugins.add(timeout()),
-    plugins.add(reads()),
-    plugins.add(writes()),
+    plugins.add(plugins.permit_all()),
+    plugins.add(plugins.timeout()),
+    plugins.add(plugins.insert()),
+    plugins.add(plugins.store()),
+    plugins.add(plugins.update()),
+    plugins.add(plugins.upsert()),
+    plugins.add(plugins.remove()),
+    plugins.add(plugins.replace()),
+    plugins.add(plugins.fetch()),
+    plugins.add(plugins.watch()),
+    plugins.add(plugins.above()),
+    plugins.add(plugins.below()),
+    plugins.add(plugins.order()),
+    plugins.add(plugins.limit()),
+    plugins.add(plugins.find()),
+    plugins.add(plugins.findAll()),
   ]).catch((err) =>
     console.log(`Plugin initialization failed: ${err.stack}`)
   );
 
   plugins.once('ready', () => {
     console.log('READY OMGZZZZ');
-    horizon_server.set_middleware(plugins.hzMiddleware());
+    hz_server.set_middleware(plugins.hzMiddleware());
 
     // Capture requests to `horizon.js` and `horizon.js.map` before the horizon server
     http_servers.forEach((serv, i) => {
