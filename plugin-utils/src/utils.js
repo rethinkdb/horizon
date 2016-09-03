@@ -43,7 +43,7 @@ function remakeError(err) {
 }
 
 function isObject(x) {
-  return !Array.isArray(x) && x !== null;
+  return typeof x === 'object' && !Array.isArray(x) && x !== null;
 }
 
 const reqlOptions = {
