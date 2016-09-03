@@ -1,5 +1,5 @@
 {
-  "name": "@horizon/plugin-limit",
+  "name": "@horizon-plugins/limit",
   "version": "1.0.0",
   "description": "Plugin for the 'limit' term in the Horizon Collections API.",
   "main": "dist/limit.js",

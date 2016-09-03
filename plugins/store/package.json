@@ -1,5 +1,5 @@
 {
-  "name": "@horizon/plugin-store",
+  "name": "@horizon-plugins/store",
   "version": "1.0.0",
   "description": "Plugin for the 'store' term in the Horizon Collections API.",
   "main": "dist/store.js",

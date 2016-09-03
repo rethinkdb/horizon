@@ -1,5 +1,5 @@
 {
-  "name": "@horizon/plugin-insert",
+  "name": "@horizon-plugins/insert",
   "version": "1.0.0",
   "description": "Plugin for the 'insert' term in the Horizon Collections API.",
   "main": "dist/insert.js",
