@@ -1,18 +1,20 @@
 'use strict';
 
-const horizon = require('../server');
-const logger = require('../logger');
+const horizon = require('@horizon/server');
+const PluginRouter = require('@horizon/plugin-router');
+const defaults = require('@horizon-plugins/defaults');
+const logger = horizon.logger;
 
-const rm_sync_recursive = require('../../../cli/src/utils/rm_sync_recursive');
-const start_rdb_server = require('../../../cli/src/utils/start_rdb_server');
-const each_line_in_pipe = require('../../../cli/src/utils/each_line_in_pipe');
+const rm_sync_recursive = require('horizon/src/utils/rm_sync_recursive');
+const start_rdb_server = require('horizon/src/utils/start_rdb_server');
+const each_line_in_pipe = require('horizon/src/utils/each_line_in_pipe');
 
 const assert = require('assert');
 const http = require('http');
 const r = require('rethinkdb');
 const websocket = require('ws');
 
-const project_name = 'unittest';
+const project_name = 'integration_test';
 const data_dir = './rethinkdb_data_test';
 
 const log_file = `./horizon_test_${process.pid}.log`;
@@ -125,17 +127,22 @@ const start_horizon_server = (done) => {
   http_server.listen(0, () => {
     logger.info('creating horizon server');
     horizon_port = http_server.address().port;
-    horizon_server = new horizon.Server(http_server,
-      {project_name,
-        rdb_port,
-        auto_create_collection: true,
-        auto_create_index: true,
-        permissions: true,
-        auth: {
-          token_secret: 'hunter2',
-          allow_unauthenticated: true,
-        },
-      });
+    horizon_server = new horizon.Server(http_server, {
+      project_name,
+      rdb_port,
+      auth: {
+        token_secret: 'hunter2',
+        allow_unauthenticated: true,
+      },
+    });
+
+    const plugin_router = new PluginRouter(horizon_server);
+    plugin_router.add(defaults({
+      auto_create_collection: true,
+      auto_create_index: true,
+    }));
+
+    horizon_server.set_middleware(plugin_router.hzMiddleware());
 
     horizon_server.on('ready', () => {
       logger.info('horizon server ready');

@@ -1,13 +1,13 @@
 'use strict';
 
 const utils = require('./utils');
-const horizon_writes = require('../endpoint/writes');
+const pluginUtils = require('@horizon/plugin-utils');
 
 const assert = require('assert');
 const crypto = require('crypto');
 
-const hz_v = horizon_writes.version_field;
-const invalidated_msg = horizon_writes.invalidated_msg;
+const hz_v = pluginUtils.version_field;
+const invalidated_msg = pluginUtils.writes.invalidated_msg;
 
 // Before each test, ids [0, 4) will be present in the collection
 const original_data = [
