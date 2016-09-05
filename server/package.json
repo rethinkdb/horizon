@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "lint": "eslint src test",
-    "test": "mocha dist/test --timeout 10000",
+    "test": "mocha --compilers js:babel-register --require babel-polyfill test --timeout 10000",
     "coverage": "istanbul cover _mocha test/test.js",
     "build": "babel src -d dist -s true"
   },

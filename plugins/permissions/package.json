@@ -5,7 +5,7 @@
   "main": "dist/permissions.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "mocha dist/test",
+    "test": "mocha --compilers js:babel-register --require babel-polyfill test",
     "build": "babel src -d dist -s true"
   },
   "repository": {
