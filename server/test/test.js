@@ -9,7 +9,8 @@ const all_suites = ['prereq_tests',
                      'protocol_tests',
                      'query_tests',
                      'subscribe_tests',
-                     'write_tests'];
+                     'write_tests',
+                     'permissions' ];
 const collection = 'test';
 
 before('Start RethinkDB Server', () => utils.start_rethinkdb());

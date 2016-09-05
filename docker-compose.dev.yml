@@ -4,7 +4,7 @@ rethinkdb:
     - "28015:28015"
     - "8080:8080"
 horizon:
-  image: rethinkdb/horizon-dev
+  image: rethinkdb/horizon
   command: su -s /bin/sh horizon -c "hz serve --dev --connect rethinkdb:28015 --bind all /usr/app"
   volumes:
     - ./:/usr/app

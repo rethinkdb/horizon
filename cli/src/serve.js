@@ -13,6 +13,7 @@ const url = require('url');
 const config = require('./utils/config');
 const start_rdb_server = require('./utils/start_rdb_server');
 const change_to_project_dir = require('./utils/change_to_project_dir');
+const NiceError = require('./utils/nice_error.js');
 const interrupt = require('./utils/interrupt');
 const schema = require('./schema');
 
@@ -30,122 +31,118 @@ const parseArguments = (args) => {
 
   parser.addArgument(['project_path'],
     {type: 'string', nargs: '?',
-      help: 'Change to this directory before serving'});
+     help: 'Change to this directory before serving'});
 
   parser.addArgument(['--project-name', '-n'],
     {type: 'string', action: 'store', metavar: 'NAME',
-      help: 'Name of the Horizon project. Determines the name of ' +
-            'the RethinkDB database that stores the project data.'});
+     help: 'Name of the Horizon project. Determines the name of ' +
+           'the RethinkDB database that stores the project data.'});
 
   parser.addArgument(['--bind', '-b'],
     {type: 'string', action: 'append', metavar: 'HOST',
-      help: 'Local hostname to serve horizon on (repeatable).'});
+     help: 'Local hostname to serve horizon on (repeatable).'});
 
   parser.addArgument(['--port', '-p'],
     {type: 'int', metavar: 'PORT',
-      help: 'Local port to serve horizon on.'});
+     help: 'Local port to serve horizon on.'});
 
   parser.addArgument(['--connect', '-c'],
     {type: 'string', metavar: 'HOST:PORT',
-      help: 'Host and port of the RethinkDB server to connect to.'});
+     help: 'Host and port of the RethinkDB server to connect to.'});
 
   parser.addArgument(['--rdb-timeout'],
     {type: 'int', metavar: 'TIMEOUT',
-      help: 'Timeout period in seconds for the RethinkDB connection to be opened'});
+     help: 'Timeout period in seconds for the RethinkDB connection to be opened'});
 
   parser.addArgument(['--rdb-user'],
     {type: 'string', metavar: 'USER',
-      help: 'RethinkDB User'});
+     help: 'RethinkDB User'});
 
   parser.addArgument(['--rdb-password'],
     {type: 'string', metavar: 'PASSWORD',
-      help: 'RethinkDB Password'});
+     help: 'RethinkDB Password'});
 
   parser.addArgument(['--key-file'],
     {type: 'string', metavar: 'PATH',
-      help: 'Path to the key file to use, defaults to "./horizon-key.pem".'});
+     help: 'Path to the key file to use, defaults to "./horizon-key.pem".'});
 
   parser.addArgument(['--cert-file'],
     {type: 'string', metavar: 'PATH',
-      help: 'Path to the cert file to use, defaults to "./horizon-cert.pem".'});
+     help: 'Path to the cert file to use, defaults to "./horizon-cert.pem".'});
 
   parser.addArgument(['--token-secret'],
     {type: 'string', metavar: 'SECRET',
-      help: 'Key for signing jwts'});
+     help: 'Key for signing jwts'});
 
   parser.addArgument(['--allow-unauthenticated'],
     {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-      help: 'Whether to allow unauthenticated Horizon connections.'});
+     help: 'Whether to allow unauthenticated Horizon connections.'});
 
   parser.addArgument(['--allow-anonymous'],
     {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-      help: 'Whether to allow anonymous Horizon connections.'});
+     help: 'Whether to allow anonymous Horizon connections.'});
 
   parser.addArgument(['--debug'],
     {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-      help: 'Enable debug logging.'});
+     help: 'Enable debug logging.'});
 
   parser.addArgument(['--secure'],
     {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-      help: 'Serve secure websockets, requires --key-file and ' +
-      '--cert-file if true, on by default.'});
+     help: 'Serve secure websockets, requires --key-file and ' +
+       '--cert-file if true, on by default.'});
 
   parser.addArgument(['--start-rethinkdb'],
     {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-      help: 'Start up a RethinkDB server in the current directory'});
+     help: 'Start up a RethinkDB server in the current directory'});
 
   parser.addArgument(['--auto-create-collection'],
     {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-      help: 'Create collections used by requests if they do not exist.'});
+     help: 'Create collections used by requests if they do not exist.'});
 
   parser.addArgument(['--auto-create-index'],
     {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-      help: 'Create indexes used by requests if they do not exist.'});
+     help: 'Create indexes used by requests if they do not exist.'});
 
   parser.addArgument(['--permissions'],
     {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-      help: 'Enables or disables checking permissions on requests.'});
+     help: 'Enables or disables checking permissions on requests.'});
 
   parser.addArgument(['--serve-static'],
     {type: 'string', metavar: 'PATH', nargs: '?', constant: './dist',
-      help: 'Serve static files from a directory, defaults to "./dist".'});
+     help: 'Serve static files from a directory, defaults to "./dist".'});
 
   parser.addArgument(['--dev'],
     {action: 'storeTrue',
-      help: 'Runs the server in development mode, this sets ' +
-      '--secure=no, ' +
-      '--permissions=no, ' +
-      '--auto-create-collection=yes, ' +
-      '--auto-create-index=yes, ' +
-      '--start-rethinkdb=yes, ' +
-      '--allow-unauthenticated=yes, ' +
-      '--allow-anonymous=yes ' +
-      'and --serve-static=./dist.'});
-
-  parser.addArgument(['--config'],
-    {type: 'string', metavar: 'PATH',
-      help: 'Path to the config file to use, defaults to "${config.default_config_file}".'});
+     help: 'Runs the server in development mode, this sets ' +
+       '--secure=no, ' +
+       '--permissions=no, ' +
+       '--auto-create-collection=yes, ' +
+       '--auto-create-index=yes, ' +
+       '--start-rethinkdb=yes, ' +
+       '--allow-unauthenticated=yes, ' +
+       '--allow-anonymous=yes ' +
+       'and --serve-static=./dist.'});
 
   parser.addArgument(['--schema-file'],
     {type: 'string', metavar: 'SCHEMA_FILE_PATH',
-      help: 'Path to the schema file to use, ' +
-      'will attempt to apply schema before starting Horizon server".'});
+     help: 'Path to the schema file to use, ' +
+       'will attempt to apply schema before starting Horizon server".'});
 
   parser.addArgument(['--auth'],
     {type: 'string', action: 'append', metavar: 'PROVIDER,ID,SECRET', defaultValue: [],
-      help: 'Auth provider and options comma-separated, e.g. "facebook,<id>,<secret>".'});
+     help: 'Auth provider and options comma-separated, e.g. "facebook,<id>,<secret>".'});
 
   parser.addArgument(['--auth-redirect'],
     {type: 'string', metavar: 'URL',
-      help: 'The URL to redirect to upon completed authentication, defaults to "/".'});
+     help: 'The URL to redirect to upon completed authentication, defaults to "/".'});
 
   parser.addArgument(['--access-control-allow-origin'],
     {type: 'string', metavar: 'URL',
-      help: 'The URL of the host that can access auth settings, defaults to "".'});
+     help: 'The URL of the host that can access auth settings, defaults to "".'});
 
   parser.addArgument(['--open'],
     {action: 'storeTrue',
-      help: 'Open index.html in the static files folder once Horizon is ready to' +
+     help: 'Open index.html in the static files folder once Horizon is ready to' +
       ' receive connections'});
 
   return parser.parseArgs(args);
@@ -243,18 +240,50 @@ const create_insecure_servers = (opts) => {
   return initialize_servers(() => new http.Server(), opts);
 };
 
-const read_cert_file = (file) => {
+const read_cert_file = (file, type) => {
   try {
     return fs.readFileSync(path.resolve(file));
   } catch (err) {
-    throw new Error(
-      `Could not access file "${file}" for running HTTPS server: ${err}`);
+    const wasDefault = file.endsWith(`horizon-${type}.pem`);
+    let description;
+    const suggestions = [
+      `If you're running horizon for the first time, we recommend \
+running horizon like ${chalk.white('hz serve --dev')} to get started without \
+having to configure certificates.`,
+    ];
+    if (wasDefault) {
+      suggestions.push(
+        `If you have a ${type} file you'd like to use but they aren't in the \
+default location, pass them in with the \
+${chalk.white(`hz serve --${type}-file`)} option.`,
+        `You can explicitly disable security by passing \
+${chalk.white('--secure=no')} to ${chalk.white('hz serve')}.`,
+        `You can generate a cert and key file for development by using the \
+${chalk.white('hz create-cert')} command. Note that these certs won't be \
+signed by a certificate authority, so you will need to explicitly authorize \
+them in your browser.`
+      );
+      description = `In order to run the server in secure mode (the default), \
+Horizon needs both a certificate file and a key file to encrypt websockets. \
+By default, it looks for horizon-key.pem and horizon-cert.pem \
+files in the current directory.`;
+    } else {
+      // They supplied a cert or key file, so don't give the long
+      // explanation and irrelevant suggestions.
+      suggestions.unshift(`See if the ${type} filename was misspelled.`);
+      description = null;
+    }
+    throw new NiceError(
+      `Could not access the ${type} file ${file}`, {
+        description,
+        suggestions,
+      });
   }
 };
 
 const create_secure_servers = (opts) => {
-  const key = read_cert_file(opts.key_file);
-  const cert = read_cert_file(opts.cert_file);
+  const cert = read_cert_file(opts.cert_file, 'cert');
+  const key = read_cert_file(opts.key_file, 'key');
   return initialize_servers(() => new https.Server({key, cert}), opts);
 };
 
@@ -266,10 +295,10 @@ const processConfig = (parsed) => {
   options = config.default_options();
 
   options = config.merge_options(options,
-    config.read_from_config_file(parsed.project_path, parsed.config));
+    config.read_from_config_file(parsed.project_path));
 
   options = config.merge_options(options,
-    config.read_from_secrets_file(parsed.project_path, parsed.config));
+    config.read_from_secrets_file(parsed.project_path));
 
   options = config.merge_options(options, config.read_from_env());
 

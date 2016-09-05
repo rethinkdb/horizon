@@ -4,11 +4,11 @@ const serve = require('../src/serve');
 const processConfig = serve.processConfig;
 
 const assert = require('assert');
-const fs = require('fs');
+
+const mockFs = require('mock-fs');
 
 const make_flags = (flags) => Object.assign({}, serve.parseArguments([]), flags);
 
-const config_file = './test_config.toml';
 const write_config = (config) => {
   let data = '';
   const recursive_add = (obj, path) => {
@@ -38,22 +38,22 @@ const write_config = (config) => {
   };
 
   recursive_add(config, '');
-  fs.writeFileSync(config_file, data);
+  mockFs({ '.hz': { 'config.toml': data } });
 };
-
-process.on('exit', () => {
-  try {
-    fs.unlinkSync(config_file);
-  } catch (err) {
-    // Do nothing
-  }
-});
 
 describe('Config', () => {
   let original_env;
 
   before('Save env', () => {
     original_env = Object.assign({}, process.env);
+  });
+
+  beforeEach('Create empty config file', () => {
+    write_config({ });
+  });
+
+  after('Restore fs', () => {
+    mockFs.restore();
   });
 
   afterEach('Restore env', () => {
@@ -72,7 +72,7 @@ describe('Config', () => {
     }
 
     states.forEach((state) => {
-      const parsed = { config: config_file };
+      const parsed = { };
       let expected = true; // default value
 
       if (state[0] !== null) {
@@ -104,7 +104,7 @@ describe('Config', () => {
   // An unrecognized parameter in a config file should cause an error
   it('unknown field in file', () => {
     write_config({ fake_field: 'foo' });
-    assert.throws(() => processConfig(make_flags({ config: config_file })),
+    assert.throws(() => processConfig(make_flags({ })),
                   /Unknown config parameter: "fake_field"./);
   });
 
@@ -119,7 +119,7 @@ describe('Config', () => {
   describe('connect', () => {
     it('valid in file', () => {
       write_config({ connect: 'localhost:123' });
-      const config = processConfig(make_flags({ config: config_file }));
+      const config = processConfig(make_flags({ }));
       assert.strictEqual(config.rdb_port, 123);
     });
 
@@ -132,7 +132,7 @@ describe('Config', () => {
     // Make sure an error is thrown if the format is wrong
     it('invalid format in file', () => {
       write_config({ connect: 'local:host:111' });
-      assert.throws(() => processConfig(make_flags({ config: config_file })),
+      assert.throws(() => processConfig(make_flags({ })),
                     /Expected --connect HOST:PORT, but found "local:host:111"./);
     });
 
@@ -150,7 +150,7 @@ describe('Config', () => {
     // Make sure an error is thrown if the port cannot be parsed
     it('invalid port in file', () => {
       write_config({ connect: 'localhost:cat' });
-      assert.throws(() => processConfig(make_flags({ config: config_file })),
+      assert.throws(() => processConfig(make_flags({ })),
                     /Invalid port: "cat"./);
     });
 
@@ -167,7 +167,7 @@ describe('Config', () => {
 
     it('with start_rethinkdb in file', () => {
       write_config({ connect: 'localhost:123', start_rethinkdb: true });
-      assert.throws(() => processConfig(make_flags({ config: config_file })),
+      assert.throws(() => processConfig(make_flags({ })),
                     /Cannot provide both --start-rethinkdb and --connect./);
     });
 
@@ -199,12 +199,12 @@ describe('Config', () => {
 
       write_config({ connect: 'example:123' });
       config = processConfig(
-        make_flags({ config: config_file, start_rethinkdb: true }));
+        make_flags({ start_rethinkdb: true }));
       assert.strictEqual(config.start_rethinkdb, true);
 
       write_config({ start_rethinkdb: true });
       config = processConfig(
-        make_flags({ config: config_file, connect: 'example:123' }));
+        make_flags({ connect: 'example:123' }));
       assert.strictEqual(config.start_rethinkdb, false);
       assert.strictEqual(config.rdb_host, 'example');
       assert.strictEqual(config.rdb_port, 123);
@@ -214,30 +214,30 @@ describe('Config', () => {
       let config;
 
       write_config({ connect: 'example:123' });
-      config = processConfig(make_flags({ config: config_file, dev: true }));
+      config = processConfig(make_flags({ dev: true }));
       assert.strictEqual(config.start_rethinkdb, false);
       assert.strictEqual(config.rdb_host, 'example');
       assert.strictEqual(config.rdb_port, 123);
 
       write_config({ connect: 'example:123' });
       config = processConfig(
-        make_flags({ config: config_file, start_rethinkdb: false, dev: true }));
+        make_flags({ start_rethinkdb: false, dev: true }));
       assert.strictEqual(config.start_rethinkdb, false);
       assert.strictEqual(config.rdb_host, 'example');
       assert.strictEqual(config.rdb_port, 123);
 
       write_config({ connect: 'example:123' });
       config = processConfig(
-        make_flags({ config: config_file, start_rethinkdb: true, dev: true }));
+        make_flags({ start_rethinkdb: true, dev: true }));
       assert.strictEqual(config.start_rethinkdb, true);
 
       write_config({ start_rethinkdb: true });
-      config = processConfig(make_flags({ config: config_file, dev: true }));
+      config = processConfig(make_flags({ dev: true }));
       assert.strictEqual(config.start_rethinkdb, true);
 
       write_config({ start_rethinkdb: true });
       config = processConfig(
-        make_flags({ config: config_file, connect: 'example:123', dev: true }));
+        make_flags({ connect: 'example:123', dev: true }));
       assert.strictEqual(config.start_rethinkdb, false);
       assert.strictEqual(config.rdb_host, 'example');
       assert.strictEqual(config.rdb_port, 123);
@@ -248,7 +248,7 @@ describe('Config', () => {
   describe('bind', () => {
     it('in file', () => {
       write_config({ bind: [ 'foo', 'bar' ] });
-      const config = processConfig(make_flags({ config: config_file }));
+      const config = processConfig(make_flags({ }));
       assert.deepStrictEqual(config.bind, [ 'foo', 'bar' ]);
     });
 
@@ -287,7 +287,6 @@ describe('Config', () => {
     // provider 'bamf' through command-line
     // overwrite 'baz' through command-line
     const config = processConfig(make_flags({
-      config: config_file,
       auth: [ 'bamf,bamf_id,bamf_secret',
               'baz,baz_id_new,baz_secret_new' ] }));
 

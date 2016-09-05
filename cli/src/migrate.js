@@ -3,15 +3,16 @@ const chalk = require('chalk');
 const r = require('rethinkdb');
 const Promise = require('bluebird');
 const argparse = require('argparse');
-const child_process = require('child_process');
 const runSaveCommand = require('./schema').runSaveCommand;
 const fs = require('fs');
 const accessAsync = Promise.promisify(fs.access);
 const config = require('./utils/config');
+const procPromise = require('./utils/proc-promise');
 const interrupt = require('./utils/interrupt');
 const change_to_project_dir = require('./utils/change_to_project_dir');
 const parse_yes_no_option = require('./utils/parse_yes_no_option');
 const start_rdb_server = require('./utils/start_rdb_server');
+const NiceError = require('./utils/nice_error.js');
 
 const VERSION_2_0 = [2, 0, 0];
 
@@ -82,21 +83,27 @@ function processConfig(cmdArgs) {
     help: 'Start up a RethinkDB server in the current directory',
   });
 
-  parser.addArgument(['--config'], {
-    default: '.hz/config.toml',
-    help: 'Path to the config file to use, defaults to ".hz/config.toml".',
-  });
-
   parser.addArgument(['--skip-backup'], {
     metavar: 'yes|no',
     default: 'no',
     constant: 'yes',
     nargs: '?',
-    help: 'Whether to perform a backup of rethinkdb_data before migrating',
+    help: 'Whether to perform a backup of rethinkdb_data' +
+      ' before migrating',
+  });
+
+  parser.addArgument(['--nonportable-backup'], {
+    metavar: 'yes|no',
+    default: 'no',
+    constant: 'yes',
+    nargs: '?',
+    help: 'Allows creating a backup that is not portable, ' +
+      "but doesn't require the RethinkDB Python driver to be " +
+      'installed.',
   });
 
   const parsed = parser.parseArgs(cmdArgs);
-  const confOptions = config.read_from_config_file(parsed.project_path, parsed.config);
+  const confOptions = config.read_from_config_file(parsed.project_path);
   const envOptions = config.read_from_env();
   config.merge_options(confOptions, envOptions);
   // Pull out the relevant settings from the config file
@@ -107,8 +114,9 @@ function processConfig(cmdArgs) {
     rdb_port: parsed.rdb_port || confOptions.rdb_port || 28015,
     rdb_user: parsed.rdb_user || confOptions.rdb_user || 'admin',
     rdb_password: parsed.rdb_password || confOptions.rdb_password || '',
-    skip_backup: parse_yes_no_option(parsed.skip_backup),
     start_rethinkdb: parse_yes_no_option(parsed.start_rethinkdb),
+    skip_backup: parse_yes_no_option(parsed.skip_backup),
+    nonportable_backup: parse_yes_no_option(parsed.nonportable_backup),
   };
   // sets rdb_host and rdb_port from connect if necessary
   if (parsed.connect) {
@@ -116,7 +124,14 @@ function processConfig(cmdArgs) {
   }
 
   if (options.project_name == null) {
-    throw new Error('No project_name given');
+    throw new NiceError('No project_name given', {
+      description: `\
+The project_name is needed to migrate from the v1.x format the v.2.0 format. \
+It wasn't passed on the command line or found in your config.`,
+      suggestions: [
+        'pass the --project-name option to hz migrate',
+        'add the "project_name" key to your .hz/config.toml',
+      ] });
   }
   return options;
 }
@@ -174,13 +189,13 @@ function teardown() {
 function validateMigration() {
   // check that `${project}_internal` exists
   const project = this.options.project_name;
-
+  const internalNotFound = `Database named '${project}_internal' wasn't found`;
+  const tablesHaveHzPrefix = `Some tables in ${project} have an hz_ prefix`;
   const checkForHzTables = r.db('rethinkdb')
           .table('table_config')
           .filter({db: project})('name')
           .contains((x) => x.match('^hz_'))
-          .branch(r.error(
-            `Some tables in ${project} have an hz_ prefix`), true);
+          .branch(r.error(tablesHaveHzPrefix), true);
   const waitForCollections = r.db(`${project}_internal`)
           .table('collections')
           .wait({timeout: 30})
@@ -192,16 +207,26 @@ function validateMigration() {
   return Promise.resolve().then(() => {
     white('Validating current schema version');
     return r.dbList().contains(`${project}_internal`)
-      .branch(true, r.error(
-        `Database named '${project}_internal' wasn't found`))
+      .branch(true, r.error(internalNotFound))
       .do(() => checkForHzTables)
       .do(() => waitForCollections)
       .run(this.conn)
       .then(() => green(' └── Pre-2.0 schema found'))
       .catch((e) => {
-        throw new Error(
-          `v1.x schema not found (${e.msg}). ` +
-            'Have you already migrated?');
+        if (e.msg === internalNotFound) {
+          throw new NiceError(e.msg, {
+            description: `\
+This could happen if you don't have a Horizon app in this database, or if \
+you've already migrated this database to the v2.0 format.`,
+          });
+        } else if (e.msg === tablesHaveHzPrefix) {
+          throw new NiceError(e.msg, {
+            description: `This could happen if you've already migrated \
+this database to the v2.0 format.`,
+          });
+        } else {
+          throw e;
+        }
       });
   });
 }
@@ -215,23 +240,49 @@ function makeBackup() {
     return Promise.resolve();
   }
 
-  return new Promise((resolve, reject) => {
-    white('Backing up rethinkdb_data directory');
-    const proc = child_process.spawn('rethinkdb', [
-      'dump',
-      '--connect',
-      `${rdbHost}:${rdbPort}`,
-    ]);
-    proc.on('exit', (code) => {
-      if (code === 0) {
-        green(' └── Backup completed');
-        resolve();
-      } else {
-        proc.stderr.setEncoding('utf8');
-        const err = proc.stderr.read();
-        reject(new Error(`rethinkdb dump exited with an error:\n\n${err}`));
-      }
-    });
+  white('Backing up rethinkdb_data directory');
+
+  if (this.options.nonportable_backup) {
+    return nonportableBackup();
+  }
+
+  return procPromise('rethinkdb', [
+    'dump',
+    '--connect',
+    `${rdbHost}:${rdbPort}`,
+  ]).then(() => {
+    green(' └── Backup completed');
+  }).catch((e) => {
+    if (e.message.match(/Python driver/)) {
+      throw new NiceError('The RethinkDB Python driver is not installed.', {
+        description: `Before we migrate to the v2.0 format, we should do a \
+backup of your RethinkDB database in case anything goes wrong. Unfortunately, \
+we can't use the rethinkdb dump command to do a backup because you don't have \
+the RethinkDB Python driver installed on your system.`,
+        suggestions: [
+          `Install the Python driver with the instructions found at: \
+http://www.rethinkdb.com/docs/install-drivers/python/`,
+          `Pass the --nonportable-backup flag to hz migrate. This flag uses \
+the tar command to make a backup, but the backup is not safe to use on \
+another machine or to create replicas from. This option should not be used \
+if RethinkDB is currently running. It should also not be used if the \
+rethinkdb_data/ directory is not in the current directory.`,
+        ] });
+    } else {
+      throw e;
+    }
+  });
+}
+
+function nonportableBackup() {
+  // Uses tar to do an unsafe backup
+  const timestamp = new Date().toISOString().replace(/:/g, '_');
+  return procPromise('tar', [
+    '-zcvf', // gzip, compress, verbose, filename is...
+    `rethinkdb_data.nonportable-backup.${timestamp}.tar.gz`,
+    'rethinkdb_data', // directory to back up
+  ]).then(() => {
+    green(' └── Nonportable backup completed');
   });
 }
 
@@ -287,8 +338,7 @@ function renameIndices() {
       r.db(project).table(tableName).indexList().forEach((indexName) =>
         r.db(project).table(tableName).indexRename(indexName, rename(indexName))
       )
-    ).run(this.conn)
-    .then(() => green(' └── Indices renamed.'));
+    ).run(this.conn).then(() => green(' └── Indices renamed.'));
   });
 
   function rename(name) {
@@ -316,8 +366,8 @@ function renameIndices() {
           acc.merge({field: acc('field').add(c)})
         )
       ).do((state) =>
-        // last field needs to be appended to running list
-        state('fields').append(state('field'))
+          // last field needs to be appended to running list
+          state('fields').append(state('field'))
           // wrap each field in an array
           .map((field) => [field])
       ).toJSON().do((x) => r('hz_').add(x));
@@ -348,8 +398,9 @@ function rewriteHzCollectionDocs() {
 function exportNewSchema() {
   // Import and run schema save process, giving it a different
   // filename than schema.toml
+  const timestamp = new Date().toISOString().replace(/:/g, '_');
   return accessAsync('.hz/schema.toml', fs.R_OK | fs.F_OK)
-    .then(() => `.hz/schema.toml.migrated.${new Date()}`)
+    .then(() => `.hz/schema.toml.migrated.${timestamp}`)
     .catch(() => '.hz/schema.toml') // if no schema.toml
     .then((schemaFile) => {
       white(`Exporting the new schema to ${schemaFile}`);

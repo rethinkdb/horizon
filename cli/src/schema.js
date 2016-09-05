@@ -39,39 +39,35 @@ const parseArguments = (args) => {
   [apply, save].map((subcmd) => {
     subcmd.addArgument(['project_path'],
       {type: 'string', nargs: '?',
-        help: 'Change to this directory before serving'});
+       help: 'Change to this directory before serving'});
 
     subcmd.addArgument(['--project-name', '-n'],
       {type: 'string', action: 'store', metavar: 'NAME',
-        help: 'Name of the Horizon Project server'});
+       help: 'Name of the Horizon Project server'});
 
     subcmd.addArgument(['--connect', '-c'],
       {type: 'string', metavar: 'HOST:PORT',
-        help: 'Host and port of the RethinkDB server to connect to.'});
+       help: 'Host and port of the RethinkDB server to connect to.'});
 
     subcmd.addArgument(['--rdb-timeout'],
       {type: 'int', metavar: 'TIMEOUT',
-        help: 'Timeout period in seconds for the RethinkDB connection to be opened'});
+       help: 'Timeout period in seconds for the RethinkDB connection to be opened'});
 
     subcmd.addArgument(['--rdb-user'],
       {type: 'string', metavar: 'USER',
-        help: 'RethinkDB User'});
+       help: 'RethinkDB User'});
 
     subcmd.addArgument(['--rdb-password'],
       {type: 'string', metavar: 'PASSWORD',
-        help: 'RethinkDB Password'});
+       help: 'RethinkDB Password'});
 
     subcmd.addArgument(['--start-rethinkdb'],
       {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-        help: 'Start up a RethinkDB server in the current directory'});
-
-    subcmd.addArgument(['--config'],
-      {type: 'string', metavar: 'PATH',
-        help: 'Path to the config file to use, defaults to ".hz/config.toml".'});
+       help: 'Start up a RethinkDB server in the current directory'});
 
     subcmd.addArgument(['--debug'],
       {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-        help: 'Enable debug logging.'});
+       help: 'Enable debug logging.'});
   });
 
   // Options exclusive to HZ SCHEMA APPLY
@@ -189,7 +185,7 @@ const processApplyConfig = (parsed) => {
 
   options = config.default_options();
   options = config.merge_options(options,
-    config.read_from_config_file(parsed.project_path, parsed.config));
+    config.read_from_config_file(parsed.project_path));
   options = config.merge_options(options, config.read_from_env());
   options = config.merge_options(options, config.read_from_flags(parsed));
 
@@ -224,7 +220,7 @@ const processSaveConfig = (parsed) => {
   options.start_rethinkdb = true;
 
   options = config.merge_options(options,
-    config.read_from_config_file(parsed.project_path, parsed.config));
+    config.read_from_config_file(parsed.project_path));
   options = config.merge_options(options, config.read_from_env());
   options = config.merge_options(options, config.read_from_flags(parsed));
 

@@ -15,7 +15,7 @@ const primaryIndexName = 'id';
 //  Index name: hz_[["foo","bar"],"baz"]
 function indexNameToInfo(name) {
   if (name === primaryIndexName) {
-    return {geo: false, multi: false, fields: ['id']};
+    return {geo: false, multi: false, fields: [['id']]};
   }
 
   const re = /^hz_(?:(geo)_)?(?:multi_([0-9])+_)?\[/;

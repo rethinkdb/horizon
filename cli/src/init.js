@@ -132,7 +132,6 @@ token_secret = "${crypto.randomBytes(64).toString('base64')}"
 # host = "0000.00.auth0.com"
 # id = "0000000000000000000000000"
 # secret = "00000000000000000000000000000000000000000000000000"
-# redirect_url = ""
 #
 # [auth.facebook]
 # id = "000000000000000"
