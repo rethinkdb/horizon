@@ -2,28 +2,28 @@
 
 // Collections API
 const defaultMethods = {
-  above: require('@horizon/plugin-above'),
-  below: require('@horizon/plugin-below'),
-  collection: require('@horizon/plugin-collection'),
-  insert: require('@horizon/plugin-insert'),
-  fetch: require('@horizon/plugin-fetch'),
-  find: require('@horizon/plugin-find'),
-  findAll: require('@horizon/plugin-findAll'),
-  limit: require('@horizon/plugin-limit'),
-  order: require('@horizon/plugin-order'),
-  remove: require('@horizon/plugin-remove'),
-  replace: require('@horizon/plugin-replace'),
-  store: require('@horizon/plugin-store'),
-  timeout: require('@horizon/plugin-timeout'),
-  update: require('@horizon/plugin-update'),
-  upsert: require('@horizon/plugin-upsert'),
-  watch: require('@horizon/plugin-watch'),
+  above: require('@horizon-plugins/above'),
+  below: require('@horizon-plugins/below'),
+  collection: require('@horizon-plugins/collection'),
+  insert: require('@horizon-plugins/insert'),
+  fetch: require('@horizon-plugins/fetch'),
+  find: require('@horizon-plugins/find'),
+  findAll: require('@horizon-plugins/findAll'),
+  limit: require('@horizon-plugins/limit'),
+  order: require('@horizon-plugins/order'),
+  remove: require('@horizon-plugins/remove'),
+  replace: require('@horizon-plugins/replace'),
+  store: require('@horizon-plugins/store'),
+  timeout: require('@horizon-plugins/timeout'),
+  update: require('@horizon-plugins/update'),
+  upsert: require('@horizon-plugins/upsert'),
+  watch: require('@horizon-plugins/watch'),
 };
 
 // Permissions API
 const defaultPermissions = {
-  permissions: require('@horizon/plugin-permissions'),
-  'permit-all': require('@horizon/plugin-permit-all'),
+  permissions: require('@horizon-plugins/permissions'),
+  'permit-all': require('@horizon-plugins/permit-all'),
 };
 
 // Combines some subset of the default plugins into a single plugin for ease-of-use

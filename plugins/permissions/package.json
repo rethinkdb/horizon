@@ -5,7 +5,7 @@
   "main": "dist/permissions.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "mocha --compilers js:babel-register --require babel-polyfill test",
+    "test": "mocha dist/test",
     "build": "babel src -d dist -s true"
   },
   "repository": {
@@ -22,7 +22,8 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "@horizon/plugin-utils": "1.0.0"
+    "@horizon/plugin-utils": "1.0.0",
+    "@horizon/client": "3.0.0-alpha-0"
   },
   "peerDependencies": {
     "@horizon/plugin-router": "1.x",
@@ -33,6 +34,7 @@
     "istanbul": "^0.4.3",
     "mocha": "^2.5.3",
     "babel-cli": "^6.11.4",
-    "babel-preset-es2015": "^6.9.0"
+    "babel-preset-es2015": "^6.9.0",
+    "source-map-support": "^0.4.0"
   }
 }

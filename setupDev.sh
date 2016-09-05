@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-if [ "$1" == "--clean" ]; then
+if [[ "$1" == "--clean" ]]; then
   do_clean=true
 fi
 
@@ -16,9 +16,9 @@ link_dir () {
   shift
 
   pushd $dir
-  if [ "$do_clean" = "true" ]; then
+  if [[ "$do_clean" == "true" ]]; then
     echo Removing $dir/node_modules
-    rm -r node_modules
+    rm -rf node_modules
   fi
 
   green "Unlinking $dir"
@@ -39,21 +39,24 @@ link_dir client
 link_dir server "@horizon/client"
 link_dir cli "@horizon/server"
 link_dir plugin-router
+link_dir plugin-utils
 
 # Link all the plugins - 'utils' must go first, and 'defaults' must go last
 pushd plugins
-link_dir utils "@horizon/server"
-
-plugin_names=($(ls -1d * | grep -v -e utils -e defaults))
+plugin_names=($(ls -1d * | grep -v defaults))
 plugin_modules=()
 for plugin_name in "${plugin_names[@]}"; do
-  link_dir "$plugin_name" "@horizon/server" "@horizon/plugin-utils"
-  plugin_modules+=("@horizon/plugin-$plugin_name")
+  link_dir "$plugin_name" \
+           "@horizon/server" \
+	   "@horizon/plugin-utils" \
+	   "@horizon/client" \
+	   "@horizon/plugin-router"
+  plugin_modules+=("@horizon-plugins/$plugin_name")
 done
 
 link_dir defaults ${plugin_modules[@]}
 popd
 
-link_dir test "@horizon/plugin-defaults" "@horizon/plugin-router" "@horizon/server" "horizon"
+link_dir test "@horizon-plugins/defaults" "@horizon/plugin-router" "@horizon/server" "horizon"
 
 green "Dev environment ready"

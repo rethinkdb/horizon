@@ -28,7 +28,7 @@ class Response {
     } else if (!this._completed && state === 'complete') {
       throw new Error(
         '`.write()` cannot be used to send a `state: complete` message.' +
-          '  Use `.end()` to complete a Response.');
+        '  Use `.end()` to complete a Response.');
     }
     this._socketSend({state, data});
   }

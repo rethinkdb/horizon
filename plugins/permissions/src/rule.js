@@ -12,14 +12,14 @@ class Rule {
   }
 
   is_match(query, context) {
-    return this._template.is_match(query, context);
+    return this.template.is_match(query, context);
   }
 
   is_valid(...args) {
-    if (!this._validator) {
+    if (!this.validator) {
       return true;
     }
-    return this._validator.is_valid(...args);
+    return this.validator.is_valid(...args);
   }
 }
 

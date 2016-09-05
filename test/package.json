@@ -22,10 +22,10 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "horizon": "3.0.0",
+    "horizon": "3.0.0-alpha-0",
     "@horizon/plugin-router": "1.0.0",
     "@horizon-plugins/defaults": "1.0.0",
-    "@horizon/server": "3.0.0",
+    "@horizon/server": "3.0.0-alpha-0",
     "argparse": "^1.0.7"
   },
   "devDependencies": {

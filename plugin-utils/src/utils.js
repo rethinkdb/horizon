@@ -61,4 +61,5 @@ module.exports = {
   versionField,
   reads: require('./reads'),
   writes: require('./writes'),
+  test: require('./test'),
 };
