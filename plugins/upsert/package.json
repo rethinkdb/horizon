@@ -1,5 +1,5 @@
 {
-  "name": "@horizon/plugin-upsert",
+  "name": "@horizon-plugins/upsert",
   "version": "1.0.0",
   "description": "Plugin for the 'upsert' term in the Horizon Collections API.",
   "main": "dist/upsert.js",

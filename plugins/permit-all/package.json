@@ -1,5 +1,5 @@
 {
-  "name": "@horizon/plugin-permit-all",
+  "name": "@horizon-plugins/permit-all",
   "version": "1.0.0",
   "description": "Plugin allowing any request to run without permissions in Horizon.",
   "main": "dist/permit-all.js",

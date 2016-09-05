@@ -1,5 +1,5 @@
 {
-  "name": "@horizon/plugin-fetch",
+  "name": "@horizon-plugins/fetch",
   "version": "1.0.0",
   "description": "Plugin for the 'fetch' term in the Horizon Collections API.",
   "main": "dist/fetch.js",
