@@ -8,17 +8,13 @@ const handshake = Joi.object().keys({
   token: Joi.string().required()
     .when('method', {is: Joi.not('token').required(), then: Joi.forbidden()}),
 }).unknown(false);
-// RSI: get this working again
-// const request = Joi.object({
-//   request_id: Joi.number().required(),
-//   type: Joi.only('end_subscription', 'keepalive').optional(),
-//   options: Joi.object().pattern(/.*/, Joi.array()).unknown(true).required()
-//     .when('type', {is: Joi.string().only('end_subscription', 'keepalive'), then: Joi.forbidden()})
-// }).unknown(false);
-// 
+
 const request = Joi.object({
   request_id: Joi.number().required(),
-  options: Joi.object().pattern(/.*/, Joi.array()).unknown(true).required(),
+  type: Joi.only('end_subscription', 'keepalive').optional(),
+  options: Joi.object().pattern(/.*/, Joi.array()).unknown(true).required()
+    .when('type', {is: Joi.string().only('end_subscription', 'keepalive').required(),
+                   then: Joi.forbidden()})
 }).unknown(false);
 
 module.exports = {

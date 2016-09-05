@@ -75,6 +75,13 @@ class Collection {
     return this._get_table().create_index(fields, this.reliableConn.connection(), done);
   }
 
+  ready() {
+    if (this._tables.size === 0) {
+      return false;
+    }
+    return this._get_table().ready();
+  }
+
   get_matching_index(fuzzy_fields, ordered_fields) {
     return new Promise((resolve, reject) => {
       const done = (indexOrErr) => {
