@@ -162,6 +162,7 @@ const gitignore = () => `\
 rethinkdb_data
 **/*.log
 .hz/secrets.toml
+node_modules
 `;
 
 const parseArguments = (args) => {
