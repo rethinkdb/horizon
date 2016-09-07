@@ -50,15 +50,15 @@ module.exports = {
         query: {
           cacheDirectory: true,
           presets: [
-            'babel-preset-es2015-loose',
-            { plugins: [
-              [ 'babel-plugin-transform-runtime', { polyfill: false } ],
-            ] },
-          ],
+            ["es2015", {"loose": true}] 
+          ], 
+          plugins: [
+            [ 'babel-plugin-transform-runtime', { polyfill: false } ],
+          ] 
         },
       },
-    ],
-  },
+    ]  
+  },  
   node: {
     // Don't include unneeded node libs in package
     process: false,
