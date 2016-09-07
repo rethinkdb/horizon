@@ -6,7 +6,7 @@ const assert = require('assert');
 const crypto = require('crypto');
 
 const all_tests = (collection) => {
-  beforeEach('clear collection', (done) => utils.clear_collection(collection, done));
+  beforeEach('clear collection', () => utils.clear_collection(collection));
   beforeEach('authenticate', (done) => utils.horizon_admin_auth(done));
 
   // Launch simultaneous queries that depend on a non-existent collection, then
@@ -20,7 +20,7 @@ const all_tests = (collection) => {
        let finished = 0;
        for (let i = 0; i < query_count; ++i) {
          utils.stream_test(
-           {request_id: i, type: 'query', options: {collection: rand_collection}},
+           {request_id: i, options: {collection: rand_collection, query: []}},
            (err, res) => {
              assert.ifError(err);
              assert.strictEqual(res.length, 0);
@@ -46,10 +46,9 @@ const all_tests = (collection) => {
          utils.stream_test(
            {
              request_id: i,
-             type: 'insert',
              options: {
                collection: rand_collection,
-               data: [{ }],
+               insert: [{ }],
              },
            },
            (err, res) => {
@@ -77,10 +76,10 @@ const all_tests = (collection) => {
         utils.stream_test(
           {
             request_id: i,
-            type: 'query',
             options: {
               collection,
               order: [[field_name], 'ascending'],
+              query: [],
             },
           },
           (err, res) => {

@@ -67,55 +67,60 @@ const make_admin_token = () => {
 };
 
 // Creates a collection, no-op if it already exists, uses horizon server prereqs
-const create_collection = (collection, done) => {
-  assert.notStrictEqual(horizon_server, undefined);
-  assert.notStrictEqual(horizon_port, undefined);
-  const conn = new websocket(`ws://localhost:${horizon_port}/horizon`,
-                             horizon.protocol,
-                             {rejectUnauthorized: false})
-    .once('error', (err) => assert.ifError(err))
-    .on('open', () => {
-      conn.send(JSON.stringify({request_id: 123, method: 'token', token: make_admin_token()}));
-      conn.once('message', (data) => {
-        const res = JSON.parse(data);
-        assert.strictEqual(res.request_id, 123);
-        assert.strictEqual(typeof res.token, 'string');
-        assert.strictEqual(res.id, 'admin');
-        assert.strictEqual(res.provider, null);
+function create_collection(collection) {
+  return new Promise((resolve, reject) => {
+    assert.notStrictEqual(horizon_server, undefined);
+    assert.notStrictEqual(horizon_port, undefined);
+    const conn = new websocket(`ws://localhost:${horizon_port}/horizon`,
+                               horizon.protocol,
+                               {rejectUnauthorized: false})
+      .once('error', (err) => assert.ifError(err))
+      .on('open', () => {
+        conn.send(JSON.stringify({request_id: 123, method: 'token', token: make_admin_token()}));
+        conn.once('message', (data) => {
+          const res = JSON.parse(data);
+          assert.strictEqual(res.request_id, 123);
+          assert.strictEqual(typeof res.token, 'string');
+          assert.strictEqual(res.id, 'admin');
+          assert.strictEqual(res.provider, null);
 
-        // This query should auto-create the collection if it's missing
-        conn.send(JSON.stringify({
-          request_id: 0,
-          type: 'query',
-          options: {collection, limit: 0},
-        }));
+          // This query should auto-create the collection if it's missing
+          conn.send(JSON.stringify({
+            request_id: 0,
+            options: {collection, limit: 0, query: []},
+          }));
 
-        conn.once('message', () => {
-          conn.close();
-          done();
+          conn.once('message', (data) => {
+            conn.close();
+            if (data.error) {
+              reject(new Error(data.error));
+            } else {
+              resolve();
+            }
+          });
         });
       });
-    });
+  });
 };
 
 // Removes all data from a collection - does not remove indexes
-const clear_collection = (collection, done) => {
+function clear_collection(collection) {
   assert.notStrictEqual(rdb_conn, undefined);
-  table(collection).delete().run(rdb_conn).then(() => done());
+  return table(collection).wait().do(() => table(collection).delete()).run(rdb_conn);
 };
 
 // Populates a collection with the given rows
 // If `rows` is a number, fill in data using all keys in [0, rows)
-const populate_collection = (collection, rows, done) => {
+const populate_collection = (collection, rows) => {
   assert.notStrictEqual(rdb_conn, undefined);
 
   if (rows.constructor.name !== 'Array') {
-    table(collection).insert(
+    return table(collection).insert(
       r.range(rows).map(
         (i) => ({id: i, value: i.mod(4)})
-      )).run(rdb_conn).then(() => done());
+      )).run(rdb_conn);
   } else {
-    table(collection).insert(rows).run(rdb_conn).then(() => done());
+    return table(collection).insert(rows).run(rdb_conn);
   }
 };
 

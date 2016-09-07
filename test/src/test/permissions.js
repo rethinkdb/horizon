@@ -6,15 +6,8 @@ const assert = require('assert');
 
 const r = require('rethinkdb');
 
-const make_request = (type, collection, options) => {
-  if (collection !== null) {
-    return {request_id: 5, type, options: Object.assign({collection}, options)};
-  } else {
-    return {request_id: 5, type, options};
-  }
-};
-
 const user_id = 3;
+const context = { user: { id: user_id } };
 
 // Permit all rows
 const permitted_validator = `
@@ -106,7 +99,7 @@ const all_tests = (collection) => {
         }));
     });
 
-    describe('subscribe', () => {
+    describe('watch', () => {
       it('permitted with subsequent permitted change', () => {
         // TODO: can't use run, need to issue a write during the subscription
       });
@@ -116,7 +109,7 @@ const all_tests = (collection) => {
       });
 
       it('half-permitted', () =>
-        run({order: [['id'], 'ascending'], above: [{id: 3}, 'closed'], subscribe: []},
+        run({order: [['id'], 'ascending'], above: [{id: 3}, 'closed'], watch: []},
             user_permitted_validator).then(() => {
               assert(false, 'Read should not have been permitted.');
             }).catch((err) => {
@@ -128,7 +121,7 @@ const all_tests = (collection) => {
             }));
 
       it('forbidden', () =>
-        run({subscribe: []}, forbidden_validator).then(() => {
+        run({watch: []}, forbidden_validator).then(() => {
           assert(false, 'Read should not have been permitted.');
         }).catch((err) => {
           assert.strictEqual(err.message, 'Operation not permitted.');

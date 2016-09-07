@@ -48,8 +48,7 @@ const all_tests = (collection) => {
 
   const make_request = (type, data, options) => ({
     request_id: crypto.randomBytes(4).readUInt32BE(),
-    type,
-    options: Object.assign({}, options || {}, {collection, data}),
+    options: Object.assign({type: []}, options || {}, {collection, data}),
   });
 
   const check_collection = (expected, done) => {
@@ -81,11 +80,11 @@ const all_tests = (collection) => {
     combine_sort_data(old_data, new_data,
       () => null, (row, map) => map.set(row.id, row));
 
-  beforeEach('Clear collection', (done) => utils.clear_collection(collection, done));
+  beforeEach('Clear collection', () => utils.clear_collection(collection));
 
   describe('Basic writes', () => {
     beforeEach('Authenticate', (done) => utils.horizon_admin_auth(done));
-    beforeEach('Populate collection', (done) => utils.populate_collection(collection, original_data, done));
+    beforeEach('Populate collection', () => utils.populate_collection(collection, original_data));
 
     const request_from_ids = (type, ids) => make_request(type, ids.map(new_row_from_id));
 
@@ -213,7 +212,7 @@ const all_tests = (collection) => {
     beforeEach('Authenticate', (done) => utils.horizon_admin_auth(done));
 
     const test_data = [{id: 'versioned', [hz_v]: 11, foo: 'bar'}];
-    beforeEach('Populate collection', (done) => utils.populate_collection(collection, test_data, done));
+    beforeEach('Populate collection', () => utils.populate_collection(collection, test_data));
 
     describe('Store', () => {
       const request = (row) => make_request('store', [row]);
@@ -330,7 +329,7 @@ const all_tests = (collection) => {
     beforeEach('Authenticate', (done) => utils.horizon_admin_auth(done));
 
     const test_data = [{id: 'versionless', foo: 'bar'}];
-    beforeEach('Populate collection', (done) => utils.populate_collection(collection, test_data, done));
+    beforeEach('Populate collection', () => utils.populate_collection(collection, test_data));
 
     describe('Store', () => {
       const request = (row) => make_request('store', [row]);
@@ -496,7 +495,7 @@ const all_tests = (collection) => {
 
     describe('Existing Row', () => {
       const test_data = [{id: 0, value: 0}];
-      beforeEach('Populate collection', (done) => utils.populate_collection(collection, test_data, done));
+      beforeEach('Populate collection', () => utils.populate_collection(collection, test_data));
 
       it('Store', (done) => {
         utils.stream_test(make_request('store', writes), (err, res) => {
@@ -574,7 +573,7 @@ const all_tests = (collection) => {
     describe('Zero Timeout', () => {
       const timeout = {timeout: 0};
       const test_data = [{id: 0, value: 0}];
-      beforeEach('Populate collection', (done) => utils.populate_collection(collection, test_data, done));
+      beforeEach('Populate collection', () => utils.populate_collection(collection, test_data));
 
       it('Store', (done) => {
         utils.stream_test(make_request('store', writes, timeout), (err, res) => {

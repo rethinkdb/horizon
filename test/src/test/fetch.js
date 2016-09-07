@@ -8,16 +8,15 @@ const assert = require('assert');
 const all_tests = (collection) => {
   const num_rows = 10;
 
-  before('Clear collection', (done) => utils.clear_collection(collection, done));
-  before('Populate collection', (done) => utils.populate_collection(collection, num_rows, done));
+  before('Clear collection', () => utils.clear_collection(collection));
+  before('Populate collection', () => utils.populate_collection(collection, num_rows));
   beforeEach('Authenticate client', utils.horizon_admin_auth);
 
   it('collection scan.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
-        options: {collection},
+        options: {collection, query: []},
       },
       (err, res) => {
         assert.ifError(err);
@@ -30,10 +29,10 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           order: [['id'], 'ascending'],
+          query: [],
         },
       },
       (err, res) => {
@@ -47,10 +46,10 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           limit: 2,
+          query: [],
         },
       },
       (err, res) => {
@@ -64,11 +63,11 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           order: [['id'], 'descending'],
           limit: 4,
+          query: [],
         },
       },
       (err, res) => {
@@ -82,10 +81,10 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           above: [{id: 5}, 'closed'],
+          query: [],
         },
       },
       (err, res) => {
@@ -99,10 +98,10 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           below: [{id: 5}, 'closed'],
+          query: [],
         },
       },
       (err, res) => {
@@ -116,11 +115,11 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           above: [{id: 5}, 'open'],
           below: [{id: 7}, 'open'],
+          query: [],
         },
       },
       (err, res) => {
@@ -134,10 +133,10 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find: {id: 4},
+          query: [],
         },
       },
       (err, res) => {
@@ -151,10 +150,10 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find: {id: 14},
+          query: [],
         },
       },
       (err, res) => {
@@ -168,10 +167,10 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{id: 4}, {id: 6}, {id: 9}],
+          query: [],
         },
       },
       (err, res) => {
@@ -185,11 +184,11 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{id: 1}],
           order: [['value'], 'descending'],
+          query: [],
         },
       },
       (err, res) => {
@@ -203,11 +202,11 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{id: 4}, {id: 8}, {id: 2}, {id: 1}],
           limit: 3,
+          query: [],
         },
       },
       (err, res) => {
@@ -221,12 +220,12 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{id: 4}],
           order: [['value'], 'descending'],
           limit: 3,
+          query: [],
         },
       },
       (err, res) => {
@@ -240,11 +239,11 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{value: 1}],
           above: [{id: 3}, 'open'],
+          query: [],
         },
       },
       (err, res) => {
@@ -258,11 +257,11 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{value: 1}],
           below: [{id: 5}, 'open'],
+          query: [],
         },
       },
       (err, res) => {
@@ -276,12 +275,12 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{value: 1}],
           above: [{id: 1}, 'closed'],
           below: [{id: 9}, 'open'],
+          query: [],
         },
       },
       (err, res) => {
@@ -295,12 +294,12 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{value: 1}],
           order: [['id'], 'ascending'],
           above: [{id: 7}, 'open'],
+          query: [],
         },
       },
       (err, res) => {
@@ -314,12 +313,12 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{value: 0}],
           order: [['id'], 'descending'],
           below: [{id: 8}, 'open'],
+          query: [],
         },
       },
       (err, res) => {
@@ -333,13 +332,13 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{value: 0}],
           order: [['id'], 'descending'],
           above: [{id: 3}, 'closed'],
           below: [{id: 9}, 'closed'],
+          query: [],
         },
       },
       (err, res) => {
@@ -355,12 +354,12 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           above: [{b: 4}, 'closed'],
+          query: [],
         },
       },
       (err) => {
@@ -373,12 +372,12 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           above: [{a: 4}, 'closed'],
+          query: [],
         },
       },
       (err) => {
@@ -391,12 +390,12 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           below: [{b: 4}, 'closed'],
+          query: [],
         },
       },
       (err) => {
@@ -409,12 +408,12 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        type: 'query',
         options: {
           collection,
           find_all: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           below: [{a: 4}, 'closed'],
+          query: [],
         },
       },
       (err) => {

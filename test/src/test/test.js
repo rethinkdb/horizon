@@ -6,11 +6,11 @@ const utils = require('./utils');
 
 const logger = require('@horizon/server').logger;
 
-const all_suites = ['prereq_tests',
-                    'protocol_tests',
-                    'query_tests',
-                    'subscribe_tests',
-                    'write_tests',
+const all_suites = ['prereq',
+                    'protocol',
+                    'fetch',
+                    'watch',
+                    'write',
                     'permissions'];
 const collection = 'test';
 
@@ -30,7 +30,7 @@ describe('Horizon Server', () => {
   after('Close Horizon Server', utils.close_horizon_server);
 
   before(`Creating general-purpose collection: '${collection}'`,
-         (done) => utils.create_collection(collection, done));
+         () => utils.create_collection(collection));
 
   beforeEach('Connect Horizon Client', utils.open_horizon_conn);
   afterEach('Close Horizon Client', utils.close_horizon_conn);

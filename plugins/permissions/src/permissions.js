@@ -337,7 +337,7 @@ module.exports = (raw_config) => {
                 next(new Error('client connection not authenticated'));
               } else {
                 req.clientCtx[userSub].getValidatePromise(req).then((validate) => {
-                  req.validate = validate;
+                  req.setParameter(validate);
                   next();
                 }).catch(next);
               }

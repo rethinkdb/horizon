@@ -24,31 +24,43 @@ const all_tests = (collection) => {
     conn.send('{ }');
     conn.once('close', (code, reason) => {
       assert.strictEqual(code, 1002);
-      assert(/^Protocol error: ValidationError/.test(reason));
+      assert(/^Protocol error: Request validation error/.test(reason));
       done();
     });
   });
 
-  it('no type', (done) => {
-    utils.stream_test({request_id: 0}, (err, res) => {
+  it('keepalive', (done) => {
+    utils.stream_test({request_id: 0, type: 'keepalive'}, (err, res) => {
       assert.deepStrictEqual(res, []);
-      utils.check_error(err, '"type" is required');
+      assert.ifError(err);
+      done();
+    });
+  });
+
+  it('end_subscription', (done) => {
+    const conn = utils.horizon_conn();
+    conn.send('{"request_id": 0, "type": "end_subscription"}');
+
+    // There is no response for an end_subscription, so just run a dummy keepalive roundtrip
+    utils.stream_test({request_id: 0, type: 'keepalive'}, (err, res) => {
+      assert.deepStrictEqual(res, []);
+      assert.ifError(err);
       done();
     });
   });
 
   it('no options', (done) => {
-    utils.stream_test({request_id: 1, type: 'fake'}, (err, res) => {
+    utils.stream_test({request_id: 1}, (err, res) => {
       assert.deepStrictEqual(res, []);
       utils.check_error(err, '"options" is required');
       done();
     });
   });
 
-  it('invalid endpoint', (done) => {
-    utils.stream_test({request_id: 2, type: 'fake', options: { }}, (err, res) => {
+  it('invalid method', (done) => {
+    utils.stream_test({request_id: 2, options: {fake: []}}, (err, res) => {
       assert.deepStrictEqual(res, []);
-      assert.strictEqual(err.message, '"fake" is not a registered request type.');
+      assert.strictEqual(err.message, 'Error: no terminal in request');
       done();
     });
   });
@@ -61,8 +73,10 @@ const all_tests = (collection) => {
     utils.horizon_conn().send(JSON.stringify(
       {
         request_id: 3,
-        type: 'subscribe',
-        options: {collection},
+        options: {
+          collection: [collection],
+          watch: [],
+        },
       }));
     utils.add_horizon_listener(3, (msg) => {
       if (msg.error !== undefined) {
@@ -82,10 +96,10 @@ const all_tests = (collection) => {
     utils.horizon_conn().send(JSON.stringify(
       {
         request_id: 4,
-        type: 'query',
         options: {
-          collection,
+          collection: [collection],
           field_name: 'id',
+          query: [],
         },
       }), () => (utils.close_horizon_conn(), done()));
   });
