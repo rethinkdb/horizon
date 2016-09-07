@@ -38,11 +38,11 @@ const all_tests = (collection) => {
   });
 
   it('end_subscription', (done) => {
-    const conn = utils.horizon_conn();
-    conn.send('{"request_id": 0, "type": "end_subscription"}');
+    //const conn = utils.horizon_conn();
+    //conn.send('{"request_id": 0, "type": "end_subscription"}');
 
     // There is no response for an end_subscription, so just run a dummy keepalive roundtrip
-    utils.stream_test({request_id: 0, type: 'keepalive'}, (err, res) => {
+    utils.stream_test({request_id: 1, type: 'keepalive'}, (err, res) => {
       assert.deepStrictEqual(res, []);
       assert.ifError(err);
       done();

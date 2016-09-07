@@ -285,7 +285,7 @@ class ReliableMetadata extends Reliable {
         throw new Error(`Collection "${name}" is reserved for internal use ` +
                         'and cannot be used in requests.');
       } else if (!this.ready) {
-        throw new Error('ReliableMetadata is not ready.');
+        throw new Error('Metadata is not synced with the database.');
       }
 
       const collection = this._collections.get(name);
@@ -315,7 +315,7 @@ class ReliableMetadata extends Reliable {
         throw new Error(`Collection "${name}" is reserved for internal use ` +
                         'and cannot be used in requests.');
       } else if (!this.ready) {
-        throw new Error('ReliableMetadata is not ready.');
+        throw new Error('Metadata is not synced with the database.');
       } else if (this._collections.get(name)) {
         throw new Error(`Collection "${name}" already exists.`);
       }

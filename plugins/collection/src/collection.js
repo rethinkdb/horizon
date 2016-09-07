@@ -12,8 +12,25 @@ function collection(metadata) {
     } else if (typeof args[0] !== 'string') {
       next(new Error('First argument to "collection" must be a string.'));
     } else {
-      metadata.collection(args[0]).then((c) => {
-        // RSI: pick up here trucks here reads aren't getting this?
+      new Promise((resolve, reject) => {
+        if (metadata.ready) { resolve(); }
+
+        // Wait up to 5 seconds for metadata readiness
+        // This should only happen if the connection to the database just recovered,
+        // or there is some invalid data in the metadata.
+        const subs = metadata.subscribe({
+          onReady: () => {
+            subs.close();
+            clearTimeout(timer);
+            resolve();
+          },
+        });
+
+        const timer = setTimeout(() => {
+          reject(new Error('Timed out waiting for metadata ' +
+                           'to sync with the database.'));
+        }, 5000);
+      }).then(() => metadata.collection(args[0])).then((c) => {
         req.setParameter(c);
         next();
       }).catch(next);
