@@ -87,13 +87,14 @@ function create_collection(collection) {
           // This query should auto-create the collection if it's missing
           conn.send(JSON.stringify({
             request_id: 0,
-            options: {collection, limit: 0, query: []},
+            options: {collection: [collection], limit: [0], fetch: []},
           }));
 
           conn.once('message', (data) => {
+            const message = JSON.parse(data);
             conn.close();
-            if (data.error) {
-              reject(new Error(data.error));
+            if (message.error) {
+              reject(new Error(message.error));
             } else {
               resolve();
             }
@@ -151,10 +152,7 @@ const start_horizon_server = (done) => {
 
     horizon_server.on('ready', () => {
       logger.info('horizon server ready');
-      plugins_promise.then(() => {
-        console.log('all plugins ready');
-        done();
-      }).catch(done);
+      plugins_promise.then(done).catch(done);
     });
     horizon_server.on('unready', (server, err) => {
       logger.info(`horizon server unready: ${err}`);

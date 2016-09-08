@@ -18,7 +18,7 @@ const all_tests = (collection) => {
         request_id: 0,
         options: {
           collection: [collection],
-          query: []
+          fetch: []
         },
       },
       (err, res) => {
@@ -35,7 +35,7 @@ const all_tests = (collection) => {
         options: {
           collection: [collection],
           order: [['id'], 'ascending'],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -52,7 +52,7 @@ const all_tests = (collection) => {
         options: {
           collection: [collection],
           limit: [2],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -70,7 +70,7 @@ const all_tests = (collection) => {
           collection: [collection],
           order: [['id'], 'descending'],
           limit: [4],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -87,7 +87,7 @@ const all_tests = (collection) => {
         options: {
           collection: [collection],
           above: [{id: 5}, 'closed'],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -104,7 +104,7 @@ const all_tests = (collection) => {
         options: {
           collection: [collection],
           below: [{id: 5}, 'closed'],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -122,7 +122,7 @@ const all_tests = (collection) => {
           collection: [collection],
           above: [{id: 5}, 'open'],
           below: [{id: 7}, 'open'],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -139,7 +139,7 @@ const all_tests = (collection) => {
         options: {
           collection: [collection],
           find: [{id: 4}],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -156,7 +156,7 @@ const all_tests = (collection) => {
         options: {
           collection: [collection],
           find: [{id: 14}],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -173,7 +173,7 @@ const all_tests = (collection) => {
         options: {
           collection: [collection],
           find_all: [{id: 4}, {id: 6}, {id: 9}],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -191,7 +191,7 @@ const all_tests = (collection) => {
           collection: [collection],
           find_all: [{id: 1}],
           order: [['value'], 'descending'],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -209,7 +209,7 @@ const all_tests = (collection) => {
           collection: [collection],
           find_all: [{id: 4}, {id: 8}, {id: 2}, {id: 1}],
           limit: [3],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -228,7 +228,7 @@ const all_tests = (collection) => {
           find_all: [{id: 4}],
           order: [['value'], 'descending'],
           limit: [3],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -246,7 +246,7 @@ const all_tests = (collection) => {
           collection: [collection],
           find_all: [{value: 1}],
           above: [{id: 3}, 'open'],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -264,7 +264,7 @@ const all_tests = (collection) => {
           collection: [collection],
           find_all: [{value: 1}],
           below: [{id: 5}, 'open'],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -283,7 +283,7 @@ const all_tests = (collection) => {
           find_all: [{value: 1}],
           above: [{id: 1}, 'closed'],
           below: [{id: 9}, 'open'],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -302,7 +302,7 @@ const all_tests = (collection) => {
           find_all: [{value: 1}],
           order: [['id'], 'ascending'],
           above: [{id: 7}, 'open'],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -321,7 +321,7 @@ const all_tests = (collection) => {
           find_all: [{value: 0}],
           order: [['id'], 'descending'],
           below: [{id: 8}, 'open'],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -341,7 +341,7 @@ const all_tests = (collection) => {
           order: [['id'], 'descending'],
           above: [{id: 3}, 'closed'],
           below: [{id: 9}, 'closed'],
-          query: [],
+          fetch: [],
         },
       },
       (err, res) => {
@@ -362,7 +362,7 @@ const all_tests = (collection) => {
           find_all: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           above: [{b: 4}, 'closed'],
-          query: [],
+          fetch: [],
         },
       },
       (err) => {
@@ -380,7 +380,7 @@ const all_tests = (collection) => {
           find_all: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           above: [{a: 4}, 'closed'],
-          query: [],
+          fetch: [],
         },
       },
       (err) => {
@@ -398,7 +398,7 @@ const all_tests = (collection) => {
           find_all: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           below: [{b: 4}, 'closed'],
-          query: [],
+          fetch: [],
         },
       },
       (err) => {
@@ -416,7 +416,7 @@ const all_tests = (collection) => {
           find_all: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           below: [{a: 4}, 'closed'],
-          query: [],
+          fetch: [],
         },
       },
       (err) => {
