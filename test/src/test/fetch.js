@@ -166,13 +166,13 @@ const all_tests = (collection) => {
       });
   });
 
-  it('find_all.', (done) => {
+  it('findAll.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{id: 4}, {id: 6}, {id: 9}],
+          findAll: [{id: 4}, {id: 6}, {id: 9}],
           fetch: [],
         },
       },
@@ -183,13 +183,13 @@ const all_tests = (collection) => {
       });
   });
 
-  it('find_all order.', (done) => {
+  it('findAll order.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{id: 1}],
+          findAll: [{id: 1}],
           order: [['value'], 'descending'],
           fetch: [],
         },
@@ -201,13 +201,13 @@ const all_tests = (collection) => {
       });
   });
 
-  it('find_all limit.', (done) => {
+  it('findAll limit.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{id: 4}, {id: 8}, {id: 2}, {id: 1}],
+          findAll: [{id: 4}, {id: 8}, {id: 2}, {id: 1}],
           limit: [3],
           fetch: [],
         },
@@ -219,13 +219,13 @@ const all_tests = (collection) => {
       });
   });
 
-  it('find_all order limit.', (done) => {
+  it('findAll order limit.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{id: 4}],
+          findAll: [{id: 4}],
           order: [['value'], 'descending'],
           limit: [3],
           fetch: [],
@@ -238,13 +238,13 @@ const all_tests = (collection) => {
       });
   });
 
-  it('find_all above.', (done) => {
+  it('findAll above.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{value: 1}],
+          findAll: [{value: 1}],
           above: [{id: 3}, 'open'],
           fetch: [],
         },
@@ -256,13 +256,13 @@ const all_tests = (collection) => {
       });
   });
 
-  it('find_all below.', (done) => {
+  it('findAll below.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{value: 1}],
+          findAll: [{value: 1}],
           below: [{id: 5}, 'open'],
           fetch: [],
         },
@@ -274,13 +274,13 @@ const all_tests = (collection) => {
       });
   });
 
-  it('find_all above below.', (done) => {
+  it('findAll above below.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{value: 1}],
+          findAll: [{value: 1}],
           above: [{id: 1}, 'closed'],
           below: [{id: 9}, 'open'],
           fetch: [],
@@ -293,13 +293,13 @@ const all_tests = (collection) => {
       });
   });
 
-  it('find_all order above.', (done) => {
+  it('findAll order above.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{value: 1}],
+          findAll: [{value: 1}],
           order: [['id'], 'ascending'],
           above: [{id: 7}, 'open'],
           fetch: [],
@@ -312,13 +312,13 @@ const all_tests = (collection) => {
       });
   });
 
-  it('find_all order below.', (done) => {
+  it('findAll order below.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{value: 0}],
+          findAll: [{value: 0}],
           order: [['id'], 'descending'],
           below: [{id: 8}, 'open'],
           fetch: [],
@@ -331,13 +331,13 @@ const all_tests = (collection) => {
       });
   });
 
-  it('find_all order above below.', (done) => {
+  it('findAll order above below.', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{value: 0}],
+          findAll: [{value: 0}],
           order: [['id'], 'descending'],
           above: [{id: 3}, 'closed'],
           below: [{id: 9}, 'closed'],
@@ -353,13 +353,13 @@ const all_tests = (collection) => {
 
   // These tests are impossible to represent in the schema (as far as I can tell),
   // so the test for this functionality must be at the integration level.
-  it('find_all "above" field not in "order".', (done) => {
+  it('findAll "above" field not in "order".', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{value: 0}],
+          findAll: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           above: [{b: 4}, 'closed'],
           fetch: [],
@@ -371,13 +371,13 @@ const all_tests = (collection) => {
       });
   });
 
-  it('find_all "above" field not first in "order".', (done) => {
+  it('findAll "above" field not first in "order".', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{value: 0}],
+          findAll: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           above: [{a: 4}, 'closed'],
           fetch: [],
@@ -389,13 +389,13 @@ const all_tests = (collection) => {
       });
   });
 
-  it('find_all "below" field not in "order".', (done) => {
+  it('findAll "below" field not in "order".', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{value: 0}],
+          findAll: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           below: [{b: 4}, 'closed'],
           fetch: [],
@@ -407,13 +407,13 @@ const all_tests = (collection) => {
       });
   });
 
-  it('find_all "below" field not first in "order".', (done) => {
+  it('findAll "below" field not first in "order".', (done) => {
     utils.stream_test(
       {
         request_id: 0,
         options: {
           collection: [collection],
-          find_all: [{value: 0}],
+          findAll: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           below: [{a: 4}, 'closed'],
           fetch: [],

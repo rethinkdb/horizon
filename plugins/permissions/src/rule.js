@@ -11,15 +11,15 @@ class Rule {
     }
   }
 
-  is_match(query, context) {
+  isMatch(query, context) {
     return this.template.is_match(query, context);
   }
 
-  is_valid(...args) {
+  isValid(...args) {
     if (!this.validator) {
       return true;
     }
-    return this.validator.is_valid(...args);
+    return this.validator.isValid(...args);
   }
 }
 

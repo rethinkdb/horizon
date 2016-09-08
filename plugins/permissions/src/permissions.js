@@ -68,11 +68,15 @@ class RuleMap {
   }
 
   forEachUserRule(user, cb) {
-    this.userToRulenames.forEach((rn) => {
-      const rule = this.rulenameToRule.get(rn);
-      assert(rule);
-      cb(rule);
-    });
+    const ruleset = this.userToRulenames.get(user);
+
+    if (ruleset) {
+      ruleset.forEach((rn) => {
+        const rule = this.rulenameToRule.get(rn);
+        assert(rule);
+        cb(rule);
+      });
+    }
   }
 
   addUserGroup(user, group) {
@@ -280,7 +284,7 @@ class UserCache {
             return (...args) => {
               try {
                 for (const rule of ruleset) {
-                  if (rule.is_valid(...args)) {
+                  if (rule.isValid(...args)) {
                     return rule;
                   }
                 }

@@ -15,7 +15,7 @@ class Validator {
     assert(typeof this._fn === 'function');
   }
 
-  is_valid(...args) {
+  isValid(...args) {
     return this._fn(...args);
   }
 }

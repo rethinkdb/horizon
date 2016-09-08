@@ -115,7 +115,7 @@ function clear_collection(collection) {
 const populate_collection = (collection, rows) => {
   assert.notStrictEqual(rdb_conn, undefined);
 
-  if (rows.constructor.name !== 'Array') {
+  if (!Array.isArray(rows)) {
     return table(collection).insert(
       r.range(rows).map(
         (i) => ({id: i, value: i.mod(4)})

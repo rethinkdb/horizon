@@ -11,7 +11,7 @@ const Joi = require('joi');
 const websocket = require('ws');
 const r = require('rethinkdb');
 
-const protocolName = 'rethinkdb-horizon-v0';
+const protocolName = 'rethinkdb-horizon-v1';
 
 function handleProtocols(protocols, cb) {
   if (protocols.findIndex((x) => x === protocolName) !== -1) {
