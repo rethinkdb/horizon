@@ -16,7 +16,10 @@ const all_tests = (collection) => {
     utils.stream_test(
       {
         request_id: 0,
-        options: {collection, query: []},
+        options: {
+          collection: [collection],
+          query: []
+        },
       },
       (err, res) => {
         assert.ifError(err);
@@ -30,7 +33,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           order: [['id'], 'ascending'],
           query: [],
         },
@@ -47,8 +50,8 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
-          limit: 2,
+          collection: [collection],
+          limit: [2],
           query: [],
         },
       },
@@ -64,9 +67,9 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           order: [['id'], 'descending'],
-          limit: 4,
+          limit: [4],
           query: [],
         },
       },
@@ -82,7 +85,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           above: [{id: 5}, 'closed'],
           query: [],
         },
@@ -99,7 +102,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           below: [{id: 5}, 'closed'],
           query: [],
         },
@@ -116,7 +119,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           above: [{id: 5}, 'open'],
           below: [{id: 7}, 'open'],
           query: [],
@@ -134,8 +137,8 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
-          find: {id: 4},
+          collection: [collection],
+          find: [{id: 4}],
           query: [],
         },
       },
@@ -151,8 +154,8 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
-          find: {id: 14},
+          collection: [collection],
+          find: [{id: 14}],
           query: [],
         },
       },
@@ -168,7 +171,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{id: 4}, {id: 6}, {id: 9}],
           query: [],
         },
@@ -185,7 +188,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{id: 1}],
           order: [['value'], 'descending'],
           query: [],
@@ -203,9 +206,9 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{id: 4}, {id: 8}, {id: 2}, {id: 1}],
-          limit: 3,
+          limit: [3],
           query: [],
         },
       },
@@ -221,10 +224,10 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{id: 4}],
           order: [['value'], 'descending'],
-          limit: 3,
+          limit: [3],
           query: [],
         },
       },
@@ -240,7 +243,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{value: 1}],
           above: [{id: 3}, 'open'],
           query: [],
@@ -258,7 +261,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{value: 1}],
           below: [{id: 5}, 'open'],
           query: [],
@@ -276,7 +279,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{value: 1}],
           above: [{id: 1}, 'closed'],
           below: [{id: 9}, 'open'],
@@ -295,7 +298,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{value: 1}],
           order: [['id'], 'ascending'],
           above: [{id: 7}, 'open'],
@@ -314,7 +317,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{value: 0}],
           order: [['id'], 'descending'],
           below: [{id: 8}, 'open'],
@@ -333,7 +336,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{value: 0}],
           order: [['id'], 'descending'],
           above: [{id: 3}, 'closed'],
@@ -355,7 +358,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           above: [{b: 4}, 'closed'],
@@ -373,7 +376,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           above: [{a: 4}, 'closed'],
@@ -391,7 +394,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           below: [{b: 4}, 'closed'],
@@ -409,7 +412,7 @@ const all_tests = (collection) => {
       {
         request_id: 0,
         options: {
-          collection,
+          collection: [collection],
           find_all: [{value: 0}],
           order: [['value', 'a'], 'descending'],
           below: [{a: 4}, 'closed'],
@@ -423,6 +426,6 @@ const all_tests = (collection) => {
   });
 };
 
-const suite = (collection) => describe('Query', () => all_tests(collection));
+const suite = (collection) => describe('Fetch', () => all_tests(collection));
 
 module.exports = {suite};

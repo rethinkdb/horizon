@@ -320,7 +320,7 @@ module.exports = (raw_config) => {
   return {
     name: 'hz_permissions',
 
-    activate(ctx) {
+    activate(ctx, onReady, onUnready) {
       logger.info('Activating permissions plugin.');
       ctx[userCache] = new UserCache(config, ctx);
 
@@ -336,23 +336,29 @@ module.exports = (raw_config) => {
       };
       ctx.on('disconnect', disconnectCb);
 
-      return {
-        methods: {
-          hz_permissions: {
-            type: 'preReq',
-            handler: (req, res, next) => {
-              if (!req.clientCtx[userSub]) {
-                next(new Error('client connection not authenticated'));
-              } else {
-                req.clientCtx[userSub].getValidatePromise(req).then((validate) => {
-                  req.setParameter(validate);
-                  next();
-                }).catch(next);
-              }
+      return new Promise((resolve, reject) => {
+        ctx[userCache].groupCfeed.subscribe({onUnready, onReady: () => {
+          resolve({
+            methods: {
+              hz_permissions: {
+                type: 'preReq',
+                handler: (req, res, next) => {
+                  if (!req.clientCtx[userSub]) {
+                    next(new Error('client connection not authenticated'));
+                  } else {
+                    req.clientCtx[userSub].getValidatePromise(req).then((validate) => {
+                      req.setParameter(validate);
+                      next();
+                    }).catch(next);
+                  }
+                },
+              },
             },
-          },
-        },
-      };
+          });
+          onReady();
+        }});
+      });
+
     },
 
     deactivate(ctx) {

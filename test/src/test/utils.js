@@ -142,7 +142,7 @@ const start_horizon_server = (done) => {
     });
 
     const plugin_router = new PluginRouter(horizon_server);
-    plugin_router.add(defaults({
+    const plugins_promise = plugin_router.add(defaults({
       auto_create_collection: true,
       auto_create_index: true,
     }));
@@ -151,7 +151,10 @@ const start_horizon_server = (done) => {
 
     horizon_server.on('ready', () => {
       logger.info('horizon server ready');
-      done();
+      plugins_promise.then(() => {
+        console.log('all plugins ready');
+        done();
+      }).catch(done);
     });
     horizon_server.on('unready', (server, err) => {
       logger.info(`horizon server unready: ${err}`);

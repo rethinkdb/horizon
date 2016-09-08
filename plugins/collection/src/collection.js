@@ -49,16 +49,19 @@ module.exports = (options) => {
         Boolean(options.auto_create_collection),
         Boolean(options.auto_create_index));
 
-      ctx[metadata].subscribe({onReady, onUnready});
-
-      return {
-        methods: {
-          collection: {
-            type: 'option',
-            handler: collection(ctx[metadata]),
-          },
-        },
-      };
+      return new Promise((resolve, reject) => {
+        ctx[metadata].subscribe({onUnready, onReady: () => {
+          resolve({
+            methods: {
+              collection: {
+                type: 'option',
+                handler: collection(ctx[metadata]),
+              },
+            },
+          });
+          onReady();
+        }});
+      });
     },
     deactivate: (ctx) => {
       if (ctx[metadata]) {
