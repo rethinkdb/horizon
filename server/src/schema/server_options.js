@@ -30,4 +30,10 @@ const auth = Joi.object({
   allow_unauthenticated: Joi.boolean().default(false),
 }).unknown(false);
 
-module.exports = {server, auth};
+const method = Joi.object({
+  type: Joi.valid('middleware', 'option', 'prereq', 'terminal').required(),
+  handler: Joi.func().minArity(2).maxArity(3).required(),
+  requires: Joi.array().single().items(Joi.string()).default([]),
+}).unknown(false);
+
+module.exports = {server, auth, method};

@@ -10,12 +10,14 @@ const websocket = require('ws');
 class ClientConnection {
   constructor(socket,
               auth,
-              middlewareCb,
+              requestHandlerCb,
+              capabilitiesCb,
               clientEvents) {
     logger.debug('ClientConnection established.');
     this.socket = socket;
     this.auth = auth;
-    this.middlewareCb = middlewareCb;
+    this.requestHandlerCb = requestHandlerCb;
+    this.capabilitiesCb = capabilitiesCb;
     this.clientEvents = clientEvents;
     this._context = { };
 
@@ -102,6 +104,7 @@ class ClientConnection {
         token: res.token,
         id: res.payload.id,
         provider: res.payload.provider,
+        capabilities: this.capabilitiesCb(),
       });
       this.socket.on('message', (msg) =>
         this.error_wrap_socket(() => this.handle_request(msg)));
@@ -138,10 +141,10 @@ class ClientConnection {
     this.responses.set(reqId, response);
     response.complete.then(() => this.remove_request(reqId));
 
-    this.middlewareCb(raw_request, response, (err) =>
-      response.end(err || new Error(`Request ran past the end of the middleware stack.`)));
+    this.requestHandlerCb(raw_request, response, (err) =>
+      response.end(err || new Error('Request ran past the end of the ' +
+                                    'request handler stack.')));
   }
-
 
   remove_response(request_id) {
     const response = this.responses.get(request_id);

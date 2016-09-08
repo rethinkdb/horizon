@@ -4,12 +4,15 @@ const Auth = require('./auth').Auth;
 const ClientConnection = require('./client');
 const logger = require('./logger');
 const {ReliableConn, ReliableChangefeed} = require('./reliable');
-const optionsSchema = require('./schema/server_options').server;
+const {optionsSchema, methodSchema} = require('./schema/server_options');
+const Request = require('./request');
 
 const EventEmitter = require('events');
+
 const Joi = require('joi');
 const websocket = require('ws');
 const r = require('rethinkdb');
+const Toposort = require('toposort-class');
 
 const protocolName = 'rethinkdb-horizon-v1';
 
@@ -89,7 +92,8 @@ class Server extends EventEmitter {
             const client = new ClientConnection(
               socket,
               this._auth,
-              this._middlewareCb,
+              this._getRequestHandler,
+              this._getCapabilities,
               this // Used to emit a client auth event
             );
             this._clients.add(client);
@@ -116,10 +120,6 @@ class Server extends EventEmitter {
     }
   }
 
-  makeReliableChangefeed(reql, ...args) {
-    return new ReliableChangefeed(reql, this._reliableConn, ...args);
-  }
-
   auth() {
     return this._auth;
   }
@@ -128,12 +128,127 @@ class Server extends EventEmitter {
     return this._reliableConn;
   }
 
-  set_middleware(mw) {
-    this._middlewareCb = mw ? mw : this._defaultMiddlewareCb;
+  add_method(name, raw_options) {
+    const options = Joi.attempt(raw_options, optionsSchema);
+    if (this._methods[name]) {
+      throw new Error(`"${name}" is already registered as a method.`);
+    }
+    this._methods[name] = raw_options;
+
+    if (options.type === 'middleware') {
+      this._middlewareMethods.add(name); 
+    }
+
+    this._requirementsOrdering = null;
+    this._capabilities = null;
   }
 
-  // TODO: We close clients in `onUnready` above, but don't wait for
-  // them to be closed.
+  remove_method(name) {
+    delete this._methods[name];
+    this._middlewareMethods.delete(name);
+    this._requirementsOrdering = null;
+    this._capabilities = null;
+  }
+
+  _getRequirementsOrdering() {
+    if (!this._requirementsOrdering) {
+      this._requirementsOrdering = {};
+
+      const topo = new Toposort();
+      for (const m in this._methods) {
+        const reqs = this._methods[m].requires;
+        topo.add(m, reqs);
+        for (const r of reqs) {
+          if (!this._methods[r]) {
+            throw new Error(
+              `Missing method "${r}", which is required by method "${m}".`);
+          }
+        }
+      }
+
+      this._requirementsOrdering = topo.sort().reverse();
+    }
+    return this._requirementsOrdering;
+  }
+
+  _getCapabilities() {
+    if (!this._capabilities) {
+      this._capabilities = {options: [], terminals: []};
+      for (const k in this._methods) {
+        const method = this._methods[k];
+        switch (method.type) {
+        case 'option':
+          this._capabilities.options.push(k);
+          break;
+        case 'terminal':
+          this._capabilities.terminals.push(k);
+          break;
+        default:
+          break;
+        }
+      }
+    }
+    return this._capabilities;
+  }
+
+  _getRequestHandler() {
+    return (req, res, next) => {
+      let terminal = null;
+      const requirements = {};
+
+      this._middlewareMethods.forEach((name) => {
+        requirements[name] = true;
+      });
+
+      for (const o in req.options) {
+        const m = this._methods[o];
+        if (!m) {
+          next(new Error(`No method to handle option "${o}".`));
+          return;
+        }
+
+        if (m.type === 'terminal') {
+          if (terminal !== null) {
+            next(new Error('Multiple terminal methods in request: ' +
+                           `"${terminal}", "${o}".`));
+            return;
+          }
+          terminal = o;
+        } else {
+          requirements[o] = true;
+        }
+        for (const r of m.requires) {
+          requirements[r] = true;
+        }
+      }
+
+      if (terminal === null) {
+        next(new Error('No terminal method was specified in the request.'));
+      } else if (requirements[terminal]) {
+        next(new Error(`Terminal method "${terminal}" is also a requirement.`));
+      } else {
+        const ordering = this.requirementsOrdering();
+        const chain = Object.keys(requirements).sort(
+          (a, b) => ordering[a] - ordering[b]);
+        chain.push(terminal);
+
+        chain.reduceRight((cb, methodName) =>
+          (maybeErr) => {
+            if (maybeErr instanceof Error) {
+              next(maybeErr);
+            } else {
+              try {
+                this._methods[methodName].handler(new Request(req, methodName), res, cb);
+              } catch (e) {
+                next(e);
+              }
+            }
+          }, next)();
+      }
+    };
+  }
+
+  // TODO: We close clients in `onUnready` above, but don't wait for them to be closed.
   close() {
     if (!this._close_promise) {
       this._close_promise =

@@ -177,14 +177,13 @@ new Promise((resolve) => {
       token_secret: crypto.randomBytes(64).toString('base64'),
     },
   });
-  console.log('starting http servers');
 
   const pluginRouter = new PluginRouter(hz_server);
-  pluginRouter.add(plugins({
+  pluginRouter.add(plugins, {
     permissions: 'permit-all',
     auto_create_collection: true,
     auto_create_index: true,
-  })).catch((err) =>
+  }).catch((err) =>
     console.log(`Plugin initialization failed: ${err.stack}`)
   );
 
@@ -192,6 +191,7 @@ new Promise((resolve) => {
     hz_server.set_middleware(pluginRouter.hzMiddleware());
 
     // Capture requests to `horizon.js` and `horizon.js.map` before the horizon server
+    console.log('starting http servers');
     http_servers.forEach((serv, i) => {
       const extant_listeners = serv.listeners('request').slice(0);
       serv.removeAllListeners('request');

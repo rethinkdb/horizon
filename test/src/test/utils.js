@@ -128,6 +128,7 @@ const populate_collection = (collection, rows) => {
 const start_horizon_server = (done) => {
   logger.info('creating http server');
   assert.strictEqual(horizon_server, undefined);
+  assert.strictEqual(plugin_router, undefined);
 
   const http_server = new http.Server();
   http_server.listen(0, () => {
@@ -142,7 +143,7 @@ const start_horizon_server = (done) => {
       },
     });
 
-    const plugin_router = new PluginRouter(horizon_server);
+    plugin_router = new PluginRouter(horizon_server);
     const plugins_promise = plugin_router.add(defaults({
       auto_create_collection: true,
       auto_create_index: true,
@@ -162,6 +163,11 @@ const start_horizon_server = (done) => {
 };
 
 const close_horizon_server = () => {
+  if (plugin_router !== undefined) {
+    plugin_router.close();
+  }
+  plugin_router = undefined;
+
   if (horizon_server !== undefined) {
     horizon_server.removeAllListeners('ready');
     horizon_server.removeAllListeners('unready');

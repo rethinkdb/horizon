@@ -5,14 +5,17 @@ const Toposort = require('toposort-class');
 const EventEmitter = require('events');
 
 class PluginRouter extends EventEmitter {
-  constructor(server) {
+  constructor(horizon) {
     super();
-    this.server = server;
-    this.httpRoutes = {};
+    this.horizon = horizon;
     this.methods = {};
 
     this.plugins = new Map();
     this.readyPlugins = new Set();
+  }
+
+  close() {
+    return Promise.all(Array.from(plugins.keys()).map((p) => this.remove(p)));
   }
 
   noteReady(plugin) {
@@ -35,22 +38,22 @@ class PluginRouter extends EventEmitter {
     }
   }
 
-  add(plugin) {
+  add(plugin, config) {
     if (this.plugins.has(plugin.name)) {
       return Promise.reject(
         new Error(`Plugin conflict: "${plugin.name}" already present.`));
     }
     // Placeholder so we don't say we're ready too soon
     this.plugins.set(plugin.name, null);
-    this.plugins.set(plugin.name, Promise.resolve(this.server).then((server) => {
+    this.plugins.set(plugin.name, Promise.resolve().then(() => {
       this.emit('unready', this);
       if (plugin.activate.length > 1) {
         return plugin.activate(
-          server,
+          this.horizon,
           () => this.noteReady(plugin.name),
           () => this.noteUnready(plugin.name));
       } else {
-        return Promise.resolve().then(() => plugin.activate(server)).then((x) => {
+        return Promise.resolve().then(() => plugin.activate(this.horizon)).then((x) => {
           this.noteReady(plugin.name);
           return x;
         });
@@ -75,6 +78,7 @@ class PluginRouter extends EventEmitter {
     return this.plugins.get(plugin.name);
   }
 
+  // `plugin` may be the name of the plugin, or the result of `add`
   remove(plugin, reason) {
     if (!this.plugins.has(plugin.name)) {
       return Promise.reject(new Error(`Plugin "${plugin.name}" is not present.`));
