@@ -49,10 +49,7 @@ module.exports = (options) => {
         Boolean(options.auto_create_collection),
         Boolean(options.auto_create_index));
 
-      ctx[metadata].subscribe({onReady: () => {
-        console.log('metadata ready');
-        onReady();
-      }, onUnready});
+      ctx[metadata].subscribe({onReady, onUnready});
 
       return {
         methods: {

@@ -22,7 +22,15 @@ function addToMapSet(map, name, el) {
     set = new Set();
     map.set(name, set);
   }
-  // RSI: This might not always be an error.
+  set.add(el);
+}
+
+function addToMapSetUnique(map, name, el) {
+  let set = map.get(name);
+  if (!set) {
+    set = new Set();
+    map.set(name, set);
+  }
   assert(!set.has(el), `addToMapSet: ${name} already has ${el}`);
   set.add(el);
 }
@@ -91,9 +99,9 @@ class RuleMap {
 
   addGroupRule(group, ruleName, rule) {
     this.rulenameToRule.set(ruleName, rule);
-    addToMapSet(this.groupToRulenames, group, ruleName);
+    addToMapSetUnique(this.groupToRulenames, group, ruleName);
     getMapSet(this.groupToUsers, group).forEach((user) => {
-      addToMapSet(this.userToRulenames, user, ruleName);
+      addToMapSetUnique(this.userToRulenames, user, ruleName);
       this.userToRulesetSymbol.set(user, Symbol());
     });
   }

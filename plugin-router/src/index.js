@@ -61,7 +61,6 @@ class PluginRouter extends EventEmitter {
       }
 
       for (const m in active.methods) {
-        console.log(`adding plugin method: ${m}`);
         if (this.methods[m]) {
           throw new Error(`Method name conflict: "${m}"`);
         }
@@ -136,11 +135,10 @@ class PluginRouter extends EventEmitter {
         for (const o in req.options) {
           const m = this.methods[o];
           if (m) {
-            console.log(`method for request: ${o}, type: ${m.type}`);
             if (m.type === 'terminal') {
               if (terminalName !== null) {
-                next(new Error('multiple terminals in request: ' +
-                               `${terminalName}, ${o}`));
+                next(new Error('Multiple terminal methods in request: ' +
+                               `"${terminalName}", "${o}"`));
               } else {
                 terminalName = o;
               }
@@ -153,15 +151,15 @@ class PluginRouter extends EventEmitter {
               }
             }
           } else {
-            console.log(`no ${o} method for request`);
+            next(new Error(`No method to handle option "${o}".`));
           }
         }
       }
 
       if (terminalName === null) {
-        next(new Error('no terminal in request'));
+        next(new Error('No terminal method was specified in the request.'));
       } else if (requirements[terminalName]) {
-        next(new Error('terminal ${terminalName} is also a requirement'));
+        next(new Error(`Terminal method "${terminalName}" is also a requirement.`));
       } else {
         const ordering = this.requirementsOrdering();
         const middlewareChain = Object.keys(requirements).sort(

@@ -57,10 +57,20 @@ const all_tests = (collection) => {
     });
   });
 
-  it('invalid method', (done) => {
+  it('no terminal method', (done) => {
+    utils.stream_test({request_id: 2, options: {above: []}}, (err, res) => {
+      assert.deepStrictEqual(res, []);
+      assert.strictEqual(err.message,
+        'Error: No terminal method was specified in the request.');
+      done();
+    });
+  });
+
+  it('unknown method', (done) => {
     utils.stream_test({request_id: 2, options: {fake: []}}, (err, res) => {
       assert.deepStrictEqual(res, []);
-      assert.strictEqual(err.message, 'Error: no terminal in request');
+      assert.strictEqual(err.message,
+        'Error: No method to handle option "fake".');
       done();
     });
   });
