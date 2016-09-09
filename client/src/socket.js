@@ -16,20 +16,18 @@ import 'rxjs/add/operator/cache'
 
 import { serialize, deserialize } from './serialization.js'
 
-import './hacks/web-socket-subject'
-
 export const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
 
 // Before connecting the first time
-const STATUS_UNCONNECTED = { type: 'unconnected' }
+export const STATUS_UNCONNECTED = { type: 'unconnected' }
 // After the websocket is opened and handshake is completed
-const STATUS_READY = { type: 'ready' }
+export const STATUS_READY = { type: 'ready' }
 // After unconnected, maybe before or after connected. Any socket level error
-const STATUS_ERROR = { type: 'error' }
+export const STATUS_ERROR = { type: 'error' }
 // Occurs right before socket closes
-const STATUS_CLOSING = { type: 'closing' }
+export const STATUS_CLOSING = { type: 'closing' }
 // Occurs when the socket closes
-const STATUS_DISCONNECTED = { type: 'disconnected' }
+export const STATUS_DISCONNECTED = { type: 'disconnected' }
 
 export class ProtocolError extends Error {
   constructor(msg, errorCode) {
@@ -86,6 +84,8 @@ export class HorizonSocket extends WebSocketSubject {
         },
       },
     })
+
+    // some new lines here
     // Completes or errors based on handshake success. Buffers
     // handshake response for later subscribers (like a Promise)
     this.handshake = new AsyncSubject()
@@ -208,50 +208,4 @@ export class HorizonSocket extends WebSocketSubject {
       }
     })
   }
-}
-
-export function connectionSmoother(horizonParams) {
-  const controlSignals = new Subject()
-  const sockets = infiniteHorizonSockets(controlSignals, horizonParams)
-  const statuses = sockets.switchMap(socket => socket.status).cache(1)
-
-  return {
-    controlSignals,
-    sockets,
-    handshakes: sockets.switchMap(socket => socket.handshake),
-    statuses,
-    sendRequest(clientType, options) {
-      const type = clientType === 'removeAll' ? 'remove' : clientType
-      return sockets
-        // Each time we get a new socket, we'll send the request
-        .switchMap(socket => socket.makeRequest({ type, options }))
-        // Share to prevent re-sending requests whenever a subscriber shows up
-        .share()
-    },
-    connect() {
-      controlSignals.next('connect')
-    },
-    disconnect() {
-      controlSignals.next('disconnect')
-    },
-  }
-}
-
-function infiniteHorizonSockets(signals, horizonParams) {
-  return signals
-    // We only care about two signals
-    .filter(x => x === 'connect' || x === 'disconnect')
-    // Create a new socket if we're to connect
-    .map(signalName => {
-      if (signalName === 'connect') {
-        return new HorizonSocket(horizonParams)
-      } else {
-        return 'FAKE_SOCKET'
-      }
-    })
-    // Cache the last socket so we don't keep creating them on subscribe
-    .cache(1)
-    // Filter out fake sockets so new subscribers don't get the cached
-    // horizon socket after a disconnect message
-    .filter(x => x === 'FAKE_SOCKET')
 }

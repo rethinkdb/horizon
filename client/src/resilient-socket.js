@@ -1,9 +1,12 @@
+import { AsyncSubject } from 'rxjs/AsyncSubject'
 import { BehaviorSubject } from 'rxjs/BehaviorSubject'
+import { Subject } from 'rxjs/Subject'
 import { WebSocketSubject } from 'rxjs/observable/dom/WebSocketSubject'
 import { Observable } from 'rxjs/Observable'
 import 'rxjs/add/observable/merge'
 import 'rxjs/add/observable/never'
 import 'rxjs/add/observable/timer'
+import 'rxjs/add/observable/defer'
 import 'rxjs/add/operator/filter'
 import 'rxjs/add/operator/share'
 import 'rxjs/add/operator/ignoreElements'
@@ -13,11 +16,16 @@ import 'rxjs/add/operator/publish'
 import 'rxjs/add/operator/cache'
 
 
-import { PROTOCOL_VERSION, ProtocolError } from './socket'
+import { PROTOCOL_VERSION,
+         ProtocolError,
+         STATUS_UNCONNECTED,
+         STATUS_READY,
+         STATUS_ERROR,
+         STATUS_CLOSING,
+         STATUS_DISCONNECTED,
+       } from './socket'
 import { serialize, deserialize } from './serialization'
 
-// hacks
-import './hacks/web-socket-subject'
 
 export class SocketWrapper {
   constructor({
@@ -28,25 +36,62 @@ export class SocketWrapper {
     websocket,
   }) {
     this.requestCounter = 0
+    this.status = new BehaviorSubject(STATUS_UNCONNECTED)
+    this.handshakes = new BehaviorSubject()
     this.handshakeMaker = handshakeMaker
-    this.ws = new WebSocketSubject({
+    this.websockets = infiniteSockets({
       url,
       protocol: PROTOCOL_VERSION,
       socket: websocket,
       WebSocketCtor,
-      openObserver,
-      closeObserver,
-      closingObserver,
+      openObserver: () => {
+        this.sendHandshake()
+      },
+      closingObserver: () => this.status.next(STATUS_CLOSING),
+      closeObserver: () => {
+        this.status.next(STATUS_DISCONNECTED)
+        this.cleanupHandshake()
+      },
     })
-    this.handshakes = Observable.cache(1).filter(x => x != null)
+    this.keepalive = Observable
+      .timer(keepalive * 1000, keepalive * 1000)
+      .switchMap(() => this.makeRequest({ type: 'keepalive' }))
   }
 
-  sendHandshake(msg) {
-    this.ws.next(JSON.stringify(serialize(msg)))
+  // Send the handshake if it hasn't been sent already. It also starts
+  // the keepalive observable and cleans up after it when the
+  // handshake is cleaned up.
+  sendHandshake() {
+    if (!this._handshakeSub) {
+      this._handshakeSub = this.makeRequest(this._handshakeMaker())
+        .subscribe({
+          next: n => {
+            if (n.error) {
+              this.status.next(STATUS_ERROR)
+              this.handshake.error(new ProtocolError(n.error, n.error_code))
+            } else {
+              this.status.next(STATUS_READY)
+              this.handshakes.next(n)
+            }
+          },
+          error: e => {
+            this.status.next(STATUS_ERROR)
+            this.handshakes.next(null)
+            this.cleanupHandshake()
+            this.ws.error(e)
+          },
+        })
+
+      // Start the keepalive and make sure it's
+      // killed when the handshake is cleaned up
+      this._handshakeSub.add(this.keepalive.connect())
+    }
+    return this.handshakes
   }
 
   send(msg) {
     this.handshakes
+      .filter(x => x !== null)
       .take(1)
       // Any handshake will be mapped to the request
       .map(() => JSON.stringify(serialize(msg)))
@@ -60,7 +105,7 @@ export class SocketWrapper {
       const request = Object.assign({ request_id }, request)
 
       if (handshake) {
-        this.sendHandshake()
+        this.ws.next(JSON.stringify(serialize(request)))
       } else {
         this.send(request)
       }
@@ -100,4 +145,51 @@ export class SocketWrapper {
       }
     })
   }
+}
+
+
+export function connectionSmoother(horizonParams) {
+  const controlSignals = new Subject()
+  const sockets = infiniteHorizonSockets(controlSignals, horizonParams)
+  const statuses = sockets.switchMap(socket => socket.status).cache(1)
+
+  return {
+    controlSignals,
+    sockets,
+    handshakes: sockets.switchMap(socket => socket.handshake),
+    statuses,
+    sendRequest(clientType, options) {
+      const type = clientType === 'removeAll' ? 'remove' : clientType
+      return sockets
+        // Each time we get a new socket, we'll send the request
+        .switchMap(socket => socket.makeRequest({ type, options }))
+        // Share to prevent re-sending requests whenever a subscriber shows up
+        .share()
+    },
+    connect() {
+      controlSignals.next('connect')
+    },
+    disconnect() {
+      controlSignals.next('disconnect')
+    },
+  }
+}
+
+function infiniteSockets(signals, params) {
+  return signals
+    // We only care about two signals
+    .filter(x => x === 'connect' || x === 'disconnect')
+    // Create a new socket if we're to connect
+    .map(signalName => {
+      if (signalName === 'connect') {
+        return new WebSocketSubject(params)
+      } else {
+        return signalName
+      }
+    })
+    // Cache the last socket so we don't keep creating them on subscribe
+    .cache(1)
+    // Filter out disconnect signals so new subscribers don't get the cached
+    // horizon socket after a disconnect message
+    .filter(x => x === 'disconnect')
 }

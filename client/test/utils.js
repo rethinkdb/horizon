@@ -7,6 +7,8 @@ import 'rxjs/add/operator/mergeMapTo'
 import 'rxjs/add/operator/take'
 import 'rxjs/add/operator/ignoreElements'
 
+import { PROTOCOL_VERSION } from '../src/socket'
+
 export function removeAllDataObs(collection) {
   // Read all elements from the collection
   return collection.fetch() // all documents in the collection
@@ -138,4 +140,110 @@ export function compareSetsWithoutVersion(actual, expected, message) {
   return assert.sameDeepMembers(withoutVersion(actual),
                                 withoutVersion(expected),
                                 message)
+}
+
+function defaultCallback(name, actions) {
+  return ev => {
+    actions.push([ `default_${name}_called` ])
+  }
+}
+
+function tryCatchCallback(name, actions, callback) {
+  return ev => {
+    try {
+      actions.push([ `user_defined_${name}_called` ])
+      return callback(ev)
+    } catch (err) {
+      actions.push([ `${name}_threw_exc`, err ])
+      throw err
+    }
+  }
+}
+
+export class MockWebSocket {
+  // The goal of this mock socket is to get everything to basically
+  // run as synchronously as possible so debugging can be reasonably
+  // be done with stack traces.
+  constructor(mockServer) {
+    this.readyState = 0  // connecting
+    this.url = 'ws://localhost/mockSocket'
+    this.protocol = PROTOCOL_VERSION
+    this.actions = [ [ 'opening' ] ]
+    this.mockServer = mockServer // function(actionType, options) -> response
+    this._onopen = defaultCallback('onopen', this.actions)
+    this._onclose = defaultCallback('onclose', this.actions)
+    this._onmessage = defaultCallback('onmessage', this.actions)
+    this._onerror = defaultCallback('onerror', this.actions)
+    // onopen needs to be called in a microtask, so that callbacks set
+    // after the constructor is called are in place
+    Promise.resolve().then(() => {
+      this.readyState = 1 // connected
+      this.actions.push([ 'open' ])
+      this.onopen({ type: 'open' })
+    })
+  }
+  send(msg) {
+    this.actions.push([ 'client_send', msg ])
+    const response = this.fakeServer(msg)
+    if (response.type === 'error') {
+      this.actions.push([ 'server_error', response.data ])
+      this.onerror({ type: 'error' }) // Websocket protocol not super helpful..
+    } else if (response.type === 'message') {
+      this.actions.push([ 'server_message', response.data ])
+      this.onmessage({ type: 'message', data: JSON.stringify(response.data) })
+    } else if (response.type === 'close') {
+      this.readyState = 3 // closed
+      this.actions.push([ 'server_close', response.data ])
+      this.onclose({
+        type: 'close',
+        code: response.data.code,
+        reason: response.data.msg,
+        wasClean: response.data.code === 1000,
+      })
+    }
+  }
+
+  close(code = 1000, msg = 'Client closed websocket') {
+    this.readyState = 3 // closed
+    this.actions.push([ 'client_close', code, msg ])
+    // We don't consult the mock server for this, just close client immediately
+    this.onclose({
+      type: 'close',
+      code: code,
+      reason: msg,
+      wasClean: code === 1000,
+    })
+  }
+
+  get onopen() {
+    return this._onopen
+  }
+  set onopen(callback) {
+    this.actions.push([ 'onopen_overridden' ])
+    this._onopen = tryCatchCallback('onopen', this.actions, callback)
+  }
+
+  get onmessage() {
+    return this._onmessage
+  }
+  set onmessage(callback) {
+    this.actions.push([ 'onmessage_overridden' ])
+    this._onmessage = tryCatchCallback('onmessage', this.actions, callback)
+  }
+
+  get onerror() {
+    return this._onerror
+  }
+  set onerror(callback) {
+    this.actions.push([ 'onerror_overridden' ])
+    this._onerror = tryCatchCallback('onerror', this.actions, callback)
+  }
+
+  get onclose() {
+    return this._onclose
+  }
+  set onclose(callback) {
+    this.actions.push([ 'onclose_overridden' ])
+    this._onclose = tryCatchCallback('onclose', this.actions, callback)
+  }
 }
