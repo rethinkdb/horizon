@@ -3,9 +3,9 @@
 const {r} = require('@horizon/server');
 const {reqlOptions, writes, versionField: hz_v} = require('@horizon/plugin-utils');
 
-function remove(server) {
+function remove(context) {
   return (request, response, next) => {
-    const conn = server.rdb_connection().connection();
+    const conn = context.horizon.rdbConnection.connection();
     const timeout = request.getParameter('timeout');
     const collection = request.getParameter('collection');
     const permissions = request.getParameter('hz_permissions');
@@ -54,15 +54,15 @@ function remove(server) {
   };
 }
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_remove',
-  activate: (ctx) => ({
+  activate: (context) => ({
     methods: {
       remove: {
         type: 'terminal',
         requires: ['hz_permissions'],
-        handler: remove(ctx),
+        handler: remove(context),
       },
     },
   }),
-});
+};

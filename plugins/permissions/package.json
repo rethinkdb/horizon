@@ -23,10 +23,11 @@
   },
   "dependencies": {
     "@horizon/plugin-utils": "1.0.0",
-    "@horizon/client": "3.0.0-alpha-0"
+    "@horizon/client": "3.0.0-alpha-0",
+    "joi": "^8.0.4"
   },
   "peerDependencies": {
-    "@horizon/plugin-router": "1.x",
+    "@horizon/plugin-router-base": "1.x",
     "@horizon/server": "3.x"
   },
   "devDependencies": {

@@ -130,12 +130,12 @@ class ReliableInit extends Reliable {
 }
 
 class ReliableMetadata extends Reliable {
-  constructor(server,
+  constructor(context,
               auto_create_collection,
               auto_create_index) {
     super();
-    this._db = server.options.project_name;
-    this._reliable_conn = server.rdb_connection();
+    this._db = context.horizon.options.project_name;
+    this._reliable_conn = context.horizon.rdbConnection;
     this._auto_create_collection = auto_create_collection;
     this._auto_create_index = auto_create_index;
     this._collections = new Map();

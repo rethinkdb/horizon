@@ -4,7 +4,7 @@ const Auth = require('./auth').Auth;
 const ClientConnection = require('./client');
 const logger = require('./logger');
 const {ReliableConn, ReliableChangefeed} = require('./reliable');
-const {optionsSchema, methodSchema} = require('./schema/server_options');
+const schema = require('./schema/server_options');
 const Request = require('./request');
 
 const EventEmitter = require('events');
@@ -25,21 +25,20 @@ function handleProtocols(protocols, cb) {
   }
 }
 
-class Server extends EventEmitter {
+class Server {
   constructor(http_servers, user_opts) {
-    super();
-    this.options = Joi.attempt(user_opts || { }, optionsSchema);
+    this.options = Joi.attempt(user_opts || { }, schema.options);
     this._auth_methods = { };
     this._request_handlers = new Map();
     this._ws_servers = [];
     this._close_promise = null;
-    this._defaultMiddlewareCb = (req, res, next) => {
-      next(new Error('No middleware to handle the request.'));
-    };
-    this._middlewareCb = this._defaultMiddlewareCb;
+    this._methods = {};
+    this._middlewareMethods = new Set();
     this._auth = new Auth(this, this.options.auth);
+    this._clients = new Set();
+    this.events = new EventEmitter();
 
-    this._reliableConn = new ReliableConn({
+    this.rdbConnection = new ReliableConn({
       host: this.options.rdb_host,
       port: this.options.rdb_port,
       db: this.options.project_name,
@@ -47,20 +46,13 @@ class Server extends EventEmitter {
       password: this.options.rdb_password || '',
       timeout: this.options.rdb_timeout || null,
     });
-    this._clients = new Set();
 
-    this.r = r;
-    this.logger = logger;
-    // RSI: better place to put this that on the context?  Should plugins
-    // require the server?
-    this.ReliableChangefeed = ReliableChangefeed;
-
-    this._clear_clients_subscription = this._reliableConn.subscribe({
+    this._clear_clients_subscription = this.rdbConnection.subscribe({
       onReady: () => {
-        this.emit('ready', this);
+        this.events.emit('ready', this);
       },
       onUnready: (err) => {
-        this.emit('unready', this, err);
+        this.events.emit('unready', this, err);
         const msg = (err && err.message) || 'Connection became unready.';
         this._clients.forEach((client) => client.close({error: msg}));
         this._clients.clear();
@@ -69,7 +61,7 @@ class Server extends EventEmitter {
 
     const verifyClient = (info, cb) => {
       // Reject connections if we aren't synced with the database
-      if (!this._reliableConn.ready) {
+      if (!this.rdbConnection.ready) {
         cb(false, 503, 'Connection to the database is down.');
       } else {
         cb(true);
@@ -85,7 +77,7 @@ class Server extends EventEmitter {
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
         .on('connection', (socket) => {
           try {
-            if (!this._reliableConn.ready) {
+            if (!this.rdbConnection.ready) {
               throw new Error('No connection to the database.');
             }
 
@@ -94,13 +86,13 @@ class Server extends EventEmitter {
               this._auth,
               this._getRequestHandler,
               this._getCapabilities,
-              this // Used to emit a client auth event
+              this.events,
             );
             this._clients.add(client);
-            this.emit('connect', client.context());
-            socket.on('close', () => {
+            this.events.emit('connect', client.context());
+            socket.once('close', () => {
               this._clients.delete(client);
-              this.emit('disconnect', client.context());
+              this.events.emit('disconnect', client.context());
             });
           } catch (err) {
             logger.error(`Failed to construct client: ${err}`);
@@ -124,12 +116,8 @@ class Server extends EventEmitter {
     return this._auth;
   }
 
-  rdb_connection() {
-    return this._reliableConn;
-  }
-
-  add_method(name, raw_options) {
-    const options = Joi.attempt(raw_options, optionsSchema);
+  addMethod(name, raw_options) {
+    const options = Joi.attempt(raw_options, schema.method);
     if (this._methods[name]) {
       throw new Error(`"${name}" is already registered as a method.`);
     }
@@ -143,7 +131,7 @@ class Server extends EventEmitter {
     this._capabilities = null;
   }
 
-  remove_method(name) {
+  removeMethod(name) {
     delete this._methods[name];
     this._middlewareMethods.delete(name);
     this._requirementsOrdering = null;
@@ -254,7 +242,7 @@ class Server extends EventEmitter {
       this._close_promise =
         Promise.all(this._ws_servers.map((s) => new Promise((resolve) => {
           s.close(resolve);
-        }))).then(() => this._reliableConn.close());
+        }))).then(() => this.rdbConnection.close());
     }
     return this._close_promise;
   }

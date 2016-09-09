@@ -42,7 +42,7 @@
     "@horizon-plugins/watch": "1.0.0"
   },
   "peerDependencies": {
-    "@horizon/plugin-router": "1.x",
+    "@horizon/plugin-router-base": "1.x",
     "@horizon/server": "3.x"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 'use strict';
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_permissions',
   activate: () => ({
     methods: {
@@ -13,4 +13,4 @@ module.exports = () => ({
       },
     },
   }),
-});
+};

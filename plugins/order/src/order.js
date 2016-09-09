@@ -30,7 +30,7 @@ function order(req, res, next) {
   }
 }
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_order',
   activate: () => ({
     methods: {
@@ -40,4 +40,4 @@ module.exports = () => ({
       },
     },
   }),
-});
+};

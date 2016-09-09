@@ -4,6 +4,8 @@ const Rule = require('./rule');
 
 const assert = require('assert');
 
+const Joi = require('joi');
+
 const {r, logger, ReliableChangefeed} = require('@horizon/server');
 
 // We can be desynced from the database for up to 5 seconds before we
@@ -134,17 +136,16 @@ class RuleMap {
 }
 
 class UserCache {
-  constructor(config, ctx) {
-    this.timeout = config.cacheTimeout;
+  constructor(context, options) {
+    this.timeout = options.cacheTimeout;
 
     this.ruleMap = new RuleMap();
-
     this.userCfeeds = new Map();
     this.newUserCfeed = (userId) => {
       let oldGroups = new Set();
       const cfeed = new ReliableChangefeed(
-        r.table(config.usersTable).get(userId).changes({includeInitial: true}),
-        ctx.rdb_connection(),
+        r.table(options.usersTable).get(userId).changes({includeInitial: true}),
+        context.horizon.rdbConnection,
         {
           onUnready: () => {
             cfeed.unreadyAt = new Date();
@@ -176,8 +177,8 @@ class UserCache {
     this.queuedGroups = new Map();
     this.groupsUnreadyAt = new Date(0); // epoch
     this.groupCfeed = new ReliableChangefeed(
-      r.table(config.groupsTable).changes({includeInitial: true}),
-      ctx.rdb_connection(),
+      r.table(options.groupsTable).changes({includeInitial: true}),
+      context.horizon.rdbConnection,
       {
         onReady: () => {
           this.ruleMap.delAllGroupRules();
@@ -227,6 +228,14 @@ class UserCache {
     );
   }
 
+  close() {
+    let promises = [this.groupCfeed.close()];
+    this.userCfeeds.forEach((feed) => {
+      promises.push(feed.close()); 
+    });
+    return Promise.all(promises);
+  }
+
   subscribe(userId) {
     let cfeed = this.userCfeeds.get(userId);
     if (!cfeed) {
@@ -250,10 +259,10 @@ class UserCache {
             if (userStale || groupsStale) {
               let staleSince = null;
               const curTime = Number(new Date());
-              if (userStale && (curTime - Number(userStale) > staleMs)) {
+              if (userStale && (curTime - Number(userStale) > this.timeout)) {
                 staleSince = userStale;
               }
-              if (groupsStale && (curTime - Number(groupsStale) > staleMs)) {
+              if (groupsStale && (curTime - Number(groupsStale) > this.timeout)) {
                 if (!staleSince || Number(groupsStale) < Number(staleSince)) {
                   staleSince = groupsStale;
                 }
@@ -307,74 +316,73 @@ class UserCache {
   }
 }
 
-// RSI: remove the extra level of function calling.
-module.exports = (raw_config) => {
-  // RSI: better default handling, use Joi?
-  const config = raw_config || { };
-  if (config.cacheTimeout === undefined) {
-    config.cacheTimeout = 5000;
-  }
-  config.usersTable = config.usersTable || 'users';
-  config.groupsTable = config.groupsTable || 'hz_groups';
+const optionsSchema = Joi.object().keys({
+  name: Joi.any().required(),
+  usersTable: Joi.string().default('users'),
+  groupsTable: Joi.string().default('hz_groups'),
+  cacheTimeout: Joi.number().positive().integer().default(5000),
+}).unknown(true);
 
-  const name = config.name;
-  const userCache = Symbol(`${name}_userCache`);
-  const userSub = Symbol(`${name}_userSub`);
-  let authCb, disconnectCb;
-  return {
-    name: 'hz_permissions',
+module.exports = {
+  name: 'hz_permissions',
 
-    activate(ctx, onReady, onUnready) {
-      logger.info('Activating permissions plugin.');
-      ctx[userCache] = new UserCache(config, ctx);
-
-      authCb = (clientCtx) => {
-        clientCtx[userSub] = ctx[userCache].subscribe(clientCtx.user.id);
-      };
-      ctx.on('auth', authCb);
-
-      disconnectCb = (clientCtx) => {
+  activate(context, rawOptions, onReady, onUnready) {
+    const options = Joi.attempt(rawOptions, optionsSchema);
+    const userSub = Symbol(`${options.name}_userSub`);
+    
+    // Save things in the context that we will need at deactivation
+    const userCache = new UserCache(context, options);
+    context[options.name] = {
+      userCache,
+      authCb: (clientCtx) => {
+        clientCtx[userSub] = userCache.subscribe(clientCtx.user.id);
+      },
+      disconnectCb: (clientCtx) => {
         if (clientCtx[userSub]) {
           clientCtx[userSub].close();
         }
-      };
-      ctx.on('disconnect', disconnectCb);
+      },
+    };
 
-      return new Promise((resolve, reject) => {
-        ctx[userCache].groupCfeed.subscribe({onUnready, onReady: () => {
-          resolve({
-            methods: {
-              hz_permissions: {
-                type: 'preReq',
-                handler: (req, res, next) => {
-                  if (!req.clientCtx[userSub]) {
-                    next(new Error('client connection not authenticated'));
-                  } else {
-                    req.clientCtx[userSub].getValidatePromise(req).then((validate) => {
-                      req.setParameter(validate);
-                      next();
-                    }).catch(next);
-                  }
-                },
+    context.horizon.events.on('auth', context[options.name].authCb);
+    context.horizon.events.on('disconnect', context[options.name].disconnectCb);
+
+    return new Promise((resolve, reject) => {
+      userCache.groupCfeed.subscribe({onUnready, onReady: () => {
+        resolve({
+          methods: {
+            hz_permissions: {
+              type: 'prereq',
+              handler: (req, res, next) => {
+                if (!req.clientCtx[userSub]) {
+                  next(new Error('Client connection is not authenticated.'));
+                } else {
+                  req.clientCtx[userSub].getValidatePromise(req).then((validate) => {
+                    req.setParameter(validate);
+                    next();
+                  }).catch(next);
+                }
               },
             },
-          });
-          onReady();
-        }});
-      });
+          },
+        });
+        onReady();
+      }});
+    });
 
-    },
+  },
 
-    deactivate(ctx) {
-      if (authCb) {
-        ctx.removeListener('auth', authCb);
-      }
-      if (disconnectCb) {
-        ctx.removeListener('disconnect', disconnectCb);
-      }
-      if (ctx[userCache]) {
-        ctx[userCache].close();
-      }
-    },
-  };
+  deactivate(context, options) {
+    const pluginData = context[options.name];
+    delete context[options.name];
+    if (pluginData.authCb) {
+      context.removeListener('auth', pluginData.authCb);
+    }
+    if (pluginData.disconnectCb) {
+      context.removeListener('disconnect', pluginData.disconnectCb);
+    }
+    if (pluginData.userCache) {
+      pluginData.userCache.close();
+    }
+  },
 };

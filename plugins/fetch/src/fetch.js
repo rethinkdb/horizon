@@ -2,11 +2,11 @@
 
 const {reqlOptions, reads} = require('@horizon/plugin-utils');
 
-function fetch(ctx) {
+function fetch(context) {
   return (req, res, next) => {
     const args = req.options.fetch;
     const permissions = req.getParameter('hz_permissions');
-    const conn = ctx.rdb_connection().connection();
+    const conn = context.horizon.rdbConnection.connection();
 
     if (args.length !== 0) {
       next(new Error(`"fetch" expects 0 arguments but found ${args.length}`));
@@ -53,15 +53,15 @@ function fetch(ctx) {
   };
 }
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_fetch',
-  activate: (ctx) => ({
+  activate: (context) => ({
     methods: {
       fetch: {
         type: 'terminal',
         requires: ['hz_permissions'],
-        handler: fetch(ctx),
+        handler: fetch(context),
       },
     },
   }),
-});
+};

@@ -1,7 +1,7 @@
 'use strict';
 
 const horizon = require('@horizon/server');
-const PluginRouter = require('@horizon/plugin-router');
+const PluginRouter = require('@horizon/plugin-router-base');
 const defaults = require('@horizon-plugins/defaults');
 const logger = horizon.logger;
 
@@ -23,7 +23,7 @@ logger.add(logger.transports.File, {filename: log_file});
 logger.remove(logger.transports.Console);
 
 // Variables used by most tests
-let rdb_server, rdb_http_port, rdb_port, rdb_conn, horizon_server, horizon_port, horizon_conn, horizon_listeners;
+let rdb_server, rdb_http_port, rdb_port, rdb_conn, horizon_server, horizon_port, horizon_conn, horizon_listeners, plugin_router;
 let horizon_authenticated = false;
 
 const start_rethinkdb = () => {
@@ -47,7 +47,7 @@ const start_rethinkdb = () => {
   });
 };
 
-const stop_rethinkdb = () => rdb_server.close();
+const stop_rethinkdb = () => rdb_server && rdb_server.close();
 
 // Used to prefix reql queries with the underlying table of a given collection
 const table = (collection) =>
@@ -144,18 +144,16 @@ const start_horizon_server = (done) => {
     });
 
     plugin_router = new PluginRouter(horizon_server);
-    const plugins_promise = plugin_router.add(defaults({
+    const plugins_promise = plugin_router.add(defaults, {
       auto_create_collection: true,
       auto_create_index: true,
-    }));
-
-    horizon_server.set_middleware(plugin_router.hzMiddleware());
-
-    horizon_server.on('ready', () => {
-      logger.info('horizon server ready');
-      plugins_promise.then(done).catch(done);
     });
-    horizon_server.on('unready', (server, err) => {
+
+    horizon_server.events.on('ready', () => {
+      logger.info('horizon server ready');
+      plugins_promise.then(() => done()).catch(done);
+    });
+    horizon_server.events.on('unready', (server, err) => {
       logger.info(`horizon server unready: ${err}`);
     });
   });
@@ -169,8 +167,8 @@ const close_horizon_server = () => {
   plugin_router = undefined;
 
   if (horizon_server !== undefined) {
-    horizon_server.removeAllListeners('ready');
-    horizon_server.removeAllListeners('unready');
+    horizon_server.events.removeAllListeners('ready');
+    horizon_server.events.removeAllListeners('unready');
     horizon_server.close();
   }
   horizon_server = undefined;

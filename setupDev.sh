@@ -38,7 +38,7 @@ link_dir () {
 link_dir client
 link_dir server "@horizon/client"
 link_dir cli "@horizon/server"
-link_dir plugin-router
+link_dir plugin-router/base
 link_dir plugin-utils
 
 # Link all the plugins - 'utils' must go first, and 'defaults' must go last

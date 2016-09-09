@@ -3,9 +3,9 @@
 const {r} = require('@horizon/server');
 const {reqlOptions, writes} = require('@horizon/plugin-utils');
 
-function insert(server) {
+function insert(context) {
   return (request, response, next) => {
-    const conn = server.rdb_connection().connection();
+    const conn = context.horizon.rdbConnection.connection();
     const timeout = request.getParameter('timeout');
     const collection = request.getParameter('collection');
     const permissions = request.getParameter('hz_permissions');
@@ -33,15 +33,15 @@ function insert(server) {
   };
 }
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_insert',
-  activate: (ctx) => ({
+  activate: (context) => ({
     methods: {
       insert: {
         type: 'terminal',
         requires: ['hz_permissions'],
-        handler: insert(ctx),
+        handler: insert(context),
       },
     },
   }),
-});
+};

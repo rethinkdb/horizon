@@ -12,7 +12,7 @@ function limit(req, res, next) {
   }
 }
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_limit',
   activate: () => ({
     methods: {
@@ -22,4 +22,4 @@ module.exports = () => ({
       },
     },
   }),
-});
+};

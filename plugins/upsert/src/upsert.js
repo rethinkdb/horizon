@@ -3,9 +3,9 @@
 const {r} = require('@horizon/server');
 const {reqlOptions, writes, versionField: hz_v} = require('@horizon/plugin-utils');
 
-function upsert(server) {
+function upsert(context) {
   return (request, response, next) => {
-    const conn = server.rdb_connection().connection();
+    const conn = context.horizon.rdbConnection.connection();
     const timeout = request.getParameter('timeout');
     const collection = request.getParameter('collection');
     const permissions = request.getParameter('hz_permissions');
@@ -65,15 +65,15 @@ function upsert(server) {
   };
 }
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_upsert',
-  activate: (ctx) => ({
+  activate: (context) => ({
     methods: {
       upsert: {
         type: 'terminal',
         requires: ['hz_permissions'],
-        handler: upsert(ctx),
+        handler: upsert(context),
       },
     },
   }),
-});
+};

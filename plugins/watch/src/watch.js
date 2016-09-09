@@ -2,11 +2,11 @@
 
 const {reqlOptions, reads} = require('@horizon/plugin-utils');
 
-function watch(server) {
+function watch(context) {
   return (req, res, next) => {
     const args = req.options.watch;
     const permissions = req.getParameter('hz_permissions');
-    const conn = server.rdb_connection().connection();
+    const conn = context.horizon.rdbConnection.connection();
 
     if (args.length !== 0) {
       next(new Error(`"watch" expects 0 arguments but found ${args.length}`));
@@ -49,15 +49,15 @@ function watch(server) {
   };
 }
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_watch',
-  activate: (ctx) => ({
+  activate: (context) => ({
     methods: {
       watch: {
         type: 'terminal',
         requires: ['hz_permissions'],
-        handler: watch(ctx),
+        handler: watch(context),
       },
     },
   }),
-});
+};

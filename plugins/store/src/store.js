@@ -3,9 +3,9 @@
 const {r} = require('@horizon/server');
 const {reqlOptions, writes, versionField: hz_v} = require('@horizon/plugin-utils');
 
-function store(ctx) {
+function store(context) {
   return (request, response, next) => {
-    const conn = ctx.rdb_connection().connection();
+    const conn = context.horizon.rdbConnection.connection();
     const timeout = request.getParameter('timeout');
     const collection = request.getParameter('collection');
     const permissions = request.getParameter('hz_permissions');
@@ -58,15 +58,15 @@ function store(ctx) {
   };
 }
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_store',
-  activate: (ctx) => ({
+  activate: (context) => ({
     methods: {
       store: {
         type: 'terminal',
         requires: ['hz_permissions'],
-        handler: store(ctx),
+        handler: store(context),
       },
     },
   }),
-});
+};

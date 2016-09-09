@@ -12,7 +12,7 @@ function timeout(req, res, next) {
   }
 }
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_timeout',
   activate: () => ({
     methods: {
@@ -22,4 +22,4 @@ module.exports = () => ({
       },
     },
   }),
-});
+};

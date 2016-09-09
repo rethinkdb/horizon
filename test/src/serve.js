@@ -6,7 +6,7 @@ require('../server/node_modules/source-map-support').install();
 Error.stackTraceLimit = Infinity;
 
 const horizon_server = require('@horizon/server');
-const PluginRouter = require('@horizon/plugin-router');
+const PluginRouter = require('@horizon/plugin-router-base');
 const plugins = require('@horizon/plugin-defaults');
 
 // Utilities provided by the CLI library
@@ -183,13 +183,12 @@ new Promise((resolve) => {
     permissions: 'permit-all',
     auto_create_collection: true,
     auto_create_index: true,
-  }).catch((err) =>
-    console.log(`Plugin initialization failed: ${err.stack}`)
-  );
+  }).catch((err) => {
+    console.log(`Plugin initialization failed: ${err.stack}`);
+    process.exit(1);
+  });
 
   pluginRouter.once('ready', () => {
-    hz_server.set_middleware(pluginRouter.hzMiddleware());
-
     // Capture requests to `horizon.js` and `horizon.js.map` before the horizon server
     console.log('starting http servers');
     http_servers.forEach((serv, i) => {

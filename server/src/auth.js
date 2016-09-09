@@ -97,7 +97,7 @@ class Auth {
   // TODO: maybe we should write something into the user data to track open sessions/tokens
   generate(provider, info) {
     return Promise.resolve().then(() => {
-      const conn = this._parent.rdb_connection().connection();
+      const conn = this._parent.rdbConnection.connection();
       const key = this.auth_key(provider, info);
       const db = r.db(this._parent.options.project_name);
 

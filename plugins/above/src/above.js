@@ -16,7 +16,7 @@ function above(req, res, next) {
   }
 }
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_above',
   activate: () => ({
     methods: {
@@ -26,4 +26,4 @@ module.exports = () => ({
       },
     },
   }),
-});
+};

@@ -40,37 +40,33 @@ function collection(metadata) {
   };
 }
 
-module.exports = (options) => {
-  const metadata = Symbol('hz_collection_metadata');
+module.exports = {
+  name: 'hz_collection',
+  activate: (context, options, onReady, onUnready) => {
+    context[options.name] = new ReliableMetadata(
+      context,
+      Boolean(options.auto_create_collection),
+      Boolean(options.auto_create_index));
 
-  return {
-    name: 'hz_collection',
-    activate: (ctx, onReady, onUnready) => {
-      ctx[metadata] = new ReliableMetadata(
-        ctx,
-        Boolean(options.auto_create_collection),
-        Boolean(options.auto_create_index));
-
-      return new Promise((resolve, reject) => {
-        ctx[metadata].subscribe({onUnready, onReady: () => {
-          resolve({
-            methods: {
-              collection: {
-                type: 'option',
-                handler: collection(ctx[metadata]),
-              },
+    return new Promise((resolve, reject) => {
+      context[options.name].subscribe({onUnready, onReady: () => {
+        resolve({
+          methods: {
+            collection: {
+              type: 'option',
+              handler: collection(context[options.name]),
             },
-          });
-          onReady();
-        }});
-      });
-    },
-    deactivate: (ctx) => {
-      if (ctx[metadata]) {
-        ctx[metadata].close();
-      }
-    },
-  };
+          },
+        });
+        onReady();
+      }});
+    });
+  },
+  deactivate: (context, options) => {
+    if (context[options.name]) {
+      context[options.name].close();
+    }
+  },
 };
 
 module.exports.createCollection = queries.createCollection;

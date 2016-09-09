@@ -3,6 +3,7 @@
 const assert = require('assert');
 const vm = require('vm');
 
+// RSI: don't use the client AST - there are simple rules for generating options
 const ast = require('@horizon/client/lib/ast');
 const validIndexValue = require('@horizon/client/lib/util/valid-index-value').default;
 const {remakeError} = require('@horizon/plugin-utils');

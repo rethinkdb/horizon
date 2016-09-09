@@ -2,7 +2,7 @@
 
 const Joi = require('joi');
 
-const server = Joi.object({
+const options = Joi.object({
   project_name: Joi.string().default('horizon'),
   rdb_host: Joi.string().hostname().default('localhost'),
   rdb_port: Joi.number().greater(0).less(65536).default(28015),
@@ -36,4 +36,4 @@ const method = Joi.object({
   requires: Joi.array().single().items(Joi.string()).default([]),
 }).unknown(false);
 
-module.exports = {server, auth, method};
+module.exports = {options, auth, method};

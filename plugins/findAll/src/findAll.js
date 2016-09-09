@@ -14,7 +14,7 @@ function findAll(req, res, next) {
   }
 }
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_findAll',
   activate: () => ({
     methods: {
@@ -24,4 +24,4 @@ module.exports = () => ({
       },
     },
   }),
-});
+};

@@ -16,7 +16,7 @@ function below(req, res, next) {
   }
 }
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_below',
   activate: () => ({
     methods: {
@@ -26,4 +26,4 @@ module.exports = () => ({
       },
     },
   }),
-});
+};

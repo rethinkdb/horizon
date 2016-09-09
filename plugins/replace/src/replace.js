@@ -3,9 +3,9 @@
 const {r} = require('@horizon/server');
 const {reqlOptions, writes, versionField: hz_v} = require('@horizon/plugin-utils');
 
-function replace(server) {
+function replace(context) {
   return (request, response, next) => {
-    const conn = server.rdb_connection().connection();
+    const conn = context.horizon.rdbConnection.connection();
     const timeout = request.getParameter('timeout');
     const collection = request.getParameter('collection');
     const permissions = request.getParameter('hz_permissions');
@@ -45,15 +45,15 @@ function replace(server) {
   };
 }
 
-module.exports = () => ({
+module.exports = {
   name: 'hz_replace',
-  activate: (ctx) => ({
+  activate: (context) => ({
     methods: {
       replace: {
         type: 'terminal',
         requires: ['hz_permissions'],
-        handler: replace(ctx),
+        handler: replace(context),
       },
     },
   }),
-});
+};
