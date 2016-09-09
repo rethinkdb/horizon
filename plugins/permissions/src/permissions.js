@@ -376,10 +376,10 @@ module.exports = {
     const pluginData = context[options.name];
     delete context[options.name];
     if (pluginData.authCb) {
-      context.removeListener('auth', pluginData.authCb);
+      context.horizon.events.removeListener('auth', pluginData.authCb);
     }
     if (pluginData.disconnectCb) {
-      context.removeListener('disconnect', pluginData.disconnectCb);
+      context.horizon.events.removeListener('disconnect', pluginData.disconnectCb);
     }
     if (pluginData.userCache) {
       pluginData.userCache.close();

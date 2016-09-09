@@ -107,22 +107,17 @@ class RethinkdbServer {
   }
 
   close() {
-    console.log('closing rdb server');
     return new Promise((resolve) => {
       if (this.proc.exitCode !== null) {
-        console.log('rdb server already exited');
         resolve();
       } else {
-        console.log('killing server with sigterm');
         this.proc.kill('SIGTERM');
 
         this.proc.once('exit', () => {
-          console.log('rdb server exited');
           resolve();
         });
 
         setTimeout(() => {
-          console.log('killing server with sigkill');
           this.proc.kill('SIGKILL');
           resolve();
         }, 20000).unref();

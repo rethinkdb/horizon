@@ -19,7 +19,6 @@ class PluginRouter extends EventEmitter {
   }
 
   close() {
-    console.log(`closing plugin-router: ${JSON.stringify(this.plugins.keys())}`);
     return Promise.all(Array.from(this.plugins.keys()).map((p) => this.remove(p)));
   }
 
@@ -60,29 +59,26 @@ class PluginRouter extends EventEmitter {
       activatePromise.then(() => this._noteReady(options.name));
     }
 
-    this.plugins.set(options.name, {options, activatePromise});
+    this.plugins.set(options.name, {options, activatePromise, plugin});
     return activatePromise;
   }
 
   remove(name, reason) {
-    const plugin = this.plugins.get(name);
+    const info = this.plugins.get(name);
 
-    if (!plugin) {
+    if (!info) {
       return Promise.reject(new Error(`Plugin "${name}" is not present.`));
     }
 
     this.plugins.delete(name);
-    console.log(`deactivating plugin ${name}`);
-    return plugin.activatePromise.then((active) => {
+    return info.activatePromise.then((active) => {
       for (const m in active.methods) {
         this.horizon.removeMethod(m);
       }
-      if (plugin.deactivate) {
-        return plugin.deactivate(this.context, plugin.options,
-                                 reason || 'Removed from PluginRouter.').then(() =>
-          console.log(`plugin ${name} deactivated, removing methods`));
+      if (info.plugin.deactivate) {
+        return info.plugin.deactivate(this.context, info.options,
+                                      reason || 'Removed from PluginRouter.');
       }
-      console.log(`plugin ${name} has no deactivate, done`);
     });
   }
 
