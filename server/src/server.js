@@ -59,6 +59,61 @@ class Server {
       },
     });
 
+    this._requestHandler = (req, res, next) => {
+      let terminal = null;
+      const requirements = {};
+
+      this._middlewareMethods.forEach((name) => {
+        requirements[name] = true;
+      });
+
+      for (const o in req.options) {
+        const m = this._methods[o];
+        if (!m) {
+          next(new Error(`No method to handle option "${o}".`));
+          return;
+        }
+
+        if (m.type === 'terminal') {
+          if (terminal !== null) {
+            next(new Error('Multiple terminal methods in request: ' +
+                           `"${terminal}", "${o}".`));
+            return;
+          }
+          terminal = o;
+        } else {
+          requirements[o] = true;
+        }
+        for (const r of m.requires) {
+          requirements[r] = true;
+        }
+      }
+
+      if (terminal === null) {
+        next(new Error('No terminal method was specified in the request.'));
+      } else if (requirements[terminal]) {
+        next(new Error(`Terminal method "${terminal}" is also a requirement.`));
+      } else {
+        const ordering = this._getRequirementsOrdering();
+        const chain = Object.keys(requirements).sort(
+          (a, b) => ordering[a] - ordering[b]);
+        chain.push(terminal);
+
+        chain.reduceRight((cb, methodName) =>
+          (maybeErr) => {
+            if (maybeErr instanceof Error) {
+              next(maybeErr);
+            } else {
+              try {
+                this._methods[methodName].handler(new Request(req, methodName), res, cb);
+              } catch (e) {
+                next(e);
+              }
+            }
+          }, next)();
+      }
+    };
+
     const verifyClient = (info, cb) => {
       // Reject connections if we aren't synced with the database
       if (!this.rdbConnection.ready) {
@@ -84,7 +139,7 @@ class Server {
             const client = new ClientConnection(
               socket,
               this._auth,
-              this._getRequestHandler,
+              this._requestHandler,
               this._getCapabilities,
               this.events,
             );
@@ -121,7 +176,7 @@ class Server {
     if (this._methods[name]) {
       throw new Error(`"${name}" is already registered as a method.`);
     }
-    this._methods[name] = raw_options;
+    this._methods[name] = options;
 
     if (options.type === 'middleware') {
       this._middlewareMethods.add(name); 
@@ -177,63 +232,6 @@ class Server {
       }
     }
     return this._capabilities;
-  }
-
-  _getRequestHandler() {
-    return (req, res, next) => {
-      let terminal = null;
-      const requirements = {};
-
-      this._middlewareMethods.forEach((name) => {
-        requirements[name] = true;
-      });
-
-      for (const o in req.options) {
-        const m = this._methods[o];
-        if (!m) {
-          next(new Error(`No method to handle option "${o}".`));
-          return;
-        }
-
-        if (m.type === 'terminal') {
-          if (terminal !== null) {
-            next(new Error('Multiple terminal methods in request: ' +
-                           `"${terminal}", "${o}".`));
-            return;
-          }
-          terminal = o;
-        } else {
-          requirements[o] = true;
-        }
-        for (const r of m.requires) {
-          requirements[r] = true;
-        }
-      }
-
-      if (terminal === null) {
-        next(new Error('No terminal method was specified in the request.'));
-      } else if (requirements[terminal]) {
-        next(new Error(`Terminal method "${terminal}" is also a requirement.`));
-      } else {
-        const ordering = this.requirementsOrdering();
-        const chain = Object.keys(requirements).sort(
-          (a, b) => ordering[a] - ordering[b]);
-        chain.push(terminal);
-
-        chain.reduceRight((cb, methodName) =>
-          (maybeErr) => {
-            if (maybeErr instanceof Error) {
-              next(maybeErr);
-            } else {
-              try {
-                this._methods[methodName].handler(new Request(req, methodName), res, cb);
-              } catch (e) {
-                next(e);
-              }
-            }
-          }, next)();
-      }
-    };
   }
 
   // TODO: We close clients in `onUnready` above, but don't wait for them to be closed.

@@ -32,9 +32,8 @@ export class Reliable {
       try {
         cbs.onReady.apply(cbs, this.ready);
       } catch (e) {
-        // RSI: use logging facilities
-        console.error('Unexpected error in reliable callback, ' +
-                      `event: subscribe onReady, error: ${e.stack}`);
+        logger.error('Unexpected error in reliable callback, ' +
+                     `event: subscribe onReady, error: ${e.stack}`);
       }
     }
     return this[subs].get(subId);
@@ -62,9 +61,8 @@ export class Reliable {
           event.apply(sub.cbs, args);
         }
       } catch (e) {
-        // RSI: use logging facilities
-        console.error('Unexpected error in reliable callback, ' +
-                      `event: ${eventType}, error: ${e.stack}`);
+        logger.error('Unexpected error in reliable callback, ' +
+                     `event: ${eventType}, error: ${e.stack}`);
       }
     });
   }

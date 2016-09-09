@@ -75,8 +75,10 @@ module.exports = {
 
     const promises = subplugins.map((plugin) => {
       const promise = Promise.resolve().then(() =>
+        // Activate each plugin with their default name rather than the
+        // name of the defaults plugin
         plugin.activate(context,
-                        options,
+                        Object.assign({}, options, {name: plugin.name}),
                         () => ready(plugin.name),
                         () => unready(plugin.name))
       );
@@ -94,8 +96,12 @@ module.exports = {
   deactivate: (context, options) => {
     const subplugins = context[options.name].subplugins;
     delete context[options.name];
-    return Promise.all(subplugins.map((p) =>
-      Promise.resolve().then(() => p.deactivate && p.deactivate(context, options))));
+    return Promise.all(subplugins.map((plugin) =>
+      Promise.resolve().then(() => {
+        if (plugin.deactivate) {
+          plugin.deactivate(context, Object.assign({}, options, {name: plugin.name}));
+        }
+      })));
   },
 };
 
