@@ -49,6 +49,7 @@ const make_default_options = () => ({
   auth_redirect: '/',
   access_control_allow_origin: '',
   max_connections: null,
+  access_control_allow_headers: [],
 
   auth: { },
 });
@@ -150,6 +151,8 @@ ${configFilename}, causing it not be a valid TOML file.`,
   for (const field in fileConfig) {
     if (field === 'connect') {
       parse_connect(fileConfig.connect, config);
+    } else if (field === 'access_control_allow_headers') {
+      config[field] = fileConfig[field].split(',').map((item) => item.trim());
     } else if (yes_no_options.indexOf(field) !== -1) {
       config[field] = parse_yes_no_option(fileConfig[field], field);
     } else if (default_options[field] !== undefined) {
@@ -206,6 +209,8 @@ const read_from_env = () => {
 
       if (destVarName === 'connect') {
         parse_connect(value, config);
+      } else if (destVarName === 'access_control_allow_headers') {
+        config[destVarName] = value.split(',').map((item) => item.trim());
       } else if (destVarName === 'bind') {
         config[destVarName] = value.split(',');
       } else if (varPath[0] === 'auth') {
@@ -262,6 +267,8 @@ const read_from_flags = (parsed) => {
     } else if (key === 'connect' && parsed.connect != null) {
       // Normalize RethinkDB connection options
       parse_connect(parsed.connect, config);
+    } else if (key === 'access_control_allow_headers') {
+      config[key] = parsed[key].split(',').map((item) => item.trim());
     } else if (yes_no_options.indexOf(key) !== -1 && parsed[key] != null) {
       // Simple 'yes' or 'no' (or 'true' or 'false') flags
       config[key] = parse_yes_no_option(parsed[key], key);

@@ -153,6 +153,7 @@ class Server {
         res.writeHead(200, {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': opts.access_control_allow_origin,
+          'Access-Control-Allow-Headers': opts.access_control_allow_headers,
         });
         res.end(JSON.stringify(this._auth_methods));
       });

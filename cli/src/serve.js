@@ -145,6 +145,11 @@ const parseArguments = (args) => {
     { type: 'string', metavar: 'URL',
       help: 'The URL of the host that can access auth settings, defaults to "".' });
 
+  parser.addArgument([ '--access-control-allow-headers' ],
+    { type: 'string', metavar: 'HEADERS',
+      help: 'A list of additional headers accepted by CORS, ' +
+      'seperated by commas, defaults to "".' });
+
   parser.addArgument([ '--open' ],
     { action: 'storeTrue',
       help: 'Open index.html in the static files folder once Horizon is ready to' +
@@ -339,6 +344,7 @@ const start_horizon_server = (http_servers, opts) =>
     permissions: opts.permissions,
     project_name: opts.project_name,
     access_control_allow_origin: opts.access_control_allow_origin,
+    access_control_allow_headers: opts.access_control_allow_headers
     auth: {
       token_secret: opts.token_secret,
       allow_unauthenticated: opts.allow_unauthenticated,
