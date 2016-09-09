@@ -296,9 +296,9 @@ class ReliableMetadata extends Reliable {
           return new Promise((resolve, reject) =>
             collection._on_ready((maybeErr) => {
               if (maybeErr instanceof Error) {
-                resolve(collection);
-              } else {
                 reject(maybeErr);
+              } else {
+                resolve(collection);
               }
             }));
         }

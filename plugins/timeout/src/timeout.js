@@ -7,7 +7,7 @@ function timeout(req, res, next) {
   } else if (typeof args[0] !== 'number') {
     next(new Error('timeout must be a number'));
   } else {
-    req.setParameter(new Date() + args[0]);
+    req.setParameter(new Date(new Date().getTime() + args[0]));
     next();
   }
 }

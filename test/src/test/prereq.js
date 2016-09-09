@@ -11,57 +11,55 @@ const all_tests = (collection) => {
 
   // Launch simultaneous queries that depend on a non-existent collection, then
   // verify that only one table exists for that collection.
-  it('collection create race on read',
-     /** @this mocha */
-     function(done) {
-       const query_count = 5;
-       const rand_collection = crypto.randomBytes(8).toString('hex');
+  it('collection create race on read', (done) => {
+    const query_count = 5;
+    const rand_collection = crypto.randomBytes(8).toString('hex');
 
-       let finished = 0;
-       for (let i = 0; i < query_count; ++i) {
-         utils.stream_test(
-           {request_id: i, options: {collection: rand_collection, query: []}},
-           (err, res) => {
-             assert.ifError(err);
-             assert.strictEqual(res.length, 0);
-             if (++finished === query_count) {
-               utils.table(rand_collection).count().run(utils.rdb_conn())
-                .then((count) => (assert.strictEqual(count, 0), done()),
-                      (error) => done(error));
-             }
-           });
-       }
-     });
+    let finished = 0;
+    for (let i = 0; i < query_count; ++i) {
+      utils.stream_test(
+        {request_id: i, options: {collection: [rand_collection], fetch: []}},
+        (err, res) => {
+          assert.ifError(err);
+          assert.strictEqual(res.length, 0);
+          if (++finished === query_count) {
+            utils.table(rand_collection).count().run(utils.rdb_conn()).then((count) => {
+              assert.strictEqual(count, 0);
+              done();
+            }).catch(done);
+          }
+        });
+    }
+  });
 
   // Same as the previous test, but it exists because the ReQL error message
   // is different for a read or a write when the table is unavailable.
-  it('collection create race on write',
-     /** @this mocha */
-     function(done) {
-       const query_count = 5;
-       const rand_collection = crypto.randomBytes(8).toString('hex');
+  it('collection create race on write', (done) => {
+    const query_count = 5;
+    const rand_collection = crypto.randomBytes(8).toString('hex');
 
-       let finished = 0;
-       for (let i = 0; i < query_count; ++i) {
-         utils.stream_test(
-           {
-             request_id: i,
-             options: {
-               collection: rand_collection,
-               insert: [{ }],
-             },
-           },
-           (err, res) => {
-             assert.ifError(err);
-             assert.strictEqual(res.length, 1);
-             if (++finished === query_count) {
-               utils.table(rand_collection).count().run(utils.rdb_conn())
-                .then((count) => (assert.strictEqual(count, query_count), done()),
-                      (error) => done(error));
-             }
-           });
-       }
-     });
+    let finished = 0;
+    for (let i = 0; i < query_count; ++i) {
+      utils.stream_test(
+        {
+          request_id: i,
+          options: {
+            collection: [rand_collection],
+            insert: [{}],
+          },
+        },
+        (err, res) => {
+          assert.ifError(err);
+          assert.strictEqual(res.length, 1);
+          if (++finished === query_count) {
+            utils.table(rand_collection).count().run(utils.rdb_conn()).then((count) => {
+              assert.strictEqual(count, query_count);
+              done();
+            }).catch(done);
+          }
+        });
+    }
+  });
 
   // Launch two simultaneous queries that depend on a non-existent index, then
   // verify that only one such index exists with that name.
@@ -77,9 +75,9 @@ const all_tests = (collection) => {
           {
             request_id: i,
             options: {
-              collection,
+              collection: [collection],
               order: [[field_name], 'ascending'],
-              query: [],
+              fetch: [],
             },
           },
           (err, res) => {
@@ -89,7 +87,7 @@ const all_tests = (collection) => {
               utils.table(collection).indexStatus().count().run(conn).then((new_count) => {
                 assert.strictEqual(old_count + 1, new_count);
                 done();
-              }, (err2) => done(err2));
+              }).catch(done);
             }
           });
       }

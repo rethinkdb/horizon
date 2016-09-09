@@ -6,7 +6,7 @@ const assert = require('assert');
 
 const Joi = require('joi');
 
-const {r, logger, ReliableChangefeed} = require('@horizon/server');
+const {r, logger, Reliable, ReliableChangefeed} = require('@horizon/server');
 
 // We can be desynced from the database for up to 5 seconds before we
 // start rejecting queries.
@@ -174,6 +174,14 @@ class UserCache {
       return cfeed;
     };
 
+    // Set up a dummy user cfeed for unauthenticated users (null id)
+    this.ruleMap.addUserGroup(null, 'default');
+    this.userCfeeds.set(null, Object.assign(new Reliable(), {
+      refcount: 1,
+      unreadyAt: null,
+      readyPromise: Promise.resolve()
+    }));
+
     this.queuedGroups = new Map();
     this.groupsUnreadyAt = new Date(0); // epoch
     this.groupCfeed = new ReliableChangefeed(
@@ -220,7 +228,13 @@ class UserCache {
               }
             }
             for (const k in newRules) {
-              this.ruleMap.addGroupRule(id, k, new Rule(newRules[k]));
+              try {
+                this.ruleMap.addGroupRule(id, k, new Rule(newRules[k]));
+              } catch (err) {
+                logger.error(`Failed to evaluate rule ${id}.${k}: ${err}`);
+                logger.debug(`Contents: ${JSON.stringify(newRules[k])}`);
+                logger.debug(`Stack: ${err.stack}`);
+              }
             }
           }
         },
@@ -240,6 +254,7 @@ class UserCache {
     let cfeed = this.userCfeeds.get(userId);
     if (!cfeed) {
       this.userCfeeds.set(userId, cfeed = this.newUserCfeed(userId));
+      // RSI: move this into newUserCfeed?
       cfeed.readyPromise = new Promise((resolve, reject) => {
         cfeed.subscribe({onReady: () => resolve()});
         setTimeout(() => reject(new Error('timed out')), this.timeout);
@@ -357,6 +372,7 @@ module.exports = {
                 if (!req.clientCtx[userSub]) {
                   next(new Error('Client connection is not authenticated.'));
                 } else {
+                  // RSI: test timeout behavior - anecdotal evidence points to 'broken'
                   req.clientCtx[userSub].getValidatePromise(req).then((validate) => {
                     req.setParameter(validate);
                     next();

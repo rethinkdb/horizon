@@ -22,7 +22,7 @@ function make_write_response(data) {
       data[index] = {error: item.message};
     }
   });
-  return {data, state: 'complete'};
+  return data;
 }
 
 // This function returns a Promise that resolves to an array of responses -

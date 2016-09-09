@@ -1,7 +1,7 @@
 'use strict';
 
-const Template = require('./template').Template;
-const Validator = require('./validator').Validator;
+const Template = require('./template');
+const Validator = require('./validator');
 
 class Rule {
   constructor(info) {
