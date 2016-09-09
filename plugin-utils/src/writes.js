@@ -1,12 +1,10 @@
 'use strict';
 
-const utils = require('./utils');
-
 const assert = require('assert');
 
 const {r} = require('@horizon/server');
 
-const hz_v = utils.version_field;
+const hz_v = '$hz_v$';
 
 // Common functionality used by write requests
 const invalidated_msg = 'Write invalidated by another request, try again.';
@@ -15,7 +13,7 @@ const timeout_msg = 'Operation timed out.';
 const unauthorized_msg = 'Operation not permitted.';
 
 function apply_version(row, new_version) {
-  row.merge(r.object(hz_v, new_version));
+  return row.merge(r.object(hz_v, new_version));
 }
 
 function make_write_response(data) {
@@ -189,4 +187,5 @@ module.exports = {
   retry_loop,
   validate_old_row_required,
   validate_old_row_optional,
+  versionField: hz_v,
 };

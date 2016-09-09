@@ -12,10 +12,14 @@ const all_suites = ['prereq',
                     'watch',
                     'write',
                     'permissions'];
+
 const collection = 'test';
 
-before('Start RethinkDB Server', () => utils.start_rethinkdb());
-after('Stop RethinkDB Server', () => utils.stop_rethinkdb());
+before('Start servers', () => utils.startServers());
+after('Stop servers', () => utils.stopServers());
+
+before(`Creating general-purpose collection: '${collection}'`,
+       () => utils.create_collection(collection));
 
 beforeEach(
   /** @this mocha */
@@ -25,14 +29,7 @@ afterEach(
   /** @this mocha */
   function() { logger.info(`End test '${this.currentTest.title}'`); });
 
-describe('Horizon Server', () => {
-  before('Start Horizon Server', utils.start_horizon_server);
-  after('Close Horizon Server', utils.close_horizon_server);
+beforeEach('Connect Horizon Client', utils.open_horizon_conn);
+afterEach('Close Horizon Client', utils.close_horizon_conn);
 
-  before(`Creating general-purpose collection: '${collection}'`,
-         () => utils.create_collection(collection));
-
-  beforeEach('Connect Horizon Client', utils.open_horizon_conn);
-  afterEach('Close Horizon Client', utils.close_horizon_conn);
-  all_suites.forEach((s) => require(`./${s}`).suite(collection));
-});
+all_suites.forEach((s) => require(`./${s}`).suite(collection));

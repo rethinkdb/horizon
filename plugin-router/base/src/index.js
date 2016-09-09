@@ -19,6 +19,7 @@ class PluginRouter extends EventEmitter {
   }
 
   close() {
+    console.log(`closing plugin-router: ${JSON.stringify(this.plugins.keys())}`);
     return Promise.all(Array.from(this.plugins.keys()).map((p) => this.remove(p)));
   }
 
@@ -71,14 +72,17 @@ class PluginRouter extends EventEmitter {
     }
 
     this.plugins.delete(name);
+    console.log(`deactivating plugin ${name}`);
     return plugin.activatePromise.then((active) => {
       for (const m in active.methods) {
         this.horizon.removeMethod(m);
       }
       if (plugin.deactivate) {
         return plugin.deactivate(this.context, plugin.options,
-                                 reason || 'Removed from PluginRouter.');
+                                 reason || 'Removed from PluginRouter.').then(() =>
+          console.log(`plugin ${name} deactivated, removing methods`));
       }
+      console.log(`plugin ${name} has no deactivate, done`);
     });
   }
 

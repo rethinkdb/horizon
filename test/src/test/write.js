@@ -6,7 +6,7 @@ const pluginUtils = require('@horizon/plugin-utils');
 const assert = require('assert');
 const crypto = require('crypto');
 
-const hz_v = pluginUtils.version_field;
+const hz_v = pluginUtils.writes.versionField;
 const invalidated_msg = pluginUtils.writes.invalidated_msg;
 
 // Before each test, ids [0, 4) will be present in the collection
@@ -48,7 +48,7 @@ const all_tests = (collection) => {
 
   const make_request = (type, data, options) => ({
     request_id: crypto.randomBytes(4).readUInt32BE(),
-    options: Object.assign({type: []}, options || {}, {collection, data}),
+    options: Object.assign({}, options || {}, {collection: [collection], [type]: data}),
   });
 
   const check_collection = (expected, done) => {
@@ -571,7 +571,7 @@ const all_tests = (collection) => {
     // per iteration with the database.  In order to test timeouts, we use a
     // timeout of zero, so the other rows should immediately error.
     describe('Zero Timeout', () => {
-      const timeout = {timeout: 0};
+      const timeout = {timeout: [0]};
       const test_data = [{id: 0, value: 0}];
       beforeEach('Populate collection', () => utils.populate_collection(collection, test_data));
 

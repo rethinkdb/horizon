@@ -15,7 +15,7 @@ const r = require('rethinkdb');
 const websocket = require('ws');
 
 const project_name = 'integration_test';
-const data_dir = './rethinkdb_data_test';
+const dataDir = './rethinkdb_data_test';
 
 const log_file = `./horizon_test_${process.pid}.log`;
 logger.level = 'debug';
@@ -23,15 +23,18 @@ logger.add(logger.transports.File, {filename: log_file});
 logger.remove(logger.transports.Console);
 
 // Variables used by most tests
-let rdb_server, rdb_http_port, rdb_port, rdb_conn, horizon_server, horizon_port, horizon_conn, horizon_listeners, plugin_router;
+let rdb_server, rdb_http_port, rdb_port, rdb_conn, horizon_server, horizon_port, horizon_conn, horizon_listeners, plugin_router, http_server;
 let horizon_authenticated = false;
 
-const start_rethinkdb = () => {
-  logger.info('removing dir');
-  rm_sync_recursive(data_dir);
+function startServers() {
+  assert.strictEqual(horizon_server, undefined);
+  assert.strictEqual(plugin_router, undefined);
+
+  logger.info(`removing old rethinkdb data directory: ${dataDir}`);
+  rm_sync_recursive(dataDir);
 
   logger.info('creating server');
-  return start_rdb_server({dataDir: data_dir}).then((server) => {
+  return start_rdb_server({dataDir}).then((server) => {
     rdb_server = server;
     rdb_port = server.driver_port;
     rdb_http_port = server.http_port;
@@ -41,13 +44,66 @@ const start_rethinkdb = () => {
   }).then((conn) => {
     logger.info('connected');
     rdb_conn = conn;
-    return r.dbCreate(project_name).run(conn);
-  }).then((res) => {
-    assert.strictEqual(res.dbs_created, 1);
-  });
-};
+  }).then(() => {
+    logger.info('creating http server');
 
-const stop_rethinkdb = () => rdb_server && rdb_server.close();
+    http_server = new http.Server();
+    return new Promise((resolve, reject) => {
+      http_server.listen(0, () => {
+        logger.info('creating horizon server');
+        horizon_port = http_server.address().port;
+        horizon_server = new horizon.Server(http_server, {
+          project_name,
+          rdb_port,
+          auth: {
+            token_secret: 'hunter2',
+            allow_unauthenticated: true,
+          },
+        });
+
+        plugin_router = new PluginRouter(horizon_server);
+        const plugins_promise = plugin_router.add(defaults, {
+          auto_create_collection: true,
+          auto_create_index: true,
+        });
+
+        horizon_server.events.on('ready', () => {
+          logger.info('horizon server ready');
+          plugins_promise.then(resolve).catch(reject);
+        });
+        horizon_server.events.on('unready', (server, err) => {
+          logger.info(`horizon server unready: ${err}`);
+        });
+      });
+      http_server.on('error', reject);
+    });
+  });
+}
+
+function stopServers() {
+  let localRdbServer = rdb_server;
+  let localPluginRouter = plugin_router;
+  let localHorizonServer = horizon_server;
+  plugin_router = undefined;
+  horizon_server = undefined;
+  rdb_server = undefined;
+
+  return Promise.resolve().then(() => {
+    if (localPluginRouter) {
+      return localPluginRouter.close();
+    }
+  }).then(() => {
+    if (localHorizonServer) {
+      localHorizonServer.events.removeAllListeners('ready');
+      localHorizonServer.events.removeAllListeners('unready');
+      return localHorizonServer.close();
+    }
+  }).then(() => {
+    if (localRdbServer) {
+      localRdbServer.close();
+    }
+  });
+}
 
 // Used to prefix reql queries with the underlying table of a given collection
 const table = (collection) =>
@@ -123,55 +179,6 @@ const populate_collection = (collection, rows) => {
   } else {
     return table(collection).insert(rows).run(rdb_conn);
   }
-};
-
-const start_horizon_server = (done) => {
-  logger.info('creating http server');
-  assert.strictEqual(horizon_server, undefined);
-  assert.strictEqual(plugin_router, undefined);
-
-  const http_server = new http.Server();
-  http_server.listen(0, () => {
-    logger.info('creating horizon server');
-    horizon_port = http_server.address().port;
-    horizon_server = new horizon.Server(http_server, {
-      project_name,
-      rdb_port,
-      auth: {
-        token_secret: 'hunter2',
-        allow_unauthenticated: true,
-      },
-    });
-
-    plugin_router = new PluginRouter(horizon_server);
-    const plugins_promise = plugin_router.add(defaults, {
-      auto_create_collection: true,
-      auto_create_index: true,
-    });
-
-    horizon_server.events.on('ready', () => {
-      logger.info('horizon server ready');
-      plugins_promise.then(() => done()).catch(done);
-    });
-    horizon_server.events.on('unready', (server, err) => {
-      logger.info(`horizon server unready: ${err}`);
-    });
-  });
-  http_server.on('error', (err) => done(err));
-};
-
-const close_horizon_server = () => {
-  if (plugin_router !== undefined) {
-    plugin_router.close();
-  }
-  plugin_router = undefined;
-
-  if (horizon_server !== undefined) {
-    horizon_server.events.removeAllListeners('ready');
-    horizon_server.events.removeAllListeners('unready');
-    horizon_server.close();
-  }
-  horizon_server = undefined;
 };
 
 const add_horizon_listener = (request_id, cb) => {
@@ -306,12 +313,12 @@ module.exports = {
   horizon_port: () => horizon_port,
   horizon_listeners: () => horizon_listeners,
 
-  start_rethinkdb, stop_rethinkdb,
+  startServers, stopServers,
+
   create_collection,
   populate_collection,
   clear_collection,
 
-  start_horizon_server, close_horizon_server,
   open_horizon_conn, close_horizon_conn,
   horizon_auth, horizon_admin_auth, horizon_default_auth,
   add_horizon_listener, remove_horizon_listener,

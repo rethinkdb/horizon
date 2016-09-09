@@ -63,8 +63,11 @@ module.exports = {
     });
   },
   deactivate: (context, options) => {
-    if (context[options.name]) {
-      context[options.name].close();
+    console.log('deactivating collections plugin');
+    const metadata = context[options.name];
+    delete context[options.name];
+    if (metadata) {
+      metadata.close();
     }
   },
 };

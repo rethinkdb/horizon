@@ -1,7 +1,8 @@
 'use strict';
 
 const {r} = require('@horizon/server');
-const {reqlOptions, writes, versionField: hz_v} = require('@horizon/plugin-utils');
+const {reqlOptions, writes} = require('@horizon/plugin-utils');
+const hz_v = writes.versionField;
 
 function remove(context) {
   return (request, response, next) => {

@@ -51,14 +51,11 @@ const reqlOptions = {
   binaryFormat: 'raw',
 };
 
-const versionField = '$hz_v$';
-
 module.exports = {
   rethinkdbVersionCheck,
   remakeError,
   isObject,
   reqlOptions,
-  versionField,
   reads: require('./reads'),
   writes: require('./writes'),
   test: require('./test'),
