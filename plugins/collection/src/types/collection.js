@@ -93,12 +93,14 @@ class Collection {
       };
 
       const match = this._get_table().get_matching_index(fuzzy_fields, ordered_fields);
-      if (match && !match.ready()) {
-        match.on_ready(done);
-      } else if (!match) {
-        this._create_index(fuzzy_fields.concat(ordered_fields), done);
+      if (match) {
+        if (match.ready()) {
+          resolve(match);
+        } else {
+          match.on_ready(done);
+        }
       } else {
-        resolve(match);
+        this._create_index(fuzzy_fields.concat(ordered_fields), done);
       }
     });
   }

@@ -424,6 +424,24 @@ const all_tests = (collection) => {
         done();
       });
   });
+
+  it('findAll "above" and "below" on different fields.', (done) => {
+    utils.stream_test(
+      {
+        request_id: 0,
+        options: {
+          collection: [collection],
+          findAll: [{value: 0}],
+          below: [{a: 4}],
+          above: [{b: 5}],
+          fetch: [],
+        },
+      },
+      (err) => {
+        utils.check_error(err, '"below" must be on the same field as "above"');
+        done();
+      });
+  });
 };
 
 const suite = (collection) => describe('Fetch', () => all_tests(collection));

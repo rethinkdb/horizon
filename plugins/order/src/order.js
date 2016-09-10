@@ -23,8 +23,8 @@ function order(req, res, next) {
     next(new Error('Second argument to "order" must be "ascending" or "descending"'));
   } else {
     req.setParameter({
-      fields: Array.isArray(args[0]) ? args[0].map(convertField) : convertField(args[0]),
-      direction: args.length === 1 ? 'ascending' : args[1],
+      fields: Array.isArray(args[0]) ? args[0].map(convertField) : [convertField(args[0])],
+      descending: args.length === 1 ? false : (args[1] === 'descending'),
     });
     next();
   }

@@ -1,8 +1,11 @@
 'use strict';
 
+const assert = require('assert');
+
 const {r} = require('@horizon/server');
 
-function object_to_fields(obj) {
+// For a given object, returns the array of fields present
+function objectToFields(obj) {
   return Object.keys(obj).map((key) => {
     const value = obj[key];
     if (value !== null && typeof value === 'object' && !value.$reql_type$) {
@@ -13,111 +16,189 @@ function object_to_fields(obj) {
   });
 }
 
-// This is exposed to be reused by 'subscribe'
-const makeReadReql = (req) => Promise.resolve().then(() => {
-  const find = req.getParameter('find');
-  const limit = req.getParameter('limit');
-  const order = req.getParameter('order');
-  const above = req.getParameter('above');
-  const below = req.getParameter('below');
-  const findAll = req.getParameter('findAll');
-  const collection = req.getParameter('collection');
-
-  if (!collection) {
-    throw new Error('"collection" was not specified.');
-  } else if (find && findAll) {
-    throw new Error('Cannot specify both "find" and "findAll".');
-  } else if (find && (limit || order || above || below)) {
-    throw new Error('Cannot specify "find" with "limit", "order", "above", or "below".');
-  } else if ((above || below) && !order) {
-    throw new Error('Cannot specify "above" or "below" without "order".');
+// Gets the value of a field out of an object, or undefined if it is not present
+function getObjectField(obj, field) {
+  let value = obj;
+  for (const name of field) {
+    if (value === undefined) {
+      return value;
+    }
+    value = value[name];
   }
+  return value;
+}
 
-  const order_keys = (order && order[0]) || [];
-  let aboveKeyCount = above ? Object.keys(above[0]).length : 0;
-  let belowKeyCount = below ? Object.keys(below[0]).length : 0;
-  order_keys.forEach((k) => {
-    if (above) {
-      if (above[0][k] !== undefined) {
-        aboveKeyCount -= 1;
-      } else if (aboveKeyCount !== 0) {
-        throw new Error('The keys in "above" must appear continguously ' +
-                         'from the start of "order".');
-      }
+// Gets the value of a field out of an object, throws an error if it is not present
+function guaranteeObjectField(obj, field) {
+  const res = getObjectField(obj, field);
+  assert(res !== undefined);
+  return res;
+}
+
+// Compares two fields, returns true if they are identical, false otherwise
+function isSameField(a, b) {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < b.length; ++i) {
+    if (a[i] !== b[i]) {
+      return false;
     }
-    if (below) {
-      if (below[0][k] !== undefined) {
-        belowKeyCount -= 1;
-      } else if (belowKeyCount !== 0) {
-        throw new Error('The keys in "below" must appear continguously ' +
-                         'from the start of "order".');
-      }
+  }
+  return true;
+}
+
+// Returns true if the expected field is in the array of fields
+function hasField(fields, expected) {
+  for (let i = 0; i < fields.length; ++i) {
+    if (isSameField(fields[i], expected)) {
+      return true;
     }
+  }
+}
+
+function makeFindReql(collection, find) {
+  return collection.get_matching_index(objectToFields(find), []).then((index) => {
+    let value = index.fields.map((field) => guaranteeObjectField(find, field));
+
+    if (index.name === 'id') {
+      value = value[0];
+    }
+
+    return collection.table.getAll(value, {index: index.name}).limit(1);
   });
+}
 
-  if (aboveKeyCount !== 0) {
-    throw new Error('The keys in "above" must all appear in "order".');
-  } else if (belowKeyCount !== 0) {
-    throw new Error('The keys in "below" must all appear in "order".');
-  }
+function getIndexValue(field, obj, bound, def) {
+  let value = getObjectField(obj, field);
+  if (value !== undefined) { return value; }
+  value = getObjectField(bound, field);
+  if (value !== undefined) { return value; }
+  return def;
+}
 
-  // RSI: this is all wrong
-  const ordered_between = (obj) => Promise.resolve().then(() => {
-    const fuzzy_fields = object_to_fields(obj);
-    return collection.get_matching_index(fuzzy_fields, order_keys);
-  }).then((index) => {
-    order_keys.forEach((k) => {
-      if (obj[k] !== undefined) {
-        throw new Error(`"${k}" cannot be used in "order", "above", or "below" ` +
-                        'when finding by that field.');
-      }
-    });
+function makeFindAllReql(collection, findAll, fixedFields, above, below, descending) {
+  return Promise.all(findAll.map((obj) => {
+    const fuzzyFields = objectToFields(obj);
+    // RSI: make sure fuzzyFields and fixedFields overlap only in the correct spot
+    // RSI: come up with some pathological tests that hit these sorts of cases
 
-    const get_bound = (option) => {
-      const eval_key = (key) => {
-        if (obj[key] !== undefined) {
-          return obj[key];
-        } else if (option && option[0][key] !== undefined) {
-          return option[0][key];
-        } else if (option && option[1] === 'open') {
-          return option === above ? r.maxval : r.minval;
-        } else {
-          return option === above ? r.minval : r.maxval;
-        }
+    return collection.get_matching_index(fuzzyFields, fixedFields).then((index) => {
+      const optargs = {
+        index: index.name,
+        leftBound: above ? above.bound : 'closed',
+        rightBound: below ? below.bound : 'closed',
       };
 
+      let defaultLeftBound = r.minval;
+      let defaultRightBound = r.maxval;
+
+      if (above && above.bound === 'open') { defaultLeftBound = r.maxval; }
+      if (below && below.bound === 'closed') { defaultRightBound = r.maxval; }
+
+      let leftValue = index.fields.map((field) =>
+        getIndexValue(field, obj, above && above.value, defaultLeftBound));
+      let rightValue = index.fields.map((field) =>
+        getIndexValue(field, obj, below && below.value, defaultRightBound));
+
       if (index.name === 'id') {
-        return eval_key('id');
+        leftValue = leftValue[0];
+        rightValue = rightValue[0];
       }
-      return index.fields.map((k) => eval_key(k));
-    };
 
-    const above_value = get_bound(above);
-    const below_value = get_bound(below);
-
-    const optargs = {
-      index: index.name,
-      leftBound: above ? above[1] : 'closed',
-      rightBound: below ? below[1] : 'closed',
-    };
-
-    return collection.table.orderBy({
-      index: order && order[1] === 'descending' ? r.desc(index.name) : index.name,
-    }).between(above_value || r.minval, below_value || r.maxval, optargs);
+      return collection.table
+        .orderBy({index: descending ? r.desc(index.name) : index.name})
+        .between(leftValue || r.minval, rightValue || r.maxval, optargs);
+    });
+  })).then((subqueries) => {
+    return r.union(...subqueries);
   });
+}
 
-  let reqlPromise;
-  if (find) {
-    reqlPromise = ordered_between(find).then((subquery) => subquery.limit(1));
-  } else if (findAll && findAll.length > 1) {
-    reqlPromise = Promise.all(
-      findAll.map((x) => ordered_between(x))).then((subqueries) =>
-                                                   r.union.apply(subqueries));
-  } else {
-    reqlPromise = ordered_between((findAll && findAll[0]) || {});
-  }
+function makeTableScanReql(collection, fixedFields, above, below, descending) {
+  return collection.get_matching_index([], fixedFields).then((index) => {
+    let leftValue, rightValue;
+    const optargs = {index: index.name};
 
-  return reqlPromise.then((reql) => (limit !== undefined ? reql.limit(limit) : reql));
-});
+    if (above) {
+      const defaultLeftBound = above.bound === 'closed' ? r.minval : r.maxval;
+      leftValue = index.fields.map((field) => getIndexValue(field, {}, above.value, defaultLeftBound));
+      optargs.leftBound = above.bound;
+    }
+    if (below) {
+      const defaultRightBound = below.bound === 'closed' ? r.maxval : r.minval;
+      rightValue = index.fields.map((field) => getIndexValue(field, {}, below.value, defaultRightBound));
+      optargs.rightBound = below.bound;
+    }
 
-module.exports = {makeReadReql};
+    if (index.name === 'id') {
+      if (leftValue) { leftValue = leftValue[0]; }
+      if (rightValue) { rightValue = rightValue[0]; }
+    }
+
+    let reql = collection.table.orderBy({index: descending ? r.desc(index.name) : index.name});
+    if (leftValue || rightValue) {
+      reql = reql.between(leftValue || r.minval, rightValue || r.maxval, optargs);
+    }
+    return reql;
+  });
+}
+
+function makeReadReql(req) {
+  return Promise.resolve().then(() => {
+    const collection = req.getParameter('collection');
+    const findAll = req.getParameter('findAll');
+    const find = req.getParameter('find');
+
+    assert(!find || !findAll);
+
+    if (!collection) {
+      throw new Error('"collection" was not specified.');
+    }
+
+    if (find) {
+      return makeFindReql(collection, find);
+    } else {
+      const order = req.getParameter('order');
+      const above = req.getParameter('above');
+      const below = req.getParameter('below');
+      const descending = Boolean(order && order.descending);
+
+      const orderFields = order ? order.fields : [];
+
+      if (above) {
+        if (order) {
+          if (!isSameField(above.field, orderFields[0])) {
+            throw new Error('"above" must be on the same field as the first in "order".');
+          }
+        } else {
+          orderFields.push(above.field);
+        }
+      }
+
+      if (below) {
+        if (order || above) {
+          if (!isSameField(below.field, orderFields[0])) {
+            throw new Error('"below" must be on the same field as ' +
+                            (order ? 'the first in "order"' : '"above"'));
+          }
+        } else {
+          orderFields.push(below.field);
+        }
+      }
+
+      let reql_promise;
+      if (findAll) {
+        reql_promise = makeFindAllReql(collection, findAll, orderFields, above, below, descending);
+      } else {
+        reql_promise = makeTableScanReql(collection, orderFields, above, below, descending);
+      }
+
+      const limit = req.getParameter('limit');
+      return limit === undefined ?
+        reql_promise : reql_promise.then((reql) => reql.limit(limit));
+    }
+  });
+}
+
+module.exports = {makeReadReql, objectToFields};

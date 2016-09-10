@@ -13,9 +13,9 @@ function fetch(context) {
     } else if (!permissions) {
       next(new Error('"fetch" requires permissions to run'));
     } else {
-      reads.makeReadReql(req).then((reql) =>
-        reql.run(conn, reqlOptions)
-      ).then((result) => {
+      reads.makeReadReql(req).then((reql) => {
+        return reql.run(conn, reqlOptions)
+      }).then((result) => {
         if (result !== null && result.constructor.name === 'Cursor') {
           res.complete.then(() => {
             result.close().catch(() => { });

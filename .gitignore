@@ -10,6 +10,7 @@ node_modules/
 .hz/
 config.toml
 **/.vscode
+**/.*.swp
 
 **/dist/
 

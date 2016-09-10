@@ -8,6 +8,8 @@ function findAll(req, res, next) {
     next(new Error(`"findAll" expected 1 or more arguments but found ${args.length}.`));
   } else if (!args.every((val) => isObject(val))) {
     next(new Error('All arguments to "findAll" must be objects.'));
+  } else if (req.options.find) {
+    next(new Error('"findAll" cannot be used with "find"'));
   } else {
     req.setParameter(args);
     next();

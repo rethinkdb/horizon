@@ -56,30 +56,34 @@ const all_tests = (collection) => {
     before('Create user row', () =>
       r.table('users').insert(context).run(utils.rdb_conn()));
 
-    const run = (options, validator) => new Promise((resolve, reject) => {
-        // Write group row into database
-      r.table('hz_groups').insert(
-          {id: 'default', rules: r.literal({test: {template: 'any()', validator}})},
-          {conflict: 'update'}).run(utils.rdb_conn());
+    beforeEach('Authenticate', (done) => utils.horizon_default_auth(done));
 
-        // Construct query and send on websocket
-      utils.stream_test({request_id: 1, options}, (err, res) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(res);
-        }
-      });
+    const run = (rawOptions, validator) => new Promise((resolve, reject) => {
+      // Write group row into database
+      r.table('hz_groups').insert(
+          {id: 'default', rules: {test: {template: 'any()', validator}}},
+          {conflict: 'replace'}).run(utils.rdb_conn()).then(() => {
+        // TODO: this seems a bit racy - no guarantee that horizon will be up-to-date
+        // Construct request and send on websocket
+        const options = Object.assign({collection: [collection]}, rawOptions);
+        utils.stream_test({request_id: 1, options: options}, (err, res) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(res);
+          }
+        });
+      }).catch(reject);
     });
 
-    describe('query', () => {
+    describe('fetch', () => {
       it('permitted', () =>
-        run({order: [['id'], 'ascending'], query: []}, permitted_validator).then((res) => {
+        run({order: [['id'], 'ascending'], fetch: []}, permitted_validator).then((res) => {
           assert.deepStrictEqual(res, table_data);
         }));
 
       it('half-permitted', () =>
-        run({order: [['id'], 'ascending'], above: [{id: 3}, 'closed'], query: []},
+        run({order: [['id'], 'ascending'], above: [{id: 3}, 'closed'], fetch: []},
             user_permitted_validator).then(() => {
               assert(false, 'Read should not have been permitted.');
             }).catch((err) => {
@@ -91,7 +95,7 @@ const all_tests = (collection) => {
             }));
 
       it('forbidden', () =>
-        run({query: []}, forbidden_validator).then(() => {
+        run({fetch: []}, forbidden_validator).then(() => {
           assert(false, 'Read should not have been permitted.');
         }).catch((err) => {
           assert.strictEqual(err.message, 'Operation not permitted.');
@@ -114,7 +118,7 @@ const all_tests = (collection) => {
               assert(false, 'Read should not have been permitted.');
             }).catch((err) => {
               assert.strictEqual(err.message, 'Operation not permitted.');
-          // Check that we got the permitted row or nothing (race condition)
+              // Check that we got the permitted row or nothing (race condition)
               if (err.results.length !== 0) {
                 assert.deepStrictEqual(err.results, [{id: 3}]);
               }
