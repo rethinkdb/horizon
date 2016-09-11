@@ -181,6 +181,7 @@ class UserCache {
     this.userCfeeds.set(null, Object.assign(new Reliable(), {
       refcount: 1,
       unreadyAt: null,
+      userRow: {id: null, groups: ['default']},
       readyPromise: Promise.resolve()
     }));
 

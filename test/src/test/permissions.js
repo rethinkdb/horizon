@@ -6,44 +6,36 @@ const assert = require('assert');
 
 const r = require('rethinkdb');
 
-const user_id = 3;
-const user_row = { id: user_id, groups: ['default'] };
+const userId = 3;
+const userRow = { id: userId, groups: ['default'] };
 
 // Permit all rows
 const permitted_validator = `
-(context) => {
-  if (!context) { throw new Error('no context'); }
+(userRow) => {
+  if (!userRow) { throw new Error('Validator was not passed a user row.'); }
   return true;
 }
 `;
 
 // Forbid all rows
 const forbidden_validator = `
-(context) => {
-  if (!context) { throw new Error('no context'); }
+(userRow) => {
+  if (!userRow) { throw new Error('Validator was not passed a user row.'); }
   return false;
 }
 `;
 
 // Permit a row when the user's id is the last digit of the row's id
 const user_permitted_validator = `
-(context, a, b) => {
-  if (!context) { throw new Error('no context'); }
-  const value = (a && a.user.id) || (b && b.user.id);
-  return context.id === (value % 10);
+(userRow, a, b) => {
+  if (!userRow) { throw new Error('Validator was not passed a user row.'); }
+  const value = (a && a.id) || (b && b.id);
+  return userRow.id === (value % 10);
 }
 `;
 
 const all_tests = (collection) => {
   describe('Validation', () => {
-    const metadata = {
-      collection: () => ({
-        table: r.table(collection),
-        get_matching_index: () => ({name: 'id', fields: ['id']}),
-      }),
-      connection: () => utils.rdb_conn(),
-    };
-
     const table_data = [];
     for (let i = 0; i < 10; ++i) {
       table_data.push({id: i});
@@ -54,9 +46,9 @@ const all_tests = (collection) => {
     beforeEach('Populate test table', () =>
       r.table(collection).insert(table_data).run(utils.rdb_conn()));
     before('Create user row', () =>
-      r.table('users').insert(user_row).run(utils.rdb_conn()));
+      r.table('users').insert(userRow).run(utils.rdb_conn()));
 
-    beforeEach('Authenticate', (done) => utils.horizon_unauthenticated_auth(done));
+    beforeEach('Authenticate', (done) => utils.horizon_token_auth(userId, done));
 
     const run = (rawOptions, validator) => new Promise((resolve, reject) => {
       // Write group row into database
@@ -68,6 +60,7 @@ const all_tests = (collection) => {
         const options = Object.assign({collection: [collection]}, rawOptions);
         utils.stream_test({request_id: 1, options: options}, (err, res) => {
           if (err) {
+            err.results = res;
             reject(err);
           } else {
             resolve(res);
@@ -88,7 +81,7 @@ const all_tests = (collection) => {
               assert(false, 'Read should not have been permitted.');
             }).catch((err) => {
               assert.strictEqual(err.message, 'Operation not permitted.');
-          // Check that we got the permitted row or nothing (race condition)
+              // Check that we got the permitted row or nothing (race condition)
               if (err.results.length !== 0) {
                 assert.deepStrictEqual(err.results, [{id: 3}]);
               }
@@ -113,15 +106,13 @@ const all_tests = (collection) => {
       });
 
       it('half-permitted', () =>
-        run({order: [['id'], 'ascending'], above: [{id: 3}, 'closed'], watch: []},
+        run({order: [['id'], 'ascending'], above: [{id: 3}, 'closed'], limit: [3], watch: []},
             user_permitted_validator).then(() => {
               assert(false, 'Read should not have been permitted.');
             }).catch((err) => {
               assert.strictEqual(err.message, 'Operation not permitted.');
-              // Check that we got the permitted row or nothing (race condition)
-              if (err.results.length !== 0) {
-                assert.deepStrictEqual(err.results, [{id: 3}]);
-              }
+              assert.strictEqual(err.results.length, 1);
+              assert.deepStrictEqual(err.results[0].new_val.id, 3);
             }));
 
       it('forbidden', () =>
@@ -315,7 +306,6 @@ const all_tests = (collection) => {
 
       it('permitted based on context', () =>
         run({remove: [{id: 3}]}, user_permitted_validator).then((res) => {
-          console.log(`write result: ${JSON.stringify(res)}`);
           assert.strictEqual(res.length, 1);
           assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 3);

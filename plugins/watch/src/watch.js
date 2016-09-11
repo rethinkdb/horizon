@@ -39,6 +39,7 @@ function watch(context) {
               if ((item.old_val && !validator(item.old_val)) ||
                   (item.new_val && !validator(item.new_val))) {
                 next(new Error('Operation not permitted.'));
+                return;
               }
             }
             res.write([item]);

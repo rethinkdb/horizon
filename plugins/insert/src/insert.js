@@ -20,7 +20,7 @@ function insert(context) {
       (rows) => // pre-validation, all rows
         Array(rows.length).fill(null),
       (validator, row, info) => { // validation, each row
-        if (!validator(request.clientCtx, info, row)) {
+        if (!validator(info, row)) {
           return new Error(writes.unauthorized_msg);
         }
       },

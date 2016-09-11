@@ -15,7 +15,7 @@ class Response {
       this._completed = true;
       logger.debug(`Request failed with error: ${err.stack}`);
       this._socketSend({
-        error: `${err}`,
+        error: `${err.message}`,
         error_code: err.code || -1,
       });
       throw err;

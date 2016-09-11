@@ -61,7 +61,7 @@ const all_tests = (collection) => {
     utils.stream_test({request_id: 2, options: {above: []}}, (err, res) => {
       assert.deepStrictEqual(res, []);
       assert.strictEqual(err.message,
-        'Error: No terminal method was specified in the request.');
+        'No terminal method was specified in the request.');
       done();
     });
   });
@@ -70,7 +70,7 @@ const all_tests = (collection) => {
     utils.stream_test({request_id: 2, options: {fake: []}}, (err, res) => {
       assert.deepStrictEqual(res, []);
       assert.strictEqual(err.message,
-        'Error: No method to handle option "fake".');
+        'No method to handle option "fake".');
       done();
     });
   });

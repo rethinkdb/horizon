@@ -142,12 +142,12 @@ function retry_loop(original_rows,
     .then(make_write_response);
 }
 
-function validate_old_row_optional(validator, context, original, old_row, new_row) {
+function validate_old_row_optional(validator, original, old_row, new_row) {
   const expected_version = original[hz_v];
   if (expected_version !== undefined &&
       (!old_row || expected_version !== old_row[hz_v])) {
     return new Error(invalidated_msg);
-  } else if (!validator(context, old_row, new_row)) {
+  } else if (!validator(old_row, new_row)) {
     return new Error(unauthorized_msg);
   }
 
@@ -159,7 +159,7 @@ function validate_old_row_optional(validator, context, original, old_row, new_ro
   }
 }
 
-function validate_old_row_required(validator, context, original, old_row, new_row) {
+function validate_old_row_required(validator, original, old_row, new_row) {
   if (old_row == null) {
     return new Error(missing_msg);
   }
@@ -169,7 +169,7 @@ function validate_old_row_required(validator, context, original, old_row, new_ro
   if (expected_version !== undefined &&
       expected_version !== old_version) {
     return new Error(invalidated_msg);
-  } else if (!validator(context, old_row, new_row)) {
+  } else if (!validator(old_row, new_row)) {
     return new Error(unauthorized_msg);
   }
 

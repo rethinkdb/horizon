@@ -209,7 +209,7 @@ const all_tests = (collection) => {
   });
 
   describe('Versioned', () => {
-    beforeEach('Authenticate', (done) => utils.orizon_token_auth('admin', done));
+    beforeEach('Authenticate', (done) => utils.horizon_token_auth('admin', done));
 
     const test_data = [{id: 'versioned', [hz_v]: 11, foo: 'bar'}];
     beforeEach('Populate collection', () => utils.populate_collection(collection, test_data));
