@@ -23,7 +23,7 @@ function remove(context) {
           .map((id) => collection.table.get(id))
           .run(conn, reqlOptions),
       (validator, row, info) =>
-        writes.validate_old_row_required(validator, request.clientCtx, row, info, null),
+        writes.validate_old_row_required(validator, row, info, null),
       (rows) => // write to database, all valid rows
         r.expr(rows).do((row_data) =>
           row_data.forEach((info) =>

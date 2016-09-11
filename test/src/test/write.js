@@ -83,7 +83,7 @@ const all_tests = (collection) => {
   beforeEach('Clear collection', () => utils.clear_collection(collection));
 
   describe('Basic writes', () => {
-    beforeEach('Authenticate', (done) => utils.horizon_admin_auth(done));
+    beforeEach('Authenticate', (done) => utils.horizon_token_auth('admin', done));
     beforeEach('Populate collection', () => utils.populate_collection(collection, original_data));
 
     const request_from_ids = (type, ids) => make_request(type, ids.map(new_row_from_id));
@@ -209,7 +209,7 @@ const all_tests = (collection) => {
   });
 
   describe('Versioned', () => {
-    beforeEach('Authenticate', (done) => utils.horizon_admin_auth(done));
+    beforeEach('Authenticate', (done) => utils.orizon_token_auth('admin', done));
 
     const test_data = [{id: 'versioned', [hz_v]: 11, foo: 'bar'}];
     beforeEach('Populate collection', () => utils.populate_collection(collection, test_data));
@@ -326,7 +326,7 @@ const all_tests = (collection) => {
   });
 
   describe('Versionless', () => {
-    beforeEach('Authenticate', (done) => utils.horizon_admin_auth(done));
+    beforeEach('Authenticate', (done) => utils.horizon_token_auth('admin', done));
 
     const test_data = [{id: 'versionless', foo: 'bar'}];
     beforeEach('Populate collection', () => utils.populate_collection(collection, test_data));
@@ -447,7 +447,7 @@ const all_tests = (collection) => {
   // write will make it through each loop, although it is undefined in which order
   // the writes occur.
   describe('Retry', () => {
-    beforeEach('Authenticate', (done) => utils.horizon_default_auth(done));
+    beforeEach('Authenticate', (done) => utils.horizon_unauthenticated_auth(done));
 
     // Set a catch-all rule for the 'default' group so we can have a validator
     before('Set rules', (done) => utils.set_group({

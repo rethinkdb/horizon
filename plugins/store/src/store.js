@@ -23,7 +23,7 @@ function store(context) {
           .map((id) => r.branch(id.eq(null), null, collection.table.get(id)))
           .run(conn, reqlOptions),
       (validator, row, info) =>
-        writes.validate_old_row_optional(validator, request.clientCtx, row, info, row),
+        writes.validate_old_row_optional(validator, row, info, row),
       (rows) => // write to database, all valid rows
         r.expr(rows)
           .forEach((new_row) =>

@@ -29,8 +29,7 @@ function upsert(context) {
                      [null, new_row]))
           .run(conn, reqlOptions),
       (validator, row, info) =>
-        writes.validate_old_row_optional(
-          validator, request.clientCtx, row, info[0], info[1]),
+        writes.validate_old_row_optional(validator, row, info[0], info[1]),
       (rows) => // write to database, all valid rows
         r.expr(rows)
           .forEach((new_row) =>

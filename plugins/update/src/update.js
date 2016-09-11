@@ -27,8 +27,7 @@ function update(context) {
                        [old_row, old_row.merge(new_row)])))
           .run(conn, reqlOptions),
       (validator, row, info) =>
-        writes.validate_old_row_required(
-          validator, request.clientCtx, row, info[0], info[1]),
+        writes.validate_old_row_required(validator, row, info[0], info[1]),
       (rows) => // write to database, all valid rows
         r.expr(rows)
           .forEach((new_row) =>

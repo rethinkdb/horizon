@@ -116,10 +116,10 @@ const table = (collection) =>
                  r.error('Collection does not exist.'),
                  row('id'))));
 
-const make_admin_token = () => {
+const make_token = (id) => {
   const jwt = horizon_server && horizon_server._auth && horizon_server._auth._jwt;
   assert(jwt);
-  return jwt.sign({id: 'admin', provider: null}).token;
+  return jwt.sign({id, provider: null}).token;
 };
 
 // Creates a collection, no-op if it already exists, uses horizon server prereqs
@@ -132,7 +132,7 @@ function create_collection(collection) {
                                {rejectUnauthorized: false})
       .once('error', (err) => assert.ifError(err))
       .on('open', () => {
-        conn.send(JSON.stringify({request_id: 123, method: 'token', token: make_admin_token()}));
+        conn.send(JSON.stringify({request_id: 123, method: 'token', token: make_token('admin')}));
         conn.once('message', (data) => {
           const res = JSON.parse(data);
           assert.strictEqual(res.request_id, 123);
@@ -241,17 +241,17 @@ const horizon_auth = (req, cb) => {
 };
 
 // Create a token for the admin user and use that to authenticate
-const horizon_admin_auth = (done) => {
-  horizon_auth({request_id: -1, method: 'token', token: make_admin_token()}, (res) => {
+const horizon_token_auth = (id, done) => {
+  horizon_auth({request_id: -1, method: 'token', token: make_token(id)}, (res) => {
     assert.strictEqual(res.request_id, -1);
     assert.strictEqual(typeof res.token, 'string');
-    assert.strictEqual(res.id, 'admin');
+    assert.strictEqual(res.id, id);
     assert.strictEqual(res.provider, null);
     done();
   });
 };
 
-const horizon_default_auth = (done) => {
+const horizon_unauthenticated_auth = (done) => {
   horizon_auth({request_id: -1, method: 'unauthenticated'}, (res) => {
     assert.strictEqual(res.request_id, -1);
     assert.strictEqual(typeof res.token, 'string');
@@ -320,7 +320,7 @@ module.exports = {
   clear_collection,
 
   open_horizon_conn, close_horizon_conn,
-  horizon_auth, horizon_admin_auth, horizon_default_auth,
+  horizon_auth, horizon_token_auth, horizon_unauthenticated_auth,
   add_horizon_listener, remove_horizon_listener,
 
   set_group,

@@ -36,8 +36,8 @@ function watch(context) {
           } else {
             const validator = permissions();
             if (validator) {
-              if ((item.old_val && !validator(req.clientCtx, item.old_val)) ||
-                  (item.new_val && !validator(req.clientCtx, item.new_val))) {
+              if ((item.old_val && !validator(item.old_val)) ||
+                  (item.new_val && !validator(item.new_val))) {
                 next(new Error('Operation not permitted.'));
               }
             }

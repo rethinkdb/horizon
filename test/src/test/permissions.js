@@ -7,7 +7,7 @@ const assert = require('assert');
 const r = require('rethinkdb');
 
 const user_id = 3;
-const context = { user: { id: user_id } };
+const user_row = { id: user_id, groups: ['default'] };
 
 // Permit all rows
 const permitted_validator = `
@@ -54,9 +54,9 @@ const all_tests = (collection) => {
     beforeEach('Populate test table', () =>
       r.table(collection).insert(table_data).run(utils.rdb_conn()));
     before('Create user row', () =>
-      r.table('users').insert(context).run(utils.rdb_conn()));
+      r.table('users').insert(user_row).run(utils.rdb_conn()));
 
-    beforeEach('Authenticate', (done) => utils.horizon_default_auth(done));
+    beforeEach('Authenticate', (done) => utils.horizon_unauthenticated_auth(done));
 
     const run = (rawOptions, validator) => new Promise((resolve, reject) => {
       // Write group row into database
@@ -137,6 +137,7 @@ const all_tests = (collection) => {
       it('permitted', () =>
         run({insert: [{id: 11}]}, permitted_validator).then((res) => {
           assert.strictEqual(res.length, 1);
+          assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 11);
           return r.table(collection).get(11).eq(null)
             .branch(r.error('write did not go through'), null).run(utils.rdb_conn());
@@ -145,6 +146,7 @@ const all_tests = (collection) => {
       it('permitted based on context', () =>
         run({insert: [{id: 13}]}, user_permitted_validator).then((res) => {
           assert.strictEqual(res.length, 1);
+          assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 13);
           return r.table(collection).get(13).eq(null)
             .branch(r.error('write did not go through'), null).run(utils.rdb_conn());
@@ -169,6 +171,7 @@ const all_tests = (collection) => {
       it('permitted', () =>
         run({store: [{id: 11}]}, permitted_validator).then((res) => {
           assert.strictEqual(res.length, 1);
+          assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 11);
           return r.table(collection).get(11).eq(null)
             .branch(r.error('write did not go through'), null).run(utils.rdb_conn());
@@ -177,6 +180,7 @@ const all_tests = (collection) => {
       it('permitted based on context', () =>
         run({store: [{id: 13}]}, user_permitted_validator).then((res) => {
           assert.strictEqual(res.length, 1);
+          assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 13);
           return r.table(collection).get(13).eq(null)
             .branch(r.error('write did not go through'), null).run(utils.rdb_conn());
@@ -201,6 +205,7 @@ const all_tests = (collection) => {
       it('permitted', () =>
         run({upsert: [{id: 11}]}, permitted_validator).then((res) => {
           assert.strictEqual(res.length, 1);
+          assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 11);
           return r.table(collection).get(11).eq(null)
             .branch(r.error('write did not go through'), null).run(utils.rdb_conn());
@@ -209,6 +214,7 @@ const all_tests = (collection) => {
       it('permitted based on context', () =>
         run({upsert: [{id: 13}]}, user_permitted_validator).then((res) => {
           assert.strictEqual(res.length, 1);
+          assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 13);
           return r.table(collection).get(13).eq(null)
             .branch(r.error('write did not go through'), null).run(utils.rdb_conn());
@@ -233,6 +239,7 @@ const all_tests = (collection) => {
       it('permitted', () =>
         run({update: [{id: 1, value: 5}]}, permitted_validator).then((res) => {
           assert.strictEqual(res.length, 1);
+          assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 1);
           return r.table(collection).get(1).hasFields('value').not()
             .branch(r.error('write did not go through'), null).run(utils.rdb_conn());
@@ -241,6 +248,7 @@ const all_tests = (collection) => {
       it('permitted based on context', () =>
         run({update: [{id: 3, value: 5}]}, user_permitted_validator).then((res) => {
           assert.strictEqual(res.length, 1);
+          assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 3);
           return r.table(collection).get(3).hasFields('value').not()
             .branch(r.error('write did not go through'), null).run(utils.rdb_conn());
@@ -265,6 +273,7 @@ const all_tests = (collection) => {
       it('permitted', () =>
         run({replace: [{id: 1, value: 5}]}, permitted_validator).then((res) => {
           assert.strictEqual(res.length, 1);
+          assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 1);
           return r.table(collection).get(1).hasFields('value').not()
             .branch(r.error('write did not go through'), null).run(utils.rdb_conn());
@@ -273,6 +282,7 @@ const all_tests = (collection) => {
       it('permitted based on context', () =>
         run({replace: [{id: 3, value: 5}]}, user_permitted_validator).then((res) => {
           assert.strictEqual(res.length, 1);
+          assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 3);
           return r.table(collection).get(3).hasFields('value').not()
             .branch(r.error('write did not go through'), null).run(utils.rdb_conn());
@@ -297,6 +307,7 @@ const all_tests = (collection) => {
       it('permitted', () =>
         run({remove: [{id: 1}]}, permitted_validator).then((res) => {
           assert.strictEqual(res.length, 1);
+          assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 1);
           return r.table(collection).get(1).ne(null)
             .branch(r.error('write did not go through'), null).run(utils.rdb_conn());
@@ -304,7 +315,9 @@ const all_tests = (collection) => {
 
       it('permitted based on context', () =>
         run({remove: [{id: 3}]}, user_permitted_validator).then((res) => {
+          console.log(`write result: ${JSON.stringify(res)}`);
           assert.strictEqual(res.length, 1);
+          assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 3);
           return r.table(collection).get(3).ne(null)
             .branch(r.error('write did not go through'), null).run(utils.rdb_conn());

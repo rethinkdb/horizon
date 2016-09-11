@@ -24,7 +24,7 @@ function fetch(context) {
           // TODO: reuse cursor batching
           return result.eachAsync((item) => {
             const validator = permissions();
-            if (validator && !validator(req.clientCtx, item)) {
+            if (validator && !validator(item)) {
               next(new Error('Operation not permitted.'));
               result.close().catch(() => { });
             } else {
@@ -36,13 +36,15 @@ function fetch(context) {
         } else {
           const validator = permissions();
           if (result !== null && result.constructor.name === 'Array') {
-            for (const item of result) {
-              if (validator && !validator(req.clientCtx, item)) {
-                return next(new Error('Operation not permitted.'));
+            if (validator) {
+              for (const item of result) {
+                if (!validator(item)) {
+                  return next(new Error('Operation not permitted.'));
+                }
               }
             }
             res.end(result);
-          } else if (validator && !validator(req.clientCtx, result)) {
+          } else if (validator && !validator(result)) {
             next(new Error('Operation not permitted.'));
           } else {
             res.end([result]);

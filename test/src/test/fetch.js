@@ -10,7 +10,7 @@ const all_tests = (collection) => {
 
   before('Clear collection', () => utils.clear_collection(collection));
   before('Populate collection', () => utils.populate_collection(collection, num_rows));
-  beforeEach('Authenticate client', utils.horizon_admin_auth);
+  beforeEach('Authenticate client', (done) => utils.horizon_token_auth('admin', done));
 
   it('collection scan.', (done) => {
     utils.stream_test(

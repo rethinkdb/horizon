@@ -151,6 +151,7 @@ class UserCache {
             cfeed.unreadyAt = new Date();
           },
           onChange: (change) => {
+            cfeed.userRow = change.new_val || null;
             cfeed.unreadyAt = null; // We're ready on every change.
             const newGroups = new Set((change.new_val && change.new_val.groups) || []);
             oldGroups.forEach((g) => {
@@ -171,6 +172,7 @@ class UserCache {
         cfeed.unreadyAt = new Date(0); // epoch
       }
       cfeed.refcount = 0;
+      cfeed.userRow = null;
       return cfeed;
     };
 
@@ -308,7 +310,7 @@ class UserCache {
             return (...args) => {
               try {
                 for (const rule of ruleset) {
-                  if (rule.isValid(...args)) {
+                  if (rule.isValid(cfeed.userRow, ...args)) {
                     return rule;
                   }
                 }

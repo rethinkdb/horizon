@@ -7,7 +7,7 @@ const crypto = require('crypto');
 
 const all_tests = (collection) => {
   beforeEach('clear collection', () => utils.clear_collection(collection));
-  beforeEach('authenticate', (done) => utils.horizon_admin_auth(done));
+  beforeEach('authenticate', (done) => utils.horizon_token_auth('admin', done));
 
   // Launch simultaneous queries that depend on a non-existent collection, then
   // verify that only one table exists for that collection.

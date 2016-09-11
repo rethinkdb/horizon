@@ -16,6 +16,8 @@ class Validator {
   }
 
   isValid(...args) {
+    console.log(`calling validator ${this._fn}`);
+    console.log(`  with args ${JSON.stringify(args)}`);
     return this._fn(...args);
   }
 }
