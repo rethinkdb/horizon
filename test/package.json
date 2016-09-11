@@ -6,7 +6,8 @@
   "scripts": {
     "lint": "eslint src test",
     "test": "mocha --timeout 10000 dist/test",
-    "build": "babel src -d dist -s true"
+    "build": "babel src -d dist -s true",
+    "serve": "node ./dist/serve.js"
   },
   "repository": {
     "type": "git",

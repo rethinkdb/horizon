@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-require('../server/node_modules/source-map-support').install();
+require('source-map-support').install();
 
 Error.stackTraceLimit = Infinity;
 
@@ -28,8 +28,8 @@ const crypto = require('crypto');
 const argparse = require('argparse');
 
 const data_dir = path.resolve(__dirname, 'rethinkdb_data_test');
-const test_dist_dir = path.resolve(__dirname, '../client/dist');
-const examples_dir = path.resolve(__dirname, '../examples');
+const test_dist_dir = path.resolve(__dirname, '../../client/dist');
+const examples_dir = path.resolve(__dirname, '../../examples');
 
 const parser = new argparse.ArgumentParser();
 parser.addArgument(['--port', '-p'],
