@@ -21,7 +21,7 @@ const make_default_options = () => ({
   // Default to current directory name for project name
   project_name: null,
 
-  bind: [ 'localhost' ],
+  bind: ['localhost'],
   port: 8181,
 
   start_rethinkdb: false,
@@ -54,14 +54,14 @@ const make_default_options = () => ({
 
 const default_options = make_default_options();
 
-const yes_no_options = [ 'debug',
+const yes_no_options = ['debug',
                          'secure',
                          'permissions',
                          'start_rethinkdb',
                          'auto_create_index',
                          'auto_create_collection',
                          'allow_unauthenticated',
-                         'allow_anonymous' ];
+                         'allow_anonymous'];
 
 const parse_connect = (connect, config) => {
   // support rethinkdb:// style connection uri strings
@@ -106,7 +106,7 @@ const parse_connect = (connect, config) => {
 };
 
 const read_from_config_file = (project_path) => {
-  const config = { auth: { } };
+  const config = {auth: {}};
 
   let fileData, configFilename, fileConfig;
 
@@ -161,7 +161,7 @@ ${configFilename}, causing it not be a valid TOML file.`,
 };
 
 const read_from_secrets_file = (projectPath) => {
-  const config = { auth: { } };
+  const config = {auth: {}};
 
   let fileData, secretsFilename;
 
@@ -195,7 +195,7 @@ const read_from_secrets_file = (projectPath) => {
 
 const env_regex = /^HZ_([A-Z]+([_]?[A-Z]+)*)$/;
 const read_from_env = () => {
-  const config = { auth: { } };
+  const config = {auth: { }};
   for (const env_var in process.env) {
     const matches = env_regex.exec(env_var);
     if (matches && matches[1]) {
@@ -228,7 +228,7 @@ const read_from_env = () => {
 
 // Handles reading configuration from the parsed flags
 const read_from_flags = (parsed) => {
-  const config = { auth: { } };
+  const config = {auth: { }};
 
   // Dev mode
   if (parsed.dev) {

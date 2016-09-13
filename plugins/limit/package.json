@@ -1,0 +1,38 @@
+{
+  "name": "@horizon-plugins/limit",
+  "version": "1.0.0",
+  "description": "Plugin for the 'limit' term in the Horizon Collections API.",
+  "main": "dist/limit.js",
+  "scripts": {
+    "lint": "eslint src",
+    "test": "mocha dist/test",
+    "build": "babel src -d dist -s true"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rethinkdb/horizon.git"
+  },
+  "author": "RethinkDB",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rethinkdb/horizon/issues"
+  },
+  "homepage": "https://github.com/rethinkdb/horizon#readme",
+  "engines": {
+    "node": ">=4.0.0"
+  },
+  "dependencies": {
+  },
+  "peerDependencies": {
+    "@horizon/plugin-router-base": "1.x",
+    "@horizon/server": "3.x"
+  },
+  "devDependencies": {
+    "eslint": "^3.1.0",
+    "istanbul": "^0.4.3",
+    "mocha": "^2.5.3",
+    "babel-cli": "^6.11.4",
+    "babel-preset-es2015": "^6.9.0",
+    "source-map-support": "^0.4.0"
+  }
+}

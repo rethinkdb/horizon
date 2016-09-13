@@ -20,26 +20,26 @@ function google(horizon, raw_options) {
   const client_secret = options.secret;
   const provider = options.path;
 
-  const oauth_options = { horizon, provider };
+  const oauth_options = {horizon, provider};
 
   oauth_options.make_acquire_url = (state, redirect_uri) =>
-    url.format({ protocol: 'https',
+    url.format({protocol: 'https',
                  host: 'accounts.google.com',
                  pathname: '/o/oauth2/v2/auth',
-                 query: { client_id, redirect_uri, state, response_type: 'code', scope: 'profile' } });
+                 query: {client_id, redirect_uri, state, response_type: 'code', scope: 'profile'}});
 
   oauth_options.make_token_request = (code, redirect_uri) => {
     const query_params = querystring.stringify({
       code, client_id, client_secret, redirect_uri,
-      grant_type: 'authorization_code' });
+      grant_type: 'authorization_code'});
     const path = `/oauth2/v4/token?${query_params}`;
-    return https.request({ method: 'POST', host: 'www.googleapis.com', path });
+    return https.request({method: 'POST', host: 'www.googleapis.com', path});
   };
 
   oauth_options.make_inspect_request = (access_token) => {
     logger.debug(`using access token: ${access_token}`);
-    const path = `/oauth2/v1/userinfo?${querystring.stringify({ access_token })}`;
-    return https.request({ host: 'www.googleapis.com', path });
+    const path = `/oauth2/v1/userinfo?${querystring.stringify({access_token})}`;
+    return https.request({host: 'www.googleapis.com', path});
   };
 
   oauth_options.extract_id = (user_info) => user_info && user_info.id;

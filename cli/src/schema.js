@@ -25,68 +25,68 @@ const initialize_metadata = horizon_metadata.initialize_metadata;
 initialize_joi(Joi);
 
 const parseArguments = (args) => {
-  const parser = new argparse.ArgumentParser({ prog: 'hz schema' });
+  const parser = new argparse.ArgumentParser({prog: 'hz schema'});
 
   const subparsers = parser.addSubparsers({
     title: 'subcommands',
     dest: 'subcommand_name',
   });
 
-  const apply = subparsers.addParser('apply', { addHelp: true });
-  const save = subparsers.addParser('save', { addHelp: true });
+  const apply = subparsers.addParser('apply', {addHelp: true});
+  const save = subparsers.addParser('save', {addHelp: true});
 
   // Set options shared between both subcommands
-  [ apply, save ].map((subcmd) => {
-    subcmd.addArgument([ 'project_path' ],
-      { type: 'string', nargs: '?',
-        help: 'Change to this directory before serving' });
+  [apply, save].map((subcmd) => {
+    subcmd.addArgument(['project_path'],
+      {type: 'string', nargs: '?',
+       help: 'Change to this directory before serving'});
 
-    subcmd.addArgument([ '--project-name', '-n' ],
-      { type: 'string', action: 'store', metavar: 'NAME',
-        help: 'Name of the Horizon Project server' });
+    subcmd.addArgument(['--project-name', '-n'],
+      {type: 'string', action: 'store', metavar: 'NAME',
+       help: 'Name of the Horizon Project server'});
 
-    subcmd.addArgument([ '--connect', '-c' ],
-      { type: 'string', metavar: 'HOST:PORT',
-        help: 'Host and port of the RethinkDB server to connect to.' });
+    subcmd.addArgument(['--connect', '-c'],
+      {type: 'string', metavar: 'HOST:PORT',
+       help: 'Host and port of the RethinkDB server to connect to.'});
 
-    subcmd.addArgument([ '--rdb-timeout' ],
-      { type: 'int', metavar: 'TIMEOUT',
-        help: 'Timeout period in seconds for the RethinkDB connection to be opened' });
+    subcmd.addArgument(['--rdb-timeout'],
+      {type: 'int', metavar: 'TIMEOUT',
+       help: 'Timeout period in seconds for the RethinkDB connection to be opened'});
 
-    subcmd.addArgument([ '--rdb-user' ],
-      { type: 'string', metavar: 'USER',
-        help: 'RethinkDB User' });
+    subcmd.addArgument(['--rdb-user'],
+      {type: 'string', metavar: 'USER',
+       help: 'RethinkDB User'});
 
-    subcmd.addArgument([ '--rdb-password' ],
-      { type: 'string', metavar: 'PASSWORD',
-        help: 'RethinkDB Password' });
+    subcmd.addArgument(['--rdb-password'],
+      {type: 'string', metavar: 'PASSWORD',
+       help: 'RethinkDB Password'});
 
-    subcmd.addArgument([ '--start-rethinkdb' ],
-      { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-        help: 'Start up a RethinkDB server in the current directory' });
+    subcmd.addArgument(['--start-rethinkdb'],
+      {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
+       help: 'Start up a RethinkDB server in the current directory'});
 
-    subcmd.addArgument([ '--debug' ],
-      { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-        help: 'Enable debug logging.' });
+    subcmd.addArgument(['--debug'],
+      {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
+       help: 'Enable debug logging.'});
   });
 
   // Options exclusive to HZ SCHEMA APPLY
-  apply.addArgument([ '--update' ],
-    { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-      help: 'Only add new items and update existing, no removal.' });
+  apply.addArgument(['--update'],
+    {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
+      help: 'Only add new items and update existing, no removal.'});
 
-  apply.addArgument([ '--force' ],
-    { type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
-      help: 'Allow removal of existing collections.' });
+  apply.addArgument(['--force'],
+    {type: 'string', metavar: 'yes|no', constant: 'yes', nargs: '?',
+      help: 'Allow removal of existing collections.'});
 
-  apply.addArgument([ 'schema_file' ],
-    { type: 'string', metavar: 'SCHEMA_FILE_PATH',
-      help: 'File to get the horizon schema from, use "-" for stdin.' });
+  apply.addArgument(['schema_file'],
+    {type: 'string', metavar: 'SCHEMA_FILE_PATH',
+      help: 'File to get the horizon schema from, use "-" for stdin.'});
 
   // Options exclusive to HZ SCHEMA SAVE
-  save.addArgument([ '--out-file', '-o' ],
-    { type: 'string', metavar: 'PATH', defaultValue: '.hz/schema.toml',
-      help: 'File to write the horizon schema to, defaults to .hz/schema.toml.' });
+  save.addArgument(['--out-file', '-o'],
+    {type: 'string', metavar: 'PATH', defaultValue: '.hz/schema.toml',
+      help: 'File to write the horizon schema to, defaults to .hz/schema.toml.'});
 
   return parser.parseArgs(args);
 };
@@ -101,7 +101,7 @@ const schema_schema = Joi.object().unknown(false).keys({
             fields: Joi.array().items(Joi.array().items(Joi.string())).required(),
           })
         )
-      ).optional().default([ ]),
+      ).optional().default([]),
     })
   ).optional().default({ }),
   groups: Joi.object().unknown(true).pattern(/.*/,
@@ -120,7 +120,7 @@ const schema_schema = Joi.object().unknown(false).keys({
 const v1_0_name_to_fields = (name) => {
   let escaped = false;
   let field = '';
-  const fields = [ ];
+  const fields = [];
   for (const c of name) {
     if (escaped) {
       if (c !== '\\' && c !== '_') {
@@ -140,7 +140,7 @@ const v1_0_name_to_fields = (name) => {
   if (escaped) {
     throw new Error(`Unexpected index name: "${name}"`);
   }
-  fields.push([ field ]);
+  fields.push([field]);
   return fields;
 };
 
@@ -152,15 +152,15 @@ const parse_schema = (schema_toml) => {
     throw parsed.error;
   }
 
-  const collections = [ ];
+  const collections = [];
   for (const name in schema.collections) {
     collections.push({
       id: name,
       indexes: schema.collections[name].indexes.map((index) => {
         if (typeof index === 'string') {
-          return { fields: v1_0_name_to_fields(index), multi: false, geo: false };
+          return {fields: v1_0_name_to_fields(index), multi: false, geo: false};
         } else {
-          return { fields: index.fields, multi: false, geo: false };
+          return {fields: index.fields, multi: false, geo: false};
         }
       }),
     });
@@ -169,15 +169,15 @@ const parse_schema = (schema_toml) => {
   // Make sure the 'users' collection is present, as some things depend on
   // its existence.
   if (!schema.collections || !schema.collections.users) {
-    collections.push({ id: 'users', indexes: [ ] });
+    collections.push({id: 'users', indexes: []});
   }
 
-  const groups = [ ];
+  const groups = [];
   for (const name in schema.groups) {
-    groups.push(Object.assign({ id: name }, schema.groups[name]));
+    groups.push(Object.assign({id: name}, schema.groups[name]));
   }
 
-  return { groups, collections };
+  return {groups, collections};
 };
 
 const processApplyConfig = (parsed) => {
@@ -192,7 +192,7 @@ const processApplyConfig = (parsed) => {
   if (parsed.schema_file === '-') {
     in_file = process.stdin;
   } else {
-    in_file = fs.createReadStream(parsed.schema_file, { flags: 'r' });
+    in_file = fs.createReadStream(parsed.schema_file, {flags: 'r'});
   }
 
   if (options.project_name === null) {
@@ -251,7 +251,7 @@ const processSaveConfig = (parsed) => {
 };
 
 const schema_to_toml = (collections, groups) => {
-  const res = [ '# This is a TOML document' ];
+  const res = ['# This is a TOML document'];
 
   for (const c of collections) {
     res.push('');
@@ -285,7 +285,7 @@ const schema_to_toml = (collections, groups) => {
 
 const runApplyCommand = (options) => {
   let conn, schema, rdb_server;
-  let obsolete_collections = [ ];
+  let obsolete_collections = [];
   const db = options.project_name;
 
   const cleanup = () =>
@@ -311,18 +311,18 @@ const runApplyCommand = (options) => {
     schema = parse_schema(schema_toml);
 
     if (options.start_rethinkdb) {
-      return start_rdb_server({ quiet: !options.debug }).then((server) => {
+      return start_rdb_server({quiet: !options.debug}).then((server) => {
         rdb_server = server;
         options.rdb_host = 'localhost';
         options.rdb_port = server.driver_port;
       });
     }
   }).then(() =>
-    r.connect({ host: options.rdb_host,
+    r.connect({host: options.rdb_host,
                 port: options.rdb_port,
                 user: options.rdb_user,
                 password: options.rdb_password,
-                timeout: options.rdb_timeout })
+                timeout: options.rdb_timeout})
   ).then((rdb_conn) => {
     conn = rdb_conn;
     return initialize_metadata(db, conn);
@@ -331,10 +331,10 @@ const runApplyCommand = (options) => {
       console.log('Initialized new application metadata.');
     }
     // Wait for metadata tables to be writable
-    return r.expr([ 'hz_collections', 'hz_groups' ])
+    return r.expr(['hz_collections', 'hz_groups'])
       .forEach((table) =>
         r.db(db).table(table)
-          .wait({ waitFor: 'ready_for_writes', timeout: 30 }))
+          .wait({waitFor: 'ready_for_writes', timeout: 30}))
       .run(conn);
   }).then(() => {
     // Error if any collections will be removed
@@ -392,7 +392,7 @@ const runApplyCommand = (options) => {
             }
           }),
         r.db(db).table('hz_groups')
-          .insert(schema.groups, { conflict: 'replace' })
+          .insert(schema.groups, {conflict: 'replace'})
           .run(conn).then((res) => {
             if (res.errors) {
               throw new Error(`Failed to write groups: ${res.first_error}`);
@@ -402,7 +402,7 @@ const runApplyCommand = (options) => {
     }
   }).then(() => {
     // Ensure all collections exist and remove any obsolete collections
-    const promises = [ ];
+    const promises = [];
     for (const c of schema.collections) {
       promises.push(
         create_collection(db, c.id, conn).then((res) => {
@@ -417,7 +417,7 @@ const runApplyCommand = (options) => {
         r.db(db)
           .table('hz_collections')
           .get(c)
-          .delete({ returnChanges: 'always' })('changes')(0)
+          .delete({returnChanges: 'always'})('changes')(0)
           .do((res) =>
             r.branch(res.hasFields('error'),
                      res,
@@ -433,7 +433,7 @@ const runApplyCommand = (options) => {
 
     return Promise.all(promises);
   }).then(() => {
-    const promises = [ ];
+    const promises = [];
 
     // Ensure all indexes exist
     for (const c of schema.collections) {
@@ -442,7 +442,7 @@ const runApplyCommand = (options) => {
         promises.push(
           r.branch(r.db(db).table(c.id).indexList().contains(name), { },
                    r.db(db).table(c.id).indexCreate(name, horizon_index.info_to_reql(info),
-                     { geo: Boolean(info.geo), multi: (info.multi !== false) }))
+                     {geo: Boolean(info.geo), multi: (info.multi !== false)}))
             .run(conn)
             .then((res) => {
               if (res.errors) {
@@ -502,28 +502,28 @@ const runSaveCommand = (options) => {
     }
   }).then(() => {
     if (options.start_rethinkdb) {
-      return start_rdb_server({ quiet: !options.debug }).then((server) => {
+      return start_rdb_server({quiet: !options.debug}).then((server) => {
         rdb_server = server;
         options.rdb_host = 'localhost';
         options.rdb_port = server.driver_port;
       });
     }
   }).then(() =>
-    r.connect({ host: options.rdb_host,
+    r.connect({host: options.rdb_host,
                 port: options.rdb_port,
                 user: options.rdb_user,
                 password: options.rdb_password,
-                timeout: options.rdb_timeout })
+                timeout: options.rdb_timeout})
   ).then((rdb_conn) => {
     conn = rdb_conn;
-    return r.db(db).wait({ waitFor: 'ready_for_reads', timeout: 30 }).run(conn);
+    return r.db(db).wait({waitFor: 'ready_for_reads', timeout: 30}).run(conn);
   }).then(() =>
     r.object('collections',
              r.db(db).table('hz_collections')
                .filter((row) => row('id').match('^hz_').not())
                .coerceTo('array')
                .map((row) =>
-                 row.merge({ indexes: r.db(db).table(row('id')).indexList() })),
+                 row.merge({indexes: r.db(db).table(row('id')).indexList()})),
              'groups', r.db(db).table('hz_groups').coerceTo('array'))
       .run(conn)
   ).then((res) =>
@@ -538,7 +538,7 @@ const runSaveCommand = (options) => {
       }
 
       const output = (options.out_file === '-') ? process.stdout :
-        fs.createWriteStream(options.out_file, { flags: 'w', defaultEncoding: 'utf8' });
+        fs.createWriteStream(options.out_file, {flags: 'w', defaultEncoding: 'utf8'});
 
       // Output toml_str to schema.toml
       const toml_str = schema_to_toml(res.collections, res.groups);

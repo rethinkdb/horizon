@@ -1,28 +1,24 @@
 'use strict';
 
-const interrupt = require('./utils/interrupt');
 const config = require('./utils/config');
-const horizon_server = require('@horizon/server');
 
 const path = require('path');
 const jwt = require('jsonwebtoken');
 
-const r = horizon_server.r;
-const logger = horizon_server.logger;
 const argparse = require('argparse');
 
 const parseArguments = (args) => {
-  const parser = new argparse.ArgumentParser({ prog: 'hz make-token' });
+  const parser = new argparse.ArgumentParser({prog: 'hz make-token'});
 
   parser.addArgument(
-    [ '--token-secret' ],
-    { type: 'string', metavar: 'SECRET',
-      help: 'Secret key for signing the token.' });
+    ['--token-secret'],
+    {type: 'string', metavar: 'SECRET',
+     help: 'Secret key for signing the token.'});
 
   parser.addArgument(
-    [ 'user' ],
-    { type: 'string', metavar: 'USER_ID',
-      help: 'The ID of the user to issue a token for.' });
+    ['user'],
+    {type: 'string', metavar: 'USER_ID',
+      help: 'The ID of the user to issue a token for.'});
 
   return parser.parseArgs(args);
 };
@@ -43,7 +39,7 @@ const processConfig = (parsed) => {
     options.project_name = path.basename(path.resolve(options.project_path));
   }
 
-  return Object.assign(options, { user: parsed.user });
+  return Object.assign(options, {user: parsed.user});
 };
 
 const run = (args) => Promise.resolve().then(() => {
@@ -53,9 +49,9 @@ const run = (args) => Promise.resolve().then(() => {
     throw new Error('No token secret specified, unable to sign the token.');
   }
   const token = jwt.sign(
-    { id: options.user, provider: null },
+    {id: options.user, provider: null},
     new Buffer(options.token_secret, 'base64'),
-    { expiresIn: '1d', algorithm: 'HS512' }
+    {expiresIn: '1d', algorithm: 'HS512'}
   );
   console.log(`${token}`);
 });

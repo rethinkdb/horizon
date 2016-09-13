@@ -6,7 +6,7 @@ module.exports = {
   extends: "eslint:recommended",
   rules: {
     "arrow-body-style": [ERROR, "as-needed"],
-    "array-bracket-spacing": [ ERROR, "always" ],
+    "array-bracket-spacing": [ ERROR, "never" ],
     "arrow-parens": [ ERROR, "always" ],
     "arrow-spacing": [ ERROR ],
     "block-spacing": [ ERROR, "always" ],
@@ -68,7 +68,7 @@ module.exports = {
     "no-var": [ ERROR ],
     "no-void": [ ERROR ],
     "no-with": [ ERROR ],
-    "object-curly-spacing": [ ERROR, "always" ],
+    "object-curly-spacing": [ ERROR, "never" ],
     "one-var": [ ERROR, { "uninitialized": "always", "initialized": "never" } ],
     "operator-assignment": [ ERROR, "always" ],
     "operator-linebreak": [ ERROR, "after" ],

@@ -1,0 +1,56 @@
+{
+  "name": "@horizon-plugins/defaults",
+  "version": "1.0.0",
+  "description": "Contains all the default plugins for the Horizon Collections API.",
+  "main": "dist/defaults.js",
+  "scripts": {
+    "lint": "eslint src",
+    "test": "mocha dist/test",
+    "build": "babel src -d dist -s true"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rethinkdb/horizon.git"
+  },
+  "author": "RethinkDB",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rethinkdb/horizon/issues"
+  },
+  "homepage": "https://github.com/rethinkdb/horizon#readme",
+  "engines": {
+    "node": ">=4.0.0"
+  },
+  "dependencies": {
+    "@horizon-plugins/above": "1.0.0",
+    "@horizon-plugins/below": "1.0.0",
+    "@horizon-plugins/collection": "1.0.0",
+    "@horizon-plugins/fetch": "1.0.0",
+    "@horizon-plugins/find": "1.0.0",
+    "@horizon-plugins/findAll": "1.0.0",
+    "@horizon-plugins/insert": "1.0.0",
+    "@horizon-plugins/limit": "1.0.0",
+    "@horizon-plugins/order": "1.0.0",
+    "@horizon-plugins/permissions": "1.0.0",
+    "@horizon-plugins/permit-all": "1.0.0",
+    "@horizon-plugins/remove": "1.0.0",
+    "@horizon-plugins/replace": "1.0.0",
+    "@horizon-plugins/store": "1.0.0",
+    "@horizon-plugins/timeout": "1.0.0",
+    "@horizon-plugins/update": "1.0.0",
+    "@horizon-plugins/upsert": "1.0.0",
+    "@horizon-plugins/watch": "1.0.0"
+  },
+  "peerDependencies": {
+    "@horizon/plugin-router-base": "1.x",
+    "@horizon/server": "3.x"
+  },
+  "devDependencies": {
+    "eslint": "^3.1.0",
+    "istanbul": "^0.4.3",
+    "mocha": "^2.5.3",
+    "babel-cli": "^6.11.4",
+    "babel-preset-es2015": "^6.9.0",
+    "source-map-support": "^0.4.0"
+  }
+}

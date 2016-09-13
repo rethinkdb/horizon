@@ -1,4 +1,3 @@
-client/dist/
 client/lib/
 rethinkdb_data_test
 rethinkdb_data/
@@ -11,3 +10,10 @@ node_modules/
 .hz/
 config.toml
 **/.vscode
+**/.*.swp
+
+**/dist/
+
+# RethinkDB stuff
+**/rethinkdb_data/
+**/rethinkdb_data_test/

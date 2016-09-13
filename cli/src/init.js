@@ -166,9 +166,9 @@ node_modules
 `;
 
 const parseArguments = (args) => {
-  const parser = new argparse.ArgumentParser({ prog: 'hz init' });
-  parser.addArgument([ 'projectName' ],
-    { action: 'store',
+  const parser = new argparse.ArgumentParser({prog: 'hz init'});
+  parser.addArgument(['projectName'],
+    {action: 'store',
       help: 'Name of directory to create. Defaults to current directory',
       nargs: '?',
     }

@@ -80,7 +80,7 @@ All requests match the following pattern:
   * The first argument is an object whose key-value pairs correspond to fields in `order`.
   * The second argument should be `closed` to include the boundary, and `open` otherwise.
 * `find` returns one object in `collection` that exactly matches the fields in the object given - optional.
-  * `find` cannot be used with `find_all`, `order`, `above`, or `below`.
+  * `find` cannot be used with `find_all`, `limit`, `order`, `above`, or `below`.
 * `find_all` is an array of objects whose key-value pairs correspond to keys in `index` - optional.
   * Returns any object in `collection` that exactly matches the fields in any of the objects given.
   * `find_all` cannot be used with `find`.

@@ -2,20 +2,14 @@
 
 const Joi = require('joi');
 
-const server = Joi.object({
+const options = Joi.object({
   project_name: Joi.string().default('horizon'),
   rdb_host: Joi.string().hostname().default('localhost'),
   rdb_port: Joi.number().greater(0).less(65536).default(28015),
 
-  auto_create_collection: Joi.boolean().default(false),
-  auto_create_index: Joi.boolean().default(false),
-
-  permissions: Joi.boolean().default(true),
-
   path: Joi.string().default('/horizon'),
 
   auth: Joi.object().default({ }),
-  access_control_allow_origin: Joi.string().allow('').default(''),
 
   rdb_user: Joi.string().allow(null),
   rdb_password: Joi.string().allow(null),
@@ -36,4 +30,10 @@ const auth = Joi.object({
   allow_unauthenticated: Joi.boolean().default(false),
 }).unknown(false);
 
-module.exports = { server, auth };
+const method = Joi.object({
+  type: Joi.valid('middleware', 'option', 'prereq', 'terminal').required(),
+  handler: Joi.func().minArity(2).maxArity(3).required(),
+  requires: Joi.array().single().items(Joi.string()).default([]),
+}).unknown(false);
+
+module.exports = {options, auth, method};
