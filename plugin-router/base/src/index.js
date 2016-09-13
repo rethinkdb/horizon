@@ -24,6 +24,7 @@ class PluginRouter extends EventEmitter {
 
   add(plugin, options) {
     if (!options.name) {
+      // RSI: make sure plugin names don't contain a '/'
       options.name = plugin.name;
     } 
 
@@ -52,32 +53,39 @@ class PluginRouter extends EventEmitter {
         addedMethods.forEach((m) => this.horizon.removeMethod(m));
         throw err;
       }
+
+      if (plugin.activate.length < 3) {
+        this._noteReady(options.name);
+      }
+
+      // RSI: we probably need to return a few more things in 'active' (for use by
+      //  sub-plugin-router implementations)
+      active.name = options.name;
+      active.plugin = plugin;
+      active.options = options;
+
       return active;
     });
 
-    if (plugin.activate.length < 3) {
-      activatePromise.then(() => this._noteReady(options.name));
-    }
-
-    this.plugins.set(options.name, {options, activatePromise, plugin});
+    this.plugins.set(options.name, activatePromise);
     return activatePromise;
   }
 
   remove(name, reason) {
-    const info = this.plugins.get(name);
+    const activatePromise = this.plugins.get(name);
 
-    if (!info) {
+    if (!activatePromise) {
       return Promise.reject(new Error(`Plugin "${name}" is not present.`));
     }
 
     this.plugins.delete(name);
-    return info.activatePromise.then((active) => {
+    return activatePromise.then((active) => {
       for (const m in active.methods) {
         this.horizon.removeMethod(m);
       }
-      if (info.plugin.deactivate) {
-        return info.plugin.deactivate(this.context, info.options,
-                                      reason || 'Removed from PluginRouter.');
+      if (active.plugin.deactivate) {
+        return active.plugin.deactivate(this.context, active.options,
+                                        reason || 'Removed from PluginRouter.');
       }
     });
   }

@@ -14,7 +14,7 @@ import 'rxjs/add/operator/publish'
 
 import { serialize, deserialize } from './serialization.js'
 
-const PROTOCOL_VERSION = 'rethinkdb-horizon-v0'
+const PROTOCOL_VERSION = 'rethinkdb-horizon-v1'
 
 // Before connecting the first time
 const STATUS_UNCONNECTED = { type: 'unconnected' }

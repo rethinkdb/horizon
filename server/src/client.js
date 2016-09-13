@@ -11,13 +11,11 @@ class ClientConnection {
   constructor(socket,
               auth,
               requestHandlerCb,
-              capabilitiesCb,
               clientEvents) {
     logger.debug('ClientConnection established.');
     this.socket = socket;
     this.auth = auth;
     this.requestHandlerCb = requestHandlerCb;
-    this.capabilitiesCb = capabilitiesCb;
     this.clientEvents = clientEvents;
     this._context = { };
 
@@ -104,7 +102,6 @@ class ClientConnection {
         token: res.token,
         id: res.payload.id,
         provider: res.payload.provider,
-        capabilities: this.capabilitiesCb(),
       });
       this.socket.on('message', (msg) =>
         this.error_wrap_socket(() => this.handle_request(msg)));

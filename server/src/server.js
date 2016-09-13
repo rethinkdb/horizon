@@ -140,7 +140,6 @@ class Server {
               socket,
               this._auth,
               this._requestHandler,
-              this._getCapabilities,
               this.events,
             );
             this._clients.add(client);
@@ -183,14 +182,12 @@ class Server {
     }
 
     this._requirementsOrdering = null;
-    this._capabilities = null;
   }
 
   removeMethod(name) {
     delete this._methods[name];
     this._middlewareMethods.delete(name);
     this._requirementsOrdering = null;
-    this._capabilities = null;
   }
 
   _getRequirementsOrdering() {
@@ -212,26 +209,6 @@ class Server {
       this._requirementsOrdering = topo.sort().reverse();
     }
     return this._requirementsOrdering;
-  }
-
-  _getCapabilities() {
-    if (!this._capabilities) {
-      this._capabilities = {options: [], terminals: []};
-      for (const k in this._methods) {
-        const method = this._methods[k];
-        switch (method.type) {
-        case 'option':
-          this._capabilities.options.push(k);
-          break;
-        case 'terminal':
-          this._capabilities.terminals.push(k);
-          break;
-        default:
-          break;
-        }
-      }
-    }
-    return this._capabilities;
   }
 
   // TODO: We close clients in `onUnready` above, but don't wait for them to be closed.

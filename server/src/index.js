@@ -25,3 +25,39 @@ module.exports.Reliable = reliable.Reliable;
 module.exports.ReliableConn = reliable.ReliableConn;
 module.exports.ReliableUnion = reliable.ReliableUnion;
 module.exports.ReliableChangefeed = reliable.ReliableChangefeed;
+
+const fs = require('fs');
+const clientSourcePath = require.resolve('@horizon/client/dist/horizon');
+const clientSourceCorePath = require.resolve('@horizon/client/dist/horizon-core');
+
+let clientSource, clientSourceMap, clientSourceCore, clientSourceCoreMap;
+
+// Load these lazily (but synchronously)
+module.exports.clientSource = function() {
+  if (!clientSource) {
+    clientSource = fs.readFileSync(clientSourcePath);
+  }
+  return clientSource;
+}
+
+module.exports.clientSourceMap = function() {
+  if (!clientSourceMap) {
+    clientSourceMap = fs.readFileSync(`${clientSourcePath}.map`);
+  }
+  return clientSourceMap;
+}
+
+modules.exports.clientSourceCore = function() {
+  if (!clientSourceCore) {
+    clientSourceCore = fs.readFileSync(clientSourceCorePath);
+  }
+  return clientSourceCore;
+}
+
+modules.exports.clientSourceCoreMap = function() {
+  if (!clientSourceCoreMap) {
+    clientSourceCoreMap = fs.readFileSync(`${clientSourceCorePath}.map`);
+  }
+  return clientSourceCoreMap;
+}
+
