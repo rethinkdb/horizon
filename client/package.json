@@ -53,7 +53,7 @@
     "webpack": "^1.12.14"
   },
   "main": "lib/index.js",
-  "jsmain:next": "src/index.js",
+  "jsnext:main": "src/index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/rethinkdb/horizon.git"
@@ -73,7 +73,8 @@
     "dist/horizon-core.js.map",
     "dist/horizon-core-dev.js",
     "dist/horizon-core-dev.js.map",
-    "lib/*"
+    "lib/*",
+    "src/*"
   ],
   "babel": {
     "presets": [
