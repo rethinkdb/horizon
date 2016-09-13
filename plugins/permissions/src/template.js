@@ -4,6 +4,9 @@ const assert = require('assert');
 const vm = require('vm');
 
 // RSI: don't use the client AST - there are simple rules for generating options
+// RSI: where do we get the list of options from? there's no easy way to accept any
+// method - we could try to parse the ast of the javascript itself before evaluating
+// the template
 const ast = require('@horizon/client/lib/ast');
 const validIndexValue = require('@horizon/client/lib/util/valid-index-value').default;
 const {remakeError} = require('@horizon/plugin-utils');
@@ -21,7 +24,7 @@ class Any {
     }
 
     for (const item of this._values) {
-      if (template_compare(value, item, context)) {
+      if (templateCompare(value, item, context)) {
         return true;
       }
     }
@@ -43,7 +46,7 @@ class AnyObject {
     }
 
     for (const key in this._obj) {
-      if (!template_compare(value[key], this._obj[key], context)) {
+      if (!templateCompare(value[key], this._obj[key], context)) {
         return false;
       }
     }
@@ -67,7 +70,7 @@ class AnyArray {
     for (const item of value) {
       let match = false;
       for (const template of this._values) {
-        if (template_compare(item, template, context)) {
+        if (templateCompare(item, template, context)) {
           match = true;
           break;
         }
@@ -83,7 +86,7 @@ class AnyArray {
 
 class UserId { }
 
-const wrap_write = (query, docs) => {
+const wrapWrite = (query, docs) => {
   if (docs instanceof AnyArray ||
       Array.isArray(docs)) {
     query.data = docs;
@@ -93,7 +96,7 @@ const wrap_write = (query, docs) => {
   return query;
 };
 
-const wrap_remove = (doc) => {
+const wrapRemove = (doc) => {
   if (validIndexValue(doc)) {
     return {id: doc};
   }
@@ -113,7 +116,7 @@ ast.Collection.prototype.anyWrite = function() {
   }
   return this._sendRequest(
     new Any(['store', 'upsert', 'insert', 'replace', 'update', 'remove']),
-    wrap_write(new AnyObject(this._query), docs));
+    wrapWrite(new AnyObject(this._query), docs));
 };
 
 // Monkey-patch the ast functions so we don't clobber certain things
@@ -124,26 +127,26 @@ ast.TermBase.prototype.fetch = function() {
   return this._sendRequest('query', this._query);
 };
 ast.Collection.prototype.store = function(docs) {
-  return this._sendRequest('store', wrap_write(this._query, docs));
+  return this._sendRequest('store', wrapWrite(this._query, docs));
 };
 ast.Collection.prototype.upsert = function(docs) {
-  return this._sendRequest('upsert', wrap_write(this._query, docs));
+  return this._sendRequest('upsert', wrapWrite(this._query, docs));
 };
 ast.Collection.prototype.insert = function(docs) {
-  return this._sendRequest('insert', wrap_write(this._query, docs));
+  return this._sendRequest('insert', wrapWrite(this._query, docs));
 };
 ast.Collection.prototype.replace = function(docs) {
-  return this._sendRequest('replace', wrap_write(this._query, docs));
+  return this._sendRequest('replace', wrapWrite(this._query, docs));
 };
 ast.Collection.prototype.update = function(docs) {
-  return this._sendRequest('update', wrap_write(this._query, docs));
+  return this._sendRequest('update', wrapWrite(this._query, docs));
 };
 ast.Collection.prototype.remove = function(doc) {
-  return this._sendRequest('remove', wrap_write(this._query, wrap_remove(doc)));
+  return this._sendRequest('remove', wrapWrite(this._query, wrapRemove(doc)));
 };
 ast.Collection.prototype.removeAll = function(docs) {
-  return this._sendRequest('remove', wrap_write(this._query,
-                                                docs.map((doc) => wrap_remove(doc))));
+  return this._sendRequest('remove', wrapWrite(this._query,
+                                               docs.map((doc) => wrapRemove(doc))));
 };
 
 const env = {
@@ -157,7 +160,7 @@ const env = {
   userId: function() { return new UserId(); },
 };
 
-const make_template = (str) => {
+const makeTemplate = (str) => {
   try {
     const sandbox = Object.assign({}, env);
     return vm.runInNewContext(str, sandbox);
@@ -167,7 +170,7 @@ const make_template = (str) => {
 };
 
 // eslint-disable-next-line prefer-const
-function template_compare(query, template, context) {
+function templateCompare(query, template, context) {
   if (template === undefined) {
     return false;
   } else if (template instanceof Any ||
@@ -190,7 +193,7 @@ function template_compare(query, template, context) {
       return false;
     }
     for (let i = 0; i < template.length; ++i) {
-      if (!template_compare(query[i], template[i], context)) {
+      if (!templateCompare(query[i], template[i], context)) {
         return false;
       }
     }
@@ -200,7 +203,7 @@ function template_compare(query, template, context) {
     }
 
     for (const key in query) {
-      if (!template_compare(query[key], template[key], context)) {
+      if (!templateCompare(query[key], template[key], context)) {
         return false;
       }
     }
@@ -218,13 +221,13 @@ function template_compare(query, template, context) {
   return true;
 }
 
-const incomplete_template_message = (str) =>
+const incompleteTemplateMsg = (str) =>
   `Incomplete template "${str}", ` +
   'consider adding ".fetch()", ".watch()", ".anyRead()", or ".anyWrite()"';
 
 class Template {
   constructor(str) {
-    this._value = make_template(str);
+    this._value = makeTemplate(str);
     assert(this._value !== null, `Invalid template: ${str}`);
     assert(!Array.isArray(this._value), `Invalid template: ${str}`);
     assert(typeof this._value === 'object', `Invalid template: ${str}`);
@@ -235,14 +238,14 @@ class Template {
           this._value.anyRead) {
         this._value = this._value.anyRead();
       }
-      assert(this._value.request_id !== undefined, incomplete_template_message(str));
-      assert(this._value.type !== undefined, incomplete_template_message(str));
-      assert(this._value.options !== undefined, incomplete_template_message(str));
+      assert(this._value.request_id !== undefined, incompleteTemplateMsg(str));
+      assert(this._value.type !== undefined, incompleteTemplateMsg(str));
+      assert(this._value.options !== undefined, incompleteTemplateMsg(str));
     }
   }
 
-  is_match(raw_query, context) {
-    return template_compare(raw_query, this._value, context);
+  isMatch(queryOptions, context) {
+    return templateCompare(queryOptions, this._value, context);
   }
 }
 

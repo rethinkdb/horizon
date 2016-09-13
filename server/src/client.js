@@ -22,31 +22,31 @@ class ClientConnection {
     this.responses = new Map();
 
     this.socket.on('close', (code, msg) =>
-      this.handle_websocket_close(code, msg));
+      this.handleWebsocketClose(code, msg));
 
     this.socket.on('error', (error) =>
-      this.handle_websocket_error(error));
+      this.handleWebsocketError(error));
 
     // The first message should always be the handshake
     this.socket.once('message', (data) =>
-      this.error_wrap_socket(() => this.handle_handshake(data)));
+      this.errorWrapSocket(() => this.handleHandshake(data)));
   }
 
   context() {
     return this._context;
   }
 
-  handle_websocket_close() {
+  handleWebsocketClose() {
     logger.debug('ClientConnection closed.');
     this.responses.forEach((response) => response.end());
     this.responses.clear();
   }
 
-  handle_websocket_error(code, msg) {
+  handleWebsocketError(code, msg) {
     logger.error(`Received error from client: ${msg} (${code})`);
   }
 
-  error_wrap_socket(cb) {
+  errorWrapSocket(cb) {
     try {
       cb();
     } catch (err) {
@@ -59,7 +59,7 @@ class ClientConnection {
     }
   }
 
-  parse_request(data, schema) {
+  parseRequest(data, schema) {
     let request;
     try {
       request = JSON.parse(data);
@@ -75,20 +75,20 @@ class ClientConnection {
       return Joi.attempt(request, schema);
     } catch (err) {
       const detail = err.details[0];
-      const err_str = `Request validation error at "${detail.path}": ${detail.message}`;
+      const errStr = `Request validation error at "${detail.path}": ${detail.message}`;
       const reqId = request.request_id === undefined ? null : request.request_id;
 
       if (request.request_id === undefined) {
         // This is pretty much an unrecoverable protocol error, so close the connection
-        this.close({reqId, error: `Protocol error: ${err_str}`, error_code: 0});
+        this.close({reqId, error: `Protocol error: ${errStr}`, error_code: 0});
       } else {
-        this.send_error(reqId, new Error(err_str));
+        this.sendError(reqId, new Error(errStr));
       }
     }
   }
 
-  handle_handshake(data) {
-    const request = this.parse_request(data, schemas.handshake);
+  handleHandshake(data) {
+    const request = this.parseRequest(data, schemas.handshake);
     logger.debug(`Received handshake: ${JSON.stringify(request)}`);
 
     if (request === undefined) {
@@ -98,13 +98,13 @@ class ClientConnection {
     const reqId = request.request_id;
     this.auth.handshake(request).then((res) => {
       this._context.user = res.payload;
-      this.send_message(reqId, {
+      this.sendMessage(reqId, {
         token: res.token,
         id: res.payload.id,
         provider: res.payload.provider,
       });
       this.socket.on('message', (msg) =>
-        this.error_wrap_socket(() => this.handle_request(msg)));
+        this.errorWrapSocket(() => this.handleRequest(msg)));
       this.clientEvents.emit('auth', this._context);
     }).catch((err) => {
       logger.debug(`Error during client handshake: ${err.stack}`);
@@ -112,49 +112,49 @@ class ClientConnection {
     });
   }
 
-  handle_request(data) {
+  handleRequest(data) {
     logger.debug(`Received request from client: ${data}`);
-    const raw_request = this.parse_request(data, schemas.request);
+    const rawRequest = this.parseRequest(data, schemas.request);
 
-    if (raw_request === undefined) {
+    if (rawRequest === undefined) {
       return;
     }
 
-    const reqId = raw_request.request_id;
-    if (raw_request.type === 'keepalive') {
-      return this.send_message(reqId, {state: 'complete'});
-    } else if (raw_request.type === 'end_subscription') {
+    const reqId = rawRequest.request_id;
+    if (rawRequest.type === 'keepalive') {
+      return this.sendMessage(reqId, {state: 'complete'});
+    } else if (rawRequest.type === 'end_subscription') {
       // there is no response for end_subscription
-      return this.remove_response(reqId);
+      return this.removeResponse(reqId);
     } else if (this.responses.get(reqId)) {
-      return this.close({ error: `Received duplicate request_id: ${reqId}` });
+      return this.close({error: `Received duplicate request_id: ${reqId}`});
     }
 
-    Object.freeze(raw_request.options);
-    raw_request.clientCtx = this._context;
-    raw_request._parameters = {};
+    Object.freeze(rawRequest.options);
+    rawRequest.clientCtx = this._context;
+    rawRequest._parameters = {};
 
-    const response = new Response((obj) => this.send_message(reqId, obj));
+    const response = new Response((obj) => this.sendMessage(reqId, obj));
     this.responses.set(reqId, response);
     response.complete.then(() => this.remove_request(reqId));
 
-    this.requestHandlerCb(raw_request, response, (err) =>
+    this.requestHandlerCb(rawRequest, response, (err) =>
       response.end(err || new Error('Request ran past the end of the ' +
                                     'request handler stack.')));
   }
 
-  remove_response(request_id) {
+  removeResponse(request_id) {
     const response = this.responses.get(request_id);
     this.responses.delete(request_id);
     response.end();
   }
 
-  is_open() {
+  isOpen() {
     return this.socket.readyState === websocket.OPEN;
   }
 
   close(info) {
-    if (this.is_open()) {
+    if (this.isOpen()) {
       const reason =
         (info.error && info.error.substr(0, 64)) || 'Unspecified reason.';
       logger.debug('Closing ClientConnection with reason: ' +
@@ -167,22 +167,22 @@ class ClientConnection {
     }
   }
 
-  send_message(reqId, data) {
+  sendMessage(reqId, data) {
     // Ignore responses for disconnected clients
-    if (this.is_open()) {
+    if (this.isOpen()) {
       data.request_id = reqId;
       logger.debug(`Sending response: ${JSON.stringify(data)}`);
       this.socket.send(JSON.stringify(data));
     }
   }
 
-  send_error(reqId, err, code) {
+  sendError(reqId, err, code) {
     logger.debug(
       `Sending error result for request ${reqId}:\n${err.stack}`);
 
     const error = err instanceof Error ? err.message : err;
     const error_code = code === undefined ? -1 : code;
-    this.send_message(reqId, {error, error_code});
+    this.sendMessage(reqId, {error, error_code});
   }
 }
 

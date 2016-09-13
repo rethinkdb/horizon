@@ -2,7 +2,7 @@
 
 const {r} = require('@horizon/server');
 const {reqlOptions, writes} = require('@horizon/plugin-utils');
-const hz_v = writes.versionField;
+const hzv = writes.versionField;
 
 function update(context) {
   return (request, response, next) => {
@@ -17,33 +17,33 @@ function update(context) {
       throw new Error('No permissions given for insert operation.');
     }
 
-    writes.retry_loop(request.options.update, permissions, timeout,
+    writes.retryLoop(request.options.update, permissions, timeout,
       (rows) => // pre-validation, all rows
         r.expr(rows)
-          .map((new_row) =>
-            collection.table.get(new_row('id')).do((old_row) =>
-              r.branch(old_row.eq(null),
+          .map((newRow) =>
+            collection.table.get(newRow('id')).do((oldRow) =>
+              r.branch(oldRow.eq(null),
                        null,
-                       [old_row, old_row.merge(new_row)])))
+                       [oldRow, oldRow.merge(newRow)])))
           .run(conn, reqlOptions),
       (validator, row, info) =>
-        writes.validate_old_row_required(validator, row, info[0], info[1]),
+        writes.validateOldRowRequired(validator, row, info[0], info[1]),
       (rows) => // write to database, all valid rows
         r.expr(rows)
-          .forEach((new_row) =>
-            collection.table.get(new_row('id')).replace((old_row) =>
+          .forEach((newRow) =>
+            collection.table.get(newRow('id')).replace((oldRow) =>
                 r.branch(// The row may have been deleted between the get and now
-                         old_row.eq(null),
-                         r.error(writes.missing_msg),
+                         oldRow.eq(null),
+                         r.error(writes.missingMsg),
 
                          // The row may have been changed between the get and now
-                         r.and(new_row.hasFields(hz_v),
-                               old_row(hz_v).default(-1).ne(new_row(hz_v))),
-                         r.error(writes.invalidated_msg),
+                         r.and(newRow.hasFields(hzv),
+                               oldRow(hzv).default(-1).ne(newRow(hzv))),
+                         r.error(writes.invalidatedMsg),
 
                          // Otherwise we can update the row and increment the version
-                         writes.apply_version(old_row.merge(new_row),
-                                              old_row(hz_v).default(-1).add(1))),
+                         writes.applyVersion(oldRow.merge(newRow),
+                                             oldRow(hzv).default(-1).add(1))),
                 {returnChanges: 'always'}))
           .run(conn, reqlOptions)
     ).then((msg) => response.end(msg)).catch(next);

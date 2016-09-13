@@ -2,7 +2,7 @@
 
 const {r} = require('@horizon/server');
 const {reqlOptions, writes} = require('@horizon/plugin-utils');
-const hz_v = writes.versionField;
+const hzv = writes.versionField;
 
 function store(context) {
   return (request, response, next) => {
@@ -17,42 +17,42 @@ function store(context) {
       throw new Error('No permissions given for insert operation.');
     }
 
-    writes.retry_loop(request.options.store, permissions, timeout,
+    writes.retryLoop(request.options.store, permissions, timeout,
       (rows) => // pre-validation, all rows
         r.expr(rows.map((row) => (row.id === undefined ? null : row.id)))
           .map((id) => r.branch(id.eq(null), null, collection.table.get(id)))
           .run(conn, reqlOptions),
       (validator, row, info) =>
-        writes.validate_old_row_optional(validator, row, info, row),
+        writes.validateOldRowOptional(validator, row, info, row),
       (rows) => // write to database, all valid rows
         r.expr(rows)
-          .forEach((new_row) =>
-            r.branch(new_row.hasFields('id'),
-                     collection.table.get(new_row('id')).replace((old_row) =>
+          .forEach((newRow) =>
+            r.branch(newRow.hasFields('id'),
+                     collection.table.get(newRow('id')).replace((oldRow) =>
                          r.branch(
-                           old_row.eq(null),
+                           oldRow.eq(null),
                            r.branch(
                              // Error if we were expecting the row to exist
-                             new_row.hasFields(hz_v),
-                             r.error(writes.invalidated_msg),
+                             newRow.hasFields(hzv),
+                             r.error(writes.invalidatedMsg),
 
                              // Otherwise, insert the row
-                             writes.apply_version(new_row, 0)
+                             writes.applyVersion(newRow, 0)
                            ),
                            r.branch(
                              // The row may have changed from the expected version
-                             r.and(new_row.hasFields(hz_v),
-                                   old_row(hz_v).default(-1).ne(new_row(hz_v))),
-                             r.error(writes.invalidated_msg),
+                             r.and(newRow.hasFields(hzv),
+                                   oldRow(hzv).default(-1).ne(newRow(hzv))),
+                             r.error(writes.invalidatedMsg),
 
                              // Otherwise, we can overwrite the row
-                             writes.apply_version(new_row,
-                                                  old_row(hz_v).default(-1).add(1))
+                             writes.applyVersion(newRow,
+                                                 oldRow(hzv).default(-1).add(1))
                            )
                          ), {returnChanges: 'always'}),
 
                      // The new row does not have an id, so it will autogenerate
-                     collection.table.insert(writes.apply_version(new_row, 0),
+                     collection.table.insert(writes.applyVersion(newRow, 0),
                                              {returnChanges: 'always'})))
           .run(conn, reqlOptions)
     ).then((msg) => response.end(msg)).catch(next);

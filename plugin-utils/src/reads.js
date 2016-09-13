@@ -58,7 +58,7 @@ function hasField(fields, expected) {
 }
 
 function makeFindReql(collection, find) {
-  return collection.get_matching_index(objectToFields(find), []).then((index) => {
+  return collection.getMatchingIndex(objectToFields(find), []).then((index) => {
     let value = index.fields.map((field) => guaranteeObjectField(find, field));
 
     if (index.name === 'id') {
@@ -83,7 +83,7 @@ function makeFindAllReql(collection, findAll, fixedFields, above, below, descend
     // RSI: make sure fuzzyFields and fixedFields overlap only in the correct spot
     // RSI: come up with some pathological tests that hit these sorts of cases
 
-    return collection.get_matching_index(fuzzyFields, fixedFields).then((index) => {
+    return collection.getMatchingIndex(fuzzyFields, fixedFields).then((index) => {
       const optargs = {
         index: index.name,
         leftBound: above ? above.bound : 'closed',
@@ -116,7 +116,7 @@ function makeFindAllReql(collection, findAll, fixedFields, above, below, descend
 }
 
 function makeTableScanReql(collection, fixedFields, above, below, descending) {
-  return collection.get_matching_index([], fixedFields).then((index) => {
+  return collection.getMatchingIndex([], fixedFields).then((index) => {
     let leftValue, rightValue;
     const optargs = {index: index.name};
 

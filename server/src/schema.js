@@ -2,7 +2,8 @@
 
 const Joi = require('joi');
 
-const options = Joi.object({
+// Options for Server object construction
+const server = Joi.object({
   project_name: Joi.string().default('horizon'),
   rdb_host: Joi.string().hostname().default('localhost'),
   rdb_port: Joi.number().greater(0).less(65536).default(28015),
@@ -16,6 +17,7 @@ const options = Joi.object({
   rdb_timeout: Joi.number().allow(null),
 }).unknown(false);
 
+// Options for Auth object construction
 const auth = Joi.object({
   success_redirect: Joi.string().default('/'),
   failure_redirect: Joi.string().default('/'),
@@ -30,10 +32,28 @@ const auth = Joi.object({
   allow_unauthenticated: Joi.boolean().default(false),
 }).unknown(false);
 
+// Options for server.addMethod()
 const method = Joi.object({
   type: Joi.valid('middleware', 'option', 'prereq', 'terminal').required(),
   handler: Joi.func().minArity(2).maxArity(3).required(),
   requires: Joi.array().single().items(Joi.string()).default([]),
 }).unknown(false);
 
-module.exports = {options, auth, method};
+// The Horizon protocol handshake message
+const handshake = Joi.object().keys({
+  request_id: Joi.number().required(),
+  method: Joi.only('token', 'anonymous', 'unauthenticated').required(),
+  token: Joi.string().required()
+    .when('method', {is: Joi.not('token').required(), then: Joi.forbidden()}),
+}).unknown(false);
+
+// Every Horizon protocol request (following the handshake)
+const request = Joi.object({
+  request_id: Joi.number().required(),
+  type: Joi.only('end_subscription', 'keepalive').optional(),
+  options: Joi.object().pattern(/.*/, Joi.array()).unknown(true).required()
+    .when('type', {is: Joi.string().only('end_subscription', 'keepalive').required(),
+                   then: Joi.forbidden()}),
+}).unknown(false);
+
+module.exports = {server, auth, method, handshake, request};

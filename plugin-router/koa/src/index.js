@@ -9,18 +9,14 @@ class PluginRouterKoa extends PluginRouterBase {
   }
 
   add(...args) {
-    return super.add(...args).then((res) => {
-      // RSI: add routes to koa server
-      return res;
-    });
+    return super.add(...args);
+    // RSI: add routes to koa server
   }
 
   remove(...args) {
-    return super.remove(...args).then((res) => {
-      // RSI: remove routes from koa server
-      return res;
-    });
+    // RSI: remove routes from koa server
+    return super.remove(...args);
   }
-};
+}
 
 module.exports = PluginRouterKoa;

@@ -3,15 +3,14 @@
 const Auth = require('./auth').Auth;
 const ClientConnection = require('./client');
 const logger = require('./logger');
-const {ReliableConn, ReliableChangefeed} = require('./reliable');
-const schema = require('./schema/server_options');
+const {ReliableConn} = require('./reliable');
+const schema = require('./schema');
 const Request = require('./request');
 
 const EventEmitter = require('events');
 
 const Joi = require('joi');
 const websocket = require('ws');
-const r = require('rethinkdb');
 const Toposort = require('toposort-class');
 
 const protocolName = 'rethinkdb-horizon-v1';
@@ -26,15 +25,12 @@ function handleProtocols(protocols, cb) {
 }
 
 class Server {
-  constructor(http_servers, user_opts) {
-    this.options = Joi.attempt(user_opts || { }, schema.options);
-    this._auth_methods = { };
-    this._request_handlers = new Map();
-    this._ws_servers = [];
-    this._close_promise = null;
+  constructor(httpServers, options) {
+    this.options = Joi.attempt(options || { }, schema.server);
+    this._wsServers = [];
+    this._closePromise = null;
     this._methods = {};
     this._middlewareMethods = new Set();
-    this._auth = new Auth(this, this.options.auth);
     this._clients = new Set();
     this.events = new EventEmitter();
 
@@ -47,7 +43,7 @@ class Server {
       timeout: this.options.rdb_timeout || null,
     });
 
-    this._clear_clients_subscription = this.rdbConnection.subscribe({
+    this._clearClientsSubscription = this.rdbConnection.subscribe({
       onReady: () => {
         this.events.emit('ready', this);
       },
@@ -58,6 +54,8 @@ class Server {
         this._clients.clear();
       },
     });
+
+    this._auth = new Auth(this.options.project_name, this.rdbConnection, this.options.auth);
 
     this._requestHandler = (req, res, next) => {
       let terminal = null;
@@ -123,12 +121,12 @@ class Server {
       }
     };
 
-    const ws_options = {handleProtocols, verifyClient, path: this.options.path};
+    const wsOptions = {handleProtocols, verifyClient, path: this.options.path};
 
     // RSI: only become ready when the websocket servers and the
     // connection are both ready.
-    const add_websocket = (server) => {
-      const ws_server = new websocket.Server(Object.assign({server}, ws_options))
+    const addWebsocket = (server) => {
+      const wsServer = new websocket.Server(Object.assign({server}, wsOptions))
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
         .on('connection', (socket) => {
           try {
@@ -140,7 +138,7 @@ class Server {
               socket,
               this._auth,
               this._requestHandler,
-              this.events,
+              this.events
             );
             this._clients.add(client);
             this.events.emit('connect', client.context());
@@ -156,13 +154,13 @@ class Server {
           }
         });
 
-      this._ws_servers.push(ws_server);
+      this._wsServers.push(wsServer);
     };
 
-    if (http_servers.forEach === undefined) {
-      add_websocket(http_servers);
+    if (httpServers.forEach === undefined) {
+      addWebsocket(httpServers);
     } else {
-      http_servers.forEach((s) => add_websocket(s));
+      httpServers.forEach((s) => addWebsocket(s));
     }
   }
 
@@ -170,15 +168,15 @@ class Server {
     return this._auth;
   }
 
-  addMethod(name, raw_options) {
-    const options = Joi.attempt(raw_options, schema.method);
+  addMethod(name, rawOptions) {
+    const options = Joi.attempt(rawOptions, schema.method);
     if (this._methods[name]) {
       throw new Error(`"${name}" is already registered as a method.`);
     }
     this._methods[name] = options;
 
     if (options.type === 'middleware') {
-      this._middlewareMethods.add(name); 
+      this._middlewareMethods.add(name);
     }
 
     this._requirementsOrdering = null;
@@ -213,13 +211,13 @@ class Server {
 
   // TODO: We close clients in `onUnready` above, but don't wait for them to be closed.
   close() {
-    if (!this._close_promise) {
-      this._close_promise =
-        Promise.all(this._ws_servers.map((s) => new Promise((resolve) => {
+    if (!this._closePromise) {
+      this._closePromise =
+        Promise.all(this._wsServers.map((s) => new Promise((resolve) => {
           s.close(resolve);
         }))).then(() => this.rdbConnection.close());
     }
-    return this._close_promise;
+    return this._closePromise;
   }
 }
 

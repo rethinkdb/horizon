@@ -1,14 +1,13 @@
 'use strict';
 
 const logger = require('./logger');
-const options_schema = require('./schema/server_options').auth;
+const {authSchema} = require('./schema').auth;
 
 const Joi = require('joi');
 const Promise = require('bluebird');
 const jwt = Promise.promisifyAll(require('jsonwebtoken'));
 const r = require('rethinkdb');
 const url = require('url');
-
 
 class JWT {
   constructor(options) {
@@ -44,19 +43,13 @@ class JWT {
 
 
 class Auth {
-  constructor(server, user_options) {
-    const options = Joi.attempt(user_options, options_schema);
-
+  constructor(projectName, rdbConnection, options) {
+    // RSI: don't expose token_secret to plugins
+    this.options = Joi.attempt(options, authSchema);
+    this.rdbConnection = rdbConnection;
     this._jwt = new JWT(options);
-
-    this._success_redirect = url.parse(options.success_redirect);
-    this._failure_redirect = url.parse(options.failure_redirect);
-    this._create_new_users = options.create_new_users;
-    this._new_user_group = options.new_user_group;
-    this._allow_anonymous = options.allow_anonymous;
-    this._allow_unauthenticated = options.allow_unauthenticated;
-
-    this._parent = server;
+    this.successUrl = url.parse(this.options.success_redirect);
+    this.failureUrl = url.parse(this.options.failure_redirect);
   }
 
   handshake(request) {
@@ -64,12 +57,12 @@ class Auth {
     case 'token':
       return this._jwt.verify(request.token);
     case 'unauthenticated':
-      if (!this._allow_unauthenticated) {
+      if (!this.options.allow_unauthenticated) {
         throw new Error('Unauthenticated connections are not allowed.');
       }
       return this._jwt.verify(this._jwt.sign({id: null, provider: request.method}).token);
     case 'anonymous':
-      if (!this._allow_anonymous) {
+      if (!this.options.allow_anonymous) {
         throw new Error('Anonymous connections are not allowed.');
       }
       return this.generate(request.method, r.uuid());
@@ -79,7 +72,7 @@ class Auth {
   }
 
   // Can't use objects in primary keys, so convert those to JSON in the db (deterministically)
-  auth_key(provider, info) {
+  authKey(provider, info) {
     if (info === null || Array.isArray(info) || typeof info !== 'object') {
       return [provider, info];
     } else {
@@ -87,18 +80,18 @@ class Auth {
     }
   }
 
-  new_user_row(id) {
+  newUserRow(id) {
     return {
       id,
-      groups: ['default', this._new_user_group],
+      groups: ['default', this.options.new_user_group],
     };
   }
 
   // TODO: maybe we should write something into the user data to track open sessions/tokens
   generate(provider, info) {
     return Promise.resolve().then(() => {
-      const conn = this._parent.rdbConnection.connection();
-      const key = this.auth_key(provider, info);
+      const conn = this.rdbConnection.connection();
+      const key = this.authKey(provider, info);
       const db = r.db(this._parent.options.project_name);
 
       const insert = (table, row) =>
@@ -110,9 +103,9 @@ class Auth {
                     .get(db.table('hz_users_auth').get(key)('user_id'))
                     .default(r.error('User not found and new user creation is disabled.'));
 
-      if (this._create_new_users) {
+      if (this.options.create_new_users) {
         query = insert('hz_users_auth', {id: key, user_id: r.uuid()})
-          .do((auth_user) => insert('users', this.new_user_row(auth_user('user_id'))));
+          .do((authUser) => insert('users', this.newUserRow(authUser('user_id'))));
       }
 
       return query.run(conn).catch((err) => {

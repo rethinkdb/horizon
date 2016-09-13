@@ -9,19 +9,15 @@ class PluginRouterHapi extends PluginRouterBase {
   }
 
   add(...args) {
-    return super.add(...args).then((res) => {
-      // RSI: add routes to hapi
-      return res;
-    });
+    return super.add(...args);
+    // RSI: add routes to hapi
   }
 
   remove(...args) {
-    return super.remove(...args).then((res) => {
-      // RSI: remove routes from hapi
-      return res;
-    });
+    // RSI: remove routes from hapi
+    return super.remove(...args);
   }
-};
+}
 
 module.exports = PluginRouterHapi;
 

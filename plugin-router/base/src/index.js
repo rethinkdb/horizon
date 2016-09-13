@@ -26,7 +26,7 @@ class PluginRouter extends EventEmitter {
     if (!options.name) {
       // RSI: make sure plugin names don't contain a '/'
       options.name = plugin.name;
-    } 
+    }
 
     if (this.plugins.has(options.name)) {
       return Promise.reject(

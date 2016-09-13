@@ -5,7 +5,8 @@ const ERROR = 2;
 module.exports = {
   extends: "../.eslintrc.js",
   rules: {
-    "max-len": [ ERROR, 130 ],
+    "camelcase": [ ERROR ],
+    "max-len": [ ERROR, 89 ],
     "prefer-template": [ OFF ],
   },
   env: {

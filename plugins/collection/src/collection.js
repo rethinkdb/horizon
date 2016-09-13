@@ -19,6 +19,11 @@ function collection(metadata) {
           // Wait up to 5 seconds for metadata readiness
           // This should only happen if the connection to the database just recovered,
           // or there is some invalid data in the metadata.
+          const timer = setTimeout(() => {
+            reject(new Error('Timed out waiting for metadata ' +
+                             'to sync with the database.'));
+          }, 5000);
+
           const subs = metadata.subscribe({
             onReady: () => {
               subs.close();
@@ -26,11 +31,6 @@ function collection(metadata) {
               resolve();
             },
           });
-
-          const timer = setTimeout(() => {
-            reject(new Error('Timed out waiting for metadata ' +
-                             'to sync with the database.'));
-          }, 5000);
         }
       }).then(() => metadata.collection(args[0])).then((c) => {
         req.setParameter(c);
@@ -48,7 +48,7 @@ module.exports = {
       Boolean(options.auto_create_collection),
       Boolean(options.auto_create_index));
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       context[options.name].subscribe({onUnready, onReady: () => {
         resolve({
           methods: {

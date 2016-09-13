@@ -41,10 +41,15 @@ function checkIfLegalToChain(key) {
 
 // Abstract base class for terms
 export class TermBase {
-  constructor(sendRequest, query, legalMethods) {
+  constructor(capabilities, sendRequest, request) {
     this._sendRequest = sendRequest
-    this._query = query
-    this._legalMethods = legalMethods
+    this._request = request
+    
+    // TODO: do something fancy with prototypes? Might be more efficient
+    // this should be the same for all requests on the same instance of horizon
+    for (const name of capabilities) {
+      this[name] = (...args) => this._addOption(name, ...args)
+    }
   }
 
   toString() {
@@ -72,6 +77,11 @@ export class TermBase {
     }
     return string
   }
+
+  _addOption(name, ...args) {
+    return new 
+  }
+
   // Returns a sequence of the result set. Every time it changes the
   // updated sequence will be emitted. If raw change objects are
   // needed, pass the option 'rawChanges: true'. An observable is
@@ -137,7 +147,29 @@ export class TermBase {
 // `observable` is the base observable with full responses coming from
 //              the HorizonSocket
 // `query` is the value of `options` in the request
-function makePresentable(observable, query) {
+function makePresentable(observable) {
+  const initialAcc = {state: 'initial', type};
+  return observable.scan((acc, message) => {
+    switch (acc.state) {
+    case 'initial':
+      if (message.data) {
+        message.data.forEach((x) => applyChange(
+      }
+      break;
+    case 'synced':
+      break;
+    case 'complete':
+      break;
+    }
+    if (message
+    switch (change.state) {
+    case 'synced':
+      break;
+    case 'complete':
+      break;
+    }
+  }, initialAcc).filter((acc) => acc.state === 'synced').map((acc) => acc.data);
+
   // Whether the entire data structure is in each change
   const pointQuery = Boolean(query.find)
 
@@ -149,12 +181,6 @@ function makePresentable(observable, query) {
       .filter(change => !hasEmitted || change.type !== 'state')
       .scan((previous, change) => {
         hasEmitted = true
-        if (change.new_val != null) {
-          delete change.new_val.$hz_v$
-        }
-        if (change.old_val != null) {
-          delete change.old_val.$hz_v$
-        }
         if (change.state === 'synced') {
           return previous
         } else {
@@ -165,12 +191,6 @@ function makePresentable(observable, query) {
     const seedVal = { emitted: false, val: [] }
     return observable
       .scan((state, change) => {
-        if (change.new_val != null) {
-          delete change.new_val.$hz_v$
-        }
-        if (change.old_val != null) {
-          delete change.old_val.$hz_v$
-        }
         if (change.state === 'synced') {
           state.emitted = true
         }

@@ -23,7 +23,7 @@ function indexNameToInfo(name) {
   const matches = name.match(re);
   assert(matches !== null, `Unexpected index name (invalid format): "${name}"`);
 
-  const json_offset = matches[0].length - 1;
+  const jsonOffset = matches[0].length - 1;
 
   const info = {
     name,
@@ -33,13 +33,13 @@ function indexNameToInfo(name) {
 
   // Parse remainder as JSON
   try {
-    info.fields = JSON.parse(name.slice(json_offset));
+    info.fields = JSON.parse(name.slice(jsonOffset));
   } catch (err) {
     assert(false, `Unexpected index name (invalid JSON): "${name}"`);
   }
 
   // Sanity check fields
-  const validate_field = (f) => {
+  const validateField = (f) => {
     assert(Array.isArray(f), `Unexpected index name (invalid field): "${name}"`);
     f.forEach((s) => assert(typeof s === 'string',
                             `Unexpected index name (invalid field): "${name}"`));
@@ -49,7 +49,7 @@ function indexNameToInfo(name) {
          `Unexpected index name (fields are not an array): "${name}"`);
   assert((info.multi === false) || (info.multi < info.fields.length),
          `Unexpected index name (multi index out of bounds): "${name}"`);
-  info.fields.forEach(validate_field);
+  info.fields.forEach(validateField);
   return info;
 }
 
@@ -71,14 +71,14 @@ function indexInfoToReql(info) {
   }
 
   if (info.multi !== false) {
-    const multi_field = info.fields[info.multi];
+    const multiField = info.fields[info.multi];
     return (row) =>
-      row(multi_field).map((value) => info.fields.map((f, i) => {
+      row(multiField).map((value) => info.fields.map((f, i) => {
         if (i === info.multi) {
           return value;
         } else {
           let res = row;
-          f.forEach((field_name) => { res = res(field_name); });
+          f.forEach((fieldName) => { res = res(fieldName); });
           return res;
         }
       }));
@@ -86,7 +86,7 @@ function indexInfoToReql(info) {
     return (row) =>
       info.fields.map((f) => {
         let res = row;
-        f.forEach((field_name) => { res = res(field_name); });
+        f.forEach((fieldName) => { res = res(fieldName); });
         return res;
       });
   }

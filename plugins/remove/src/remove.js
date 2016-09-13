@@ -2,7 +2,7 @@
 
 const {r} = require('@horizon/server');
 const {reqlOptions, writes} = require('@horizon/plugin-utils');
-const hz_v = writes.versionField;
+const hzv = writes.versionField;
 
 function remove(context) {
   return (request, response, next) => {
@@ -17,25 +17,25 @@ function remove(context) {
       throw new Error('No permissions given for insert operation.');
     }
 
-    writes.retry_loop(request.options.remove, permissions, timeout,
+    writes.retryLoop(request.options.remove, permissions, timeout,
       (rows) => // pre-validation, all rows
         r.expr(rows.map((row) => row.id))
           .map((id) => collection.table.get(id))
           .run(conn, reqlOptions),
       (validator, row, info) =>
-        writes.validate_old_row_required(validator, row, info, null),
+        writes.validateOldRowRequired(validator, row, info, null),
       (rows) => // write to database, all valid rows
-        r.expr(rows).do((row_data) =>
-          row_data.forEach((info) =>
+        r.expr(rows).do((rowData) =>
+          rowData.forEach((info) =>
             collection.table.get(info('id')).replace((row) =>
                 r.branch(// The row may have been deleted between the get and now
                          row.eq(null),
                          null,
 
                          // The row may have been changed between the get and now
-                         r.and(info.hasFields(hz_v),
-                               row(hz_v).default(-1).ne(info(hz_v))),
-                         r.error(writes.invalidated_msg),
+                         r.and(info.hasFields(hzv),
+                               row(hzv).default(-1).ne(info(hzv))),
+                         r.error(writes.invalidatedMsg),
 
                          // Otherwise, we can safely remove the row
                          null),
@@ -44,10 +44,10 @@ function remove(context) {
             // Pretend like we deleted rows that didn't exist
             .do((res) =>
               res.merge({changes:
-                r.range(row_data.count()).map((index) =>
+                r.range(rowData.count()).map((index) =>
                   r.branch(res('changes')(index)('old_val').eq(null),
                            res('changes')(index).merge(
-                             {old_val: {id: row_data(index)('id')}}),
+                             {old_val: {id: rowData(index)('id')}}),
                            res('changes')(index))).coerceTo('array'),
               })))
           .run(conn, reqlOptions)

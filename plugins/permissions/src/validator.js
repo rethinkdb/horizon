@@ -8,15 +8,15 @@ const {remakeError} = require('@horizon/plugin-utils');
 class Validator {
   constructor(str) {
     try {
-      this._fn = vm.runInNewContext(str, { });
+      this.fn = vm.runInNewContext(str, { });
     } catch (err) {
       throw remakeError(err);
     }
-    assert(typeof this._fn === 'function');
+    assert(typeof this.fn === 'function');
   }
 
   isValid(...args) {
-    return this._fn(...args);
+    return this.fn(...args);
   }
 }
 

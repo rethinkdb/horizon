@@ -9,18 +9,14 @@ class PluginRouterHttp extends PluginRouterBase {
   }
 
   add(...args) {
-    return super.add(...args).then((res) => {
-      // RSI: add routes to http server
-      return res;
-    });
+    return super.add(...args);
+    // RSI: add routes to http server
   }
 
   remove(...args) {
-    return super.remove(...args).then((res) => {
-      // RSI: remove routes from http server
-      return res;
-    });
+    // RSI: remove routes from http server
+    return super.remove(...args);
   }
-};
+}
 
 module.exports = PluginRouterHttp;

@@ -1,11 +1,12 @@
 'use strict';
 
-import * as r from 'rethinkdb';
 const logger = require('./logger');
+
+const r = require('rethinkdb');
 
 const subs = Symbol('subs');
 
-export class Reliable {
+class Reliable {
   constructor(initialCbs) {
     this[subs] = new Map();
     this.ready = false;
@@ -77,7 +78,7 @@ export class Reliable {
   }
 }
 
-export class ReliableUnion extends Reliable {
+class ReliableUnion extends Reliable {
   constructor(reqs, cbs) {
     super(cbs);
     this.reqs = reqs;
@@ -117,7 +118,7 @@ export class ReliableUnion extends Reliable {
   }
 }
 
-export class ReliableConn extends Reliable {
+class ReliableConn extends Reliable {
   constructor(connOpts) {
     super();
     this.connOpts = connOpts;
@@ -171,16 +172,16 @@ export class ReliableConn extends Reliable {
   }
 }
 
-export class ReliableChangefeed extends Reliable {
+class ReliableChangefeed extends Reliable {
   constructor(reql, reliableConn, cbs) {
     super(cbs);
     this.reql = reql;
     this.reliableConn = reliableConn;
 
-    this.make_subscription();
+    this._makeSubscription();
   }
 
-  make_subscription() {
+  _makeSubscription() {
     if (this.closed) { return; }
     this.subscription = this.reliableConn.subscribe({
       onReady: (conn) => {
@@ -212,7 +213,7 @@ export class ReliableChangefeed extends Reliable {
           if (this.subscription) {
             this.subscription.close();
             this.subscription = null;
-            setTimeout(() => this.make_subscription(), 1000);
+            setTimeout(() => this._makeSubscription(), 1000);
           }
         });
       },
@@ -231,3 +232,10 @@ export class ReliableChangefeed extends Reliable {
     return retProm;
   }
 }
+
+module.exports = {
+  Reliable,
+  ReliableUnion,
+  ReliableConn,
+  ReliableChangefeed,
+};

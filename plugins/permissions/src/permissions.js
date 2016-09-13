@@ -8,10 +8,6 @@ const Joi = require('joi');
 
 const {r, logger, Reliable, ReliableChangefeed} = require('@horizon/server');
 
-// We can be desynced from the database for up to 5 seconds before we
-// start rejecting queries.
-const staleMs = 5000;
-
 // auth plugins should set 'request.context.user'
 // token/anonymous: this should be the user id
 // unauthenticated: this should be null, and will use the default rules
@@ -182,7 +178,7 @@ class UserCache {
       refcount: 1,
       unreadyAt: null,
       userRow: {id: null, groups: ['default']},
-      readyPromise: Promise.resolve()
+      readyPromise: Promise.resolve(),
     }));
 
     this.queuedGroups = new Map();
@@ -246,9 +242,9 @@ class UserCache {
   }
 
   close() {
-    let promises = [this.groupCfeed.close()];
+    const promises = [this.groupCfeed.close()];
     this.userCfeeds.forEach((feed) => {
-      promises.push(feed.close()); 
+      promises.push(feed.close());
     });
     return Promise.all(promises);
   }
@@ -334,6 +330,8 @@ class UserCache {
   }
 }
 
+// `cacheTimeout` - the duration we can be desynced from the database before we
+//   start rejecting queries.
 const optionsSchema = Joi.object().keys({
   name: Joi.any().required(),
   usersTable: Joi.string().default('users'),
@@ -347,7 +345,7 @@ module.exports = {
   activate(context, rawOptions, onReady, onUnready) {
     const options = Joi.attempt(rawOptions, optionsSchema);
     const userSub = Symbol(`${options.name}_userSub`);
-    
+
     // Save things in the context that we will need at deactivation
     const userCache = new UserCache(context, options);
     context[options.name] = {
@@ -365,7 +363,7 @@ module.exports = {
     context.horizon.events.on('auth', context[options.name].authCb);
     context.horizon.events.on('disconnect', context[options.name].disconnectCb);
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       userCache.groupCfeed.subscribe({onUnready, onReady: () => {
         resolve({
           methods: {
@@ -388,7 +386,6 @@ module.exports = {
         onReady();
       }});
     });
-
   },
 
   deactivate(context, options) {

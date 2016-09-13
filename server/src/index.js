@@ -38,26 +38,26 @@ module.exports.clientSource = function() {
     clientSource = fs.readFileSync(clientSourcePath);
   }
   return clientSource;
-}
+};
 
 module.exports.clientSourceMap = function() {
   if (!clientSourceMap) {
     clientSourceMap = fs.readFileSync(`${clientSourcePath}.map`);
   }
   return clientSourceMap;
-}
+};
 
-modules.exports.clientSourceCore = function() {
+module.exports.clientSourceCore = function() {
   if (!clientSourceCore) {
     clientSourceCore = fs.readFileSync(clientSourceCorePath);
   }
   return clientSourceCore;
-}
+};
 
-modules.exports.clientSourceCoreMap = function() {
+module.exports.clientSourceCoreMap = function() {
   if (!clientSourceCoreMap) {
     clientSourceCoreMap = fs.readFileSync(`${clientSourceCorePath}.map`);
   }
   return clientSourceCoreMap;
-}
+};
 

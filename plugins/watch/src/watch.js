@@ -15,10 +15,10 @@ function watch(context) {
     } else {
       reads.makeReadReql(req).then((reql) =>
         reql.changes({
-          include_initial: true,
-          include_states: true,
-          include_types: true,
-          include_offsets:
+          includeInitial: true,
+          includeStates: true,
+          includeTypes: true,
+          includeOffsets:
             req.getParameter('order') !== undefined &&
             req.getParameter('limit') !== undefined,
         }).run(conn, reqlOptions)

@@ -4,7 +4,7 @@ const {indexNameToInfo, primaryIndexName} = require('../indexes');
 
 const {logger} = require('@horizon/server');
 
-const compare_fields = (a, b) => {
+const compareFields = (a, b) => {
   if (a.length !== b.length) {
     return false;
   }
@@ -60,7 +60,7 @@ class Index {
     return this._result === true;
   }
 
-  on_ready(done) {
+  onReady(done) {
     if (this._result === true) {
       done();
     } else if (this._result) {
@@ -70,34 +70,34 @@ class Index {
     }
   }
 
-  // `fuzzy_fields` may be in any order at the beginning of the index.
-  // These must be immediately followed by `ordered_fields` in the exact
+  // `fuzzyFields` may be in any order at the beginning of the index.
+  // These must be immediately followed by `orderedFields` in the exact
   // order given.  There may be no other fields present in the index
   // (because the absence of a field would mean that row is not indexed).
-  // `fuzzy_fields` may overlap with `ordered_fields`.
-  is_match(fuzzy_fields, ordered_fields) {
+  // `fuzzyFields` may overlap with `orderedFields`.
+  isMatch(fuzzyFields, orderedFields) {
     // TODO: multi index matching
     if (this.geo || this.multi !== false) {
       return false;
     }
 
-    if (this.fields.length > fuzzy_fields.length + ordered_fields.length ||
-        this.fields.length < fuzzy_fields.length ||
-        this.fields.length < ordered_fields.length) {
+    if (this.fields.length > fuzzyFields.length + orderedFields.length ||
+        this.fields.length < fuzzyFields.length ||
+        this.fields.length < orderedFields.length) {
       return false;
     }
 
-    for (let i = 0; i < fuzzy_fields.length; ++i) {
+    for (let i = 0; i < fuzzyFields.length; ++i) {
       let found = false;
-      for (let j = 0; j < fuzzy_fields.length && !found; ++j) {
-        found = compare_fields(fuzzy_fields[i], this.fields[j]);
+      for (let j = 0; j < fuzzyFields.length && !found; ++j) {
+        found = compareFields(fuzzyFields[i], this.fields[j]);
       }
       if (!found) { return false; }
     }
 
-    for (let i = 0; i < ordered_fields.length; ++i) {
-      const pos = this.fields.length - ordered_fields.length + i;
-      if (pos < 0 || !compare_fields(ordered_fields[i], this.fields[pos])) {
+    for (let i = 0; i < orderedFields.length; ++i) {
+      const pos = this.fields.length - orderedFields.length + i;
+      if (pos < 0 || !compareFields(orderedFields[i], this.fields[pos])) {
         return false;
       }
     }

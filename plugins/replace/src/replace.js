@@ -2,7 +2,7 @@
 
 const {r} = require('@horizon/server');
 const {reqlOptions, writes} = require('@horizon/plugin-utils');
-const hz_v = writes.versionField;
+const hzv = writes.versionField;
 
 function replace(context) {
   return (request, response, next) => {
@@ -17,29 +17,29 @@ function replace(context) {
       throw new Error('No permissions given for insert operation.');
     }
 
-    writes.retry_loop(request.options.replace, permissions, timeout,
+    writes.retryLoop(request.options.replace, permissions, timeout,
       (rows) => // pre-validation, all rows
         r.expr(rows.map((row) => row.id))
           .map((id) => collection.table.get(id))
           .run(conn, reqlOptions),
       (validator, row, info) =>
-        writes.validate_old_row_required(validator, row, info, row),
+        writes.validateOldRowRequired(validator, row, info, row),
       (rows) => // write to database, all valid rows
         r.expr(rows)
-          .forEach((new_row) =>
-            collection.table.get(new_row('id')).replace((old_row) =>
+          .forEach((newRow) =>
+            collection.table.get(newRow('id')).replace((oldRow) =>
                 r.branch(// The row may have been deleted between the get and now
-                         old_row.eq(null),
-                         r.error(writes.missing_msg),
+                         oldRow.eq(null),
+                         r.error(writes.missingMsg),
 
                          // The row may have been changed between the get and now
-                         r.and(new_row.hasFields(hz_v),
-                               old_row(hz_v).default(-1).ne(new_row(hz_v))),
-                         r.error(writes.invalidated_msg),
+                         r.and(newRow.hasFields(hzv),
+                               oldRow(hzv).default(-1).ne(newRow(hzv))),
+                         r.error(writes.invalidatedMsg),
 
                          // Otherwise, we can safely replace the row
-                         writes.apply_version(
-                           new_row, old_row(hz_v).default(-1).add(1))),
+                         writes.applyVersion(
+                           newRow, oldRow(hzv).default(-1).add(1))),
                 {returnChanges: 'always'}))
         .run(conn, reqlOptions)
     ).then((msg) => response.end(msg)).catch(next);

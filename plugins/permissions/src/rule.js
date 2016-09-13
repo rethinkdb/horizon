@@ -12,7 +12,7 @@ class Rule {
   }
 
   isMatch(query, context) {
-    return this.template.is_match(query, context);
+    return this.template.isMatch(query, context);
   }
 
   isValid(...args) {

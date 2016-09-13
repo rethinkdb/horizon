@@ -8,8 +8,8 @@ const assert = require('assert');
 const {r, logger} = require('@horizon/server');
 
 class Table {
-  constructor(reql_table, conn) {
-    this.table = reql_table;
+  constructor(reqlTable, conn) {
+    this.table = reqlTable;
     this.indexes = new Map();
 
     this._waiters = [];
@@ -41,7 +41,7 @@ class Table {
     return this._result === true;
   }
 
-  on_ready(done) {
+  onReady(done) {
     if (this._result === true) {
       done();
     } else if (this._result) {
@@ -51,49 +51,49 @@ class Table {
     }
   }
 
-  update_indexes(indexes, conn) {
+  updateIndexes(indexes, conn) {
     logger.debug(`${this.table} indexes changed, reevaluating`);
 
     // Initialize the primary index, which won't show up in the changefeed
     indexes.push(primaryIndexName);
 
-    const new_index_map = new Map();
+    const newIndexMap = new Map();
     indexes.forEach((name) => {
       try {
-        const old_index = this.indexes.get(name);
-        const new_index = new Index(name, this.table, conn);
-        if (old_index) {
+        const oldIndex = this.indexes.get(name);
+        const newIndex = new Index(name, this.table, conn);
+        if (oldIndex) {
           // Steal any waiters from the old index
-          new_index._waiters = old_index._waiters;
-          old_index._waiters = [];
+          newIndex._waiters = oldIndex._waiters;
+          oldIndex._waiters = [];
         }
-        new_index_map.set(name, new_index);
+        newIndexMap.set(name, newIndex);
       } catch (err) {
         logger.warn(`${err}`);
       }
     });
 
     this.indexes.forEach((i) => i.close());
-    this.indexes = new_index_map;
+    this.indexes = newIndexMap;
     logger.debug(`${this.table} indexes updated`);
   }
 
   // TODO: support geo and multi indexes
-  create_index(fields, conn, done) {
+  createIndex(fields, conn, done) {
     const info = {geo: false, multi: false, fields};
-    const index_name = indexInfoToName(info);
-    assert(!this.indexes.get(index_name), 'index already exists');
+    const indexName = indexInfoToName(info);
+    assert(!this.indexes.get(indexName), 'index already exists');
 
     const success = () => {
       // Create the Index object now so we don't try to create it again before the
       // feed notifies us of the index creation
-      const new_index = new Index(index_name, this.table, conn);
+      const newIndex = new Index(indexName, this.table, conn);
       // TODO: shouldn't this be done before we go async?
-      this.indexes.set(index_name, new_index);
-      return new_index.on_ready(done);
+      this.indexes.set(indexName, newIndex);
+      return newIndex.onReady(done);
     };
 
-    this.table.indexCreate(index_name, indexInfoToReql(info),
+    this.table.indexCreate(indexName, indexInfoToReql(info),
                            {geo: info.geo, multi: (info.multi !== false)})
       .run(conn)
       .then(success)
@@ -108,15 +108,15 @@ class Table {
   }
 
   // Returns a matching (possibly compound) index for the given fields
-  // fuzzy_fields and ordered_fields should both be arrays
-  get_matching_index(fuzzy_fields, ordered_fields) {
-    if (fuzzy_fields.length === 0 && ordered_fields.length === 0) {
+  // `fuzzyFields` and `orderedFields` should both be arrays
+  getMatchingIndex(fuzzyFields, orderedFields) {
+    if (fuzzyFields.length === 0 && orderedFields.length === 0) {
       return this.indexes.get(primaryIndexName);
     }
 
     let match;
     for (const i of this.indexes.values()) {
-      if (i.is_match(fuzzy_fields, ordered_fields)) {
+      if (i.isMatch(fuzzyFields, orderedFields)) {
         if (i.ready()) {
           return i;
         } else if (!match) {

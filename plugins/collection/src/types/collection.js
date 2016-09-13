@@ -24,20 +24,20 @@ class Collection {
     this._waiters = [];
   }
 
-  _update_table(table_id, indexes, conn) {
-    let table = this._tables.get(table_id);
+  _updateTable(tableId, indexes, conn) {
+    let table = this._tables.get(tableId);
     if (indexes) {
       if (!table) {
         table = new Table(this.table, conn);
-        this._tables.set(table_id, table);
+        this._tables.set(tableId, table);
       }
-      table.update_indexes(indexes, conn);
-      this._waiters.forEach((w) => table.on_ready(w));
+      table.updateIndexes(indexes, conn);
+      this._waiters.forEach((w) => table.onReady(w));
       this._waiters = [];
     } else {
-      this._tables.delete(table_id);
+      this._tables.delete(tableId);
       if (table) {
-        table._waiters.forEach((w) => this.on_ready(w));
+        table._waiters.forEach((w) => this.onReady(w));
         table._waiters = [];
         table.close();
       }
@@ -52,37 +52,37 @@ class Collection {
     this._registered = false;
   }
 
-  _is_safe_to_remove() {
+  _isSafeToRemove() {
     return this._tables.size === 0 && !this._registered;
   }
 
-  _on_ready(done) {
+  _onReady(done) {
     if (this._tables.size === 0) {
       this._waiters.push(done);
     } else {
-      this._get_table().on_ready(done);
+      this._getTable().onReady(done);
     }
   }
 
-  _get_table() {
+  _getTable() {
     if (this._tables.size === 0) {
       throw new Error(`Collection ${this.name} is not ready.`);
     }
     return this._tables.values().next().value;
   }
 
-  _create_index(fields, done) {
-    return this._get_table().create_index(fields, this.reliableConn.connection(), done);
+  _createIndex(fields, done) {
+    return this._getTable().createIndex(fields, this.reliableConn.connection(), done);
   }
 
   ready() {
     if (this._tables.size === 0) {
       return false;
     }
-    return this._get_table().ready();
+    return this._getTable().ready();
   }
 
-  get_matching_index(fuzzy_fields, ordered_fields) {
+  getMatchingIndex(fuzzyFields, orderedFields) {
     return new Promise((resolve, reject) => {
       const done = (indexOrErr) => {
         if (indexOrErr instanceof Error) {
@@ -92,15 +92,15 @@ class Collection {
         }
       };
 
-      const match = this._get_table().get_matching_index(fuzzy_fields, ordered_fields);
+      const match = this._getTable().getMatchingIndex(fuzzyFields, orderedFields);
       if (match) {
         if (match.ready()) {
           resolve(match);
         } else {
-          match.on_ready(done);
+          match.onReady(done);
         }
       } else {
-        this._create_index(fuzzy_fields.concat(ordered_fields), done);
+        this._createIndex(fuzzyFields.concat(orderedFields), done);
       }
     });
   }
