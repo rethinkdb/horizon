@@ -7,11 +7,9 @@ const join = path.join;
 const fixableProjectName = /^[A-Za-z0-9_-]+$/;
 const unfixableChars = /[^A-Za-z0-9_-]/g;
 
-function dehyphenate(name) {
-  return name.replace(/-/g, '_');
-}
+const dehyphenate = (name) => name.replace(/-/g, '_');
 
-function shouldCreateDir(prospectiveName, dirList) {
+const shouldCreateDir = (prospectiveName, dirList) => {
   if (prospectiveName === '.' ||
       prospectiveName == null ||
       !fixableProjectName.test(prospectiveName)) {
@@ -21,9 +19,9 @@ function shouldCreateDir(prospectiveName, dirList) {
   } else {
     return false;
   }
-}
+};
 
-function checkProjectName(prospectiveName, cwd, dirList) {
+module.exports = (prospectiveName, cwd, dirList) => {
   let chdirTo = prospectiveName != null ?
         join(cwd, prospectiveName) : cwd;
   const createDir = shouldCreateDir(prospectiveName, dirList);
@@ -43,6 +41,4 @@ function checkProjectName(prospectiveName, cwd, dirList) {
     const invalids = prospectiveName.match(unfixableChars).join('');
     throw new Error(`Invalid characters in project name: ${invalids}`);
   }
-}
-
-module.exports = checkProjectName;
+};

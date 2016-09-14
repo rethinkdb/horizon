@@ -20,7 +20,7 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
       r.expr(rows.map((row) => row.id))
         .map((id) => collection.table.get(id))
         .run(conn, reql_options),
-    (row, info) => writes.validate_old_row_required(row, info, null, ruleset),
+    (row, info) => writes.validate_old_row_required(context, row, info, null, ruleset),
     (rows) => // write to database, all valid rows
       r.expr(rows).do((row_data) =>
         row_data.forEach((info) =>

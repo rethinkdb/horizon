@@ -131,7 +131,7 @@ const retry_loop = (original_rows, ruleset, timeout, pre_validate, validate_row,
                  null).then(make_write_response);
 };
 
-const validate_old_row_optional = (original, old_row, new_row, ruleset) => {
+const validate_old_row_optional = (context, original, old_row, new_row, ruleset) => {
   const expected_version = original[hz_v];
   if (expected_version !== undefined &&
       (!old_row || expected_version !== old_row[hz_v])) {
@@ -148,7 +148,7 @@ const validate_old_row_optional = (original, old_row, new_row, ruleset) => {
   }
 };
 
-const validate_old_row_required = (original, old_row, new_row, ruleset) => {
+const validate_old_row_required = (context, original, old_row, new_row, ruleset) => {
   if (old_row === null) {
     return new Error(missing_msg);
   }

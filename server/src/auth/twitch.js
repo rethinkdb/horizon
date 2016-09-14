@@ -33,7 +33,7 @@ function twitch(horizon, raw_options) {
                                 host: 'api.twitch.tv',
                                 path: '/kraken/oauth2/token' });
     req.write(querystring.stringify({
-      code, client_id, client_secret, redirect_uri,
+      client_id, redirect_uri, client_secret, code,
       grant_type: 'authorization_code' }));
     return req;
   };

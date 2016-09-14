@@ -7,9 +7,8 @@ const logger = require('../logger');
 const r = require('rethinkdb');
 
 class Table {
-  constructor(table, table_id, db, conn) {
-    this.collection = null; // This will be set when we are attached to a collection
-    this.table = r.db(db).table(table);
+  constructor(reql_table, conn) {
+    this.table = reql_table;
     this.indexes = new Map();
 
     this._waiters = [ ];
@@ -80,18 +79,20 @@ class Table {
 
   // TODO: support geo and multi indexes
   create_index(fields, conn, done) {
-    const index_name = index.info_to_name({ geo: false, multi: null, fields });
+    const info = { geo: false, multi: false, fields };
+    const index_name = index.info_to_name(info);
     error.check(!this.indexes.get(index_name), 'index already exists');
 
     const success = () => {
       // Create the Index object now so we don't try to create it again before the
       // feed notifies us of the index creation
       const new_index = new index.Index(index_name, this.table, conn);
-      this.indexes.set(index_name, new_index);
+      this.indexes.set(index_name, new_index); // TODO: shouldn't this be done before we go async?
       return new_index.on_ready(done);
     };
 
-    this.table.indexCreate(index_name, (row) => fields.map((key) => row(key)))
+    this.table.indexCreate(index_name, index.info_to_reql(info),
+                           { geo: info.geo, multi: (info.multi !== false) })
       .run(conn)
       .then(success)
       .catch((err) => {
@@ -122,11 +123,7 @@ class Table {
       }
     }
 
-    if (match) {
-      throw new error.IndexNotReady(this.collection, match);
-    } else {
-      throw new error.IndexMissing(this.collection, fuzzy_fields.concat(ordered_fields));
-    }
+    return match;
   }
 }
 

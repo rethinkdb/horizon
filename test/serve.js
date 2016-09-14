@@ -157,17 +157,17 @@ new Promise((resolve) => {
   console.log('starting rethinkdb');
 
   return start_rdb_server({ bind: local_addresses, dataDir: data_dir });
-}).then((info) => {
-  assert.notStrictEqual(info.driverPort, undefined);
-  console.log(`RethinkDB server listening for clients on port ${info.driverPort}.`);
-  console.log(`RethinkDB server listening for HTTP on port ${info.httpPort}.`);
+}).then((server) => {
+  assert.notStrictEqual(server.driver_port, undefined);
+  console.log(`RethinkDB server listening for clients on port ${server.driver_port}.`);
+  console.log(`RethinkDB server listening for HTTP on port ${server.http_port}.`);
   console.log('starting horizon');
 
   horizon.logger.level = 'debug';
   const horizon_server = new horizon.Server(http_servers, {
     auto_create_collection: true,
     auto_create_index: true,
-    rdb_port: info.driverPort,
+    rdb_port: server.driver_port,
     permissions: parse_yes_no_option(options.permissions),
     project_name: 'test',
     auth: {

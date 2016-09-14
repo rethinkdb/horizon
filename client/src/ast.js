@@ -6,8 +6,11 @@ import 'rxjs/add/operator/scan'
 import 'rxjs/add/operator/filter'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/toArray'
-import 'rxjs/add/operator/take'
 import 'rxjs/add/operator/defaultIfEmpty'
+import 'rxjs/add/operator/ignoreElements'
+import 'rxjs/add/operator/merge'
+import 'rxjs/add/operator/mergeMap'
+import 'rxjs/add/operator/take'
 
 import snakeCase from 'snake-case'
 import deepEqual from 'deep-equal'
@@ -15,6 +18,8 @@ import deepEqual from 'deep-equal'
 import checkArgs from './util/check-args'
 import validIndexValue from './util/valid-index-value.js'
 import { serialize } from './serialization.js'
+
+import watchRewrites from './hacks/watch-rewrites'
 
 
 /**
@@ -73,7 +78,8 @@ export class TermBase {
   // returned which will lazily emit the query when it is subscribed
   // to
   watch({ rawChanges = false } = {}) {
-    const raw = this._sendRequest('subscribe', this._query)
+    const query = watchRewrites(this, this._query)
+    const raw = this._sendRequest('subscribe', query)
     if (rawChanges) {
       return raw
     } else {
@@ -402,11 +408,7 @@ export class Limit extends TermBase {
 export class UserDataTerm {
   constructor(hz, handshake, socket) {
     this._hz = hz
-    this._before = Observable.merge(
-      socket.take(0), // just need to force connection
-      handshake // guarantee we get handshake even if we're already
-                // connected
-    )
+    this._before = socket.ignoreElements().merge(handshake)
   }
 
   _query(userId) {
@@ -414,19 +416,20 @@ export class UserDataTerm {
   }
 
   fetch() {
-    return this._before.concatMap(handshake => {
-      if (handshake.id === null) {
-        return Observable.of({})
-      } else {
-        return this._query(handshake.id).fetch()
-      }
-    })
+    return this._before.mergeMap(handshake => {
+        if (handshake.id == null) {
+          throw new Error('Unauthenticated users have no user document')
+        } else {
+          return this._query(handshake.id).fetch()
+        }
+      }).take(1) // necessary so that we complete, since _before is
+                 // infinite
   }
 
   watch(...args) {
-    return this._before.concatMap(handshake => {
+    return this._before.mergeMap(handshake => {
       if (handshake.id === null) {
-        return Observable.of({})
+        throw new Error('Unauthenticated users have no user document')
       } else {
         return this._query(handshake.id).watch(...args)
       }

@@ -166,6 +166,7 @@ const make_template = (str) => {
   }
 };
 
+// eslint-disable-next-line prefer-const
 template_compare = (query, template, context) => {
   if (template === undefined) {
     return false;

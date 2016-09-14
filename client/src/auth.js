@@ -2,6 +2,7 @@ import queryParse from './util/query-parse'
 import { Observable } from 'rxjs/Observable'
 import 'rxjs/add/operator/do'
 import 'rxjs/add/operator/map'
+import 'rxjs/add/observable/dom/ajax'
 
 const HORIZON_JWT = 'horizon-jwt'
 
@@ -101,7 +102,8 @@ export class TokenStorage {
   }
 
   setAuthFromQueryParams() {
-    const parsed = typeof window !== 'undefined' ?
+    const parsed = typeof window !== 'undefined' &&
+      typeof window.location !== 'undefined' ?
             queryParse(window.location.search) : {}
 
     if (parsed.horizon_token != null) {
@@ -126,7 +128,18 @@ export class TokenStorage {
 
   // Whether there is an auth token for the provided authType
   hasAuthToken() {
-    return Boolean(this.get())
+    const token = this.get()
+    if (!token) {
+      return false
+    }
+    try {
+      const meta = JSON.parse(atob(token.split('.')[1]))
+      const exp = meta.exp
+      const now = new Date().getTime() / 1000
+      return (now < exp)
+    } catch (e) {
+      return false
+    }
   }
 }
 
