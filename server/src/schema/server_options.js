@@ -20,6 +20,7 @@ const server = Joi.object({
   rdb_user: Joi.string().allow(null),
   rdb_password: Joi.string().allow(null),
   rdb_timeout: Joi.number().allow(null),
+  max_connections: Joi.number().allow(null),
 }).unknown(false);
 
 const auth = Joi.object({

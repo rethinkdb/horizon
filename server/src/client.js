@@ -27,6 +27,10 @@ class Client {
     // The first message should always be the handshake
     this._socket.once('message', (data) =>
       this.error_wrap_socket(() => this.handle_handshake(data)));
+
+    if (server._max_connections !== null && server._reql_conn._clients.size >= server._max_connections) {
+      this.close({ request_id: null, error: 'Max connections limit reached.', error_code: 0 });
+    }
   }
 
   handle_websocket_close() {

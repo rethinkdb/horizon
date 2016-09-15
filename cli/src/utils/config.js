@@ -48,6 +48,7 @@ const make_default_options = () => ({
   allow_unauthenticated: false,
   auth_redirect: '/',
   access_control_allow_origin: '',
+  max_connections: null,
 
   auth: { },
 });
