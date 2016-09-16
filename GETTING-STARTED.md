@@ -137,7 +137,7 @@ You can find [a full list of OAuth implementations we support here](/server/src/
 
 The first thing you need to do is create an application with the provider you'd like to authenticate with, usually at the developer portal portion of their website. Here are links
  to a the providers we currently support.
-
+* 🕹🎮 - [Beam](https://beam.pro/lab/oauth)
 * 😵📖 - [Facebook](https://developers.facebook.com/apps/)
 * 💻🏦 - [Github](https://github.com/settings/applications/new)
 * 🔟<sup>100</sup> - [Google](https://console.developers.google.com/project)
