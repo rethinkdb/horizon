@@ -21,6 +21,7 @@ module.exports.utils = require('./utils');
 
 module.exports.auth = {
   auth0: require('./auth/auth0'),
+  beam: require('./auth/beam'),
   facebook: require('./auth/facebook'),
   github: require('./auth/github'),
   google: require('./auth/google'),
