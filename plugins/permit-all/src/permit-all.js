@@ -5,7 +5,7 @@ module.exports = {
   activate: () => ({
     methods: {
       hz_permissions: {
-        type: 'preReq',
+        type: 'prereq',
         handler: (req, res, next) => {
           req.setParameter(() => null);
           next();

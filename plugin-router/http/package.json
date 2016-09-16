@@ -4,9 +4,8 @@
   "description": "Plugin router for Horizon using a basic HTTP backend.",
   "main": "src/index.js",
   "scripts": {
-    "lint": "eslint src test",
-    "test": "mocha dist/test",
-    "build": "babel src -d dist -s true"
+    "lint": "eslint src",
+    "test": "mocha src/test"
   },
   "repository": {
     "type": "git",

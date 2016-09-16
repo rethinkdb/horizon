@@ -4,62 +4,62 @@ const assert = require('assert');
 
 const {r} = require('@horizon/server');
 
-const hz_v = '$hz_v$';
+const hzv = '$hz_v$';
 
 // Common functionality used by write requests
-const invalidated_msg = 'Write invalidated by another request, try again.';
-const missing_msg = 'The document was missing.';
-const timeout_msg = 'Operation timed out.';
-const unauthorized_msg = 'Operation not permitted.';
+const invalidatedMsg = 'Write invalidated by another request, try again.';
+const missingMsg = 'The document was missing.';
+const timeoutMsg = 'Operation timed out.';
+const unauthorizedMsg = 'Operation not permitted.';
 
-function apply_version(row, new_version) {
-  return row.merge(r.object(hz_v, new_version));
+function applyVersion(row, newVersion) {
+  return row.merge(r.object(hzv, newVersion));
 }
 
-function make_write_response(data) {
+function makeWriteResponse(data) {
   data.forEach((item, index) => {
     if (item instanceof Error) {
       data[index] = {error: item.message};
     }
   });
-  return data;
+  return {op: 'replace', path: '', value: {type: 'value', synced: true, val: data}};
 }
 
 // This function returns a Promise that resolves to an array of responses -
-//   one for each row in `original_rows`, or rejects with an appropriate error.
+//   one for each row in `originalRows`, or rejects with an appropriate error.
 // deadline -> a Date object for when to give up retrying,
 //   or a falsey value for no timeout
-// pre_validate -> function (rows):
+// preValidate -> function (rows):
 //   rows: all pending rows
 //   return: an array or the promise of an array of info for those rows
 //           (which will be passed to the validate callback)
-// validate_row -> function (row, info):
+// validateRow -> function (validator, row, info):
 //   validator: The function to validate with
 //   row: The row from the original query
-//   info: The info returned by the pre_validate step for this row
+//   info: The info returned by the preValidate step for this row
 //   return: nothing if successful or an error to be put as the response for this row
-// do_write -> function (rows):
+// doWrite -> function (rows):
 //   rows: all pending rows
 //   return: a (promise of a) ReQL write result object
-function retry_loop(original_rows,
-                    permissions,
-                    deadline,
-                    pre_validate,
-                    validate_row,
-                    do_write) {
-  let first_attempt = true;
-  const iterate = (row_data_arg, response_data) => {
-    let row_data = row_data_arg;
-    if (row_data.length === 0) {
-      return response_data;
-    } else if (!first_attempt && deadline) {
+function retryLoop(originalRows,
+                   permissions,
+                   deadline,
+                   preValidate,
+                   validateRow,
+                   doWrite) {
+  let firstAttempt = true;
+  const iterate = (rowDataArg, responseData) => {
+    let rowData = rowDataArg;
+    if (rowData.length === 0) {
+      return responseData;
+    } else if (!firstAttempt && deadline) {
       if (Date.now() > deadline.getTime()) {
-        response_data.forEach((data, index) => {
+        responseData.forEach((data, index) => {
           if (data === null) {
-            response_data[index] = new Error(timeout_msg);
+            responseData[index] = new Error(timeoutMsg);
           }
         });
-        return response_data;
+        return responseData;
       }
     }
 
@@ -68,124 +68,124 @@ function retry_loop(original_rows,
       // so we have to restore it to the original value.
       // This is done because validation only approves moving from one specific
       // version of the row to another.  Even if the original request did not choose
-      // the version, we are locked in to the version fetched from the pre_validate
+      // the version, we are locked in to the version fetched from the preValidate
       // callback until the next iteration.  If the version has changed in the meantime,
       // it is an invalidated error which may be retried until we hit the deadline.
-      row_data.forEach((data) => {
+      rowData.forEach((data) => {
         if (data.version === undefined) {
-          delete data.row[hz_v];
+          delete data.row[hzv];
         } else {
-          data.row[hz_v] = data.version;
+          data.row[hzv] = data.version;
         }
       });
 
       // If permissions returns a function, we need to use it to validate
       if (permissions()) {
         // For the set of rows to write, gather info for the validation step
-        return Promise.resolve(pre_validate(row_data.map((data) => data.row)))
+        return Promise.resolve(preValidate(rowData.map((data) => data.row)))
         .then((infos) => {
-          assert(infos.length === row_data.length);
+          assert(infos.length === rowData.length);
 
           // For each row to write (and info), validate it with permissions
           const validator = permissions();
           if (validator) {
-            const valid_rows = [];
-            row_data.forEach((data, i) => {
-              const res = validate_row(validator, data.row, infos[i]);
+            const validRows = [];
+            rowData.forEach((data, i) => {
+              const res = validateRow(validator, data.row, infos[i]);
 
               if (res !== undefined) {
-                response_data[data.index] = res;
+                responseData[data.index] = res;
               } else {
-                valid_rows.push(data);
+                validRows.push(data);
               }
             });
-            row_data = valid_rows;
+            rowData = validRows;
           }
         });
       }
     }).then(() => { // For the set of valid rows, call the write step
-      if (row_data.length === 0) {
+      if (rowData.length === 0) {
         return [];
       }
-      return do_write(row_data.map((data) => data.row)).then((res) => res.changes);
+      return doWrite(rowData.map((data) => data.row)).then((res) => res.changes);
     }).then((changes) => {
-      assert(changes.length === row_data.length);
+      assert(changes.length === rowData.length);
 
       // Remove successful writes and invalidated writes that had an initial version
-      const retry_rows = [];
-      row_data.forEach((data, index) => {
+      const retryRows = [];
+      rowData.forEach((data, index) => {
         const res = changes[index];
         if (res.error !== undefined) {
           if (res.error.indexOf('Duplicate primary key') === 0) {
-            response_data[data.index] = {error: 'The document already exists.'};
-          } else if (res.error.indexOf(invalidated_msg) === 0 &&
+            responseData[data.index] = {error: 'The document already exists.'};
+          } else if (res.error.indexOf(invalidatedMsg) === 0 &&
                      data.version === undefined) {
-            retry_rows.push(data);
+            retryRows.push(data);
           } else {
-            response_data[data.index] = {error: res.error};
+            responseData[data.index] = {error: res.error};
           }
         } else if (res.new_val === null) {
-          response_data[data.index] = {id: res.old_val.id, [hz_v]: res.old_val[hz_v]};
+          responseData[data.index] = {id: res.old_val.id, [hzv]: res.old_val[hzv]};
         } else {
-          response_data[data.index] = {id: res.new_val.id, [hz_v]: res.new_val[hz_v]};
+          responseData[data.index] = {id: res.new_val.id, [hzv]: res.new_val[hzv]};
         }
       });
 
       // Recurse, after which it will decide if there is more work to be done
-      first_attempt = false;
-      return iterate(retry_rows, response_data, deadline);
+      firstAttempt = false;
+      return iterate(retryRows, responseData, deadline);
     });
   };
 
-  return iterate(original_rows.map((row, index) => ({row, index, version: row[hz_v]})),
-                 Array(original_rows.length).fill(null))
-    .then(make_write_response);
+  return iterate(originalRows.map((row, index) => ({row, index, version: row[hzv]})),
+                 Array(originalRows.length).fill(null))
+    .then(makeWriteResponse);
 }
 
-function validate_old_row_optional(validator, original, old_row, new_row) {
-  const expected_version = original[hz_v];
-  if (expected_version !== undefined &&
-      (!old_row || expected_version !== old_row[hz_v])) {
-    return new Error(invalidated_msg);
-  } else if (!validator(old_row, new_row)) {
-    return new Error(unauthorized_msg);
+function validateOldRowOptional(validator, original, oldRow, newRow) {
+  const expectedVersion = original[hzv];
+  if (expectedVersion !== undefined &&
+      (!oldRow || expectedVersion !== oldRow[hzv])) {
+    return new Error(invalidatedMsg);
+  } else if (!validator(oldRow, newRow)) {
+    return new Error(unauthorizedMsg);
   }
 
-  if (old_row) {
-    const old_version = old_row[hz_v];
-    if (expected_version === undefined) {
-      original[hz_v] = old_version === undefined ? -1 : old_version;
+  if (oldRow) {
+    const oldVersion = oldRow[hzv];
+    if (expectedVersion === undefined) {
+      original[hzv] = oldVersion === undefined ? -1 : oldVersion;
     }
   }
 }
 
-function validate_old_row_required(validator, original, old_row, new_row) {
-  if (old_row == null) {
-    return new Error(missing_msg);
+function validateOldRowRequired(validator, original, oldRow, newRow) {
+  if (oldRow == null) {
+    return new Error(missingMsg);
   }
 
-  const old_version = old_row[hz_v];
-  const expected_version = original[hz_v];
-  if (expected_version !== undefined &&
-      expected_version !== old_version) {
-    return new Error(invalidated_msg);
-  } else if (!validator(old_row, new_row)) {
-    return new Error(unauthorized_msg);
+  const oldVersion = oldRow[hzv];
+  const expectedVersion = original[hzv];
+  if (expectedVersion !== undefined &&
+      expectedVersion !== oldVersion) {
+    return new Error(invalidatedMsg);
+  } else if (!validator(oldRow, newRow)) {
+    return new Error(unauthorizedMsg);
   }
 
-  if (expected_version === undefined) {
-    original[hz_v] = old_version === undefined ? -1 : old_version;
+  if (expectedVersion === undefined) {
+    original[hzv] = oldVersion === undefined ? -1 : oldVersion;
   }
 }
 
 module.exports = {
-  invalidated_msg,
-  missing_msg,
-  timeout_msg,
-  unauthorized_msg,
-  apply_version,
-  retry_loop,
-  validate_old_row_required,
-  validate_old_row_optional,
-  versionField: hz_v,
+  invalidatedMsg,
+  missingMsg,
+  timeoutMsg,
+  unauthorizedMsg,
+  applyVersion,
+  retryLoop,
+  validateOldRowRequired,
+  validateOldRowOptional,
+  versionField: hzv,
 };

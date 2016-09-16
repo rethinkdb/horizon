@@ -2,12 +2,11 @@
   "name": "@horizon/server-test",
   "version": "1.0.0",
   "description": "Embedded horizon server for running tests.",
-  "main": "dist/main.js",
+  "main": "src/main.js",
   "scripts": {
-    "lint": "eslint src test",
-    "test": "mocha --timeout 10000 dist/test",
-    "build": "babel src -d dist -s true",
-    "serve": "node ./dist/serve.js"
+    "lint": "eslint src",
+    "test": "mocha --timeout 10000 src/test",
+    "serve": "node ./src/serve.js"
   },
   "repository": {
     "type": "git",
@@ -23,11 +22,12 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "horizon": "3.0.0-alpha-0",
-    "@horizon/plugin-router-base": "1.0.0",
     "@horizon-plugins/defaults": "1.0.0",
+    "@horizon/plugin-router-base": "1.0.0",
     "@horizon/server": "3.0.0-alpha-0",
-    "argparse": "^1.0.7"
+    "argparse": "^1.0.7",
+    "horizon": "3.0.0-alpha-0",
+    "jsonpatch": "^3.0.1"
   },
   "devDependencies": {
     "eslint": "^3.1.0",

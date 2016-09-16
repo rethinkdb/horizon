@@ -2,11 +2,10 @@
   "name": "@horizon-plugins/timeout",
   "version": "1.0.0",
   "description": "Plugin for the 'timeout' term in the Horizon Collections API.",
-  "main": "dist/timeout.js",
+  "main": "src/timeout.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "mocha dist/test",
-    "build": "babel src -d dist -s true"
+    "test": "mocha src/test"
   },
   "repository": {
     "type": "git",

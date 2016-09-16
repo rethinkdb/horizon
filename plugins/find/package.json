@@ -2,11 +2,10 @@
   "name": "@horizon-plugins/find",
   "version": "1.0.0",
   "description": "Plugin for the 'find' term in the Horizon Collections API.",
-  "main": "dist/find.js",
+  "main": "src/find.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "mocha dist/test",
-    "build": "babel src -d dist -s true"
+    "test": "mocha src/test"
   },
   "repository": {
     "type": "git",

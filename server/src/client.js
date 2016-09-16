@@ -1,7 +1,7 @@
 'use strict';
 
 const logger = require('./logger');
-const schemas = require('./schema/horizon_protocol');
+const schema = require('./schema');
 const Response = require('./response');
 
 const Joi = require('joi');
@@ -59,7 +59,7 @@ class ClientConnection {
     }
   }
 
-  parseRequest(data, schema) {
+  parseRequest(data, messageSchema) {
     let request;
     try {
       request = JSON.parse(data);
@@ -72,7 +72,7 @@ class ClientConnection {
     }
 
     try {
-      return Joi.attempt(request, schema);
+      return Joi.attempt(request, messageSchema);
     } catch (err) {
       const detail = err.details[0];
       const errStr = `Request validation error at "${detail.path}": ${detail.message}`;
@@ -88,7 +88,7 @@ class ClientConnection {
   }
 
   handleHandshake(data) {
-    const request = this.parseRequest(data, schemas.handshake);
+    const request = this.parseRequest(data, schema.handshake);
     logger.debug(`Received handshake: ${JSON.stringify(request)}`);
 
     if (request === undefined) {
@@ -114,7 +114,7 @@ class ClientConnection {
 
   handleRequest(data) {
     logger.debug(`Received request from client: ${data}`);
-    const rawRequest = this.parseRequest(data, schemas.request);
+    const rawRequest = this.parseRequest(data, schema.request);
 
     if (rawRequest === undefined) {
       return;

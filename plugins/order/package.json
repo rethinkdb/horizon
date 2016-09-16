@@ -2,11 +2,10 @@
   "name": "@horizon-plugins/order",
   "version": "1.0.0",
   "description": "Plugin for the 'order' term in the Horizon Collections API.",
-  "main": "dist/order.js",
+  "main": "src/order.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "mocha dist/test",
-    "build": "babel src -d dist -s true"
+    "test": "mocha src/test"
   },
   "repository": {
     "type": "git",

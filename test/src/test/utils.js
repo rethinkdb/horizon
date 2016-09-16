@@ -11,6 +11,8 @@ const each_line_in_pipe = require('horizon/src/utils/each_line_in_pipe');
 
 const assert = require('assert');
 const http = require('http');
+
+const jsonpatch = require('jsonpatch');
 const r = require('rethinkdb');
 const websocket = require('ws');
 
@@ -261,6 +263,26 @@ const horizon_unauthenticated_auth = (done) => {
   });
 };
 
+const convertResult = (result) => {
+  switch (result.type) {
+  case 'set':
+    const set = new Set();
+    if (result.val) {
+      for (const item in result.val) {
+        set.add(item);
+      }
+    }
+    return set;
+  case 'value':
+    return result.val;
+  case undefined:
+    assert.strictEqual(result.val, undefined);
+    return;
+  default:
+    throw new Error(`Unexpected result type: "${result.type}"`);
+  }
+};
+
 // `stream_test` will send a request (containing a request_id), and call the
 // callback with (err, res), where `err` is the error string if an error
 // occurred, or `null` otherwise.  `res` will be an array, being the concatenation
@@ -268,18 +290,21 @@ const horizon_unauthenticated_auth = (done) => {
 // TODO: this doesn't allow for dealing with multiple states (like 'synced').
 const stream_test = (req, cb) => {
   assert(horizon_conn && horizon_conn.readyState === websocket.OPEN);
-  const results = [];
+  let result = {};
 
   add_horizon_listener(req.request_id, (msg) => {
-    if (msg.data !== undefined) {
-      results.push.apply(results, msg.data);
+    console.log(`got message: ${JSON.stringify(msg)}`);
+    if (msg.patch !== undefined) {
+      result = jsonpatch.apply_patch(result, msg.patch);
     }
     if (msg.error !== undefined) {
       remove_horizon_listener(req.request_id);
-      cb(new Error(msg.error), results);
+      cb(new Error(msg.error), convertResult(result));
     } else if (msg.state === 'complete') {
+      const res = result.val || (result.type === 'set' ? new Set() : []);
       remove_horizon_listener(req.request_id);
-      cb(null, results);
+      assert(result.synced);
+      cb(null, convertResult(result));
     }
   });
 

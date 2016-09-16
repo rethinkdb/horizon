@@ -4,6 +4,8 @@ const utils = require('./utils');
 
 const assert = require('assert');
 
+const jsonpatch = require('jsonpatch');
+
 const all_tests = (collection) => {
   beforeEach('Authenticate client', (done) => utils.horizon_token_auth('admin', done));
 
@@ -30,28 +32,30 @@ const all_tests = (collection) => {
   });
 
   it('keepalive', (done) => {
-    utils.stream_test({request_id: 0, type: 'keepalive'}, (err, res) => {
-      assert.deepStrictEqual(res, []);
-      assert.ifError(err);
+    utils.horizon_conn().send(JSON.stringify({request_id: 0, type: 'keepalive'}));
+    
+    utils.add_horizon_listener(0, (msg) => {
+      assert.deepStrictEqual(msg, {state: 'complete', request_id: 0});
       done();
     });
   });
 
   it('end_subscription', (done) => {
-    //const conn = utils.horizon_conn();
-    //conn.send('{"request_id": 0, "type": "end_subscription"}');
+    const conn = utils.horizon_conn();
+    conn.send(JSON.stringify({request_id: 0, type: 'end_subscription'}));
 
     // There is no response for an end_subscription, so just run a dummy keepalive roundtrip
-    utils.stream_test({request_id: 1, type: 'keepalive'}, (err, res) => {
-      assert.deepStrictEqual(res, []);
-      assert.ifError(err);
+    conn.send(JSON.stringify({request_id: 0, type: 'keepalive'}));
+    
+    utils.add_horizon_listener(0, (msg) => {
+      assert.deepStrictEqual(msg, {state: 'complete', request_id: 0});
       done();
     });
   });
 
   it('no options', (done) => {
     utils.stream_test({request_id: 1}, (err, res) => {
-      assert.deepStrictEqual(res, []);
+      assert.deepStrictEqual(res, {});
       utils.check_error(err, '"options" is required');
       done();
     });
@@ -59,7 +63,7 @@ const all_tests = (collection) => {
 
   it('no terminal method', (done) => {
     utils.stream_test({request_id: 2, options: {above: []}}, (err, res) => {
-      assert.deepStrictEqual(res, []);
+      assert.deepStrictEqual(res, {});
       assert.strictEqual(err.message,
         'No terminal method was specified in the request.');
       done();
@@ -68,7 +72,7 @@ const all_tests = (collection) => {
 
   it('unknown method', (done) => {
     utils.stream_test({request_id: 2, options: {fake: []}}, (err, res) => {
-      assert.deepStrictEqual(res, []);
+      assert.deepStrictEqual(res, {});
       assert.strictEqual(err.message,
         'No method to handle option "fake".');
       done();
@@ -88,10 +92,17 @@ const all_tests = (collection) => {
           watch: [],
         },
       }));
+    
+    const result = {};
     utils.add_horizon_listener(3, (msg) => {
+      if (msg.patch !== undefined) {
+        jsonpatch.apply_patch(result, msg.patch);
+      }
       if (msg.error !== undefined) {
+        utils.remove_horizon_listener(3);
         throw new Error(msg.error);
-      } else if (msg.state === 'synced') {
+      } else if (result.synced) {
+        utils.remove_horizon_listener(3);
         utils.close_horizon_conn();
         utils.table(collection).insert({}).run(utils.rdb_conn())
          .then(() => done());

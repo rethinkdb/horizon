@@ -8,11 +8,7 @@ class Response {
     this.complete = new Promise((resolve, reject) => {
       this._resolve = resolve;
       this._reject = reject;
-    }).then((data) => {
-      this._completed = true;
-      this.write(data, 'complete');
     }).catch((err) => {
-      this._completed = true;
       logger.debug(`Request failed with error: ${err.stack}`);
       this._socketSend({
         error: `${err.message}`,
@@ -22,22 +18,35 @@ class Response {
     });
   }
 
-  write(data, state = undefined) {
-    if (this._completed && state !== 'complete') {
+  // Each parameter to 'write' may be a patch or an array of patches
+  write(patch) {
+    if (this._completed) {
       throw new Error('This response has already completed.');
-    } else if (!this._completed && state === 'complete') {
-      throw new Error(
-        '`.write()` cannot be used to send a `state: complete` message.' +
-        '  Use `.end()` to complete a Response.');
     }
-    this._socketSend({state, data});
+
+    if (Array.isArray(patch)) {
+      this._socketSend({patch});
+    } else {
+      this._socketSend({patch: [patch]});
+    }
   }
 
-  end(dataOrError) {
-    if (dataOrError instanceof Error) {
-      this._reject(dataOrError);
-    } else {
-      this._resolve(dataOrError);
+  end(patchOrError) {
+    logger.debug(`Ending request with ${patchOrError}`);
+    if (!this._completed) {
+      this._completed = true;
+      if (patchOrError instanceof Error) {
+        this._reject(patchOrError);
+      } else {
+        if (Array.isArray(patchOrError)) {
+          this._socketSend({state: 'complete', patch: patchOrError});
+        } else if (patchOrError) {
+          this._socketSend({state: 'complete', patch: [patchOrError]});
+        } else {
+          this._socketSend({state: 'complete'});
+        }
+        this._resolve();
+      }
     }
   }
 }

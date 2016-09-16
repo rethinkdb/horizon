@@ -7,9 +7,60 @@ const vm = require('vm');
 // RSI: where do we get the list of options from? there's no easy way to accept any
 // method - we could try to parse the ast of the javascript itself before evaluating
 // the template
-const ast = require('@horizon/client/lib/ast');
-const validIndexValue = require('@horizon/client/lib/util/valid-index-value').default;
-const {remakeError} = require('@horizon/plugin-utils');
+const {isObject, remakeError} = require('@horizon/plugin-utils');
+
+const templateData = Symbol('templateData');
+
+function templateCompare(query, template, context) {
+  if (template === undefined) {
+    return false;
+  } else if (template instanceof Any ||
+             template instanceof AnyObject ||
+             template instanceof AnyArray) {
+    if (!template.matches(query, context)) {
+      return false;
+    }
+  } else if (template instanceof UserId) {
+    if (query !== context.id) {
+      return false;
+    }
+  } else if (template === null) {
+    if (query !== null) {
+      return false;
+    }
+  } else if (Array.isArray(template)) {
+    if (!Array.isArray(query) ||
+        template.length !== query.length) {
+      return false;
+    }
+    for (let i = 0; i < template.length; ++i) {
+      if (!templateCompare(query[i], template[i], context)) {
+        return false;
+      }
+    }
+  } else if (typeof template === 'object') {
+    if (typeof query !== 'object') {
+      return false;
+    }
+
+    for (const key in query) {
+      if (!templateCompare(query[key], template[key], context)) {
+        return false;
+      }
+    }
+
+    // Make sure all template keys were handled
+    for (const key in template) {
+      if (query[key] === undefined) {
+        return false;
+      }
+    }
+  } else if (template !== query) {
+    return false;
+  }
+
+  return true;
+}
 
 class Any {
   constructor(values) {
@@ -86,166 +137,92 @@ class AnyArray {
 
 class UserId { }
 
-const wrapWrite = (query, docs) => {
-  if (docs instanceof AnyArray ||
-      Array.isArray(docs)) {
-    query.data = docs;
-  } else {
-    query.data = [docs];
+// The chained object in the template is of the format:
+// {
+//   [templateData]: {
+//     any: <BOOL>,
+//     options: {
+//       <OPTION>: <ARGS>,
+//     }
+//   }
+// }
+function proxyGet(target, property, receiver) {
+  const data = target[templateData];
+
+  if (data.options[property] !== undefined) {
+    throw new Error('"${property}" is already specified for the request.');
   }
-  return query;
-};
 
-const wrapRemove = (doc) => {
-  if (validIndexValue(doc)) {
-    return {id: doc};
+  if (property === 'any') {
+    // TODO: maybe make this return the next object directly, rather than a method with no args?
+    return (...args) => {
+      if (args.length !== 0) {
+        throw new Error('".any()" does not take arguments');
+      }
+      return new Proxy({[templateData]: {any: true, options: data.options}}, {get: proxyGet});
+    };
   }
-  return doc;
-};
 
-// Add helper methods to match any subset of the current query for reads or writes
-ast.TermBase.prototype.anyRead = function() {
-  return this._sendRequest(new Any(['query', 'subscribe']),
-                           new AnyObject(this._query));
-};
-
-ast.Collection.prototype.anyWrite = function() {
-  let docs = arguments;
-  if (arguments.length === 0) {
-    docs = new AnyArray(new Any());
-  }
-  return this._sendRequest(
-    new Any(['store', 'upsert', 'insert', 'replace', 'update', 'remove']),
-    wrapWrite(new AnyObject(this._query), docs));
-};
-
-// Monkey-patch the ast functions so we don't clobber certain things
-ast.TermBase.prototype.watch = function() {
-  return this._sendRequest('subscribe', this._query);
-};
-ast.TermBase.prototype.fetch = function() {
-  return this._sendRequest('query', this._query);
-};
-ast.Collection.prototype.store = function(docs) {
-  return this._sendRequest('store', wrapWrite(this._query, docs));
-};
-ast.Collection.prototype.upsert = function(docs) {
-  return this._sendRequest('upsert', wrapWrite(this._query, docs));
-};
-ast.Collection.prototype.insert = function(docs) {
-  return this._sendRequest('insert', wrapWrite(this._query, docs));
-};
-ast.Collection.prototype.replace = function(docs) {
-  return this._sendRequest('replace', wrapWrite(this._query, docs));
-};
-ast.Collection.prototype.update = function(docs) {
-  return this._sendRequest('update', wrapWrite(this._query, docs));
-};
-ast.Collection.prototype.remove = function(doc) {
-  return this._sendRequest('remove', wrapWrite(this._query, wrapRemove(doc)));
-};
-ast.Collection.prototype.removeAll = function(docs) {
-  return this._sendRequest('remove', wrapWrite(this._query,
-                                               docs.map((doc) => wrapRemove(doc))));
-};
+  return (...args) => {
+    let value = args;
+    if (args.length === 1 && args[0] instanceof Any) {
+      value = args[0];
+    }
+    return new Proxy({[templateData]: {any: data.any, options: Object.assign({property: value}, data.options)}}, {get: proxyGet});
+  };
+}
 
 const env = {
-  collection: (name) => new ast.Collection((type, options) =>
-    ({request_id: new Any(),
-       type: Array.isArray(type) ? new Any(type) : type,
-       options}), name, false),
+  request: new Proxy({}, {get: proxyGet}),
+  horizon: (...args) => new Proxy({}, {get: proxyGet}).collection(...args),
   any: function() { return new Any(Array.from(arguments)); },
   anyObject: function(obj) { return new AnyObject(obj); },
   anyArray: function() { return new AnyArray(Array.from(arguments)); },
   userId: function() { return new UserId(); },
 };
 
-const makeTemplate = (str) => {
+function makeTemplate(str) {
   try {
     const sandbox = Object.assign({}, env);
     return vm.runInNewContext(str, sandbox);
   } catch (err) {
     throw remakeError(err);
   }
-};
-
-// eslint-disable-next-line prefer-const
-function templateCompare(query, template, context) {
-  if (template === undefined) {
-    return false;
-  } else if (template instanceof Any ||
-             template instanceof AnyObject ||
-             template instanceof AnyArray) {
-    if (!template.matches(query, context)) {
-      return false;
-    }
-  } else if (template instanceof UserId) {
-    if (query !== context.id) {
-      return false;
-    }
-  } else if (template === null) {
-    if (query !== null) {
-      return false;
-    }
-  } else if (Array.isArray(template)) {
-    if (!Array.isArray(query) ||
-        template.length !== query.length) {
-      return false;
-    }
-    for (let i = 0; i < template.length; ++i) {
-      if (!templateCompare(query[i], template[i], context)) {
-        return false;
-      }
-    }
-  } else if (typeof template === 'object') {
-    if (typeof query !== 'object') {
-      return false;
-    }
-
-    for (const key in query) {
-      if (!templateCompare(query[key], template[key], context)) {
-        return false;
-      }
-    }
-
-    // Make sure all template keys were handled
-    for (const key in template) {
-      if (query[key] === undefined) {
-        return false;
-      }
-    }
-  } else if (template !== query) {
-    return false;
-  }
-
-  return true;
 }
-
-const incompleteTemplateMsg = (str) =>
-  `Incomplete template "${str}", ` +
-  'consider adding ".fetch()", ".watch()", ".anyRead()", or ".anyWrite()"';
 
 class Template {
   constructor(str) {
-    this._value = makeTemplate(str);
-    assert(this._value !== null, `Invalid template: ${str}`);
-    assert(!Array.isArray(this._value), `Invalid template: ${str}`);
-    assert(typeof this._value === 'object', `Invalid template: ${str}`);
-    if (!(this._value instanceof Any) && !(this._value instanceof AnyObject)) {
-      if (this._value.request_id === undefined &&
-          this._value.type === undefined &&
-          this._value.options === undefined &&
-          this._value.anyRead) {
-        this._value = this._value.anyRead();
+    const result = makeTemplate(str);
+    assert(isObject(result), `Invalid template: ${str}`);
+
+    if ((result instanceof Any || result instanceof AnyObject)) {
+      this.value = result;
+    } else if (result[templateData] === undefined) {
+      // Assume this is a literal object for the options
+      assert(isObject(result), `Invalid template: ${str}`);
+      this.value = result;
+    } else {
+      const data = result[templateData];
+      this.value = data.options;
+      assert(isObject(this.value), `Invalid template: ${str}`);
+      assert(!(this.value instanceof AnyArray), `Invalid template: ${str}`);
+
+      // If `any` was chained onto the request at some point, we'll allow
+      // unspecified options with any args
+      if (data.any) {
+        this.value = AnyObject(this.value);
       }
-      assert(this._value.request_id !== undefined, incompleteTemplateMsg(str));
-      assert(this._value.type !== undefined, incompleteTemplateMsg(str));
-      assert(this._value.options !== undefined, incompleteTemplateMsg(str));
     }
+
+    // RSI: make sure the templates are complete
+    // maybe do a check the first time we match templates -
+    // that each template contains a terminal based on the server's capabilities
+    // (contains a terminal or allows any unspecified options)
+    // RSI: ease-of-use things like anyRead/anyWrite?
   }
 
   isMatch(queryOptions, context) {
-    return templateCompare(queryOptions, this._value, context);
+    return templateCompare(queryOptions, this.value, context);
   }
 }
 

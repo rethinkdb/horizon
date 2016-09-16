@@ -2,11 +2,10 @@
   "name": "@horizon-plugins/permissions",
   "version": "1.0.0",
   "description": "Plugin adding user groups and permissions to Horizon.",
-  "main": "dist/permissions.js",
+  "main": "src/permissions.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "mocha dist/test",
-    "build": "babel src -d dist -s true"
+    "test": "mocha src/test"
   },
   "repository": {
     "type": "git",

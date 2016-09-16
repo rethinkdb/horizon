@@ -1,7 +1,7 @@
 'use strict';
 
 const logger = require('./logger');
-const {authSchema} = require('./schema').auth;
+const {auth: authSchema} = require('./schema');
 
 const Joi = require('joi');
 const Promise = require('bluebird');

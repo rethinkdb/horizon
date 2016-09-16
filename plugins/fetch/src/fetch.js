@@ -17,21 +17,23 @@ function fetch(context) {
         return reql.run(conn, reqlOptions)
       }).then((result) => {
         if (result !== null && result.constructor.name === 'Cursor') {
-          res.complete.then(() => {
-            result.close().catch(() => { });
-          });
+          const cleanup = () => feed.close().catch(() => {});
+          res.complete.then(cleanup).catch(cleanup);
+
+          // RSI: utility functions to make this easier?
+          res.write({op: 'replace', path: '', value: {type: 'value', synced: false, val: []}});
 
           // TODO: reuse cursor batching
           return result.eachAsync((item) => {
             const validator = permissions();
             if (validator && !validator(item)) {
               next(new Error('Operation not permitted.'));
-              result.close().catch(() => { });
+              cleanup();
             } else {
-              res.write([item]);
+              res.write({op: 'add', path: '/val/-', value: item});
             }
           }).then(() => {
-            res.end();
+            res.end({op: 'replace', path: '/synced', value: true});
           });
         } else {
           const validator = permissions();
@@ -39,15 +41,15 @@ function fetch(context) {
             if (validator) {
               for (const item of result) {
                 if (!validator(item)) {
-                  return next(new Error('Operation not permitted.'));
+                  throw new Error('Operation not permitted.');
                 }
               }
             }
-            res.end(result);
+            res.end({op: 'replace', path: '', value: {type: 'value', synced: true, val: result}});
           } else if (validator && !validator(result)) {
             next(new Error('Operation not permitted.'));
           } else {
-            res.end([result]);
+            res.end({op: 'replace', path: '', value: {type: 'value', synced: true, val: result}});
           }
         }
       }).catch(next);

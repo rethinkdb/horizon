@@ -2,11 +2,10 @@
   "name": "@horizon-plugins/below",
   "version": "1.0.0",
   "description": "Plugin for the 'below' term in the Horizon Collections API.",
-  "main": "dist/below.js",
+  "main": "src/below.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "mocha dist/test",
-    "build": "babel src -d dist -s true"
+    "test": "mocha src/test"
   },
   "repository": {
     "type": "git",

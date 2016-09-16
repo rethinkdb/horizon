@@ -2,7 +2,7 @@
 
 require('source-map-support').install();
 
-const {request: requestSchema} = require('@horizon/server/dist/schema/horizon_protocol');
+const {request: requestSchema} = require('@horizon/server/src/schema');
 const utils = require('./utils');
 
 const assert = require('assert');

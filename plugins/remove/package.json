@@ -2,11 +2,10 @@
   "name": "@horizon-plugins/remove",
   "version": "1.0.0",
   "description": "Plugin for the 'remove' term in the Horizon Collections API.",
-  "main": "dist/remove.js",
+  "main": "src/remove.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "mocha dist/test",
-    "build": "babel src -d dist -s true"
+    "test": "mocha src/test"
   },
   "repository": {
     "type": "git",

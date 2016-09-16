@@ -5,11 +5,11 @@ const {reqlOptions, writes} = require('@horizon/plugin-utils');
 const hzv = writes.versionField;
 
 function replace(context) {
-  return (request, response, next) => {
+  return (req, res, next) => {
     const conn = context.horizon.rdbConnection.connection();
-    const timeout = request.getParameter('timeout');
-    const collection = request.getParameter('collection');
-    const permissions = request.getParameter('hz_permissions');
+    const timeout = req.getParameter('timeout');
+    const collection = req.getParameter('collection');
+    const permissions = req.getParameter('hz_permissions');
 
     if (!collection) {
       throw new Error('No collection given for insert operation.');
@@ -17,7 +17,7 @@ function replace(context) {
       throw new Error('No permissions given for insert operation.');
     }
 
-    writes.retryLoop(request.options.replace, permissions, timeout,
+    writes.retryLoop(req.options.replace, permissions, timeout,
       (rows) => // pre-validation, all rows
         r.expr(rows.map((row) => row.id))
           .map((id) => collection.table.get(id))
@@ -42,7 +42,7 @@ function replace(context) {
                            newRow, oldRow(hzv).default(-1).add(1))),
                 {returnChanges: 'always'}))
         .run(conn, reqlOptions)
-    ).then((msg) => response.end(msg)).catch(next);
+    ).then((patch) => res.end(patch)).catch(next);
   };
 }
 

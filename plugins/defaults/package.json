@@ -2,11 +2,10 @@
   "name": "@horizon-plugins/defaults",
   "version": "1.0.0",
   "description": "Contains all the default plugins for the Horizon Collections API.",
-  "main": "dist/defaults.js",
+  "main": "src/defaults.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "mocha dist/test",
-    "build": "babel src -d dist -s true"
+    "test": "mocha src/test"
   },
   "repository": {
     "type": "git",

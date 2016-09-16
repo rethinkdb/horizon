@@ -2,11 +2,10 @@
   "name": "@horizon-plugins/store",
   "version": "1.0.0",
   "description": "Plugin for the 'store' term in the Horizon Collections API.",
-  "main": "dist/store.js",
+  "main": "src/store.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "mocha dist/test",
-    "build": "babel src -d dist -s true"
+    "test": "mocha src/test"
   },
   "repository": {
     "type": "git",

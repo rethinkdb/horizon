@@ -16,9 +16,9 @@ function versionCompare(actual, minimum) {
 }
 
 // Check that RethinkDB matches version requirements
-function rethinkdbVersionCheck(version_string) {
-  const rethinkdb_version_regex = /^rethinkdb (\d+)\.(\d+)\.(\d+)/i;
-  const matches = rethinkdb_version_regex.exec(version_string);
+function rethinkdbVersionCheck(versionString) {
+  const rethinkdbVersionRegex = /^rethinkdb (\d+)\.(\d+)\.(\d+)/i;
+  const matches = rethinkdbVersionRegex.exec(versionString);
 
   if (matches) {
     // Convert strings to ints and remove first match
@@ -37,9 +37,9 @@ function rethinkdbVersionCheck(version_string) {
 // Used when evaluating things in a different VM context - the errors
 // thrown from there will not evaluate as `instanceof Error`, so we recreate them.
 function remakeError(err) {
-  const new_err = new Error(err.message || 'Unknown error when evaluating template.');
-  new_err.stack = err.stack || new_err.stack;
-  throw new_err;
+  const newErr = new Error(err.message || 'Unknown error when evaluating template.');
+  newErr.stack = err.stack || newErr.stack;
+  throw newErr;
 }
 
 function isObject(x) {

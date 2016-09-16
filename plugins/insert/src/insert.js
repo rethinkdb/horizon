@@ -4,11 +4,11 @@ const {r} = require('@horizon/server');
 const {reqlOptions, writes} = require('@horizon/plugin-utils');
 
 function insert(context) {
-  return (request, response, next) => {
+  return (req, res, next) => {
     const conn = context.horizon.rdbConnection.connection();
-    const timeout = request.getParameter('timeout');
-    const collection = request.getParameter('collection');
-    const permissions = request.getParameter('hz_permissions');
+    const timeout = req.getParameter('timeout');
+    const collection = req.getParameter('collection');
+    const permissions = req.getParameter('hz_permissions');
 
     if (!collection) {
       throw new Error('No collection given for insert operation.');
@@ -16,7 +16,7 @@ function insert(context) {
       throw new Error('No permissions given for insert operation.');
     }
 
-    writes.retryLoop(request.options.insert, permissions, timeout,
+    writes.retryLoop(req.options.insert, permissions, timeout,
       (rows) => // pre-validation, all rows
         Array(rows.length).fill(null),
       (validator, row, info) => { // validation, each row
@@ -29,7 +29,7 @@ function insert(context) {
           .insert(rows.map((row) => writes.applyVersion(r.expr(row), 0)),
                   {returnChanges: 'always'})
           .run(conn, reqlOptions)
-    ).then((msg) => response.end(msg)).catch(next);
+    ).then((patch) => res.end(patch)).catch(next);
   };
 }
 

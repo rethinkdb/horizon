@@ -2,11 +2,10 @@
   "name": "@horizon-plugins/permit-all",
   "version": "1.0.0",
   "description": "Plugin allowing any request to run without permissions in Horizon.",
-  "main": "dist/permit-all.js",
+  "main": "src/permit-all.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "mocha dist/test",
-    "build": "babel src -d dist -s true"
+    "test": "mocha src/test"
   },
   "repository": {
     "type": "git",

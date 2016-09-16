@@ -9,7 +9,7 @@ function objectToFields(obj) {
   return Object.keys(obj).map((key) => {
     const value = obj[key];
     if (value !== null && typeof value === 'object' && !value.$reql_type$) {
-      return object_to_fields(value).map((subkeys) => [key].concat(subkeys));
+      return objectToFields(value).map((subkeys) => [key].concat(subkeys));
     } else {
       return [key];
     }
@@ -48,14 +48,15 @@ function isSameField(a, b) {
   return true;
 }
 
+// RSI: not needed?
 // Returns true if the expected field is in the array of fields
-function hasField(fields, expected) {
-  for (let i = 0; i < fields.length; ++i) {
-    if (isSameField(fields[i], expected)) {
-      return true;
-    }
-  }
-}
+// function hasField(fields, expected) {
+//   for (let i = 0; i < fields.length; ++i) {
+//     if (isSameField(fields[i], expected)) {
+//       return true;
+//     }
+//   }
+// }
 
 function makeFindReql(collection, find) {
   return collection.getMatchingIndex(objectToFields(find), []).then((index) => {
@@ -110,9 +111,7 @@ function makeFindAllReql(collection, findAll, fixedFields, above, below, descend
         .orderBy({index: descending ? r.desc(index.name) : index.name})
         .between(leftValue || r.minval, rightValue || r.maxval, optargs);
     });
-  })).then((subqueries) => {
-    return r.union(...subqueries);
-  });
+  })).then((subqueries) => r.union(...subqueries));
 }
 
 function makeTableScanReql(collection, fixedFields, above, below, descending) {
@@ -122,12 +121,14 @@ function makeTableScanReql(collection, fixedFields, above, below, descending) {
 
     if (above) {
       const defaultLeftBound = above.bound === 'closed' ? r.minval : r.maxval;
-      leftValue = index.fields.map((field) => getIndexValue(field, {}, above.value, defaultLeftBound));
+      leftValue = index.fields.map((field) =>
+        getIndexValue(field, {}, above.value, defaultLeftBound));
       optargs.leftBound = above.bound;
     }
     if (below) {
       const defaultRightBound = below.bound === 'closed' ? r.maxval : r.minval;
-      rightValue = index.fields.map((field) => getIndexValue(field, {}, below.value, defaultRightBound));
+      rightValue = index.fields.map((field) =>
+        getIndexValue(field, {}, below.value, defaultRightBound));
       optargs.rightBound = below.bound;
     }
 
@@ -136,7 +137,8 @@ function makeTableScanReql(collection, fixedFields, above, below, descending) {
       if (rightValue) { rightValue = rightValue[0]; }
     }
 
-    let reql = collection.table.orderBy({index: descending ? r.desc(index.name) : index.name});
+    const reqlIndex = descending ? r.desc(index.name) : index.name;
+    let reql = collection.table.orderBy({index: reqlIndex});
     if (leftValue || rightValue) {
       reql = reql.between(leftValue || r.minval, rightValue || r.maxval, optargs);
     }
@@ -169,7 +171,8 @@ function makeReadReql(req) {
       if (above) {
         if (order) {
           if (!isSameField(above.field, orderFields[0])) {
-            throw new Error('"above" must be on the same field as the first in "order".');
+            throw new Error('"above" must be on the same field ' +
+                            'as the first in "order".');
           }
         } else {
           orderFields.push(above.field);
@@ -187,16 +190,18 @@ function makeReadReql(req) {
         }
       }
 
-      let reql_promise;
+      let reqlPromise;
       if (findAll) {
-        reql_promise = makeFindAllReql(collection, findAll, orderFields, above, below, descending);
+        reqlPromise = makeFindAllReql(collection, findAll, orderFields,
+                                      above, below, descending);
       } else {
-        reql_promise = makeTableScanReql(collection, orderFields, above, below, descending);
+        reqlPromise = makeTableScanReql(collection, orderFields,
+                                        above, below, descending);
       }
 
       const limit = req.getParameter('limit');
       return limit === undefined ?
-        reql_promise : reql_promise.then((reql) => reql.limit(limit));
+        reqlPromise : reqlPromise.then((reql) => reql.limit(limit));
     }
   });
 }

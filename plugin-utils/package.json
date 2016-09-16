@@ -2,11 +2,10 @@
   "name": "@horizon/plugin-utils",
   "version": "1.0.0",
   "description": "Utilities for the default Horizon plugins.",
-  "main": "dist/utils.js",
+  "main": "src/utils.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "mocha dist/test",
-    "build": "babel src -d dist -s true"
+    "test": "mocha src/test"
   },
   "repository": {
     "type": "git",
@@ -22,6 +21,7 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
+    "jsonpatch": "^3.0.1"
   },
   "peerDependencies": {
     "@horizon/plugin-router": "1.x",
