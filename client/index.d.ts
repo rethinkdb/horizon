@@ -42,6 +42,9 @@ declare namespace hz {
 
         currentUser (): User;
 
+        hasAuthToken (): boolean;
+        authEndpoint (name: string): Observable<string>;
+
         aggregate (aggs: any): TermBase;
         model (fn: Function): TermBase;
 
