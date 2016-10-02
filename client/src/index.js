@@ -5,7 +5,7 @@ import 'rxjs/add/operator/concatMap'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/filter'
 
-import { Collection, UserDataTerm } from './ast'
+import { TermBase } from './ast'
 import { HorizonSocket } from './socket'
 import { authEndpoint, TokenStorage, clearAuthTokens } from './auth'
 import { aggregate, model } from './model'
@@ -58,8 +58,10 @@ function Horizon({
   // function so we can construct a collection simply by calling it
   // like horizon('my_collection')
   function horizon(name) {
-    return new Collection(sendRequest, name, lazyWrites)
+    return this.request.collection(name);
   }
+  
+  horizon.request = new TermBase({}, sendRequest)
 
   horizon.currentUser = () =>
     new UserDataTerm(horizon, socket.handshake, socket)
@@ -114,14 +116,8 @@ function Horizon({
 
   return horizon
 
-  // Sends a horizon protocol request to the server, and pulls the data
-  // portion of the response out.
-  function sendRequest(type, options) {
-    // Both remove and removeAll use the type 'remove' in the protocol
-    const normalizedType = type === 'removeAll' ? 'remove' : type
-    return socket
-      .hzRequest({ type: normalizedType, options }) // send the raw request
-      .takeWhile(resp => resp.state !== 'complete')
+  function sendRequest(options) {
+    return socket.hzRequest(options)
   }
 }
 

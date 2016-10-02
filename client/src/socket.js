@@ -11,6 +11,7 @@ import 'rxjs/add/operator/ignoreElements'
 import 'rxjs/add/operator/concat'
 import 'rxjs/add/operator/takeWhile'
 import 'rxjs/add/operator/publish'
+import jsonpatch from 'jsonpatch'
 
 import { serialize, deserialize } from './serialization.js'
 
@@ -104,28 +105,6 @@ export class HorizonSocket extends WebSocketSubject {
     })
   }
 
-  deactivateRequest(req) {
-    return () => {
-      this.activeRequests.delete(req.request_id)
-      return { request_id: req.request_id, type: 'end_subscription' }
-    }
-  }
-
-  activateRequest(req) {
-    return () => {
-      this.activeRequests.set(req.request_id, req)
-      return req
-    }
-  }
-
-  filterRequest(req) {
-    return resp => resp.request_id === req.request_id
-  }
-
-  getRequest(request) {
-    return Object.assign({ request_id: this.requestCounter++ }, request)
-  }
-
   // This is a trimmed-down version of multiplex that only listens for
   // the handshake requestId. It also starts the keepalive observable
   // and cleans up after it when the handshake is cleaned up.
@@ -156,18 +135,35 @@ export class HorizonSocket extends WebSocketSubject {
     return this.handshake
   }
 
+  endRequest(request_id) {
+    return () => {
+      const req = this.activeRequests.get(request_id)
+      if (req) {
+        this.activeRequests.delete(request_id)
+        return { request_id, type: 'endRequest' }
+      }
+    }
+  }
+
   // Incorporates shared logic between the inital handshake request and
   // all subsequent requests.
   // * Generates a request id and filters by it
   // * Send `end_subscription` when observable is unsubscribed
-  makeRequest(rawRequest) {
-    const request = this.getRequest(rawRequest)
+  makeRequest(options, type) {
+    const request_id = this.requestCounter++
+    const req = {message: {request_id, options}, data: {}}
+    if (type) { req.message.type = type }
 
     return super.multiplex(
-      this.activateRequest(request),
-      this.deactivateRequest(request),
-      this.filterRequest(request)
-    )
+        () => {
+          this.activeRequests.set(request_id, req)
+          return req.message
+        },
+        this.endRequest(request_id),
+        (response) => {
+          return response.request_id === request_id
+        }
+    );
   }
 
   // Wrapper around the makeRequest with the following additional
@@ -176,27 +172,38 @@ export class HorizonSocket extends WebSocketSubject {
   // * Wait for the handshake to complete before sending the request
   // * Errors when a document with an `error` field is received
   // * Completes when `state: complete` is received
-  // * Emits `state: synced` as a separate document for easy filtering
   // * Reference counts subscriptions
-  hzRequest(rawRequest) {
+  hzRequest(options) {
+    const end = AsyncSubject()
     return this.sendHandshake().ignoreElements()
       .concat(this.makeRequest(rawRequest))
-      .concatMap(resp => {
-        if (resp.error !== undefined) {
-          throw new ProtocolError(resp.error, resp.error_code)
+      .concatMap((response) => {
+        if (response.error) {
+          throw new Error(response.error)
         }
-        const data = resp.data || []
-
-        if (resp.state !== undefined) {
-          // Create a little dummy object for sync notifications
-          data.push({
-            type: 'state',
-            state: resp.state,
-          })
+        if (response.complete) {
+          this.endRequest(response.request_id)
+          end.complete()
+          return
         }
 
-        return data
+        const req = this.activeRequests.get(response.request_id)
+        if (response.patch) {
+          req.data = jsonpatch.apply_patch(req.data, response.patch)
+        }
+        if (req.data && Boolean(req.data.synced)) {
+          switch (req.data.type) {
+          case 'value':
+            return [req.data.val]
+          case 'set':
+            return [Object.values(data.val)]
+          default:
+            throw new Error(`Unrecognized data type: ${data.type}.`)
+          }
+        }
+        return []
       })
+      .takeUntil(end)
       .share()
   }
 }

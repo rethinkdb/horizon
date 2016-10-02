@@ -67,12 +67,7 @@ function watch(context) {
                 throw new Error('Operation not permitted.');
               }
             }
-            const patch = limited ? makeArrayPatch(item) : makeSetPatch(item);
-            if (patch.length > 1 && synced) {
-              patch.splice(0, {op: 'replace', path: '/synced', value: false});
-              patch.push({op: 'replace', path: '/synced', value: true});
-            }
-            res.write(patch);
+            res.write(limited ? makeArrayPatch(item) : makeSetPatch(item));
           }
         });
       }).then(() => res.end()).catch(next);
