@@ -21,11 +21,11 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "jsonpatch": "^3.0.1"
+    "jsonpatch": "^3.0.1",
+    "@horizon/server": "^3.0.0-alpha-0"
   },
   "peerDependencies": {
-    "@horizon/plugin-router": "1.x",
-    "@horizon/server": "3.x"
+    "@horizon/plugin-router-base": "1.x"
   },
   "devDependencies": {
     "eslint": "^3.1.0",

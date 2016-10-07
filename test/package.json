@@ -5,7 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "mocha --timeout 10000 src/test",
+    "test": "mocha --preserve-symlinks --timeout 10000 src/test",
     "serve": "node ./src/serve.js"
   },
   "repository": {
@@ -24,9 +24,9 @@
   "dependencies": {
     "@horizon-plugins/defaults": "1.0.0",
     "@horizon/plugin-router-base": "1.0.0",
-    "@horizon/server": "3.0.0-alpha-0",
+    "@horizon/server": "^3.0.0-alpha-0",
     "argparse": "^1.0.7",
-    "horizon": "3.0.0-alpha-0",
+    "horizon": "^3.0.0-alpha-0",
     "jsonpatch": "^3.0.1"
   },
   "devDependencies": {

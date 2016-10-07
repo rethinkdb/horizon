@@ -33,11 +33,11 @@ class RethinkdbServer {
     versionCheck(execSync('rethinkdb --version', {timeout: 5000}).toString());
 
     const args = ['--http-port', String(httpPort || 0),
-                   '--cluster-port', '0',
-                   '--driver-port', String(driverPort || 0),
-                   '--cache-size', String(cacheSize),
-                   '--directory', dataDir,
-                   '--no-update-check'];
+                  '--cluster-port', '0',
+                  '--driver-port', String(driverPort || 0),
+                  '--cache-size', String(cacheSize),
+                  '--directory', dataDir,
+                  '--no-update-check'];
     bind.forEach((host) => args.push('--bind', host));
 
     this.proc = spawn('rethinkdb', args);

@@ -50,13 +50,13 @@ for plugin_name in "${plugin_names[@]}"; do
            "@horizon/server" \
 	   "@horizon/plugin-utils" \
 	   "@horizon/client" \
-	   "@horizon/plugin-router"
+	   "@horizon/plugin-router-base"
   plugin_modules+=("@horizon-plugins/$plugin_name")
 done
 
 link_dir defaults ${plugin_modules[@]}
 popd
 
-link_dir test "@horizon-plugins/defaults" "@horizon/plugin-router" "@horizon/server" "horizon"
+link_dir test "@horizon-plugins/defaults" "@horizon/plugin-router-base" "@horizon/server" "horizon"
 
 green "Dev environment ready"

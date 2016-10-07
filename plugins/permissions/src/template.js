@@ -3,10 +3,6 @@
 const assert = require('assert');
 const vm = require('vm');
 
-// RSI: don't use the client AST - there are simple rules for generating options
-// RSI: where do we get the list of options from? there's no easy way to accept any
-// method - we could try to parse the ast of the javascript itself before evaluating
-// the template
 const {isObject, remakeError} = require('@horizon/plugin-utils');
 
 const templateData = Symbol('templateData');
