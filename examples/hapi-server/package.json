@@ -9,7 +9,7 @@
   "author": "RethinkDB",
   "license": "MIT",
   "dependencies": {
-    "horizon-server": "file:../../server",
+    "@horizon/server": "^3.0.0-alpha-0",
     "hapi": "^12.1.0"
   },
   "repository": {

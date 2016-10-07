@@ -7,7 +7,7 @@ Error.stackTraceLimit = Infinity;
 
 const horizon_server = require('@horizon/server');
 const PluginRouter = require('@horizon/plugin-router-base');
-const plugins = require('@horizon/plugin-defaults');
+const plugins = require('@horizon-plugins/defaults');
 
 // Utilities provided by the CLI library
 const each_line_in_pipe = require('horizon/src/utils/each_line_in_pipe');

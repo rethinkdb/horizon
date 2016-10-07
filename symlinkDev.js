@@ -63,7 +63,7 @@ const mkdir = (dir, done) => {
             resolve();
           } else {
             fs.mkdir(path, (mkdirErr) => {
-              if (mkdirErr) {
+              if (mkdirErr && mkdirErr.code !== 'EEXIST') {
                 reject(mkdirErr);
               } else {
                 resolve();

@@ -2,7 +2,7 @@
 'use strict'
 
 const Hapi = require('hapi');
-const horizon = require('horizon-server');
+const horizon = require('@horizon/server');
 
 const server = new Hapi.Server();
 server.connection({ port: 8181 });

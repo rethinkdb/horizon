@@ -2,7 +2,7 @@
 'use strict'
 
 const koa = require('koa');
-const horizon = require('horizon-server');
+const horizon = require('@horizon/server');
 
 const app = koa();
 const http_server = app.listen(8181);
