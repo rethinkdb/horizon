@@ -16,15 +16,15 @@ const handleFile = (dir, filename) => new Promise((resolve, reject) => {
     } else if (stats.isDirectory()) {
       resolve(traverse(subpath));
     } else if (filename === 'package.json') {
-      console.log(`got package.json at ${dir}`);
       fs.readFile(subpath, (readErr, data) => {
         if (readErr) {
           reject(readErr);
         } else {
           try {
+            const fullDir = path.resolve(dir);
             const parsed = JSON.parse(data);
-            pathToPackage.set(dir, parsed);
-            nameToPath.set(parsed.name, dir);
+            pathToPackage.set(fullDir, parsed);
+            nameToPath.set(parsed.name, fullDir);
             resolve();
           } catch (parseErr) {
             reject(parseErr);
@@ -45,45 +45,71 @@ const traverse = (dir) =>
       } else {
         const promises = files.filter((filename) => !ignoreList.includes(filename))
           .map((filename) => handleFile(dir, filename));
-        console.log(`${dir} got ${promises.length} promises`);
         Promise.all(promises).then(resolve).catch(reject);
       }
     });
   });
 
+const mkdir = (dir, done) => {
+  let promise = Promise.resolve();
+  dir.split(path.sep).slice(1).reduce((acc, item) => {
+    acc.push(path.join(acc[acc.length - 1] || '/', item));
+    return acc;
+  }, []).map((path) => {
+    promise = promise.then(() => {
+      return new Promise((resolve, reject) => {
+        fs.exists(path, (exists) => {
+          if (exists) {
+            resolve();
+          } else {
+            fs.mkdir(path, (mkdirErr) => {
+              if (mkdirErr) {
+                reject(mkdirErr);
+              } else {
+                resolve();
+              }
+            });
+          }
+        });
+      });
+    });
+  });
+  
+  promise.then(done).catch(done);
+};
+
 const linkDep = (fromPath, name) => new Promise((resolve, reject) => {
-  console.log(`linkDep(${fromPath}, ${name})`);
   const dest = nameToPath.get(name);
   if (dest) {
     const fullFromPath = path.join(fromPath, 'node_modules', name);
-    console.log(`linking ${fullFromPath} => ${dest}`);
-    fs.symlink(dest, fullFromPath, (err) => {
-      reject(err);
+    mkdir(path.dirname(fullFromPath), (mkdirErr) => {
+      if (mkdirErr) {
+        reject(mkdirErr);
+      } else {
+        fs.unlink(fullFromPath, () => {
+          fs.symlink(dest, fullFromPath, (symlinkErr) => {
+            if (symlinkErr) {
+              reject(symlinkErr);
+            } else {
+              resolve();
+            }
+          })
+        });
+      }
     });
+  } else {
+    resolve();
   }
 });
 
 traverse('.').then(() =>
   Promise.all([...pathToPackage.keys()].map((path) =>
-    Promise.all(Array.from(
-      new Set([...Object.keys(pathToPackage.get(path).dependencies || {}),
-               ...Object.keys(pathToPackage.get(path).peerDependencies || {})])
-      ).map((dep) => linkDep(path, dep)))))).catch((err) => console.log(`${err.stack}`));
-  /*
-  console.log(`Got ${nameToPath.size}, ${pathToPackage.size}`);
-  const promises = [];
-
-  pathToPackage.forEach((parsed, path) => {
-    console.log(`checking ${path}`);
-    for (const key in parsed.dependencies || {}) {
-      promises.push(linkDep(path, key));
-    }
-    for (const key in parsed.peerDependencies || {}) {
-      promises.push(linkDep(path, key));
-    }
-  });
-
-  return Promise.all(promises);
-}).then(() => console.log('done')).catch((err) => console.log(`${err.stack}`));
-*/
+    Promise.all(Array.from(new Set(
+        [...Object.keys(pathToPackage.get(path).dependencies || {}),
+         ...Object.keys(pathToPackage.get(path).peerDependencies || {}),
+         ...Object.keys(pathToPackage.get(path).devDependencies || {})])
+      ).map((dep) => linkDep(path, dep))
+    ))
+  )
+).catch((err) => console.log(`${err.stack}`));
 
