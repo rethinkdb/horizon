@@ -24,6 +24,7 @@
   "dependencies": {
     "@horizon-plugins/defaults": "1.0.0",
     "@horizon/plugin-router-base": "1.0.0",
+    "@horizon/plugin-utils": "1.0.0",
     "@horizon/server": "^3.0.0-alpha-0",
     "argparse": "^1.0.7",
     "horizon": "^3.0.0-alpha-0",

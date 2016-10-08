@@ -32,7 +32,10 @@ class RethinkdbServer {
     // Check if RethinkDB is sufficient version for Horizon
     versionCheck(execSync('rethinkdb --version', {timeout: 5000}).toString());
 
-    const args = ['--http-port', String(httpPort || 0),
+    const args = ['--output=L',
+                  '--error=L',
+                  'rethinkdb',
+                  '--http-port', String(httpPort || 0),
                   '--cluster-port', '0',
                   '--driver-port', String(driverPort || 0),
                   '--cache-size', String(cacheSize),
@@ -40,7 +43,7 @@ class RethinkdbServer {
                   '--no-update-check'];
     bind.forEach((host) => args.push('--bind', host));
 
-    this.proc = spawn('rethinkdb', args);
+    this.proc = spawn('stdbuf', args);
 
     this.ready_promise = new Promise((resolve, reject) => {
       this.proc.once('error', reject);
