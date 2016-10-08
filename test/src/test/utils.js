@@ -28,6 +28,10 @@ logger.remove(logger.transports.Console);
 let rdb_server, rdb_http_port, rdb_port, rdb_conn, horizon_server, horizon_port, horizon_conn, horizon_listeners, plugin_router, http_server;
 let horizon_authenticated = false;
 
+process.on('unhandledRejection', (reason) => {
+  console.log(`Unhandled rejection at: ${reason.stack}`);
+});
+
 function startServers() {
   assert.strictEqual(horizon_server, undefined);
   assert.strictEqual(plugin_router, undefined);
@@ -285,15 +289,13 @@ const convertResult = (result) => {
 
 // `stream_test` will send a request (containing a request_id), and call the
 // callback with (err, res), where `err` is the error string if an error
-// occurred, or `null` otherwise.  `res` will be an array, being the concatenation
-// of all `data` items returned by the server for the given request_id.
-// TODO: this doesn't allow for dealing with multiple states (like 'synced').
+// occurred, or `null` otherwise.  `res` will be the value built by the server,
+// which is the sum of all patches sent over the lifetime of the request.
 const stream_test = (req, cb) => {
   assert(horizon_conn && horizon_conn.readyState === websocket.OPEN);
   let result = {};
 
   add_horizon_listener(req.request_id, (msg) => {
-    console.log(`got message: ${JSON.stringify(msg)}`);
     if (msg.patch !== undefined) {
       result = jsonpatch.apply_patch(result, msg.patch);
     }

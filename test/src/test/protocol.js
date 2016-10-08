@@ -55,7 +55,7 @@ const all_tests = (collection) => {
 
   it('no options', (done) => {
     utils.stream_test({request_id: 1}, (err, res) => {
-      assert.deepStrictEqual(res, {});
+      assert.deepStrictEqual(res, undefined);
       utils.check_error(err, '"options" is required');
       done();
     });
@@ -63,7 +63,7 @@ const all_tests = (collection) => {
 
   it('no terminal method', (done) => {
     utils.stream_test({request_id: 2, options: {above: []}}, (err, res) => {
-      assert.deepStrictEqual(res, {});
+      assert.deepStrictEqual(res, undefined);
       assert.strictEqual(err.message,
         'No terminal method was specified in the request.');
       done();
@@ -72,9 +72,8 @@ const all_tests = (collection) => {
 
   it('unknown method', (done) => {
     utils.stream_test({request_id: 2, options: {fake: []}}, (err, res) => {
-      assert.deepStrictEqual(res, {});
-      assert.strictEqual(err.message,
-        'No method to handle option "fake".');
+      assert.deepStrictEqual(res, undefined);
+      assert.strictEqual(err.message, 'No method to handle option "fake".');
       done();
     });
   });
@@ -93,10 +92,10 @@ const all_tests = (collection) => {
         },
       }));
     
-    const result = {};
+    let result = {};
     utils.add_horizon_listener(3, (msg) => {
       if (msg.patch !== undefined) {
-        jsonpatch.apply_patch(result, msg.patch);
+        result = jsonpatch.apply_patch(result, msg.patch);
       }
       if (msg.error !== undefined) {
         utils.remove_horizon_listener(3);

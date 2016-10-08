@@ -6,10 +6,10 @@ const hash = require('object-hash');
 function makeArrayPatch(change) {
   const patch = [];
   if (change.old_offset != null) {
-    patch.push({op: 'remove', path: `/val/${old_offset}`});
+    patch.push({op: 'remove', path: `/val/${change.old_offset}`});
   }
   if (change.new_offset != null) {
-    patch.push({op: 'add', path: `/val/${new_offset}`, value: change.new_val});
+    patch.push({op: 'add', path: `/val/${change.new_offset}`, value: change.new_val});
   }
   return patch;
 }
@@ -53,7 +53,7 @@ function watch(context) {
 
         // TODO: reuse cursor batches
         let synced = false;
-        feed.eachAsync((item) => {
+        return feed.eachAsync((item) => {
           if (item.state === 'initializing') {
             res.write({op: 'replace', path: '', value: {type: limited ? 'value' : 'set', synced: false, val: limited ? [] : {}}});
           } else if (item.state === 'ready') {

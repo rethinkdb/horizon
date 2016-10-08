@@ -17,7 +17,7 @@ function fetch(context) {
         return reql.run(conn, reqlOptions)
       }).then((result) => {
         if (result !== null && result.constructor.name === 'Cursor') {
-          const cleanup = () => feed.close().catch(() => {});
+          const cleanup = () => result.close().catch(() => {});
           res.complete.then(cleanup).catch(cleanup);
 
           // RSI: utility functions to make this easier?

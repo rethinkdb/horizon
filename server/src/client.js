@@ -136,7 +136,7 @@ class ClientConnection {
 
     const response = new Response((obj) => this.sendMessage(reqId, obj));
     this.responses.set(reqId, response);
-    response.complete.then(() => this.remove_request(reqId));
+    response.complete.then(() => this.removeResponse(reqId)).catch(() => this.removeResponse(reqId));
 
     this.requestHandlerCb(rawRequest, response, (err) =>
       response.end(err || new Error('Request ran past the end of the ' +
@@ -146,7 +146,9 @@ class ClientConnection {
   removeResponse(request_id) {
     const response = this.responses.get(request_id);
     this.responses.delete(request_id);
-    response.end();
+    if (response) {
+      response.end();
+    }
   }
 
   isOpen() {

@@ -112,7 +112,7 @@ const all_tests = (collection) => {
             }).catch((err) => {
               assert.strictEqual(err.message, 'Operation not permitted.');
               assert.strictEqual(err.results.length, 1);
-              assert.deepStrictEqual(err.results[0].new_val.id, 3);
+              assert.deepStrictEqual(err.results[0].id, 3);
             }));
 
       it('forbidden', () =>
@@ -120,7 +120,7 @@ const all_tests = (collection) => {
           assert(false, 'Read should not have been permitted.');
         }).catch((err) => {
           assert.strictEqual(err.message, 'Operation not permitted.');
-          assert.strictEqual(err.results.length, 0);
+          assert.strictEqual(err.results.size, 0);
         }));
     });
 
