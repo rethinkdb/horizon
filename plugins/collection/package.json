@@ -21,10 +21,10 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "@horizon/plugin-utils": "1.0.0"
+    "@horizon/plugin-utils": "1.x"
   },
   "peerDependencies": {
-    "@horizon/plugin-router-base": "1.x",
+    "@horizon/base-router": "1.x",
     "@horizon/server": "3.x"
   },
   "devDependencies": {

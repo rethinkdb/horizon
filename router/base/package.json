@@ -1,5 +1,5 @@
 {
-  "name": "@horizon/plugin-router-base",
+  "name": "@horizon/base-router",
   "version": "1.0.0",
   "description": "Base PluginRouter implementation for Horizon.",
   "main": "src/index.js",

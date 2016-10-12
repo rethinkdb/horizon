@@ -1,7 +1,7 @@
 'use strict';
 
 const horizon = require('@horizon/server');
-const PluginRouter = require('@horizon/plugin-router-base');
+const PluginRouter = require('@horizon/base-router');
 const defaults = require('@horizon-plugins/defaults');
 const logger = horizon.logger;
 

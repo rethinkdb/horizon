@@ -123,8 +123,8 @@ class ClientConnection {
     const reqId = rawRequest.request_id;
     if (rawRequest.type === 'keepalive') {
       return this.sendMessage(reqId, {state: 'complete'});
-    } else if (rawRequest.type === 'end_subscription') {
-      // there is no response for end_subscription
+    } else if (rawRequest.type === 'endRequest') {
+      // there is no response for endRequest
       return this.removeResponse(reqId);
     } else if (this.responses.get(reqId)) {
       return this.close({error: `Received duplicate request_id: ${reqId}`});

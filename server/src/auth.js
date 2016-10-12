@@ -53,21 +53,21 @@ class Auth {
   }
 
   handshake(request) {
-    switch (request.method) {
+    switch (request.options.method) {
     case 'token':
-      return this._jwt.verify(request.token);
+      return this._jwt.verify(request.options.token);
     case 'unauthenticated':
       if (!this.options.allow_unauthenticated) {
         throw new Error('Unauthenticated connections are not allowed.');
       }
-      return this._jwt.verify(this._jwt.sign({id: null, provider: request.method}).token);
+      return this._jwt.verify(this._jwt.sign({id: null, provider: request.options.method}).token);
     case 'anonymous':
       if (!this.options.allow_anonymous) {
         throw new Error('Anonymous connections are not allowed.');
       }
-      return this.generate(request.method, r.uuid());
+      return this.generate(request.options.method, r.uuid());
     default:
-      throw new Error(`Unknown handshake method "${request.method}"`);
+      throw new Error(`Unknown handshake method "${request.options.method}"`);
     }
   }
 

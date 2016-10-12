@@ -42,17 +42,20 @@ const method = Joi.object({
 // The Horizon protocol handshake message
 const handshake = Joi.object().keys({
   request_id: Joi.number().required(),
-  method: Joi.only('token', 'anonymous', 'unauthenticated').required(),
-  token: Joi.string().required()
-    .when('method', {is: Joi.not('token').required(), then: Joi.forbidden()}),
+  type: Joi.only('handshake'),
+  options: Joi.object().keys({
+    method: Joi.only('token', 'anonymous', 'unauthenticated').required(),
+    token: Joi.string().required()
+      .when('method', {is: Joi.not('token').required(), then: Joi.forbidden()}),
+  }),
 }).unknown(false);
 
 // Every Horizon protocol request (following the handshake)
 const request = Joi.object({
   request_id: Joi.number().required(),
-  type: Joi.only('end_subscription', 'keepalive').optional(),
+  type: Joi.only('endRequest', 'keepalive').optional(),
   options: Joi.object().pattern(/.*/, Joi.array()).unknown(true).required()
-    .when('type', {is: Joi.string().only('end_subscription', 'keepalive').required(),
+    .when('type', {is: Joi.string().only('endRequest', 'keepalive').required(),
                    then: Joi.forbidden()}),
 }).unknown(false);
 

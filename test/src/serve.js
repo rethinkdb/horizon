@@ -5,8 +5,8 @@ require('source-map-support').install();
 
 Error.stackTraceLimit = Infinity;
 
-const horizon_server = require('@horizon/server');
-const PluginRouter = require('@horizon/plugin-router-base');
+const HorizonServer = require('@horizon/server');
+const HorizonRouter = require('@horizon/base-router');
 const plugins = require('@horizon-plugins/defaults');
 
 // Utilities provided by the CLI library
@@ -167,8 +167,8 @@ new Promise((resolve) => {
   console.log(`RethinkDB server listening for HTTP on port ${server.http_port}.`);
   console.log('starting horizon');
 
-  horizon_server.logger.level = 'debug';
-  const hz_server = new horizon_server.Server(http_servers, {
+  HorizonServer.logger.level = 'debug';
+  const hz_server = new HorizonServer.Server(http_servers, {
     rdb_port: server.driver_port,
     project_name: 'hz_test',
     auth: {
@@ -178,7 +178,7 @@ new Promise((resolve) => {
     },
   });
 
-  const pluginRouter = new PluginRouter(hz_server);
+  const pluginRouter = new HorizonRouter(hz_server);
   pluginRouter.add(plugins, {
     permissions: 'permit-all',
     auto_create_collection: true,

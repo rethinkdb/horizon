@@ -7,6 +7,7 @@ const {ReliableConn} = require('./reliable');
 const schema = require('./schema');
 const Request = require('./request');
 
+const fs = require('fs');
 const EventEmitter = require('events');
 
 const Joi = require('joi');
@@ -14,6 +15,21 @@ const websocket = require('ws');
 const Toposort = require('toposort-class');
 
 const protocolName = 'rethinkdb-horizon-v1';
+const clientSourcePath = require.resolve('@horizon/client/dist/horizon');
+const clientSourceCorePath = require.resolve('@horizon/client/dist/horizon-core');
+
+// Load these lazily (but synchronously)
+function lazyLoadSource(sourcePath) {
+  if (!this.buffer) {
+    this.buffer = fs.readFileSync(clientSourcePath);
+  }
+  return this.buffer;
+}
+
+const clientSource = lazyLoadSource.bind({}, clientSourcePath);
+const clientSourceMap = lazyLoadSource.bind({}, `${clientSourcePath}.map`);
+const clientSourceCore = lazyLoadSource.bind({}, clientSourceCorePath);
+const clientSourceCoreMap = lazyLoadSource.bind({}, `${clientSourceCorePath}.map`);
 
 function handleProtocols(protocols, cb) {
   if (protocols.findIndex((x) => x === protocolName) !== -1) {
@@ -33,6 +49,7 @@ class Server {
     this._middlewareMethods = new Set();
     this._clients = new Set();
     this.events = new EventEmitter();
+    this.httpServers = httpServers[Symbol.iterator] ? Array.from(httpServers) : [httpServers];
 
     this.rdbConnection = new ReliableConn({
       host: this.options.rdb_host,
@@ -125,7 +142,7 @@ class Server {
 
     // RSI: only become ready when the websocket servers and the
     // connection are both ready.
-    const addWebsocket = (server) => {
+    this.httpServers.forEach((server) => {
       const wsServer = new websocket.Server(Object.assign({server}, wsOptions))
         .on('error', (error) => logger.error(`Websocket server error: ${error}`))
         .on('connection', (socket) => {
@@ -155,17 +172,19 @@ class Server {
         });
 
       this._wsServers.push(wsServer);
-    };
-
-    if (httpServers.forEach === undefined) {
-      addWebsocket(httpServers);
-    } else {
-      httpServers.forEach((s) => addWebsocket(s));
-    }
+    });
   }
 
   auth() {
     return this._auth;
+  }
+
+  _invalidateCapabilities() {
+    this._capabilities = null;
+    this._requirementsOrder = null;
+    this._applyCapabilitiesCode = null;
+    this._modifiedClientSource = null;
+    this._modifiedClientSourceCore = null;
   }
 
   addMethod(name, rawOptions) {
@@ -173,25 +192,25 @@ class Server {
     if (this._methods[name]) {
       throw new Error(`"${name}" is already registered as a method.`);
     }
+    this._invalidateCapabilities();
     this._methods[name] = options;
-
     if (options.type === 'middleware') {
       this._middlewareMethods.add(name);
     }
 
-    this._requirementsOrdering = null;
   }
 
   removeMethod(name) {
-    delete this._methods[name];
-    this._middlewareMethods.delete(name);
-    this._requirementsOrdering = null;
+    const options = this._methods[name];
+    if (options) {
+      this._invalidateCapabilities();
+      this._middlewareMethods.delete(name);
+      delete this._methods[name];
+    }
   }
 
   _getRequirementsOrdering() {
     if (!this._requirementsOrdering) {
-      this._requirementsOrdering = {};
-
       const topo = new Toposort();
       for (const m in this._methods) {
         const reqs = this._methods[m].requires;
@@ -203,7 +222,6 @@ class Server {
           }
         }
       }
-
       this._requirementsOrdering = topo.sort().reverse();
     }
     return this._requirementsOrdering;
@@ -218,6 +236,51 @@ class Server {
         }))).then(() => this.rdbConnection.close());
     }
     return this._closePromise;
+  }
+
+  capabilities() {
+    if (!this._capabilities) {
+      this._capabilities = {}
+      for (const key in this._methods) {
+        this._capabilities[key] = {type: this._methods[key]};
+      }
+    }
+    return this._capabilities;
+  }
+
+  applyCapabilitiesCode() {
+    if (!this._applyCapabilitiesCode) {
+      this._applyCapabilitiesCode =
+        `;{
+           let capabilities = ${JSON.stringify(this.capabilities())};
+           Object.keys(capabilities).forEach(function (key) {
+             Horizon.addOption(key, capabilities[key].type);
+           });
+         };`;
+    }
+    return this._applyCapabilitiesCode;
+  }
+
+  clientSource() {
+    if (!this._modifiedClientSource) {
+      this._modifiedClientSource = clientSource() + this.applyCapabilitiesCode();
+    }
+    return this._modifiedClientSource;
+  }
+
+  clientSourceMap() {
+    return clientSourceMap();
+  }
+
+  clientSourceCore() {
+    if (!this._modifiedClientSourceCore) {
+      this._modifiedClientSourceCore = clientSourceCore() + this.applyCapabilitiesCode();
+    }
+    return this._modifiedClientSourceCore;
+  }
+
+  clientSourceCoreMap() {
+    return clientSourceCoreMap();
   }
 }
 

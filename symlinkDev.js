@@ -87,6 +87,7 @@ const linkDep = (fromPath, name) => new Promise((resolve, reject) => {
         reject(mkdirErr);
       } else {
         fs.unlink(fullFromPath, () => {
+          console.log(`Linking ${fullFromPath} => ${dest}`);
           fs.symlink(dest, fullFromPath, (symlinkErr) => {
             if (symlinkErr) {
               reject(symlinkErr);

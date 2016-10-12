@@ -23,8 +23,8 @@
   },
   "homepage": "https://github.com/rethinkdb/horizon#readme",
   "dependencies": {
-    "@horizon/server": "3.0.0-alpha-0",
-    "@horizon/plugin-utils": "3.0.0-alpha-0",
+    "@horizon/server": "3.x",
+    "@horizon/plugin-utils": "3.x",
     "argparse": "^1.0.3",
     "bluebird": "^3.4.1",
     "chalk": "^1.1.3",

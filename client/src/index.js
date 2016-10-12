@@ -5,7 +5,7 @@ import 'rxjs/add/operator/concatMap'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/filter'
 
-import { TermBase } from './ast'
+import { TermBase, addOption } from './ast'
 import { HorizonSocket } from './socket'
 import { authEndpoint, TokenStorage, clearAuthTokens } from './auth'
 import { aggregate, model } from './model'
@@ -54,14 +54,16 @@ function Horizon({
     },
   })
 
+  const request = new TermBase({}, sendRequest)
+
   // This is the object returned by the Horizon function. It's a
   // function so we can construct a collection simply by calling it
   // like horizon('my_collection')
   function horizon(name) {
-    return this.request.collection(name);
+    return request.collection(name);
   }
-  
-  horizon.request = new TermBase({}, sendRequest)
+
+  horizon.request = request;
 
   horizon.currentUser = () =>
     new UserDataTerm(horizon, socket.handshake, socket)
@@ -133,5 +135,6 @@ function subscribeOrObservable(observable) {
 
 Horizon.Socket = HorizonSocket
 Horizon.clearAuthTokens = clearAuthTokens
+Horizon.addOption = addOption
 
 module.exports = Horizon

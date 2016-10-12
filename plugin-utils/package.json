@@ -22,10 +22,10 @@
   },
   "dependencies": {
     "jsonpatch": "^3.0.1",
-    "@horizon/server": "^3.0.0-alpha-0"
+    "@horizon/server": "3.x"
   },
   "peerDependencies": {
-    "@horizon/plugin-router-base": "1.x"
+    "@horizon/base-router": "1.x"
   },
   "devDependencies": {
     "eslint": "^3.1.0",

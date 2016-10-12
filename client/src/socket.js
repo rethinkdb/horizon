@@ -110,7 +110,7 @@ export class HorizonSocket extends WebSocketSubject {
   // and cleans up after it when the handshake is cleaned up.
   sendHandshake() {
     if (!this._handshakeSub) {
-      this._handshakeSub = this.makeRequest(this._handshakeMaker())
+      this._handshakeSub = this.makeRequest(this._handshakeMaker(), 'handshake')
         .subscribe({
           next: n => {
             if (n.error) {

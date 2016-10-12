@@ -9,8 +9,10 @@
   "author": "RethinkDB",
   "license": "MIT",
   "dependencies": {
-    "@horizon/server": "^3.0.0-alpha-0",
-    "hapi": "^12.1.0"
+    "@horizon-plugins/defaults": "1.x",
+    "@horizon/hapi-router": "1.x",
+    "@horizon/server": "3.x",
+    "hapi": "^15.1.1"
   },
   "repository": {
     "type": "git",

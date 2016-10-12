@@ -23,7 +23,7 @@
   "dependencies": {
   },
   "peerDependencies": {
-    "@horizon/plugin-router-base": "1.x",
+    "@horizon/base-router": "1.x",
     "@horizon/server": "3.x"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
 {
-  "name": "koa-horizon-example",
+  "name": "basic-http-horizon-example",
   "version": "0.0.1",
-  "description": "Example of a horizon server within a koa server.",
+  "description": "Example of a horizon server within a express server.",
   "bin": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -10,9 +10,9 @@
   "license": "MIT",
   "dependencies": {
     "@horizon/server": "3.x",
-    "@horizon/koa-router": "1.x",
+    "@horizon/http-router": "1.x",
     "@horizon-plugins/defaults": "1.x",
-    "koa": "^1.1.2"
+    "express": "^4.13.3"
   },
   "repository": {
     "type": "git",

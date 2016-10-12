@@ -1,5 +1,5 @@
 {
-  "name": "@horizon/plugin-router-express",
+  "name": "@horizon/express-router",
   "version": "1.0.0",
   "description": "Plugin router for Horizon using Express as the backend.",
   "main": "src/index.js",
@@ -24,6 +24,7 @@
   },
   "peerDependencies": {
     "@horizon/server": "3.x",
+    "@horizon/base-router": "1.x",
     "express": "4.x"
   },
   "devDependencies": {
