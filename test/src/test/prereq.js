@@ -23,7 +23,7 @@ const all_tests = (collection) => {
           assert.ifError(err);
           assert.strictEqual(res.length, 0);
           if (++finished === query_count) {
-            utils.table(rand_collection).count().run(utils.rdb_conn()).then((count) => {
+            utils.table(rand_collection).count().run(utils.rdbConn()).then((count) => {
               assert.strictEqual(count, 0);
               done();
             }).catch(done);
@@ -52,7 +52,7 @@ const all_tests = (collection) => {
           assert.ifError(err);
           assert.strictEqual(res.length, 1);
           if (++finished === query_count) {
-            utils.table(rand_collection).count().run(utils.rdb_conn()).then((count) => {
+            utils.table(rand_collection).count().run(utils.rdbConn()).then((count) => {
               assert.strictEqual(count, query_count);
               done();
             }).catch(done);
@@ -66,7 +66,7 @@ const all_tests = (collection) => {
   it('index create race', (done) => {
     const query_count = 5;
     const field_name = crypto.randomBytes(8).toString('hex');
-    const conn = utils.rdb_conn();
+    const conn = utils.rdbConn();
 
     utils.table(collection).indexStatus().count().run(conn).then((old_count) => {
       let finished = 0;

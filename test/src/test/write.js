@@ -53,7 +53,7 @@ const all_tests = (collection) => {
 
   const check_collection = (expected, done) => {
     utils.table(collection).orderBy({index: 'id'}).coerceTo('array')
-      .run(utils.rdb_conn()).then((res) => {
+      .run(utils.rdbConn()).then((res) => {
         check_collection_data(res, expected);
         done();
       }).catch((err) => done(err));

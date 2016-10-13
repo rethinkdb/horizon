@@ -5,14 +5,16 @@ const HorizonBaseRouter = require('@horizon/base-router');
 const expressRequest = require('express/lib/request.js');
 const expressResponse = require('express/lib/response.js');
 
-const routeHandler = Symbol('routeHandler');
+const handler = Symbol('handler');
 
 class HorizonHapiRouter extends HorizonBaseRouter {
   constructor(...serverOptions) {
     super(...serverOptions);
-    this.routes = new Map();
+    this.routes = new Map(this.defaultRoutes);
 
-    this[routeHandler] = (request, reply) => {
+    this[handler] = (request, reply) => {
+      const req = request.raw.req;
+      const res = request.raw.res;
       const next = (err) => {
         if (err) {
           res.statusCode = 500;
@@ -23,57 +25,39 @@ class HorizonHapiRouter extends HorizonBaseRouter {
         }
       };
 
-      if (request.path.startsWith(pathPrefix) &&
-          (request.path.length === pathPrefix.length ||
-           request.path[pathPrefix.length] === '/')) {
-        const subpathEnd = url.pathname.indexOf('/', pathPrefix.length + 1);
-        const subpath = subpathEnd === -1 ?
-          url.pathname.substring(pathPrefix.length) :
-          url.pathname.substring(pathPrefix.length, subpathEnd + 1);
+      // Assume wildcard matching was used (and only for subroutes of this router)
+      // TODO: this may break some stuff if users try to get fancy
+      const subpath = `/${request.paramArray[0] || ''}${request.paramArray[1] ? '/' : ''}`
+      const handler = this.routes.get(subpath);
 
-        const handler = this.routes.get(subpath);
-
-        if (handler) {
-          req.res = res;
-          res.req = req;
-          req.next = next;
-          req.__proto__ = expressRequest;
-          res.__proto__ = expressResponse;
-          handler(req, res, next);
-        } else {
-          next();
-        }
+      if (handler) {
+        // RSI: hapi docs seem to indicate we shouldn't be fucking around with raw request/response so much
+        req.res = res;
+        res.req = req;
+        req.next = next;
+        req.__proto__ = expressRequest;
+        res.__proto__ = expressResponse;
+        handler(req, res, next);
       } else {
         next();
       }
     };
   }
 
-  routeHandler() {
-    return this[routeHandler];
+  handler() {
+    return this[handler];
   }
 
   add(...args) {
-    return super.add(...args).then((active) => {
-      if (active.http) {
-        this.routes.set(`/${active.name}/`);
-      }
-      return active;
-    });
+    return super.add(...args);
   }
 
-  remove(name, ...args) {
-    return Promise.resolve().then(() => {
-      this.routes.delete(`/${name}/`);
-      return super.remove(name, ...args);
-    });
+  remove(...args) {
+    return super.remove(...args);
   }
 
   close(...args) {
-    return Promise.resolve().then(() => {
-      routes.clear();
-      return super.close(...args);
-    });
+    return super.close(...args);
   }
 }
 

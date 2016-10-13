@@ -5,44 +5,18 @@ const HorizonBaseRouter = require('@horizon/base-router');
 const express = require('express');
 
 function HorizonExpressRouter(...serverOptions) {
-  // Using local variables so it can later be removed without leaking things
   let baseRouter = new HorizonBaseRouter(...serverOptions);
-  let expressRouter = express.Router();
-  let routes = new Map(); // For recreating the router when a route is removed
+  let expressRouter;
 
-  function addHandler(path, handler) {
-    routes.set(path, handler);
-    expressRouter.use(path, handler);
+  function initExpressRouter() {
+    expressRouter = express.Router();
+    this.routes.forEach((handler, path) => expressRouter.use(path, handler));
   }
-
-  addHandler('/horizon.js', (req, res) => {
-    res.head('Content-Type', 'application/javascript');
-    res.send(baseRouter.server.clientSource());
-    res.end();
-  });
-
-  addHandler('/horizon.js.map', (req, res) => {
-    res.head('Content-Type', 'application/javascript');
-    res.send(baseRouter.server.clientSourceMap());
-    res.end();
-  });
-
-  addHandler('/horizon-core.js.map', (req, res) => {
-    res.head('Content-Type', 'application/javascript');
-    res.send(baseRouter.server.clientSourceCore());
-    res.end();
-  });
-
-  addHandler('/horizon-core.js.map', (req, res) => {
-    res.head('Content-Type', 'application/javascript');
-    res.send(baseRouter.server.clientSourceCoreMap());
-    res.end();
-  });
 
   function add(...args) {
     return baseRouter.add(...args).then((active) => {
       if (active.http) {
-        addHandler(`/${active.name}/`, active.http);
+        initExpressRouter();
       }
       return active;
     });
@@ -50,22 +24,17 @@ function HorizonExpressRouter(...serverOptions) {
 
   function remove(name, ...args) {
     return Promise.resolve().then(() => {
-      // Remove the route before deactivating the plugin
       const path = `/${name}/`;
-      if (routes.has(path)) {
-        routes.delete(`/${name}/`);
-        expressRouter = express.Router();
-        routes.forEach((handler, route) => {
-          expressRouter.use(route, handler);
-        });
+      if (this.routes.has(path)) {
+        this.routes.delete(path);
+        initExpressRouter();
       }
 
-      return baseRouter.remove(...args);
+      return baseRouter.remove(name, ...args);
     });
   }
 
   function close(...args) {
-    routes.clear();
     expressRouter = null;
     return baseRouter.close(...args);
   }

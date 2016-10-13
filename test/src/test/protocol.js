@@ -10,7 +10,7 @@ const all_tests = (collection) => {
   beforeEach('Authenticate client', (done) => utils.horizon_token_auth('admin', done));
 
   it('unparseable', (done) => {
-    const conn = utils.horizon_conn();
+    const conn = utils.horizonConn();
     conn.removeAllListeners('error');
     conn.send('foobar');
     conn.once('close', (code, reason) => {
@@ -21,7 +21,7 @@ const all_tests = (collection) => {
   });
 
   it('no request_id', (done) => {
-    const conn = utils.horizon_conn();
+    const conn = utils.horizonConn();
     conn.removeAllListeners('error');
     conn.send('{ }');
     conn.once('close', (code, reason) => {
@@ -32,7 +32,7 @@ const all_tests = (collection) => {
   });
 
   it('keepalive', (done) => {
-    utils.horizon_conn().send(JSON.stringify({request_id: 0, type: 'keepalive'}));
+    utils.horizonConn().send(JSON.stringify({request_id: 0, type: 'keepalive'}));
     
     utils.add_horizon_listener(0, (msg) => {
       assert.deepStrictEqual(msg, {state: 'complete', request_id: 0});
@@ -40,11 +40,11 @@ const all_tests = (collection) => {
     });
   });
 
-  it('end_subscription', (done) => {
-    const conn = utils.horizon_conn();
-    conn.send(JSON.stringify({request_id: 0, type: 'end_subscription'}));
+  it('endRequest', (done) => {
+    const conn = utils.horizonConn();
+    conn.send(JSON.stringify({request_id: 0, type: 'endRequest'}));
 
-    // There is no response for an end_subscription, so just run a dummy keepalive roundtrip
+    // There is no response for an endRequest, so just run a dummy keepalive roundtrip
     conn.send(JSON.stringify({request_id: 0, type: 'keepalive'}));
     
     utils.add_horizon_listener(0, (msg) => {
@@ -83,7 +83,7 @@ const all_tests = (collection) => {
   // changefeed would have gotten an event.
   // We don't check any results, we're just seeing if the server crashes.
   it('client disconnect during changefeed', (done) => {
-    utils.horizon_conn().send(JSON.stringify(
+    utils.horizonConn().send(JSON.stringify(
       {
         request_id: 3,
         options: {
@@ -103,7 +103,7 @@ const all_tests = (collection) => {
       } else if (result.synced) {
         utils.remove_horizon_listener(3);
         utils.close_horizon_conn();
-        utils.table(collection).insert({}).run(utils.rdb_conn())
+        utils.table(collection).insert({}).run(utils.rdbConn())
          .then(() => done());
       }
     });
@@ -113,7 +113,7 @@ const all_tests = (collection) => {
   // disconnects.  Close the connection immediately after sending the request.
   // We don't check any results, we're just seeing if the server crashes.
   it('client disconnect during query', (done) => {
-    utils.horizon_conn().send(JSON.stringify(
+    utils.horizonConn().send(JSON.stringify(
       {
         request_id: 4,
         options: {

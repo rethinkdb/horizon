@@ -51,16 +51,16 @@ describe('Schema', () => {
         utils.check_error(error, '"options" is not allowed');
       });
 
-      it('allows end_subscription', () => {
-        const request = Object.assign({type: 'end_subscription'}, valid);
+      it('allows endRequest', () => {
+        const request = Object.assign({type: 'endRequest'}, valid);
         delete request.options;
         const parsed = requestSchema.validate(request);
         assert.ifError(parsed.error);
         assert.deepStrictEqual(parsed.value, request);
       });
 
-      it('rejects end_subscription with options', () => {
-        const request = Object.assign({type: 'end_subscription'}, valid);
+      it('rejects endRequest with options', () => {
+        const request = Object.assign({type: 'endRequest'}, valid);
         const error = requestSchema.validate(request).error;
         utils.check_error(error, '"options" is not allowed');
       });

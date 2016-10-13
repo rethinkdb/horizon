@@ -2,26 +2,45 @@
 
 const HorizonBaseRouter = require('@horizon/base-router');
 
-class HorizonKoaRouter extends HorizonBaseRouter {
-  constructor(...serverOptions) {
-    super(...serverOptions);
-    this.koa = koa;
+function HorizonKoaRouter(...serverOptions) {
+  let closed = false;
+  const baseRouter = new HorizonBaseRouter(...serverOptions);
+
+  // RSI: this code relies on us being mounted at the same path as the websocket server
+  const pathPrefix = `/${baseRouter.server.options.path}`;
+  
+  function add(...args) {
+    return baseRouter.add(...args);
   }
 
-  add(...args) {
-    return super.add(...args);
-    // RSI: add routes to koa server
+  function remove(...args) {
+    return baseRouter.remove(...args);
   }
 
-  remove(...args) {
-    // RSI: remove routes from koa server
-    return super.remove(...args);
+  function close(...args) {
+    closed = true;
+    return baseRouter.close(...args);
   }
 
-  close(...args) {
-    // RSI: remove references from http servers
-    return super.close(...args);
+  function *middleware(next, ctx) {
+    if (!closed) {
+      const handler = baseRouter._handlerForPath(ctx.path);
+      if (handler)
+        handler(ctx.request, ctx.response);
+        return;
+      }
+    }
+
+    yield* next();
   }
+
+  middleware.add = add;
+  middleware.remove = remove;
+  middleware.close = close;
+  middleware.server = baseRouter.server;
+  middleware.pluginContext = baseRouter.pluginContext;
+
+  return middleware;
 }
 
 module.exports = HorizonKoaRouter;

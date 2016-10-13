@@ -6,7 +6,7 @@ require('source-map-support').install();
 Error.stackTraceLimit = Infinity;
 
 const HorizonServer = require('@horizon/server');
-const HorizonRouter = require('@horizon/base-router');
+const HorizonBaseRouter = require('@horizon/base-router');
 const plugins = require('@horizon-plugins/defaults');
 
 // Utilities provided by the CLI library
@@ -168,7 +168,7 @@ new Promise((resolve) => {
   console.log('starting horizon');
 
   HorizonServer.logger.level = 'debug';
-  const hz_server = new HorizonServer.Server(http_servers, {
+  const hzRouter = new HorizonBaseRouter(http_servers, {
     rdb_port: server.driver_port,
     project_name: 'hz_test',
     auth: {
@@ -178,8 +178,7 @@ new Promise((resolve) => {
     },
   });
 
-  const pluginRouter = new HorizonRouter(hz_server);
-  pluginRouter.add(plugins, {
+  hzRouter.add(plugins, {
     permissions: 'permit-all',
     auto_create_collection: true,
     auto_create_index: true,
@@ -188,7 +187,7 @@ new Promise((resolve) => {
     process.exit(1);
   });
 
-  pluginRouter.once('ready', () => {
+  hzRouter.once('ready', () => {
     // Capture requests to `horizon.js` and `horizon.js.map` before the horizon server
     console.log('starting http servers');
     http_servers.forEach((serv, i) => {

@@ -31,12 +31,34 @@ class HorizonBaseRouter extends EventEmitter {
     this._plugins = new Map();
     this._readyPlugins = new Set();
     this._closePromise = null;
+
+    // RSI: this code relies on the router being mounted at the same path as the websocket server
+    // Express should be able to mount anywhere because it strips off the preceding path
+    // Basic HTTP and Koa will only handle http requests under server.options.path
+    // Hapi relies on being configured with a path wildcard (but only for subpaths of server.options.path)
+    this._pathPrefix = `/${this.server.options.path}`;
+
+    const makeHandler = (mimeType, getData) => (req, res) => {
+      res.head('Content-Type', mimeType);
+      res.send(getData());
+      res.end();
+    };
+
+    // These are not used here, but may be utilized by subclassing routers
+    this.routes = new Map([
+      ['/horizon.js', makeHandler('application/javascript', () => this.server.clientSource())],
+      ['/horizon.js.map', makeHandler('application/json', () => this.server.clientSourceMap())],
+      ['/horizon-core.js', makeHandler('application/javascript', () => this.server.clientSourceCore())],
+      ['/horizon-core.js.map', makeHandler('application/json', () => this.server.clientSourceCoreMap())],
+    ]);
   }
 
   close() {
     if (!this._closePromise) {
+      this.routes.clear();
       this._closePromise = Promise.all(
-        Array.from(this._plugins.keys()).map((p) => this.remove(p)));
+        Array.from(this._plugins.keys()).map((p) => this.remove(p))
+      ).then(() => this.server.close());
     }
     return this._closePromise;
   }
@@ -65,17 +87,21 @@ class HorizonBaseRouter extends EventEmitter {
         const addedMethods = [];
         try {
           for (const m in active.methods) {
-            this.horizon.addMethod(m, active.methods[m]);
+            this.server.addMethod(m, active.methods[m]);
             addedMethods.push(m);
           }
         } catch (err) {
           // Back out and clean up safely if any methods failed to add
-          addedMethods.forEach((m) => this.horizon.removeMethod(m));
+          addedMethods.forEach((m) => this.server.removeMethod(m));
           throw err;
         }
 
         if (plugin.activate.length < 3) {
           this._noteReady(options.name);
+        }
+
+        if (active.http) {
+          this.routes.set(`/${active.name}/`, active.http);
         }
 
         // RSI: we probably need to return a few more things in 'active' (for use by
@@ -95,16 +121,15 @@ class HorizonBaseRouter extends EventEmitter {
     return Promise.resolve().then(() => {
       const activatePromise = this._plugins.get(name);
 
-      if (this._closePromise) {
-        throw new Error(`Horizon PluginRouter is closed.`);
-      } else if (!activatePromise) {
+      if (!activatePromise) {
         throw new Error(`Plugin "${name}" is not present.`);
       }
 
+      this.routes.delete(`/${name}/`);
       this._plugins.delete(name);
       return activatePromise.then((active) => {
         for (const m in active.methods) {
-          this.horizon.removeMethod(m);
+          this.server.removeMethod(m);
         }
         if (active.plugin.deactivate) {
           return active.plugin.deactivate(this.pluginContext, active.options,
@@ -131,6 +156,18 @@ class HorizonBaseRouter extends EventEmitter {
       if (this._readyPlugins.size === this._plugins.size - 1) {
         this.emit('unready', this);
       }
+    }
+  }
+
+  _handlerForPath(path) {
+    if (path.startsWith(this.pathPrefix) &&
+        (path.length === this.pathPrefix.length ||
+         path[this.pathPrefix.length] === '/')) {
+      const subpathEnd = path.indexOf('/', this.pathPrefix.length + 1);
+      const subpath = subpathEnd === -1 ?
+        path.substring(this.pathPrefix.length) :
+        path.substring(this.pathPrefix.length, subpathEnd + 1);
+      return this.routes.get(subpath);
     }
   }
 }
