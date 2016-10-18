@@ -6,7 +6,7 @@ const assert = require('assert');
 
 const Joi = require('joi');
 
-const {r, logger, Reliable, ReliableChangefeed} = require('@horizon/server');
+const {Reliable, ReliableChangefeed} = require('@horizon/server');
 
 // auth plugins should set 'request.context.user'
 // token/anonymous: this should be the user id
@@ -132,16 +132,18 @@ class RuleMap {
 }
 
 class UserCache {
-  constructor(context, options) {
-    this.timeout = options.cacheTimeout;
+  constructor(options, context) {
+    const r = context.horizon.r;
 
+    this.context = context;
+    this.timeout = options.cacheTimeout;
     this.ruleMap = new RuleMap();
     this.userCfeeds = new Map();
     this.newUserCfeed = (userId) => {
       let oldGroups = new Set();
       const cfeed = new ReliableChangefeed(
+        this.context,
         r.table(options.usersTable).get(userId).changes({includeInitial: true}),
-        context.horizon.rdbConnection,
         {
           onUnready: () => {
             cfeed.unreadyAt = new Date();
@@ -174,7 +176,7 @@ class UserCache {
 
     // Set up a dummy user cfeed for unauthenticated users (null id)
     this.ruleMap.addUserGroup(null, 'default');
-    this.userCfeeds.set(null, Object.assign(new Reliable(), {
+    this.userCfeeds.set(null, Object.assign(new Reliable(this.context), {
       refcount: 1,
       unreadyAt: null,
       userRow: {id: null, groups: ['default']},
@@ -184,8 +186,8 @@ class UserCache {
     this.queuedGroups = new Map();
     this.groupsUnreadyAt = new Date(0); // epoch
     this.groupCfeed = new ReliableChangefeed(
+      this.context,
       r.table(options.groupsTable).changes({includeInitial: true}),
-      context.horizon.rdbConnection,
       {
         onReady: () => {
           this.ruleMap.delAllGroupRules();
@@ -230,9 +232,10 @@ class UserCache {
               try {
                 this.ruleMap.addGroupRule(id, k, new Rule(newRules[k]));
               } catch (err) {
-                logger.error(`Failed to evaluate rule ${id}.${k}: ${err}`);
-                logger.debug(`Contents: ${JSON.stringify(newRules[k])}`);
-                logger.debug(`Stack: ${err.stack}`);
+                this.context.horizon.events.emit('log', 'error',
+                  `Failed to evaluate rule ${id}.${k}: ${err}`);
+                this.context.horizon.events.emit('log', 'debug',
+                  `Contents: ${JSON.stringify(newRules[k])}, stack: ${err.stack}`);
               }
             }
           }
@@ -314,7 +317,8 @@ class UserCache {
               } catch (err) {
                 // We don't want to pass the error message on to the user because
                 // it might leak information about the data.
-                logger.error(`Exception in validator function: ${err.stack}`);
+                this.context.horizon.events.emit('log', 'error',
+                  `Exception in validator function: ${err.stack}`);
               }
             };
           };
@@ -347,7 +351,7 @@ module.exports = {
     const userSub = Symbol(`${options.name}_userSub`);
 
     // Save things in the context that we will need at deactivation
-    const userCache = new UserCache(context, options);
+    const userCache = new UserCache(options, context);
     context[options.name] = {
       userCache,
       authCb: (clientCtx) => {

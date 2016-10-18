@@ -1,44 +1,43 @@
 'use strict';
 
-const logger = require('../logger');
-const auth_utils = require('./utils');
+const authUtils = require('./utils');
 
 const Joi = require('joi');
 const oauth = require('oauth');
 const url = require('url');
 
-const options_schema = Joi.object({
+const optionsSchema = Joi.object({
   path: Joi.string().required(),
   id: Joi.string().required(),
   secret: Joi.string().required(),
 });
 
 // Cache for request token secrets
-const nonce_cache = new Map();
-const nonce_cache_ttl_ms = 60 * 60 * 1000;
+const nonceCache = new Map();
+const nonceCacheTtlMs = 60 * 60 * 1000;
 
 const store_app_token = (nonce, token) => {
   const time = Date.now();
-  const cutoff = time - nonce_cache_ttl_ms;
-  const iter = nonce_cache.entries();
+  const cutoff = time - nonceCacheTtlMs;
+  const iter = nonceCache.entries();
 
   let item = iter.next();
   while (item.value && item.value[1].time < cutoff) {
-    nonce_cache.delete(item.value[0]);
+    nonceCache.delete(item.value[0]);
     item = iter.next();
   }
 
-  nonce_cache.set(nonce, {time, token});
+  nonceCache.set(nonce, {time, token});
 };
 
-const get_app_token = (nonce) => {
-  const res = nonce_cache.get(nonce);
-  nonce_cache.delete(nonce);
+const getAppToken = (nonce) => {
+  const res = nonceCache.get(nonce);
+  nonceCache.delete(nonce);
   return res && res.token;
 };
 
-function twitter(horizon, raw_options) {
-  const options = Joi.attempt(raw_options, options_schema);
+function twitter(context, rawOptions) {
+  const options = Joi.attempt(rawOptions, optionsSchema);
   const provider = options.path;
   const consumer_key = options.id;
   const consumer_secret = options.secret;
@@ -54,39 +53,39 @@ function twitter(horizon, raw_options) {
   const user_info_url = 'https://api.twitter.com/1.1/account/verify_credentials.json';
 
   const make_success_url = (horizon_token) =>
-    url.format(auth_utils.extend_url_query(horizon._auth._success_redirect, {horizon_token}));
+    url.format(authUtils.extend_url_query(context.horizon.auth.successUrl, {horizon_token}));
 
   const make_failure_url = (horizon_error) =>
-    url.format(auth_utils.extend_url_query(horizon._auth._failure_redirect, {horizon_error}));
+    url.format(authUtils.extend_url_query(context.horizon.auth.failureUrl, {horizon_error}));
 
   horizon.add_http_handler(provider, (req, res) => {
     const request_url = url.parse(req.url, true);
     const user_token = request_url.query && request_url.query.oauth_token;
     const verifier = request_url.query && request_url.query.oauth_verifier;
 
-    logger.debug(`oauth request: ${JSON.stringify(request_url)}`);
+    horizon.events.emit('log', 'debug', `oauth request: ${JSON.stringify(request_url)}`);
     if (!user_token) {
       // Auth has not been started yet, determine our callback URL and register an app token for it
       // First generate a nonce to track this client session to prevent CSRF attacks
-      auth_utils.make_nonce((nonce_err, nonce) => {
+      authUtils.make_nonce((nonce_err, nonce) => {
         if (nonce_err) {
-          logger.error(`Error creating nonce for oauth state: ${nonce_err}`);
-          auth_utils.do_redirect(res, make_failure_url('error generating nonce'));
+          horizon.events.emit('log', 'error', `Error creating nonce for oauth state: ${nonce_err}`);
+          authUtils.do_redirect(res, make_failure_url('error generating nonce'));
         } else {
           oa._authorize_callback =
             url.format({protocol: 'https',
                          host: req.headers.host,
                          pathname: request_url.pathname,
-                         query: {state: auth_utils.nonce_to_state(nonce)}});
+                         query: {state: authUtils.nonce_to_state(nonce)}});
 
           oa.getOAuthRequestToken((err, app_token, app_token_secret, body) => {
             if (err || body.oauth_callback_confirmed !== 'true') {
-              logger.error(`Error acquiring app oauth token: ${JSON.stringify(err)}`);
-              auth_utils.do_redirect(res, make_failure_url('error acquiring app oauth token'));
+              horizon.events.emit('log', 'error', `Error acquiring app oauth token: ${JSON.stringify(err)}`);
+              authUtils.do_redirect(res, make_failure_url('error acquiring app oauth token'));
             } else {
               store_app_token(nonce, app_token_secret);
-              auth_utils.set_nonce(res, horizon._name, nonce);
-              auth_utils.do_redirect(res, url.format({protocol: 'https',
+              authUtils.set_nonce(res, horizon._name, nonce);
+              authUtils.do_redirect(res, url.format({protocol: 'https',
                                                        host: 'api.twitter.com',
                                                        pathname: '/oauth/authenticate',
                                                        query: {oauth_token: app_token}}));
@@ -96,32 +95,32 @@ function twitter(horizon, raw_options) {
       });
     } else {
       // Make sure this is the same client who obtained the code to prevent CSRF attacks
-      const nonce = auth_utils.get_nonce(req, horizon._name);
+      const nonce = authUtils.get_nonce(req, horizon._name);
       const state = request_url.query.state;
-      const app_token = get_app_token(nonce);
+      const app_token = getAppToken(nonce);
 
-      if (!nonce || !state || !app_token || state !== auth_utils.nonce_to_state(nonce)) {
-        auth_utils.do_redirect(res, make_failure_url('session expired'));
+      if (!nonce || !state || !app_token || state !== authUtils.nonce_to_state(nonce)) {
+        authUtils.do_redirect(res, make_failure_url('session expired'));
       } else {
         oa.getOAuthAccessToken(user_token, app_token, verifier, (err, access_token, secret) => {
           if (err) {
-            logger.error(`Error contacting oauth API: ${err}`);
-            auth_utils.do_redirect(res, make_failure_url('oauth provider error'));
+            horizon.events.emit('log', 'error', `Error contacting oauth API: ${err}`);
+            authUtils.do_redirect(res, make_failure_url('oauth provider error'));
           } else {
             oa.get(user_info_url, access_token, secret, (err2, body) => {
-              const user_info = auth_utils.try_json_parse(body);
+              const user_info = authUtils.try_json_parse(body);
               const user_id = user_info && user_info.id;
 
               if (err2) {
-                logger.error(`Error contacting oauth API: ${err2}`);
-                auth_utils.do_redirect(res, make_failure_url('oauth provider error'));
+                horizon.events.emit('log', 'error', `Error contacting oauth API: ${err2}`);
+                authUtils.do_redirect(res, make_failure_url('oauth provider error'));
               } else if (!user_id) {
-                logger.error(`Bad JSON data from oauth API: ${body}`);
-                auth_utils.do_redirect(res, make_failure_url('unparseable inspect response'));
+                horizon.events.emit('log', 'error', `Bad JSON data from oauth API: ${body}`);
+                authUtils.do_redirect(res, make_failure_url('unparseable inspect response'));
               } else {
                 horizon._auth.generate(provider, user_id).nodeify((err3, jwt) => {
-                  auth_utils.clear_nonce(res, horizon._name);
-                  auth_utils.do_redirect(res, err3 ?
+                  authUtils.clear_nonce(res, horizon._name);
+                  authUtils.do_redirect(res, err3 ?
                     make_failure_url('invalid user') :
                     make_success_url(jwt.token));
                 });

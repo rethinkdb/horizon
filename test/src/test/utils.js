@@ -3,7 +3,6 @@
 const HorizonServer = require('@horizon/server');
 const HorizonBaseRouter = require('@horizon/base-router');
 const defaults = require('@horizon-plugins/defaults');
-const logger = HorizonServer.logger;
 
 const rm_sync_recursive = require('horizon/src/utils/rm_sync_recursive');
 const start_rdb_server = require('horizon/src/utils/start_rdb_server');
@@ -15,13 +14,14 @@ const http = require('http');
 const jsonpatch = require('jsonpatch');
 const r = require('rethinkdb');
 const websocket = require('ws');
+const logger = require('winston');
 
-const project_name = 'integration_test';
+const projectName = 'integration_test';
 const dataDir = './rethinkdb_data_test';
 
-const log_file = `./horizon_test_${process.pid}.log`;
+const logFile = `./horizon_test_${process.pid}.log`;
 logger.level = 'debug';
-logger.add(logger.transports.File, {filename: log_file});
+logger.add(logger.transports.File, {filename: logFile});
 logger.remove(logger.transports.Console);
 
 // Variables used by most tests
@@ -45,7 +45,7 @@ function startServers() {
     rdbHttpPort = server.http_port;
     logger.info('server created, connecting');
 
-    return r.connect({db: project_name, port: rdbPort});
+    return r.connect({db: projectName, port: rdbPort});
   }).then((conn) => {
     logger.info('connected');
     rdbConn = conn;
@@ -58,11 +58,11 @@ function startServers() {
         logger.info('creating horizon server');
         horizonPort = httpServer.address().port;
         horizonRouter = new HorizonBaseRouter(httpServer, {
-          project_name,
-          rdb_port: rdbPort,
+          projectName,
+          rdbPort: rdbPort,
           auth: {
-            token_secret: 'hunter2',
-            allow_unauthenticated: true,
+            tokenSecret: 'hunter2',
+            allowUnauthenticated: true,
           },
         });
 
@@ -71,6 +71,9 @@ function startServers() {
           auto_create_index: true,
         });
 
+        horizonRouter.server.events.on('log', (level, message) => {
+          logger[level](message);
+        });
         horizonRouter.server.events.on('ready', () => {
           logger.info('horizon server ready');
           plugins_promise.then(resolve).catch(reject);
@@ -106,7 +109,7 @@ function stopServers() {
 // Used to prefix reql queries with the underlying table of a given collection
 const table = (collection) =>
   r.table(
-    r.db(project_name)
+    r.db(projectName)
       .table('hz_collections')
       .get(collection)
       .do((row) =>
@@ -133,14 +136,14 @@ function create_collection(collection) {
         conn.send(JSON.stringify(make_handshake(123, 'token', make_token('admin'))));
         conn.once('message', (data) => {
           const res = JSON.parse(data);
-          assert.strictEqual(res.request_id, 123);
+          assert.strictEqual(res.requestId, 123);
           assert.strictEqual(typeof res.token, 'string');
           assert.strictEqual(res.id, 'admin');
           assert.strictEqual(res.provider, null);
 
           // This query should auto-create the collection if it's missing
           conn.send(JSON.stringify({
-            request_id: 0,
+            requestId: 0,
             options: {collection: [collection], limit: [0], fetch: []},
           }));
 
@@ -179,36 +182,36 @@ const populate_collection = (collection, rows) => {
   }
 };
 
-const add_horizon_listener = (request_id, cb) => {
+const add_horizon_listener = (requestId, cb) => {
   assert(horizonAuthenticated, 'horizonConn was not authenticated before making requests');
-  assert.notStrictEqual(request_id, undefined);
+  assert.notStrictEqual(requestId, undefined);
   assert.notStrictEqual(horizonListeners, undefined);
-  assert.strictEqual(horizonListeners.get(request_id), undefined);
-  horizonListeners.set(request_id, cb);
+  assert.strictEqual(horizonListeners.get(requestId), undefined);
+  horizonListeners.set(requestId, cb);
 };
 
-const remove_horizon_listener = (request_id) => {
-  assert.notStrictEqual(request_id, undefined);
+const remove_horizon_listener = (requestId) => {
+  assert.notStrictEqual(requestId, undefined);
   assert.notStrictEqual(horizonListeners, undefined);
-  horizonListeners.delete(request_id);
+  horizonListeners.delete(requestId);
 };
 
 const dispatch_message = (raw) => {
   const msg = JSON.parse(raw);
-  assert.notStrictEqual(msg.request_id, undefined);
+  assert.notStrictEqual(msg.requestId, undefined);
   assert.notStrictEqual(horizonListeners, undefined);
 
-  if (msg.request_id !== null) {
-    const listener = horizonListeners.get(msg.request_id);
+  if (msg.requestId !== null) {
+    const listener = horizonListeners.get(msg.requestId);
     assert.notStrictEqual(listener, undefined);
     listener(msg);
   }
 };
 
 const open_horizon_conn = (done) => {
-  logger.info('opening horizon conn');
   assert.notStrictEqual(horizonRouter, undefined);
   assert.strictEqual(horizonConn, undefined);
+  logger.info('opening horizon conn');
   horizonAuthenticated = false;
   horizonListeners = new Map();
   horizonConn =
@@ -238,13 +241,13 @@ const horizon_auth = (req, cb) => {
   });
 };
 
-const make_handshake = (request_id, method, token) =>
-  ({request_id, type: 'handshake', options: {method, token}});
+const make_handshake = (requestId, method, token) =>
+  ({requestId, type: 'handshake', options: {method, token}});
 
 // Create a token for the admin user and use that to authenticate
 const horizon_token_auth = (id, done) => {
   horizon_auth(make_handshake(-1, 'token', make_token(id)), (res) => {
-    assert.strictEqual(res.request_id, -1);
+    assert.strictEqual(res.requestId, -1);
     assert.strictEqual(typeof res.token, 'string');
     assert.strictEqual(res.id, id);
     assert.strictEqual(res.provider, null);
@@ -254,7 +257,7 @@ const horizon_token_auth = (id, done) => {
 
 const horizon_unauthenticated_auth = (done) => {
   horizon_auth(make_handshake(-1, 'unauthenticated'), (res) => {
-    assert.strictEqual(res.request_id, -1);
+    assert.strictEqual(res.requestId, -1);
     assert.strictEqual(typeof res.token, 'string');
     assert.strictEqual(res.id, null);
     assert.strictEqual(res.provider, 'unauthenticated');
@@ -282,7 +285,7 @@ const convertResult = (result) => {
   }
 };
 
-// `stream_test` will send a request (containing a request_id), and call the
+// `stream_test` will send a request (containing a requestId), and call the
 // callback with (err, res), where `err` is the error string if an error
 // occurred, or `null` otherwise.  `res` will be the value built by the server,
 // which is the sum of all patches sent over the lifetime of the request.
@@ -290,16 +293,16 @@ const stream_test = (req, cb) => {
   assert(horizonConn && horizonConn.readyState === websocket.OPEN);
   let result = {};
 
-  add_horizon_listener(req.request_id, (msg) => {
+  add_horizon_listener(req.requestId, (msg) => {
     if (msg.patch !== undefined) {
       result = jsonpatch.apply_patch(result, msg.patch);
     }
     if (msg.error !== undefined) {
-      remove_horizon_listener(req.request_id);
+      remove_horizon_listener(req.requestId);
       cb(new Error(msg.error), convertResult(result));
     } else if (msg.state === 'complete') {
       const res = result.val || (result.type === 'set' ? new Set() : []);
-      remove_horizon_listener(req.request_id);
+      remove_horizon_listener(req.requestId);
       assert(result.synced);
       cb(null, convertResult(result));
     }
@@ -315,7 +318,7 @@ const check_error = (err, msg) => {
 
 const set_group = (group, done) => {
   assert(horizonRouter && rdbConn);
-  r.db(project_name)
+  r.db(projectName)
     .table('hz_groups')
     .get(group.id)
     .replace(group)
@@ -336,6 +339,7 @@ module.exports = {
   horizonListeners: () => horizonListeners,
 
   startServers, stopServers,
+  logger: () => logger,
 
   create_collection,
   populate_collection,

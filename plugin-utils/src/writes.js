@@ -2,8 +2,6 @@
 
 const assert = require('assert');
 
-const {r} = require('@horizon/server');
-
 const hzv = '$hz_v$';
 
 // Common functionality used by write requests
@@ -12,7 +10,7 @@ const missingMsg = 'The document was missing.';
 const timeoutMsg = 'Operation timed out.';
 const unauthorizedMsg = 'Operation not permitted.';
 
-function applyVersion(row, newVersion) {
+function applyVersion(r, row, newVersion) {
   return row.merge(r.object(hzv, newVersion));
 }
 

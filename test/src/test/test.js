@@ -4,8 +4,6 @@ require('source-map-support').install();
 
 const utils = require('./utils');
 
-const logger = require('@horizon/server').logger;
-
 const all_suites = ['prereq',
                     'protocol',
                     'fetch',
@@ -23,11 +21,11 @@ before(`Creating general-purpose collection: '${collection}'`,
 
 beforeEach(
   /** @this mocha */
-  function() { logger.info(`Start test '${this.currentTest.title}'`); });
+  function() { utils.logger().info(`Start test '${this.currentTest.title}'`); });
 
 afterEach(
   /** @this mocha */
-  function() { logger.info(`End test '${this.currentTest.title}'`); });
+  function() { utils.logger().info(`End test '${this.currentTest.title}'`); });
 
 beforeEach('Connect Horizon Client', utils.open_horizon_conn);
 afterEach('Close Horizon Client', utils.close_horizon_conn);

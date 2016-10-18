@@ -169,7 +169,7 @@ Examples:
 
 ```
 {
-  "request_id": <NUMBER>,
+  "requestId": <NUMBER>,
   "type": "query",
   "options": {
     "group_name": <GROUPNAME>,
@@ -182,7 +182,7 @@ Examples:
 
 ```
 {
-  "request_id": <NUMBER>,
+  "requestId": <NUMBER>,
   "type": "query",
   "options": {
     "group_name": null,
@@ -196,7 +196,7 @@ Examples:
 
 ```
 {
-  "request_id": <NUMBER>,
+  "requestId": <NUMBER>,
   "type": "group_members",
   "options": {
     "group_name": <GROUPNAME>,'
@@ -209,7 +209,7 @@ Examples:
 
 ```
 {
-  "request_id": <NUMBER>,
+  "requestId": <NUMBER>,
   "type": "remove",
   "options": {
     "group_name": <GROUPNAME>,

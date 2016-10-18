@@ -142,7 +142,7 @@ class UserId { }
 //     }
 //   }
 // }
-function proxyGet(target, property, receiver) {
+function proxyGet(target, property) {
   const data = target[templateData];
 
   if (data.options[property] !== undefined) {
@@ -150,12 +150,18 @@ function proxyGet(target, property, receiver) {
   }
 
   if (property === 'any') {
-    // TODO: maybe make this return the next object directly, rather than a method with no args?
+    // TODO: maybe make this return the next object directly,
+    // rather than a method with no args?
     return (...args) => {
       if (args.length !== 0) {
         throw new Error('".any()" does not take arguments');
       }
-      return new Proxy({[templateData]: {any: true, options: data.options}}, {get: proxyGet});
+      return new Proxy({
+        [templateData]: {
+          any: true,
+          options: data.options,
+        },
+      }, {get: proxyGet});
     };
   }
 
@@ -164,7 +170,12 @@ function proxyGet(target, property, receiver) {
     if (args.length === 1 && args[0] instanceof Any) {
       value = args[0];
     }
-    return new Proxy({[templateData]: {any: data.any, options: Object.assign({property: value}, data.options)}}, {get: proxyGet});
+    return new Proxy({
+      [templateData]: {
+        any: data.any,
+        options: Object.assign({property: value}, data.options),
+      },
+    }, {get: proxyGet});
   };
 }
 

@@ -2,8 +2,10 @@
 
 const HorizonBaseRouter = require('@horizon/base-router');
 
-const expressRequest = require('express/lib/request.js');
-const expressResponse = require('express/lib/response.js');
+const url = require('url');
+
+const ExpressRequest = require('express/lib/request');
+const ExpressResponse = require('express/lib/response');
 
 const handler = Symbol('handler');
 
@@ -22,14 +24,15 @@ class HorizonHttpRouter extends HorizonBaseRouter {
         }
       };
 
-      const handler = this._handlerForPath(url.parse(req.url).pathname);
-      if (handler) {
+      const routeHandler = this._handlerForPath(url.parse(req.url).pathname);
+      if (routeHandler) {
         req.res = res;
         res.req = req;
         req.next = next;
-        req.__proto__ = expressRequest;
-        res.__proto__ = expressResponse;
-        handler(req, res, next);
+        // TODO: this kills the performance?
+        Object.setPrototypeOf(req, ExpressRequest);
+        Object.setPrototypeOf(res, ExpressResponse);
+        routeHandler(req, res, next);
       } else {
         next();
       }
@@ -38,18 +41,6 @@ class HorizonHttpRouter extends HorizonBaseRouter {
 
   handler() {
     return this[handler];
-  }
-
-  add(...args) {
-    return super.add(...args);
-  }
-
-  remove(...args) {
-    return super.remove(...args);
-  }
-
-  close(...args) {
-    return super.close(...args);
   }
 }
 

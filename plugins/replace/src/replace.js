@@ -1,12 +1,11 @@
 'use strict';
 
-const {r} = require('@horizon/server');
 const {reqlOptions, writes} = require('@horizon/plugin-utils');
 const hzv = writes.versionField;
 
 function replace(context) {
+  const r = context.horizon.r;
   return (req, res, next) => {
-    const conn = context.horizon.rdbConnection.connection();
     const timeout = req.getParameter('timeout');
     const collection = req.getParameter('collection');
     const permissions = req.getParameter('hz_permissions');
@@ -21,7 +20,7 @@ function replace(context) {
       (rows) => // pre-validation, all rows
         r.expr(rows.map((row) => row.id))
           .map((id) => collection.table.get(id))
-          .run(conn, reqlOptions),
+          .run(context.horizon.conn(), reqlOptions),
       (validator, row, info) =>
         writes.validateOldRowRequired(validator, row, info, row),
       (rows) => // write to database, all valid rows
@@ -39,9 +38,9 @@ function replace(context) {
 
                          // Otherwise, we can safely replace the row
                          writes.applyVersion(
-                           newRow, oldRow(hzv).default(-1).add(1))),
+                           r, newRow, oldRow(hzv).default(-1).add(1))),
                 {returnChanges: 'always'}))
-        .run(conn, reqlOptions)
+        .run(context.horizon.conn(), reqlOptions)
     ).then((patch) => res.end(patch)).catch(next);
   };
 }

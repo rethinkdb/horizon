@@ -94,7 +94,7 @@ export class HorizonSocket extends WebSocketSubject {
     // Keep track of subscribers so we's can decide when to
     // unsubscribe.
     this.requestCounter = 0
-    // A map from request_ids to an object with metadata about the
+    // A map from requestId to an object with metadata about the
     // request. Eventually, this should allow re-sending requests when
     // reconnecting.
     this.activeRequests = new Map()
@@ -115,7 +115,7 @@ export class HorizonSocket extends WebSocketSubject {
           next: n => {
             if (n.error) {
               this.status.next(STATUS_ERROR)
-              this.handshake.error(new ProtocolError(n.error, n.error_code))
+              this.handshake.error(new ProtocolError(n.error, n.errorCode))
             } else {
               this.status.next(STATUS_READY)
               this.handshake.next(n)
@@ -135,12 +135,12 @@ export class HorizonSocket extends WebSocketSubject {
     return this.handshake
   }
 
-  endRequest(request_id) {
+  endRequest(requestId) {
     return () => {
-      const req = this.activeRequests.get(request_id)
+      const req = this.activeRequests.get(requestId)
       if (req) {
-        this.activeRequests.delete(request_id)
-        return { request_id, type: 'endRequest' }
+        this.activeRequests.delete(requestId)
+        return { requestId, type: 'endRequest' }
       }
     }
   }
@@ -150,18 +150,18 @@ export class HorizonSocket extends WebSocketSubject {
   // * Generates a request id and filters by it
   // * Send `end_subscription` when observable is unsubscribed
   makeRequest(options, type) {
-    const request_id = this.requestCounter++
-    const req = {message: {request_id, options}, data: {}}
+    const requestId = this.requestCounter++
+    const req = {message: {requestId, options}, data: {}}
     if (type) { req.message.type = type }
 
     return super.multiplex(
         () => {
-          this.activeRequests.set(request_id, req)
+          this.activeRequests.set(requestId, req)
           return req.message
         },
-        this.endRequest(request_id),
+        this.endRequest(requestId),
         (response) => {
-          return response.request_id === request_id
+          return response.requestId === requestId
         }
     );
   }
@@ -182,12 +182,12 @@ export class HorizonSocket extends WebSocketSubject {
           throw new Error(response.error)
         }
         if (response.complete) {
-          this.endRequest(response.request_id)
+          this.endRequest(response.requestId)
           end.complete()
           return
         }
 
-        const req = this.activeRequests.get(response.request_id)
+        const req = this.activeRequests.get(response.requestId)
         if (response.patch) {
           req.data = jsonpatch.apply_patch(req.data, response.patch)
         }

@@ -1,18 +1,24 @@
 'use strict';
 
-const logger = require('./logger');
+const events = Symbol('events');
+const send = Symbol('send');
+const resolve = Symbol('resolve');
+const reject = Symbol('reject');
+const completed = Symbol('completed');
 
 class Response {
-  constructor(socketSend) {
-    this._socketSend = socketSend;
-    this.complete = new Promise((resolve, reject) => {
-      this._resolve = resolve;
-      this._reject = reject;
+  constructor(_events, _send) {
+    this[events] = _events;
+    this[send] = _send;
+    this[completed] = false;
+    this.complete = new Promise((_resolve, _reject) => {
+      this[resolve] = _resolve;
+      this[reject] = _reject;
     }).catch((err) => {
-      logger.debug(`Request failed with error: ${err.stack}`);
-      this._socketSend({
+      this[events].emit('log', 'debug', `Request failed with error: ${err.stack}`);
+      this[send]({
         error: `${err.message}`,
-        error_code: err.code || -1,
+        errorCode: err.code || -1,
       });
       throw err;
     });
@@ -20,32 +26,32 @@ class Response {
 
   // Each parameter to 'write' may be a patch or an array of patches
   write(patch) {
-    if (this._completed) {
+    if (this[completed]) {
       throw new Error('This response has already completed.');
     }
 
     if (Array.isArray(patch)) {
-      this._socketSend({patch});
+      this[send]({patch});
     } else {
-      this._socketSend({patch: [patch]});
+      this[send]({patch: [patch]});
     }
   }
 
   end(patchOrError) {
-    logger.debug(`Ending request with ${patchOrError}`);
-    if (!this._completed) {
-      this._completed = true;
+    this[events].emit('log', 'debug', `Ending request with ${patchOrError}`);
+    if (!this[completed]) {
+      this[completed] = true;
       if (patchOrError instanceof Error) {
-        this._reject(patchOrError);
+        this[reject](patchOrError);
       } else {
         if (Array.isArray(patchOrError)) {
-          this._socketSend({state: 'complete', patch: patchOrError});
+          this[send]({state: 'complete', patch: patchOrError});
         } else if (patchOrError) {
-          this._socketSend({state: 'complete', patch: [patchOrError]});
+          this[send]({state: 'complete', patch: [patchOrError]});
         } else {
-          this._socketSend({state: 'complete'});
+          this[send]({state: 'complete'});
         }
-        this._resolve();
+        this[resolve]();
       }
     }
   }

@@ -52,8 +52,8 @@ module.exports = {
     } else if (options.permissions !== false) {
       const plugin = defaultPermissions[options.permissions];
       if (!plugin) {
-        throw new Error(`Unrecognized permissions plugin name "${options.permissions}", ` +
-                        'expected "permissions" or "permit-all".');
+        throw new Error('Unrecognized permissions plugin name ' +
+          `"${options.permissions}", expected "permissions" or "permit-all".`);
       }
       subplugins.push(plugin);
     }
@@ -74,6 +74,7 @@ module.exports = {
     }
 
     const promises = subplugins.map((plugin) => {
+      console.log(`starting subplugin ${plugin.name}`);
       const promise = Promise.resolve().then(() =>
         // Activate each plugin with their default name rather than the
         // name of the defaults plugin
@@ -83,7 +84,8 @@ module.exports = {
                         () => unready(plugin.name))
       );
       if (plugin.activate.length < 3) {
-        promise.then(() => ready(plugin.name));
+        promise.then(() => ready(plugin.name))
+        .then(() => console.log(`subplugin ${plugin.name} ready`));
       }
       return promise;
     });

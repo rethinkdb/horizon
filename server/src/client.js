@@ -1,8 +1,8 @@
 'use strict';
 
-const logger = require('./logger');
 const schema = require('./schema');
 const Response = require('./response');
+const Request = require('./request');
 
 const Joi = require('joi');
 const websocket = require('ws');
@@ -11,15 +11,15 @@ class ClientConnection {
   constructor(socket,
               auth,
               requestHandlerCb,
-              clientEvents) {
-    logger.debug('ClientConnection established.');
+              events) {
     this.socket = socket;
     this.auth = auth;
     this.requestHandlerCb = requestHandlerCb;
-    this.clientEvents = clientEvents;
-    this._context = { };
-
+    this.events = events;
+    this.context = { };
     this.responses = new Map();
+
+    this.events.emit('log', 'debug', 'ClientConnection established.');
 
     this.socket.on('close', (code, msg) =>
       this.handleWebsocketClose(code, msg));
@@ -32,29 +32,25 @@ class ClientConnection {
       this.errorWrapSocket(() => this.handleHandshake(data)));
   }
 
-  context() {
-    return this._context;
-  }
-
   handleWebsocketClose() {
-    logger.debug('ClientConnection closed.');
+    this.events.emit('log', 'debug', 'ClientConnection closed.');
     this.responses.forEach((response) => response.end());
     this.responses.clear();
   }
 
   handleWebsocketError(code, msg) {
-    logger.error(`Received error from client: ${msg} (${code})`);
+    this.events.emit('log', 'error', `Received error from client: ${msg} (${code})`);
   }
 
   errorWrapSocket(cb) {
     try {
       cb();
     } catch (err) {
-      logger.debug(`Unhandled error in request: ${err.stack}`);
+      this.events.emit('log', 'debug', `Unhandled error in request: ${err.stack}`);
       this.close({
-        request_id: null,
+        requestId: null,
         error: `Unhandled error: ${err}`,
-        error_code: 0,
+        errorCode: 0,
       });
     }
   }
@@ -65,9 +61,9 @@ class ClientConnection {
       request = JSON.parse(data);
     } catch (err) {
       return this.close({
-        request_id: null,
+        requestId: null,
         error: `Invalid JSON: ${err}`,
-        error_code: 0,
+        errorCode: 0,
       });
     }
 
@@ -76,76 +72,75 @@ class ClientConnection {
     } catch (err) {
       const detail = err.details[0];
       const errStr = `Request validation error at "${detail.path}": ${detail.message}`;
-      const reqId = request.request_id === undefined ? null : request.request_id;
+      const requestId = request.requestId === undefined ? null : request.requestId;
 
-      if (request.request_id === undefined) {
+      if (request.requestId === undefined) {
         // This is pretty much an unrecoverable protocol error, so close the connection
-        this.close({reqId, error: `Protocol error: ${errStr}`, error_code: 0});
+        this.close({requestId, error: `Protocol error: ${errStr}`, errorCode: 0});
       } else {
-        this.sendError(reqId, new Error(errStr));
+        this.sendError(requestId, new Error(errStr));
       }
     }
   }
 
   handleHandshake(data) {
     const request = this.parseRequest(data, schema.handshake);
-    logger.debug(`Received handshake: ${JSON.stringify(request)}`);
+    this.events.emit('log', 'debug', `Received handshake: ${JSON.stringify(request)}`);
 
     if (request === undefined) {
-      return this.close({error: 'Invalid handshake.', error_code: 0});
+      return this.close({error: 'Invalid handshake.', errorCode: 0});
     }
 
-    const reqId = request.request_id;
+    const requestId = request.requestId;
     this.auth.handshake(request).then((res) => {
-      this._context.user = res.payload;
-      this.sendMessage(reqId, {
+      this.context.user = res.payload;
+      this.sendMessage(requestId, {
         token: res.token,
         id: res.payload.id,
         provider: res.payload.provider,
       });
       this.socket.on('message', (msg) =>
         this.errorWrapSocket(() => this.handleRequest(msg)));
-      this.clientEvents.emit('auth', this._context);
+      this.events.emit('auth', this.context);
     }).catch((err) => {
-      logger.debug(`Error during client handshake: ${err.stack}`);
-      this.close({request_id: reqId, error: `${err}`, error_code: 0});
+      this.events.emit('log', 'debug', `Error during client handshake: ${err.stack}`);
+      this.close({requestId, error: `${err}`, errorCode: 0});
     });
   }
 
   handleRequest(data) {
-    logger.debug(`Received request from client: ${data}`);
+    this.events.emit('log', 'debug', `Received request from client: ${data}`);
     const rawRequest = this.parseRequest(data, schema.request);
+    if (rawRequest === undefined) { return; }
 
-    if (rawRequest === undefined) {
-      return;
-    }
-
-    const reqId = rawRequest.request_id;
+    const requestId = rawRequest.requestId;
     if (rawRequest.type === 'keepalive') {
-      return this.sendMessage(reqId, {state: 'complete'});
+      return this.sendMessage(requestId, {state: 'complete'});
     } else if (rawRequest.type === 'endRequest') {
       // there is no response for endRequest
-      return this.removeResponse(reqId);
-    } else if (this.responses.get(reqId)) {
-      return this.close({error: `Received duplicate request_id: ${reqId}`});
+      return this.removeResponse(requestId);
+    } else if (this.responses.get(requestId)) {
+      return this.close({error: `Received duplicate requestId: ${requestId}`});
     }
 
-    Object.freeze(rawRequest.options);
-    rawRequest.clientCtx = this._context;
-    rawRequest._parameters = {};
+    const request = Request.init(rawRequest, this.context);
+    const response = new Response((obj) => this.sendMessage(requestId, obj));
 
-    const response = new Response((obj) => this.sendMessage(reqId, obj));
-    this.responses.set(reqId, response);
-    response.complete.then(() => this.removeResponse(reqId)).catch(() => this.removeResponse(reqId));
+    this.responses.set(requestId, response);
+    response.complete.then(() =>
+      this.removeResponse(requestId)
+    ).catch(() =>
+      this.removeResponse(requestId)
+    );
 
-    this.requestHandlerCb(rawRequest, response, (err) =>
+    this.requestHandlerCb(request, response, (err) =>
       response.end(err || new Error('Request ran past the end of the ' +
                                     'request handler stack.')));
   }
 
-  removeResponse(request_id) {
-    const response = this.responses.get(request_id);
-    this.responses.delete(request_id);
+  removeResponse(requestId) {
+    const response = this.responses.get(requestId);
+    this.responses.delete(requestId);
     if (response) {
       response.end();
     }
@@ -159,32 +154,31 @@ class ClientConnection {
     if (this.isOpen()) {
       const reason =
         (info.error && info.error.substr(0, 64)) || 'Unspecified reason.';
-      logger.debug('Closing ClientConnection with reason: ' +
-                   `${reason}`);
-      logger.debug(`Final message: ${JSON.stringify(info)}`);
-      if (info.request_id !== undefined) {
+      this.events.emit('log', 'debug', `Closing ClientConnection with reason: ${reason}`);
+      this.events.emit('log', 'debug', `Final message: ${JSON.stringify(info)}`);
+      if (info.requestId !== undefined) {
         this.socket.send(JSON.stringify(info));
       }
       this.socket.close(1002, reason);
     }
   }
 
-  sendMessage(reqId, data) {
+  sendMessage(requestId, data) {
     // Ignore responses for disconnected clients
     if (this.isOpen()) {
-      data.request_id = reqId;
-      logger.debug(`Sending response: ${JSON.stringify(data)}`);
+      data.requestId = requestId;
+      this.events.emit('log', 'debug', `Sending response: ${JSON.stringify(data)}`);
       this.socket.send(JSON.stringify(data));
     }
   }
 
-  sendError(reqId, err, code) {
-    logger.debug(
-      `Sending error result for request ${reqId}:\n${err.stack}`);
+  sendError(requestId, err, code) {
+    this.events.emit('log', 'debug',
+      `Sending error result for request ${requestId}:\n${err.stack}`);
 
     const error = err instanceof Error ? err.message : err;
-    const error_code = code === undefined ? -1 : code;
-    this.sendMessage(reqId, {error, error_code});
+    const errorCode = code === undefined ? -1 : code;
+    this.sendMessage(requestId, {error, errorCode});
   }
 }
 

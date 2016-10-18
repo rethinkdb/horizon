@@ -1,12 +1,11 @@
 'use strict';
 
-const {r} = require('@horizon/server');
 const {reqlOptions, writes} = require('@horizon/plugin-utils');
 const hzv = writes.versionField;
 
 function upsert(context) {
+  const r = context.horizon.r;
   return (req, res, next) => {
-    const conn = context.horizon.rdbConnection.connection();
     const timeout = req.getParameter('timeout');
     const collection = req.getParameter('collection');
     const permissions = req.getParameter('hz_permissions');
@@ -27,7 +26,7 @@ function upsert(context) {
                                 [null, newRow],
                                 [oldRow, oldRow.merge(newRow)])),
                      [null, newRow]))
-          .run(conn, reqlOptions),
+          .run(context.horizon.conn(), reqlOptions),
       (validator, row, info) =>
         writes.validateOldRowOptional(validator, row, info[0], info[1]),
       (rows) => // write to database, all valid rows
@@ -43,7 +42,7 @@ function upsert(context) {
                              r.error(writes.invalidatedMsg),
 
                              // Otherwise, insert the row
-                             writes.applyVersion(newRow, 0)
+                             writes.applyVersion(r, newRow, 0)
                            ),
                            r.branch(
                              // The row may have changed from the expected version
@@ -52,15 +51,15 @@ function upsert(context) {
                              r.error(writes.invalidatedMsg),
 
                              // Otherwise, we can update the row and version
-                             writes.applyVersion(oldRow.merge(newRow),
+                             writes.applyVersion(r, oldRow.merge(newRow),
                                                  oldRow(hzv).default(-1).add(1))
                            )
                          ), {returnChanges: 'always'}),
 
                      // The new row did not have an id, so it will autogenerate
-                     collection.table.insert(writes.applyVersion(newRow, 0),
+                     collection.table.insert(writes.applyVersion(r, newRow, 0),
                                              {returnChanges: 'always'})))
-          .run(conn, reqlOptions)
+          .run(context.horizon.conn(), reqlOptions)
     ).then((patch) => res.end(patch)).catch(next);
   };
 }

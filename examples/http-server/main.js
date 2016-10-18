@@ -10,7 +10,7 @@ const httpServer = http.createServer();
 httpServer.listen(8181);
 console.log('Listening on port 8181.');
 
-const hzRouter = new HorizonRouter(httpServer, {auth: {token_secret: 'hunter2'}});
+const hzRouter = new HorizonRouter(httpServer, {auth: {tokenSecret: 'hunter2'}});
 httpServer.on('request', hzRouter.handler());
 
 hzRouter.add(horizonDefaultPlugins).then(() => {

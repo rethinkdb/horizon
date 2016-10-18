@@ -1,45 +1,29 @@
 'use strict';
 
 // RSI: check connection
-module.exports = (config) => {
-  return {
-    name: 'health-check',
-    activate: (ctx) => {
-      ctx.logger.info('Activating health-check module.');
-      return {
-        commands: {
-          'health-check': (args) => {
-            console.log(`Got ${JSON.stringify(args)}.`);
+module.exports = {
+  name: 'healthCheck',
+  activate: (context, options) => {
+    context.horizon.events.emit('log', 'debug', 'health-check plugin activated');
+    return {
+      commands: {
+        'health-check': (args) => {
+        },
+      },
+      httpRoute: (req, res, next) => {
+        res.send("healthy");
+      },
+      methods: {
+        'healthCheck': {
+          type: 'terminal',
+          handler: (req, res, next) => {
+            res.end({op: 'replace', path: '', value: {type: 'value', synced: true, val: 'healthy'}});
           },
         },
-        httpRoute: (req, res, next) => {
-          console.log(`httpRoute: ${[req, res, next]}`)
-          res.send("healthy");
-        },
-        methods: {
-          'healthCheck': {
-            requires: ['hz_permissions'],
-            type: 'terminal', // or `middleware` or `preReq`
-            impl: (req, res, next) => {
-              console.log(`healthCheck method: ${[req, res, next]}`)
-              res.send("healthy");
-            },
-          },
-        },
-        onClientEvent: {
-          connect: (clientCtx) => {
-          },
-          auth: (clientCtx) => {
-          },
-        },
-        middleware: (req, res, next) => {
-          req.healthy = true;
-          next();
-        },
-      };
-    },
-    deactivate: (reason) => {
-      ctx.logger.info(`Deactivating health-check module (${reason}).`)
-    },
-  };
-}
+      },
+    };
+  },
+  deactivate: (context, options) => {
+    context.horizon.events.emit('log', 'debug', 'health-check plugin deactivated');
+  },
+};

@@ -15,7 +15,7 @@ const all_tests = (collection) => {
   it('collection scan.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           fetch: []
@@ -31,7 +31,7 @@ const all_tests = (collection) => {
   it('collection scan order.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           order: [['id'], 'ascending'],
@@ -48,7 +48,7 @@ const all_tests = (collection) => {
   it('collection scan limit.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           limit: [2],
@@ -65,7 +65,7 @@ const all_tests = (collection) => {
   it('collection scan order limit.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           order: [['id'], 'descending'],
@@ -83,7 +83,7 @@ const all_tests = (collection) => {
   it('collection scan above.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           above: [{id: 5}, 'closed'],
@@ -100,7 +100,7 @@ const all_tests = (collection) => {
   it('collection scan below.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           below: [{id: 5}, 'closed'],
@@ -117,7 +117,7 @@ const all_tests = (collection) => {
   it('collection scan above below.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           above: [{id: 5}, 'open'],
@@ -135,7 +135,7 @@ const all_tests = (collection) => {
   it('find.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           find: [{id: 4}],
@@ -152,7 +152,7 @@ const all_tests = (collection) => {
   it('find missing.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           find: [{id: 14}],
@@ -169,7 +169,7 @@ const all_tests = (collection) => {
   it('findAll.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{id: 4}, {id: 6}, {id: 9}],
@@ -186,7 +186,7 @@ const all_tests = (collection) => {
   it('findAll order.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{id: 1}],
@@ -204,7 +204,7 @@ const all_tests = (collection) => {
   it('findAll limit.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{id: 4}, {id: 8}, {id: 2}, {id: 1}],
@@ -222,7 +222,7 @@ const all_tests = (collection) => {
   it('findAll order limit.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{id: 4}],
@@ -241,7 +241,7 @@ const all_tests = (collection) => {
   it('findAll above.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{value: 1}],
@@ -259,7 +259,7 @@ const all_tests = (collection) => {
   it('findAll below.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{value: 1}],
@@ -277,7 +277,7 @@ const all_tests = (collection) => {
   it('findAll above below.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{value: 1}],
@@ -296,7 +296,7 @@ const all_tests = (collection) => {
   it('findAll order above.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{value: 1}],
@@ -315,7 +315,7 @@ const all_tests = (collection) => {
   it('findAll order below.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{value: 0}],
@@ -334,7 +334,7 @@ const all_tests = (collection) => {
   it('findAll order above below.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{value: 0}],
@@ -356,7 +356,7 @@ const all_tests = (collection) => {
   it('findAll "above" field not in "order".', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{value: 0}],
@@ -374,7 +374,7 @@ const all_tests = (collection) => {
   it('findAll "above" field not first in "order".', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{value: 0}],
@@ -392,7 +392,7 @@ const all_tests = (collection) => {
   it('findAll "below" field not in "order".', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{value: 0}],
@@ -410,7 +410,7 @@ const all_tests = (collection) => {
   it('findAll "below" field not first in "order".', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{value: 0}],
@@ -428,7 +428,7 @@ const all_tests = (collection) => {
   it('findAll "above" and "below" on different fields.', (done) => {
     utils.stream_test(
       {
-        request_id: 0,
+        requestId: 0,
         options: {
           collection: [collection],
           findAll: [{value: 0}],

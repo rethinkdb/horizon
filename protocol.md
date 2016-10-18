@@ -6,13 +6,13 @@ For now let's just leave this a placeholder, since we haven't gotten to authenti
 #### Handshake Request
 ```
 {
-  "request_id": <NUMBER>,
+  "requestId": <NUMBER>,
   "method": "unauthenticated" | "anonymous" | "token",
   "token": <STRING>,
 }
 ```
 
-* `request_id` is a number uniquely identifying this request, it will be returned in the response.
+* `requestId` is a number uniquely identifying this request, it will be returned in the response.
 * `method` designates the type of authentication to be performed.
   * `unauthenticated` performs no further steps and will not associate the connection with any user.
   * `anonymous` will create a new account with no external authentication provider.
@@ -23,7 +23,7 @@ For now let's just leave this a placeholder, since we haven't gotten to authenti
 #### Handshake Response
 ```
 {
-  "request_id": <NUMBER>,
+  "requestId": <NUMBER>,
   "token": <STRING>
 }
 ```
@@ -33,9 +33,9 @@ For now let's just leave this a placeholder, since we haven't gotten to authenti
 #### Handshake Error Response
 ```
 {
-  "request_id": <NUMBER>,
+  "requestId": <NUMBER>,
   "error": <STRING>,
-  "error_code": <NUMBER>
+  "errorCode": <NUMBER>
 }
 ```
 
@@ -45,24 +45,24 @@ For now let's just leave this a placeholder, since we haven't gotten to authenti
 All requests match the following pattern:
 ```
 {
-  "request_id": <NUMBER>,
+  "requestId": <NUMBER>,
   "options": {
     <METHOD>: [ <ARGUMENT>, ... ],
   }
 }
 ```
-* `request_id` is a number uniquely identifying this request, it will be returned in any responses
+* `requestId` is a number uniquely identifying this request, it will be returned in any responses
 * `options` is an object containing arguments to be passed to various handlers.  Each key is the name of the method, and the value is an array of arguments specified.
 
 
 #### Stop Request
 Tells the horizon server to close a request early and to stop sending
-any more changes for the given `request_id`.  Data may still be
+any more changes for the given `requestId`.  Data may still be
 received until the server has processed this and sent a 
 `"state": "complete"` response for the subscription.
 ```
 {
-  "request_id": <NUMBER>,
+  "requestId": <NUMBER>,
   "type": "stop"
 }
 ```
@@ -71,7 +71,7 @@ received until the server has processed this and sent a
 This is used by the client to perform an empty request to avoid connection interruption.
 ```
 {
-  "request_id": <NUMBER>,
+  "requestId": <NUMBER>,
   "type": "keepalive"
 }
 ```
@@ -87,7 +87,7 @@ of patches until `"state": "complete"` is specified, at which point no
 further messages should be sent.
 ```
 {
-  "request_id": <NUMBER>,
+  "requestId": <NUMBER>,
   "patches": [ <PATCH>, ... ],
   "state": "complete"
 }
@@ -114,23 +114,23 @@ indicates what should be passed as the value of the observable:
      array (deterministically ordered?).
 
 ##### Error
-This can be sent for any request at any time.  Once an error response is sent, no further responses shall be sent for the corresponding `request_id`.
+This can be sent for any request at any time.  Once an error response is sent, no further responses shall be sent for the corresponding `requestId`.
 ```
 {
-  "request_id": <NUMBER>,
+  "requestId": <NUMBER>,
   "error": <STRING>,
-  "error_code": <INTEGER>
+  "errorCode": <INTEGER>
 }
 ```
-* `request_id` is the same as the `request_id` in the corresponding request
+* `requestId` is the same as the `requestId` in the corresponding request
 * `error` is a descriptive error string
-* `error_code` is a code that can be used to identify the type of error, values TBD
+* `errorCode` is a code that can be used to identify the type of error, values TBD
 
 #### Keepalive Response
 `keepalive` requests will be given a single response.  This will never be an error response unless there is a protocol error.
 ```
 {
-  "request_id": <NUMBER>,
+  "requestId": <NUMBER>,
   "state": "complete"
 }
 ```

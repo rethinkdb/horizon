@@ -18,7 +18,7 @@ const all_tests = (collection) => {
     let finished = 0;
     for (let i = 0; i < query_count; ++i) {
       utils.stream_test(
-        {request_id: i, options: {collection: [rand_collection], fetch: []}},
+        {requestId: i, options: {collection: [rand_collection], fetch: []}},
         (err, res) => {
           assert.ifError(err);
           assert.strictEqual(res.length, 0);
@@ -42,7 +42,7 @@ const all_tests = (collection) => {
     for (let i = 0; i < query_count; ++i) {
       utils.stream_test(
         {
-          request_id: i,
+          requestId: i,
           options: {
             collection: [rand_collection],
             insert: [{}],
@@ -73,7 +73,7 @@ const all_tests = (collection) => {
       for (let i = 0; i < query_count; ++i) {
         utils.stream_test(
           {
-            request_id: i,
+            requestId: i,
             options: {
               collection: [collection],
               order: [[field_name], 'ascending'],

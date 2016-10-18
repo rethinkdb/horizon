@@ -58,7 +58,7 @@ const all_tests = (collection) => {
         // TODO: this seems a bit racy - no guarantee that horizon will be up-to-date
         // Construct request and send on websocket
         const options = Object.assign({collection: [collection]}, rawOptions);
-        utils.stream_test({request_id: 1, options: options}, (err, res) => {
+        utils.stream_test({requestId: 1, options: options}, (err, res) => {
           if (err) {
             err.results = res;
             reject(err);

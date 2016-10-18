@@ -5,12 +5,12 @@ const HorizonBaseRouter = require('@horizon/base-router');
 const express = require('express');
 
 function HorizonExpressRouter(...serverOptions) {
-  let baseRouter = new HorizonBaseRouter(...serverOptions);
+  const baseRouter = new HorizonBaseRouter(...serverOptions);
   let expressRouter;
 
   function initExpressRouter() {
     expressRouter = express.Router();
-    this.routes.forEach((handler, path) => expressRouter.use(path, handler));
+    baseRouter.routes.forEach((handler, path) => expressRouter.use(path, handler));
   }
 
   function add(...args) {
@@ -25,8 +25,8 @@ function HorizonExpressRouter(...serverOptions) {
   function remove(name, ...args) {
     return Promise.resolve().then(() => {
       const path = `/${name}/`;
-      if (this.routes.has(path)) {
-        this.routes.delete(path);
+      if (baseRouter.routes.has(path)) {
+        baseRouter.routes.delete(path);
         initExpressRouter();
       }
 
@@ -47,11 +47,14 @@ function HorizonExpressRouter(...serverOptions) {
     }
   }
 
+  // RSI: do this stuff with prototypes and stuff, not explicitly
   middleware.add = add;
   middleware.remove = remove;
   middleware.close = close;
   middleware.server = baseRouter.server;
-  middleware.pluginContext = baseRouter.pluginContext;
+  middleware.events = baseRouter.events;
+  middleware.plugins = baseRouter.plugins;
+  middleware.routes = baseRouter.routes;
 
   return middleware;
 }

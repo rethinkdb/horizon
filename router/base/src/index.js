@@ -5,12 +5,16 @@ const HorizonServer = require('@horizon/server');
 const EventEmitter = require('events');
 
 const illegalChars = './';
+const closePromise = Symbol('closePromise');
+const readyPlugins = Symbol('readyPlugins');
+const pathPrefix = Symbol('pathPrefix');
 
 function checkValidName(name) {
   for (let i = 0; i < name.length; ++i) {
     for (let j = 0; j < illegalChars.length; ++j) {
       if (name[i] === illegalChars[j]) {
-        throw new Error(`Invalid plugin name "${name}": cannot contain "${illegalChars[j]}"`);
+        throw new Error(`Invalid plugin name "${name}": ` +
+                        `cannot contain "${illegalChars[j]}"`);
       }
     }
   }
@@ -20,23 +24,18 @@ class HorizonBaseRouter extends EventEmitter {
   constructor(...serverOptions) {
     super();
     this.server = new HorizonServer(...serverOptions);
-    this.pluginContext = {
-      horizon: {
-        options: this.server.options,
-        auth: this.server.auth(),
-        rdbConnection: this.server.rdbConnection,
-        events: this.server.events,
-      },
-    };
-    this._plugins = new Map();
-    this._readyPlugins = new Set();
-    this._closePromise = null;
+    this.events = this.server.events;
+    this.plugins = new Map();
+    this[readyPlugins] = new Set();
+    this[closePromise] = null;
 
-    // RSI: this code relies on the router being mounted at the same path as the websocket server
+    // RSI: this code relies on the router being mounted at the same
+    //  path as the websocket server
     // Express should be able to mount anywhere because it strips off the preceding path
     // Basic HTTP and Koa will only handle http requests under server.options.path
-    // Hapi relies on being configured with a path wildcard (but only for subpaths of server.options.path)
-    this._pathPrefix = `/${this.server.options.path}`;
+    // Hapi relies on being configured with a path wildcard (but only for subpaths
+    //  of server.options.path)
+    this[pathPrefix] = `/${this.server.context.horizon.options.path}`;
 
     const makeHandler = (mimeType, getData) => (req, res) => {
       res.head('Content-Type', mimeType);
@@ -46,41 +45,45 @@ class HorizonBaseRouter extends EventEmitter {
 
     // These are not used here, but may be utilized by subclassing routers
     this.routes = new Map([
-      ['/horizon.js', makeHandler('application/javascript', () => this.server.clientSource())],
-      ['/horizon.js.map', makeHandler('application/json', () => this.server.clientSourceMap())],
-      ['/horizon-core.js', makeHandler('application/javascript', () => this.server.clientSourceCore())],
-      ['/horizon-core.js.map', makeHandler('application/json', () => this.server.clientSourceCoreMap())],
+      ['/horizon.js', makeHandler('application/javascript',
+                                  () => this.server.clientSource())],
+      ['/horizon.js.map', makeHandler('application/json',
+                                      () => this.server.clientSourceMap())],
+      ['/horizon-core.js', makeHandler('application/javascript',
+                                       () => this.server.clientSourceCore())],
+      ['/horizon-core.js.map', makeHandler('application/json',
+                                           () => this.server.clientSourceCoreMap())],
     ]);
   }
 
   close() {
-    if (!this._closePromise) {
+    if (!this[closePromise]) {
       this.routes.clear();
-      this._closePromise = Promise.all(
-        Array.from(this._plugins.keys()).map((p) => this.remove(p))
+      this[closePromise] = Promise.all(
+        Array.from(this.plugins.keys()).map((p) => this.remove(p))
       ).then(() => this.server.close());
     }
-    return this._closePromise;
+    return this[closePromise];
   }
 
-  add(plugin, raw_options) {
+  add(plugin, rawOptions) {
     return Promise.resolve().then(() => {
-      const options = Object.assign({name: plugin.name}, raw_options);
+      const options = Object.assign({name: plugin.name}, rawOptions);
 
-      if (this._closePromise) {
-        throw new Error(`Horizon PluginRouter is closed.`);
-      } else if (this._plugins.has(options.name)) {
+      if (this[closePromise]) {
+        throw new Error('Horizon PluginRouter is closed.');
+      } else if (this.plugins.has(options.name)) {
         throw new Error(`Plugin conflict: "${options.name}" already present.`);
       }
 
       checkValidName(options.name);
 
       // Placeholder so we don't say we're ready too soon
-      this._plugins.set(options.name, null);
+      this.plugins.set(options.name, null);
       this.emit('unready', this);
 
-      this._plugins.set(options.name, Promise.resolve().then(() =>
-        plugin.activate(this.pluginContext, options,
+      this.plugins.set(options.name, Promise.resolve().then(() =>
+        plugin.activate(this.server.context, options,
                         () => this._noteReady(options.name),
                         () => this._noteUnready(options.name))
       ).then((active) => {
@@ -113,26 +116,26 @@ class HorizonBaseRouter extends EventEmitter {
         return active;
       }));
 
-      return this._plugins.get(options.name);
+      return this.plugins.get(options.name);
     });
   }
 
   remove(name, reason) {
     return Promise.resolve().then(() => {
-      const activatePromise = this._plugins.get(name);
+      const activatePromise = this.plugins.get(name);
 
       if (!activatePromise) {
         throw new Error(`Plugin "${name}" is not present.`);
       }
 
       this.routes.delete(`/${name}/`);
-      this._plugins.delete(name);
+      this.plugins.delete(name);
       return activatePromise.then((active) => {
         for (const m in active.methods) {
           this.server.removeMethod(m);
         }
         if (active.plugin.deactivate) {
-          return active.plugin.deactivate(this.pluginContext, active.options,
+          return active.plugin.deactivate(this.context, active.options,
                                           reason || 'Removed from PluginRouter.');
         }
       });
@@ -140,33 +143,33 @@ class HorizonBaseRouter extends EventEmitter {
   }
 
   _noteReady(plugin) {
-    if (!this._readyPlugins.has(plugin)) {
-      this._readyPlugins.add(plugin);
+    if (!this[readyPlugins].has(plugin)) {
+      this[readyPlugins].add(plugin);
       this.emit('pluginReady', plugin, this);
-      if (this._readyPlugins.size === this._plugins.size) {
+      if (this[readyPlugins].size === this.plugins.size) {
         setImmediate(() => this.emit('ready', this));
       }
     }
   }
 
   _noteUnready(plugin) {
-    if (this._readyPlugins.has(plugin)) {
-      this._readyPlugins.delete(plugin);
+    if (this[readyPlugins].has(plugin)) {
+      this[readyPlugins].delete(plugin);
       this.emit('pluginUnready', plugin, this);
-      if (this._readyPlugins.size === this._plugins.size - 1) {
+      if (this[readyPlugins].size === this.plugins.size - 1) {
         this.emit('unready', this);
       }
     }
   }
 
   _handlerForPath(path) {
-    if (path.startsWith(this.pathPrefix) &&
-        (path.length === this.pathPrefix.length ||
-         path[this.pathPrefix.length] === '/')) {
-      const subpathEnd = path.indexOf('/', this.pathPrefix.length + 1);
+    if (path.startsWith(this[pathPrefix]) &&
+        (path.length === this[pathPrefix].length ||
+         path[this[pathPrefix].length] === '/')) {
+      const subpathEnd = path.indexOf('/', this[pathPrefix].length + 1);
       const subpath = subpathEnd === -1 ?
-        path.substring(this.pathPrefix.length) :
-        path.substring(this.pathPrefix.length, subpathEnd + 1);
+        path.substring(this[pathPrefix].length) :
+        path.substring(this[pathPrefix].length, subpathEnd + 1);
       return this.routes.get(subpath);
     }
   }

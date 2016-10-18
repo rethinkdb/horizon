@@ -27,7 +27,7 @@ describe('Schema', () => {
   describe('Protocol', () => {
     describe('Request', () => {
       const valid = {
-        request_id: 1,
+        requestId: 1,
         options: {query: []},
       };
 
@@ -67,14 +67,14 @@ describe('Schema', () => {
 
       it('requires fields', () => {
         test_required_fields(requestSchema, valid,
-                             ['request_id', 'options']);
+                             ['requestId', 'options']);
       });
 
-      it('rejects wrong "request_id" type', () => {
+      it('rejects wrong "requestId" type', () => {
         const request = Object.assign({}, valid);
-        request.request_id = 'str';
+        request.requestId = 'str';
         const error = requestSchema.validate(request).error;
-        utils.check_error(error, '"request_id" must be a number');
+        utils.check_error(error, '"requestId" must be a number');
       });
 
       it('rejects wrong "type" value', () => {

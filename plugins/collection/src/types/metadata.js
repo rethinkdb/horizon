@@ -6,8 +6,6 @@ const Collection = require('./collection');
 const assert = require('assert');
 
 const {
-  r,
-  logger,
   Reliable,
   ReliableUnion,
   ReliableChangefeed,
@@ -19,11 +17,11 @@ class StaleAttemptError extends Error { }
 
 // RSI: fix all this shit.
 class ReliableInit extends Reliable {
-  constructor(db, rdbConnection, auto_create_collection) {
-    super();
-    this.db = db;
-    this.auto_create_collection = auto_create_collection;
-    this.connSubs = rdbConnection.subscribe({
+  constructor(context, autoCreateCollection) {
+    super(context);
+    this.context = context;
+    this.autoCreateCollection = autoCreateCollection;
+    this.connSubs = this.context.horizon.reliableConn.subscribe({
       onReady: (conn) => {
         this.currentAttempt = Symbol();
         this.doInit(conn, this.currentAttempt);
@@ -44,15 +42,18 @@ class ReliableInit extends Reliable {
   }
 
   doInit(conn, attempt) {
+    const r = this.context.horizon.r;
+    const db = this.context.horizon.options.projectName;
+    const events = this.context.horizon.events;
     Promise.resolve().then(() => {
+      this.checkAttempt(attempt)
+      return r.db('rethinkdb').table('server_status')
+              .nth(0)('process')('version').run(conn)
+    }).then((version) => {
       this.checkAttempt(attempt);
-      logger.debug('checking rethinkdb version');
-      const q = r.db('rethinkdb').table('server_status').nth(0)('process')('version');
-      return q.run(conn).then((res) => rethinkdbVersionCheck(res));
-    }).then(() => {
-      this.checkAttempt(attempt);
-      logger.debug('checking for old metadata version');
-      const oldMetadataDb = `${this.db}_internal`;
+      rethinkdbVersionCheck(version)
+      events.emit('log', 'debug', 'checking for old metadata version');
+      const oldMetadataDb = `${db}_internal`;
       return r.dbList().contains(oldMetadataDb).run(conn).then((hasOldDb) => {
         if (hasOldDb) {
           throw new Error('The Horizon metadata appears to be from v1.x because ' +
@@ -62,13 +63,13 @@ class ReliableInit extends Reliable {
       });
     }).then(() => {
       this.checkAttempt(attempt);
-      logger.debug('checking for internal tables');
-      if (this.auto_create_collection) {
-        return queries.initializeMetadata(this.db, conn);
+      events.emit('log', 'debug', 'checking for internal tables');
+      if (this.autoCreateCollection) {
+        return queries.initializeMetadata(this.context);
       } else {
-        return r.dbList().contains(this.db).run(conn).then((hasDb) => {
+        return r.dbList().contains(db).run(conn).then((hasDb) => {
           if (!hasDb) {
-            throw new Error(`The database ${this.db} does not exist.  ` +
+            throw new Error(`The database ${db} does not exist.  ` +
                             'Run `hz schema apply` to initialize the database, ' +
                             'then start the Horizon server.');
           }
@@ -76,14 +77,14 @@ class ReliableInit extends Reliable {
       }
     }).then(() => {
       this.checkAttempt(attempt);
-      logger.debug('waiting for internal tables');
+      events.emit('log', 'debug', 'waiting for internal tables');
       return r.expr(['hz_collections', 'hz_users_auth', 'hz_groups', 'users'])
-        .forEach((table) => r.db(this.db).table(table).wait({timeout: 30})).run(conn);
+        .forEach((table) => r.db(db).table(table).wait({timeout: 30})).run(conn);
     }).then(() => {
       this.checkAttempt(attempt);
-      logger.debug('adding admin user');
+      events.emit('log', 'debug', 'adding admin user');
       return Promise.all([
-        r.db(this.db).table('users').get('admin')
+        r.db(db).table('users').get('admin')
           .replace((oldRow) =>
             r.branch(oldRow.eq(null),
               {
@@ -96,7 +97,7 @@ class ReliableInit extends Reliable {
             r.branch(res('new_val').eq(null),
                      r.error(res('error')),
                      res('new_val'))).run(conn),
-        r.db(this.db).table('hz_groups').get('admin')
+        r.db(db).table('hz_groups').get('admin')
           .replace((oldRow) =>
             r.branch(oldRow.eq(null),
               {
@@ -112,11 +113,11 @@ class ReliableInit extends Reliable {
       ]);
     }).then(() => {
       this.checkAttempt(attempt);
-      logger.debug('metadata sync complete');
+      events.emit('log', 'debug', 'metadata sync complete');
       this.emit('onReady');
     }).catch((err) => {
       if (!(err instanceof StaleAttemptError)) {
-        logger.debug(`Metadata initialization failed: ${err.stack}`);
+        events.emit('log', 'error', `Metadata initialization failed: ${err.stack}`);
         setTimeout(() => { this.doInit(conn, attempt); }, 1000);
       }
     });
@@ -131,34 +132,26 @@ class ReliableInit extends Reliable {
 
 class ReliableMetadata extends Reliable {
   constructor(context,
-              auto_create_collection,
-              auto_create_index) {
-    super();
-    this.db = context.horizon.options.project_name;
-    this.rdbConnection = context.horizon.rdbConnection;
-    this.auto_create_collection = auto_create_collection;
-    this.auto_create_index = auto_create_index;
+              autoCreateCollection,
+              autoCreateIndex) {
+    super(context);
+    this.context = context;
+    this.autoCreateCollection = autoCreateCollection;
+    this.autoCreateIndex = autoCreateIndex;
     this.collections = new Map();
 
-    this.reliableInit = new ReliableInit(
-      this.db, this.rdbConnection, auto_create_collection);
+    const r = this.context.horizon.r;
+    const db = this.context.horizon.options.projectName;
 
-    this.connSubs = this.rdbConnection.subscribe({
-      onReady: (conn) => {
-        this.connection = conn;
-      },
-      onUnready: () => {
-        this.connection = null;
-      },
-    });
+    this.reliableInit = new ReliableInit(this.context, db, this.autoCreateCollection);
 
     // RSI: stop these from running until after ReliableInit?
     this.collectionChangefeed = new ReliableChangefeed(
-      r.db(this.db)
+      this.context,
+      r.db(db)
        .table('hz_collections')
        .filter((row) => row('id').match('^hzp?_').not())
        .changes({squash: false, includeInitial: true, includeTypes: true}),
-      this.rdbConnection,
       {
         onChange: (change) => {
           switch (change.type) {
@@ -169,8 +162,8 @@ class ReliableMetadata extends Reliable {
               const name = change.new_val.id;
               let collection = this.collections.get(name);
               if (!collection) {
-                collection = new Collection(
-                  this.db, name, this.rdbConnection);
+                collection =
+                  new Collection(this.context, db, name, this.autoCreateIndex);
                 this.collections.set(name, collection);
               }
               collection._register();
@@ -198,9 +191,10 @@ class ReliableMetadata extends Reliable {
       });
 
     this.indexChangefeed = new ReliableChangefeed(
+      this.context,
       r.db('rethinkdb')
         .table('table_config')
-        .filter((row) => r.and(row('db').eq(this.db),
+        .filter((row) => r.and(row('db').eq(db),
                                row('name').match('^hzp?_').not()))
         .map((row) => ({
           id: row('id'),
@@ -208,10 +202,8 @@ class ReliableMetadata extends Reliable {
           indexes: row('indexes').filter((idx) => idx.match('^hz_')),
         }))
         .changes({squash: true, includeInitial: true, includeTypes: true}),
-      this.rdbConnection,
       {
         onChange: (change) => {
-          if (!this.connection) { return; }
           switch (change.type) {
           case 'initial':
           case 'add':
@@ -222,12 +214,11 @@ class ReliableMetadata extends Reliable {
 
               let collection = this.collections.get(name);
               if (!collection) {
-                collection = new Collection(
-                  this.db, name, this.rdbConnection);
+                collection =
+                  new Collection(this.context, db, name, this.autoCreateIndex);
                 this.collections.set(name, collection);
               }
-              collection._updateTable(
-                tableId, change.new_val.indexes, this.connection);
+              collection._updateTable(tableId, change.new_val.indexes);
             }
             break;
           case 'uninitial':
@@ -235,7 +226,7 @@ class ReliableMetadata extends Reliable {
             {
               const collection = this.collections.get(change.old_val.name);
               if (collection) {
-                collection._updateTable(change.old_val.id, null, this.connection);
+                collection._updateTable(change.old_val.id, null);
                 if (collection._isSafeToRemove()) {
                   this.collections.delete(collection);
                   collection.close();
@@ -250,7 +241,7 @@ class ReliableMetadata extends Reliable {
         },
       });
 
-    this.readyUnion = new ReliableUnion({
+    this.readyUnion = new ReliableUnion(this.context, {
       reliableInit: this.reliableInit,
       collectionChangefeed: this.collectionChangefeed,
       indexChangefeed: this.indexChangefeed,
@@ -270,7 +261,6 @@ class ReliableMetadata extends Reliable {
   close(reason) {
     return Promise.all([
       super.close(reason),
-      this.connSubs.close(reason),
       this.reliableInit.close(reason),
       this.collectionChangefeed.close(reason),
       this.indexChangefeed.close(reason),
@@ -290,7 +280,7 @@ class ReliableMetadata extends Reliable {
       }
 
       const collection = this.collections.get(name);
-      if (!collection && !this.auto_create_collection) {
+      if (!collection && !this.autoCreateCollection) {
         throw new Error(`Collection "${name}" does not exist.`);
       } else if (collection) {
         if (!collection.ready()) {
@@ -321,13 +311,14 @@ class ReliableMetadata extends Reliable {
         throw new Error(`Collection "${name}" already exists.`);
       }
 
-      collection = new Collection(this.db, name, this.rdbConnection);
+      const db = this.context.horizon.options.projectName;
+      collection = new Collection(this.context, db, name, this.autoCreateIndex);
       this.collections.set(name, collection);
 
-      return queries.createCollection(this.db, name, this.rdbConnection.connection());
+      return queries.createCollection(this.context, name);
     }).then((res) => {
       assert(!res.error, `Collection "${name}" creation failed: ${res.error}`);
-      logger.warn(`Collection created: "${name}"`);
+      this.context.horizon.events.emit('log', 'warn', `Collection created: "${name}"`);
       return new Promise((resolve, reject) =>
         collection._onReady((maybeErr) => {
           if (maybeErr instanceof Error) {

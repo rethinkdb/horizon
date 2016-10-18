@@ -2,8 +2,6 @@
 
 const {indexNameToInfo, primaryIndexName} = require('../indexes');
 
-const {logger} = require('@horizon/server');
-
 const compareFields = (a, b) => {
   if (a.length !== b.length) {
     return false;
@@ -17,8 +15,10 @@ const compareFields = (a, b) => {
 };
 
 class Index {
-  constructor(name, table, conn) {
-    logger.debug(`${table} index registered: ${name}`);
+  constructor(name, table, context) {
+    const events = context.horizon.events;
+
+    events.emit('log', 'debug', `${table} index registered: ${name}`);
     const info = indexNameToInfo(name);
     this.name = name;
     this.geo = info.geo; // true or false
@@ -29,14 +29,14 @@ class Index {
     this._result = null;
 
     if (this.geo) {
-      logger.warn(`Unsupported index (geo): ${this.name}`);
+      events.emit('log', 'warn', `Unsupported index (geo): ${this.name}`);
     } else if (this.multi !== false) {
-      logger.warn(`Unsupported index (multi): ${this.name}`);
+      events.emit('log', 'warn', `Unsupported index (multi): ${this.name}`);
     }
 
     if (name !== primaryIndexName) {
-      table.indexWait(name).run(conn).then(() => {
-        logger.debug(`${table} index ready: ${name}`);
+      table.indexWait(name).run(context.horizon.conn()).then(() => {
+        events.emit('log', 'debug', `${table} index ready: ${name}`);
         this._result = true;
         this._waiters.forEach((w) => w(this));
         this._waiters = [];
@@ -46,7 +46,7 @@ class Index {
         this._waiters = [];
       });
     } else {
-      logger.debug(`${table} index ready: ${name}`);
+      events.emit('log', 'debug', `${table} index ready: ${name}`);
       this._result = true;
     }
   }

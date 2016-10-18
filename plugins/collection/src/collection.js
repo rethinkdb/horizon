@@ -45,11 +45,12 @@ module.exports = {
   activate: (context, options, onReady, onUnready) => {
     context[options.name] = new ReliableMetadata(
       context,
-      Boolean(options.auto_create_collection),
-      Boolean(options.auto_create_index));
+      Boolean(options.autoCreateCollection),
+      Boolean(options.autoCreateIndex));
 
     return new Promise((resolve) => {
       context[options.name].subscribe({onUnready, onReady: () => {
+        console.log('hz_collection ready');
         resolve({
           methods: {
             collection: {

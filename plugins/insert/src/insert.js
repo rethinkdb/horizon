@@ -1,11 +1,10 @@
 'use strict';
 
-const {r} = require('@horizon/server');
 const {reqlOptions, writes} = require('@horizon/plugin-utils');
 
 function insert(context) {
+  const r = context.horizon.r;
   return (req, res, next) => {
-    const conn = context.horizon.rdbConnection.connection();
     const timeout = req.getParameter('timeout');
     const collection = req.getParameter('collection');
     const permissions = req.getParameter('hz_permissions');
@@ -26,9 +25,9 @@ function insert(context) {
       },
       (rows) => // write to database, all valid rows
         collection.table
-          .insert(rows.map((row) => writes.applyVersion(r.expr(row), 0)),
+          .insert(rows.map((row) => writes.applyVersion(r, r.expr(row), 0)),
                   {returnChanges: 'always'})
-          .run(conn, reqlOptions)
+          .run(context.horizon.conn(), reqlOptions)
     ).then((patch) => res.end(patch)).catch(next);
   };
 }

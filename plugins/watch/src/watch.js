@@ -33,7 +33,6 @@ function watch(context) {
   return (req, res, next) => {
     const args = req.options.watch;
     const permissions = req.getParameter('hz_permissions');
-    const conn = context.horizon.rdbConnection.connection();
 
     if (args.length !== 0) {
       next(new Error(`"watch" expects 0 arguments but found ${args.length}`));
@@ -46,19 +45,19 @@ function watch(context) {
           includeInitial: true,
           includeStates: true,
           includeOffsets: limited,
-        }).run(conn, reqlOptions)
+        }).run(context.horizon.conn(), reqlOptions)
       ).then((feed) => {
         const cleanup = () => feed.close().catch(() => {});
         res.complete.then(cleanup).catch(cleanup);
 
         // TODO: reuse cursor batches
-        let synced = false;
         return feed.eachAsync((item) => {
           if (item.state === 'initializing') {
-            res.write({op: 'replace', path: '', value: {type: limited ? 'value' : 'set', synced: false, val: limited ? [] : {}}});
+            res.write({op: 'replace', path: '',
+                       value: {type: limited ? 'value' : 'set',
+                               synced: false, val: limited ? [] : {}}});
           } else if (item.state === 'ready') {
             res.write({op: 'replace', path: '/synced', value: true});
-            synced = true;
           } else {
             const validator = permissions();
             if (validator) {

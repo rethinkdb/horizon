@@ -1,13 +1,13 @@
 'use strict';
 
-const logger = require('./logger');
-
 const r = require('rethinkdb');
 
 const subs = Symbol('subs');
+const events = Symbol('events');
 
 class Reliable {
-  constructor(initialCbs) {
+  constructor(context, initialCbs) {
+    this[events] = context.horizon.events;
     this[subs] = new Map();
     this.ready = false;
     this.closed = false;
@@ -32,9 +32,9 @@ class Reliable {
     if (this.ready && cbs.onReady) {
       try {
         cbs.onReady.apply(cbs, this.ready);
-      } catch (e) {
-        logger.error('Unexpected error in reliable callback, ' +
-                     `event: subscribe onReady, error: ${e.stack}`);
+      } catch (err) {
+        this[events].emit('log', 'error', 'Unexpected error in reliable callback, ' +
+                          `event: 'onReady', error: ${err.stack}`);
       }
     }
     return this[subs].get(subId);
@@ -57,13 +57,13 @@ class Reliable {
     }
     this[subs].forEach((sub) => {
       try {
-        const event = sub.cbs[eventType];
-        if (event) {
-          event.apply(sub.cbs, args);
+        const cb = sub.cbs[eventType];
+        if (cb) {
+          cb.apply(sub.cbs, args);
         }
-      } catch (e) {
-        logger.error('Unexpected error in reliable callback, ' +
-                     `event: ${eventType}, error: ${e.stack}`);
+      } catch (err) {
+        this[events].emit('log', 'error', 'Unexpected error in reliable callback, ' +
+                          `event: ${eventType}, error: ${err.stack}`);
       }
     });
   }
@@ -79,8 +79,8 @@ class Reliable {
 }
 
 class ReliableUnion extends Reliable {
-  constructor(reqs, cbs) {
-    super(cbs);
+  constructor(context, reqs, cbs) {
+    super(context, cbs);
     this.reqs = reqs;
     this.subs = {};
     this.emitArg = {};
@@ -119,14 +119,14 @@ class ReliableUnion extends Reliable {
 }
 
 class ReliableConn extends Reliable {
-  constructor(connOpts) {
-    super();
-    this.connOpts = connOpts;
+  constructor(context, options) {
+    super(context);
+    this.options = options;
     this.connect();
   }
 
   connect() {
-    r.connect(this.connOpts).then((conn) => {
+    r.connect(this.options).then((conn) => {
       if (!this.closed) {
         this.conn = conn;
         this.emit('onReady', conn);
@@ -141,11 +141,8 @@ class ReliableConn extends Reliable {
       } else {
         conn.close();
       }
-    }).catch((e) => {
-      if (this.conn) {
-        logger.error(
-          `Error in ReliableConnection ${JSON.stringify(this.connOpts)}: ${e.stack}`);
-      }
+    }).catch((err) => {
+      this[events].emit('log', 'error', `Connection to database failed: ${err}`);
       if (!this.closed) {
         setTimeout(() => this.connect(), 1000);
       }
@@ -172,18 +169,20 @@ class ReliableConn extends Reliable {
   }
 }
 
+const rdbConnection = Symbol('rdbConnection');
+
 class ReliableChangefeed extends Reliable {
-  constructor(reql, reliableConn, cbs) {
-    super(cbs);
+  constructor(context, reql, cbs) {
+    super(context, cbs);
     this.reql = reql;
-    this.reliableConn = reliableConn;
+    this[rdbConnection] = context.horizon.reliableConn;
 
     this._makeSubscription();
   }
 
   _makeSubscription() {
     if (this.closed) { return; }
-    this.subscription = this.reliableConn.subscribe({
+    this.subscription = this[rdbConnection].subscribe({
       onReady: (conn) => {
         this.reql.run(conn, {includeTypes: true, includeStates: true}).then((cursor) => {
           if (this.closed) {
@@ -205,10 +204,10 @@ class ReliableChangefeed extends Reliable {
             // If we get here the cursor closed for some reason.
             throw new Error(`cursor closed unexpectedly: ${res}`);
           });
-        }).catch((e) => {
-          logger.debug(`Changefeed error (${this.reql}): ${e.stack}`);
+        }).catch((err) => {
+          this[events].emit('log', 'debug', `Changefeed error (${this.reql}): ${err.stack}`);
           if (this.ready) {
-            this.emit('onUnready', e);
+            this.emit('onUnready', err);
           }
           if (this.subscription) {
             this.subscription.close();

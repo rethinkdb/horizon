@@ -4,32 +4,33 @@ const Joi = require('joi');
 
 // Options for Server object construction
 const server = Joi.object({
-  project_name: Joi.string().default('horizon'),
-  rdb_host: Joi.string().hostname().default('localhost'),
-  rdb_port: Joi.number().greater(0).less(65536).default(28015),
-
   path: Joi.string().default('/horizon'),
 
-  auth: Joi.object().default({ }),
+  projectName: Joi.string().default('horizon'),
 
-  rdb_user: Joi.string().allow(null),
-  rdb_password: Joi.string().allow(null),
-  rdb_timeout: Joi.number().allow(null),
+  rdbHost: Joi.string().hostname().default('localhost'),
+  rdbPort: Joi.number().greater(0).less(65536).default(28015),
+  rdbUser: Joi.string().allow(null),
+  rdbPassword: Joi.string().allow(null),
+  rdbTimeout: Joi.number().allow(null),
+
+  auth: Joi.object().default({ }),
 }).unknown(false);
 
 // Options for Auth object construction
 const auth = Joi.object({
-  success_redirect: Joi.string().default('/'),
-  failure_redirect: Joi.string().default('/'),
+  tokenSecret: Joi.string().allow(null),
+
+  successRedirect: Joi.string().default('/'),
+  failureRedirect: Joi.string().default('/'),
 
   duration: Joi.alternatives(Joi.string(), Joi.number().positive()).default('1d'),
 
-  create_new_users: Joi.boolean().default(true),
-  new_user_group: Joi.string().default('authenticated'),
+  createNewUsers: Joi.boolean().default(true),
+  newUserGroup: Joi.string().default('authenticated'),
 
-  token_secret: Joi.string().allow(null),
-  allow_anonymous: Joi.boolean().default(false),
-  allow_unauthenticated: Joi.boolean().default(false),
+  allowAnonymous: Joi.boolean().default(false),
+  allowUnauthenticated: Joi.boolean().default(false),
 }).unknown(false);
 
 // Options for server.addMethod()
@@ -41,7 +42,7 @@ const method = Joi.object({
 
 // The Horizon protocol handshake message
 const handshake = Joi.object().keys({
-  request_id: Joi.number().required(),
+  requestId: Joi.number().required(),
   type: Joi.only('handshake'),
   options: Joi.object().keys({
     method: Joi.only('token', 'anonymous', 'unauthenticated').required(),
@@ -52,7 +53,7 @@ const handshake = Joi.object().keys({
 
 // Every Horizon protocol request (following the handshake)
 const request = Joi.object({
-  request_id: Joi.number().required(),
+  requestId: Joi.number().required(),
   type: Joi.only('endRequest', 'keepalive').optional(),
   options: Joi.object().pattern(/.*/, Joi.array()).unknown(true).required()
     .when('type', {is: Joi.string().only('endRequest', 'keepalive').required(),

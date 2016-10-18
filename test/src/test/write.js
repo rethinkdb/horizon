@@ -47,7 +47,7 @@ const all_tests = (collection) => {
   };
 
   const make_request = (type, data, options) => ({
-    request_id: crypto.randomBytes(4).readUInt32BE(),
+    requestId: crypto.randomBytes(4).readUInt32BE(),
     options: Object.assign({}, options || {}, {collection: [collection], [type]: data}),
   });
 

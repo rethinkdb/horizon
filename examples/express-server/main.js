@@ -9,7 +9,7 @@ const app = express();
 const httpServer = app.listen(8181);
 console.log('Listening on port 8181.');
 
-const hzRouter = horizonRouter(httpServer, {auth: {token_secret: 'hunter2'}});
+const hzRouter = horizonRouter(httpServer, {auth: {tokenSecret: 'hunter2'}});
 
 hzRouter.add(horizonDefaultPlugins).then(() => {
   console.log('Horizon server ready.');

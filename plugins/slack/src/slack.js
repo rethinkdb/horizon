@@ -1,32 +1,29 @@
 'use strict';
 
-const auth_utils = require('./utils');
+const authUtils = require('@horizon/plugin-utils').auth;
 
 const https = require('https');
 const Joi = require('joi');
 const querystring = require('querystring');
 const url = require('url');
 
-const options_schema = Joi.object().keys({
+const optionsSchema = Joi.object().keys({
   path: Joi.string().required(),
   id: Joi.string().required(),
   secret: Joi.string().required(),
 }).unknown(false);
 
-function slack(horizon, raw_options) {
-  const options = Joi.attempt(raw_options, options_schema);
+function slack(horizon, rawOptions) {
+  const options = Joi.attempt(rawOptions, optionsSchema);
   const client_id = options.id;
   const client_secret = options.secret;
   const provider = options.path;
   const scope = options && options.scope || 'identify';
   const team = options && options.team || '';
 
-  const oauth_options = {
-    horizon,
-    provider,
-  };
+  const oauthOptions = {horizon, provider};
 
-  oauth_options.make_acquire_url = (state, redirect_uri) =>
+  oauthOptions.makeAcquireUrl = (state, redirect_uri) =>
     url.format({
       protocol: 'https',
       host: 'slack.com',
@@ -40,7 +37,7 @@ function slack(horizon, raw_options) {
       },
     });
 
-  oauth_options.make_token_request = (code, redirect_uri) =>
+  oauthOptions.makeTokenRequest = (code, redirect_uri) =>
     https.request({
       method: 'POST',
       host: 'slack.com',
@@ -56,19 +53,19 @@ function slack(horizon, raw_options) {
       },
     });
 
-  oauth_options.make_inspect_request = (access_token) =>
+  oauthOptions.makeInspectRequest = (token) =>
     https.request({
       host: 'slack.com',
-      path: `/api/auth.test?${querystring.stringify({token: access_token})}`,
+      path: `/api/auth.test?${querystring.stringify({token})}`,
       headers: {
         'Content-Type': 'application/json',
         'user-agent': 'node.js',
       },
     });
 
-  oauth_options.extract_id = (user_info) => user_info && user_info.user_id;
+  oauthOptions.extractId = (userInfo) => userInfo && userInfo.user_id;
 
-  auth_utils.oauth2(oauth_options);
+  authUtils.oauth2(oauthOptions);
 }
 
 module.exports = slack;

@@ -2,12 +2,12 @@
 
 const Table = require('./table');
 
-const {r} = require('@horizon/server');
-
 class Collection {
-  constructor(db, name, reliableConn) {
+  constructor(context, db, name, autoCreateIndex) {
+    const r = context.horizon.r;
+
+    this.context = context;
     this.name = name;
-    this.reliableConn = reliableConn;
     this.table = r.db(db).table(name); // This is the ReQL Table object
     this._tables = new Map(); // A Map of Horizon Table objects
     this._registered = false; // Whether the `hz_collections` table thinks this exists
@@ -24,14 +24,14 @@ class Collection {
     this._waiters = [];
   }
 
-  _updateTable(tableId, indexes, conn) {
+  _updateTable(tableId, indexes) {
     let table = this._tables.get(tableId);
     if (indexes) {
       if (!table) {
-        table = new Table(this.table, conn);
+        table = new Table(this.context, this.table);
         this._tables.set(tableId, table);
       }
-      table.updateIndexes(indexes, conn);
+      table.updateIndexes(indexes);
       this._waiters.forEach((w) => table.onReady(w));
       this._waiters = [];
     } else {
@@ -71,10 +71,6 @@ class Collection {
     return this._tables.values().next().value;
   }
 
-  _createIndex(fields, done) {
-    return this._getTable().createIndex(fields, this.reliableConn.connection(), done);
-  }
-
   ready() {
     if (this._tables.size === 0) {
       return false;
@@ -99,8 +95,10 @@ class Collection {
         } else {
           match.onReady(done);
         }
+      } else if (this.autoCreateIndex) {
+        this._getTable().createIndex(fuzzyFields.concat(orderedFields), done);
       } else {
-        this._createIndex(fuzzyFields.concat(orderedFields), done);
+        reject(new Error('No matching index found.'));
       }
     });
   }

@@ -2,8 +2,6 @@
 
 const assert = require('assert');
 
-const {r} = require('@horizon/server');
-
 // For a given object, returns the array of fields present
 function objectToFields(obj) {
   return Object.keys(obj).map((key) => {
@@ -78,7 +76,9 @@ function getIndexValue(field, obj, bound, def) {
   return def;
 }
 
-function makeFindAllReql(collection, findAll, fixedFields, above, below, descending) {
+function makeFindAllReql(context, collection, findAll,
+                         fixedFields, above, below, descending) {
+  const r = context.horizon.r;
   return Promise.all(findAll.map((obj) => {
     const fuzzyFields = objectToFields(obj);
     // RSI: make sure fuzzyFields and fixedFields overlap only in the correct spot
@@ -114,7 +114,8 @@ function makeFindAllReql(collection, findAll, fixedFields, above, below, descend
   })).then((subqueries) => r.union(...subqueries));
 }
 
-function makeTableScanReql(collection, fixedFields, above, below, descending) {
+function makeTableScanReql(context, collection, fixedFields, above, below, descending) {
+  const r = context.horizon.r;
   return collection.getMatchingIndex([], fixedFields).then((index) => {
     let leftValue, rightValue;
     const optargs = {index: index.name};
@@ -146,7 +147,7 @@ function makeTableScanReql(collection, fixedFields, above, below, descending) {
   });
 }
 
-function makeReadReql(req) {
+function makeReadReql(context, req) {
   return Promise.resolve().then(() => {
     const collection = req.getParameter('collection');
     const findAll = req.getParameter('findAll');
@@ -192,11 +193,11 @@ function makeReadReql(req) {
 
       let reqlPromise;
       if (findAll) {
-        reqlPromise = makeFindAllReql(collection, findAll, orderFields,
-                                      above, below, descending);
+        reqlPromise = makeFindAllReql(context, collection, findAll,
+                                      orderFields, above, below, descending);
       } else {
-        reqlPromise = makeTableScanReql(collection, orderFields,
-                                        above, below, descending);
+        reqlPromise = makeTableScanReql(context, collection,
+                                        orderFields, above, below, descending);
       }
 
       const limit = req.getParameter('limit');

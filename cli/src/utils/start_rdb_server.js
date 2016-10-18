@@ -4,16 +4,16 @@ const each_line_in_pipe = require('./each_line_in_pipe');
 const horizon_server = require('@horizon/server');
 const versionCheck = require('@horizon/plugin-utils').rethinkdbVersionCheck;
 
+const EventEmitter = require('events');
 const execSync = require('child_process').execSync;
 const spawn = require('child_process').spawn;
 const hasbinSync = require('hasbin').sync;
 
+const r = require('rethinkdb');
+
 const defaultDatadir = 'rethinkdb_data';
 
 const infoLevelLog = (msg) => /^Running/.test(msg) || /^Listening/.test(msg);
-
-const r = horizon_server.r;
-const logger = horizon_server.logger;
 
 class RethinkdbServer {
   constructor(options) {
@@ -23,6 +23,8 @@ class RethinkdbServer {
     const driverPort = options.rdbPort;
     const httpPort = options.rdbHttpPort;
     const cacheSize = options.cacheSize || 200;
+
+    this.events = new EventEmitter();
 
     // Check if `rethinkdb` in PATH
     if (!hasbinSync('rethinkdb')) {
@@ -55,7 +57,7 @@ class RethinkdbServer {
 
       process.on('exit', () => {
         if (this.proc.exitCode === null) {
-          logger.error('Unclean shutdown - killing RethinkDB child process');
+          this.events.emit('log', 'error', 'Unclean shutdown - killing RethinkDB child process');
           this.proc.kill('SIGKILL');
         }
       });
@@ -71,9 +73,9 @@ class RethinkdbServer {
       each_line_in_pipe(this.proc.stdout, (line) => {
         if (!quiet) {
           if (infoLevelLog(line)) {
-            logger.info('RethinkDB', line);
+            this.events.emit('log', 'info', line);
           } else {
-            logger.debug('RethinkDB stdout:', line);
+            this.events.emit('log', 'debug', line);
           }
         }
         if (this.driver_port === undefined) {
@@ -95,7 +97,7 @@ class RethinkdbServer {
       });
 
       each_line_in_pipe(this.proc.stderr, (line) =>
-                        logger.error(`rethinkdb stderr: ${line}`));
+                        this.events.emit('log', 'error', line));
     });
   }
 

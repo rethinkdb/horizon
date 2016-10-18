@@ -16,10 +16,6 @@ function createServer(httpServers, options) {
 module.exports = createServer;
 module.exports.Server = server.Server;
 
-module.exports.r = require('rethinkdb');
-module.exports.logger = require('./logger');
-module.exports.protocol = server.protocol;
-
 const reliable = require('./reliable');
 module.exports.Reliable = reliable.Reliable;
 module.exports.ReliableConn = reliable.ReliableConn;

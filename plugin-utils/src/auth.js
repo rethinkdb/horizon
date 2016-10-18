@@ -1,14 +1,11 @@
 'use strict';
 
-const logger = require('../logger');
-
 const cookie = require('cookie');
 const crypto = require('crypto');
 const Joi = require('joi');
 const url = require('url');
 
 const doRedirect = (res, redirectUrl) => {
-  logger.debug(`Redirecting user to ${redirectUrl}`);
   res.writeHead(302, {Location: redirectUrl});
   res.end();
 };
@@ -25,7 +22,6 @@ const extendUrlQuery = (path, query) => {
 };
 
 const runRequest = (req, cb) => {
-  logger.debug(`Initiating request to ${req._headers.host}${req.path}`);
   req.once('response', (res) => {
     const chunks = [];
     res.on('data', (data) => {
@@ -100,10 +96,9 @@ const optionsSchema = Joi.object({
 }).unknown(false);
 
 // Attaches an endpoint to the horizon server, providing an oauth2 redirect flow
-const oauth2 = (rawOptions) => {
+const oauth2 = (context, rawOptions) => {
   const options = Joi.attempt(rawOptions, optionsSchema);
 
-  const horizon = options.horizon;
   const provider = options.provider;
   const makeAcquireUrl = options.makeAcquireUrl;
   const makeTokenRequest = options.makeTokenRequest;
@@ -114,10 +109,10 @@ const oauth2 = (rawOptions) => {
     url.format({protocol: 'https', host: host, pathname: path});
 
   const makeSuccessUrl = (horizonToken) =>
-    url.format(extendUrlQuery(horizon._auth._success_redirect, {horizonToken}));
+    url.format(extendUrlQuery(context.horizon.auth.successUrl, {horizonToken}));
 
   const makeFailureUrl = (horizonError) =>
-    url.format(extendUrlQuery(horizon._auth._failure_redirect, {horizonError}));
+    url.format(extendUrlQuery(context.horizon.auth.failureUrl, {horizonError}));
 
   horizon.add_http_handler(provider, (req, res) => {
     const requestUrl = url.parse(req.url, true);
@@ -125,7 +120,7 @@ const oauth2 = (rawOptions) => {
     const code = requestUrl.query && requestUrl.query.code;
     const error = requestUrl.query && requestUrl.query.error;
 
-    logger.debug(`oauth request: ${JSON.stringify(requestUrl)}`);
+    horizon.events.emit('log', 'debug', `oauth request: ${JSON.stringify(requestUrl)}`);
     if (error) {
       const description = requestUrl.query.error_description || error;
       doRedirect(res, makeFailureUrl(description));
@@ -134,7 +129,7 @@ const oauth2 = (rawOptions) => {
       // Generate a nonce to track this client session to prevent CSRF attacks
       makeNonce((nonceErr, nonce) => {
         if (nonceErr) {
-          logger.error(`Error creating nonce for oauth state: ${nonceErr}`);
+          horizon.events.emit('log', 'error', `Error creating nonce for oauth state: ${nonceErr}`);
           res.statusCode = 503;
           res.end('error generating nonce');
         } else {
@@ -156,11 +151,11 @@ const oauth2 = (rawOptions) => {
           const accessToken = info && info.accessToken;
 
           if (err1) {
-            logger.error(`Error contacting oauth API: ${err1}`);
+            horizon.events.emit('log', 'error', `Error contacting oauth API: ${err1}`);
             res.statusCode = 503;
             res.end('oauth provider error');
           } else if (!accessToken) {
-            logger.error(`Bad JSON data from oauth API: ${body}`);
+            horizon.events.emit('log', 'error', `Bad JSON data from oauth API: ${body}`);
             res.statusCode = 500;
             res.end('unparseable token response');
           } else {
@@ -170,11 +165,11 @@ const oauth2 = (rawOptions) => {
               const userId = userInfo && extractId(userInfo);
 
               if (err2) {
-                logger.error(`Error contacting oauth API: ${err2}`);
+                horizon.events.emit('log', 'error', `Error contacting oauth API: ${err2}`);
                 res.statusCode = 503;
                 res.end('oauth provider error');
               } else if (!userId) {
-                logger.error(`Bad JSON data from oauth API: ${innerBody}`);
+                horizon.events.emit('log', 'error', `Bad JSON data from oauth API: ${innerBody}`);
                 res.statusCode = 500;
                 res.end('unparseable inspect response');
               } else {

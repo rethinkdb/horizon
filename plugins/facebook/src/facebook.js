@@ -1,55 +1,55 @@
 'use strict';
 
-const logger = require('../logger');
-const auth_utils = require('./utils');
+const authUtils = require('@horizon/plugin-utils').auth;
 
 const https = require('https');
 const Joi = require('joi');
 const querystring = require('querystring');
 const url = require('url');
 
-const options_schema = Joi.object().keys({
+const optionsSchema = Joi.object().keys({
   path: Joi.string().required(),
   id: Joi.string().required(),
   secret: Joi.string().required(),
 }).unknown(false);
 
-function facebook(horizon, raw_options) {
-  const options = Joi.attempt(raw_options, options_schema);
+function facebook(horizon, rawOptions) {
+  const options = Joi.attempt(rawOptions, optionsSchema);
   const client_id = options.id;
   const client_secret = options.secret;
   const provider = options.path;
 
   // Facebook requires inspect requests to use a separate app access token
-  let app_token;
+  let appToken;
 
-  const make_app_token_request = () =>
+  const makeAppTokenRequest = () =>
     https.request(
       url.format({protocol: 'https',
-                   host: 'graph.facebook.com',
-                   pathname: '/oauth/access_token',
-                   query: {client_id, client_secret, grant_type: 'client_credentials'}}));
+                  host: 'graph.facebook.com',
+                  pathname: '/oauth/access_token',
+                  query: {client_id, client_secret, grant_type: 'client_credentials'}}));
 
-  auth_utils.run_request(make_app_token_request(), (err, body) => {
+  authUtils.run_request(makeAppTokenRequest(), (err, body) => {
     const parsed = body && querystring.parse(body);
-    app_token = parsed && parsed.access_token;
+    appToken = parsed && parsed.access_token;
 
     if (err) {
-      logger.error(`Failed to obtain "${provider}" app token: ${err}`);
-    } else if (!app_token) {
-      logger.error(`Could not parse access token from API response: ${body}`);
+      horizon.events.emit('log', 'error', `Failed to obtain "${provider}" app token: ${err}`);
+    } else if (!appToken) {
+      horizon.events.emit('log', 'error',
+        `Could not parse access token from API response: ${body}`);
     }
   });
 
-  const oauth_options = {horizon, provider};
+  const oauthOptions = {horizon, provider};
 
-  oauth_options.make_acquire_url = (state, redirect_uri) =>
+  oauthOptions.makeAcquireUrl = (state, redirect_uri) =>
     url.format({protocol: 'https',
                  host: 'www.facebook.com',
                  pathname: '/dialog/oauth',
                  query: {client_id, state, redirect_uri, response_type: 'code'}});
 
-  oauth_options.make_token_request = (code, redirect_uri) => {
+  oauthOptions.makeTokenRequest = (code, redirect_uri) => {
     const req = https.request({method: 'POST',
                                 host: 'graph.facebook.com',
                                 path: '/v2.3/oauth/access_token'});
@@ -57,17 +57,17 @@ function facebook(horizon, raw_options) {
     return req;
   };
 
-  oauth_options.make_inspect_request = (input_token) =>
+  oauthOptions.makeInspectRequest = (input_token) =>
     https.request(
       url.format({protocol: 'https',
                    host: 'graph.facebook.com',
                    pathname: '/debug_token',
-                   query: {access_token: app_token, input_token}}));
+                   query: {access_token: appToken, input_token}}));
 
-  oauth_options.extract_id = (user_info) =>
-    user_info && user_info.data && user_info.data.user_id;
+  oauthOptions.extractId = (userInfo) =>
+    userInfo && userInfo.data && userInfo.data.user_id;
 
-  auth_utils.oauth2(oauth_options);
+  authUtils.oauth2(oauthOptions);
 }
 
 module.exports = facebook;

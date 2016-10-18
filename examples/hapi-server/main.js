@@ -13,7 +13,7 @@ server.start(() => {
 
 const httpServers = server.connections.map((c) => c.listener);
 
-const hzRouter = horizonRouter(httpServers, {auth: {token_secret: 'hunter2'}});
+const hzRouter = horizonRouter(httpServers, {auth: {tokenSecret: 'hunter2'}});
 hzRouter.add(horizonDefaultPlugins).then(() => {
   console.log('Horizon server ready.');
 });

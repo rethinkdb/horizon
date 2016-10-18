@@ -55,7 +55,7 @@ if (options.bind.indexOf('all') !== -1) { options.bind = ['0.0.0.0']; }
 process.on('SIGINT', () => process.exit(0));
 process.on('SIGTERM', () => process.exit(0));
 
-const serve_file = (file_path, res) => {
+const serveFile = (file_path, res) => {
   fs.access(file_path, fs.R_OK | fs.F_OK, (exists) => {
     if (exists) {
       res.writeHead(404, {'Content-Type': 'text/plain'});
@@ -90,12 +90,12 @@ const build_proc = child_process.spawn(npm_cmd, ['run', 'dev'],
 build_proc.on('exit', () => process.exit(1));
 process.on('exit', () => build_proc.kill('SIGTERM'));
 
-let client_ready = false;
+let clientReady = false;
 each_line_in_pipe(build_proc.stdout, (line) => {
   console.log(line);
   if (/horizon.js[^.]/.test(line)) {
     setImmediate(() => {
-      client_ready = true;
+      clientReady = true;
       const date = new Date();
       console.log(`${date.toLocaleTimeString()} - horizon.js rebuilt.`);
     });
@@ -118,19 +118,19 @@ build_proc.stderr.on('data', (data) => {
 });
 
 // Launch HTTP server with horizon that will serve the test files
-const http_servers = options.bind.map((host) =>
+const httpServers = options.bind.map((host) =>
   new http.Server((req, res) => {
     const req_path = url.parse(req.url).pathname;
     if (req_path.indexOf('/examples/') === 0) {
-      serve_file(path.resolve(examples_dir,
-                              req_path.replace(/^[/]examples[/]/, '')), res);
+      serveFile(path.resolve(examples_dir,
+                             req_path.replace(/^[/]examples[/]/, '')), res);
     } else {
-      if (!client_ready) {
+      if (!clientReady) {
         res.writeHead(503, {'Content-Type': 'text/plain'});
         res.end('Initial client build is ongoing, try again in a few seconds.');
       } else {
-        serve_file(path.resolve(test_dist_dir,
-                                req_path.replace(/^[/]/, '')), res);
+        serveFile(path.resolve(test_dist_dir,
+                               req_path.replace(/^[/]/, '')), res);
       }
     }
   }));
@@ -167,21 +167,23 @@ new Promise((resolve) => {
   console.log(`RethinkDB server listening for HTTP on port ${server.http_port}.`);
   console.log('starting horizon');
 
-  HorizonServer.logger.level = 'debug';
-  const hzRouter = new HorizonBaseRouter(http_servers, {
-    rdb_port: server.driver_port,
-    project_name: 'hz_test',
+  const hzRouter = new HorizonBaseRouter(httpServers, {
+    rdbPort: server.driver_port,
+    projectName: 'hz_test',
     auth: {
-      allow_unauthenticated: true,
-      allow_anonymous: true,
-      token_secret: crypto.randomBytes(64).toString('base64'),
+      allowUnauthenticated: true,
+      allowAnonymous: true,
+      tokenSecret: crypto.randomBytes(64).toString('base64'),
     },
   });
 
+  hzRouter.server.events.on('log',
+    (level, message) => console.log(`${level}: ${message}`));
+
   hzRouter.add(plugins, {
     permissions: 'permit-all',
-    auto_create_collection: true,
-    auto_create_index: true,
+    autoCreateCollection: true,
+    autoCreateIndex: true,
   }).catch((err) => {
     console.log(`Plugin initialization failed: ${err.stack}`);
     process.exit(1);
@@ -190,17 +192,17 @@ new Promise((resolve) => {
   hzRouter.once('ready', () => {
     // Capture requests to `horizon.js` and `horizon.js.map` before the horizon server
     console.log('starting http servers');
-    http_servers.forEach((serv, i) => {
-      const extant_listeners = serv.listeners('request').slice(0);
+    httpServers.forEach((serv, i) => {
+      const extantListeners = serv.listeners('request').slice(0);
       serv.removeAllListeners('request');
       serv.on('request', (req, res) => {
         const req_path = url.parse(req.url).pathname;
         if (req_path === '/horizon/horizon.js' ||
             req_path === '/horizon/horizon.js.map') {
-          serve_file(path.resolve(test_dist_dir, req_path.replace('/horizon/', '')),
-                     res);
+          serveFile(path.resolve(test_dist_dir, req_path.replace('/horizon/', '')),
+                    res);
         } else {
-          extant_listeners.forEach((l) => l.call(serv, req, res));
+          extantListeners.forEach((l) => l.call(serv, req, res));
         }
       });
 

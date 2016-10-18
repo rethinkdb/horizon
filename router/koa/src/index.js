@@ -6,9 +6,6 @@ function HorizonKoaRouter(...serverOptions) {
   let closed = false;
   const baseRouter = new HorizonBaseRouter(...serverOptions);
 
-  // RSI: this code relies on us being mounted at the same path as the websocket server
-  const pathPrefix = `/${baseRouter.server.options.path}`;
-  
   function add(...args) {
     return baseRouter.add(...args);
   }
@@ -25,7 +22,7 @@ function HorizonKoaRouter(...serverOptions) {
   function *middleware(next, ctx) {
     if (!closed) {
       const handler = baseRouter._handlerForPath(ctx.path);
-      if (handler)
+      if (handler) {
         handler(ctx.request, ctx.response);
         return;
       }
@@ -34,11 +31,14 @@ function HorizonKoaRouter(...serverOptions) {
     yield* next();
   }
 
+  // RSI: do this stuff with prototypes and stuff, not explicitly
   middleware.add = add;
   middleware.remove = remove;
   middleware.close = close;
   middleware.server = baseRouter.server;
-  middleware.pluginContext = baseRouter.pluginContext;
+  middleware.events = baseRouter.events;
+  middleware.plugins = baseRouter.plugins;
+  middleware.routes = baseRouter.routes;
 
   return middleware;
 }

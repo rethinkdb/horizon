@@ -1,12 +1,11 @@
 'use strict';
 
-const {r} = require('@horizon/server');
 const {reqlOptions, writes} = require('@horizon/plugin-utils');
 const hzv = writes.versionField;
 
 function remove(context) {
+  const r = context.horizon.r;
   return (req, res, next) => {
-    const conn = context.horizon.rdbConnection.connection();
     const timeout = req.getParameter('timeout');
     const collection = req.getParameter('collection');
     const permissions = req.getParameter('hz_permissions');
@@ -21,7 +20,7 @@ function remove(context) {
       (rows) => // pre-validation, all rows
         r.expr(rows.map((row) => row.id))
           .map((id) => collection.table.get(id))
-          .run(conn, reqlOptions),
+          .run(context.horizon.conn(), reqlOptions),
       (validator, row, info) =>
         writes.validateOldRowRequired(validator, row, info, null),
       (rows) => // write to database, all valid rows
@@ -42,15 +41,15 @@ function remove(context) {
 
                 {returnChanges: 'always'}))
             // Pretend like we deleted rows that didn't exist
-            .do((res) =>
-              res.merge({changes:
+            .do((writeRes) =>
+              writeRes.merge({changes:
                 r.range(rowData.count()).map((index) =>
-                  r.branch(res('changes')(index)('old_val').eq(null),
-                           res('changes')(index).merge(
+                  r.branch(writeRes('changes')(index)('old_val').eq(null),
+                           writeRes('changes')(index).merge(
                              {old_val: {id: rowData(index)('id')}}),
-                           res('changes')(index))).coerceTo('array'),
+                           writeRes('changes')(index))).coerceTo('array'),
               })))
-          .run(conn, reqlOptions)
+          .run(context.horizon.conn(), reqlOptions)
     ).then((patch) => res.end(patch)).catch(next);
   };
 }

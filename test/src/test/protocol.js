@@ -20,7 +20,7 @@ const all_tests = (collection) => {
     });
   });
 
-  it('no request_id', (done) => {
+  it('no requestId', (done) => {
     const conn = utils.horizonConn();
     conn.removeAllListeners('error');
     conn.send('{ }');
@@ -32,29 +32,29 @@ const all_tests = (collection) => {
   });
 
   it('keepalive', (done) => {
-    utils.horizonConn().send(JSON.stringify({request_id: 0, type: 'keepalive'}));
+    utils.horizonConn().send(JSON.stringify({requestId: 0, type: 'keepalive'}));
     
     utils.add_horizon_listener(0, (msg) => {
-      assert.deepStrictEqual(msg, {state: 'complete', request_id: 0});
+      assert.deepStrictEqual(msg, {state: 'complete', requestId: 0});
       done();
     });
   });
 
   it('endRequest', (done) => {
     const conn = utils.horizonConn();
-    conn.send(JSON.stringify({request_id: 0, type: 'endRequest'}));
+    conn.send(JSON.stringify({requestId: 0, type: 'endRequest'}));
 
     // There is no response for an endRequest, so just run a dummy keepalive roundtrip
-    conn.send(JSON.stringify({request_id: 0, type: 'keepalive'}));
+    conn.send(JSON.stringify({requestId: 0, type: 'keepalive'}));
     
     utils.add_horizon_listener(0, (msg) => {
-      assert.deepStrictEqual(msg, {state: 'complete', request_id: 0});
+      assert.deepStrictEqual(msg, {state: 'complete', requestId: 0});
       done();
     });
   });
 
   it('no options', (done) => {
-    utils.stream_test({request_id: 1}, (err, res) => {
+    utils.stream_test({requestId: 1}, (err, res) => {
       assert.deepStrictEqual(res, undefined);
       utils.check_error(err, '"options" is required');
       done();
@@ -62,7 +62,7 @@ const all_tests = (collection) => {
   });
 
   it('no terminal method', (done) => {
-    utils.stream_test({request_id: 2, options: {above: []}}, (err, res) => {
+    utils.stream_test({requestId: 2, options: {above: []}}, (err, res) => {
       assert.deepStrictEqual(res, undefined);
       assert.strictEqual(err.message,
         'No terminal method was specified in the request.');
@@ -71,7 +71,7 @@ const all_tests = (collection) => {
   });
 
   it('unknown method', (done) => {
-    utils.stream_test({request_id: 2, options: {fake: []}}, (err, res) => {
+    utils.stream_test({requestId: 2, options: {fake: []}}, (err, res) => {
       assert.deepStrictEqual(res, undefined);
       assert.strictEqual(err.message, 'No method to handle option "fake".');
       done();
@@ -85,7 +85,7 @@ const all_tests = (collection) => {
   it('client disconnect during changefeed', (done) => {
     utils.horizonConn().send(JSON.stringify(
       {
-        request_id: 3,
+        requestId: 3,
         options: {
           collection: [collection],
           watch: [],
@@ -115,7 +115,7 @@ const all_tests = (collection) => {
   it('client disconnect during query', (done) => {
     utils.horizonConn().send(JSON.stringify(
       {
-        request_id: 4,
+        requestId: 4,
         options: {
           collection: [collection],
           field_name: 'id',
