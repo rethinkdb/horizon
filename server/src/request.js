@@ -9,7 +9,7 @@ class Request {
   constructor(request, method) {
     this.requestId = request.requestId;
     this.options = request.options;
-    this.clientCtx = request.clientCtx;
+    this.clientContext = request.clientContext;
     this[parameters] = request[parameters];
     this[currentMethod] = method;
     Object.freeze(this);
@@ -25,10 +25,10 @@ class Request {
   }
 }
 
-Request.init = function (request, clientCtx) {
+Request.init = function (request, clientContext) {
   Object.freeze(request.options);
   request[parameters] = {};
-  request.clientCtx = clientCtx;
+  request.clientContext = clientContext;
   return request;
 };
 

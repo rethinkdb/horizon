@@ -6,7 +6,7 @@ const assert = require('assert');
 
 const jsonpatch = require('jsonpatch');
 
-const all_tests = (collection) => {
+const allTests = (collection) => {
   beforeEach('Authenticate client', (done) => utils.horizon_token_auth('admin', done));
 
   it('unparseable', (done) => {
@@ -23,7 +23,7 @@ const all_tests = (collection) => {
   it('no requestId', (done) => {
     const conn = utils.horizonConn();
     conn.removeAllListeners('error');
-    conn.send('{ }');
+    conn.send('{}');
     conn.once('close', (code, reason) => {
       assert.strictEqual(code, 1002);
       assert(/^Protocol error: Request validation error/.test(reason));
@@ -54,7 +54,7 @@ const all_tests = (collection) => {
   });
 
   it('no options', (done) => {
-    utils.stream_test({requestId: 1}, (err, res) => {
+    utils.streamTest({requestId: 1}, (err, res) => {
       assert.deepStrictEqual(res, undefined);
       utils.check_error(err, '"options" is required');
       done();
@@ -62,7 +62,7 @@ const all_tests = (collection) => {
   });
 
   it('no terminal method', (done) => {
-    utils.stream_test({requestId: 2, options: {above: []}}, (err, res) => {
+    utils.streamTest({requestId: 2, options: {above: []}}, (err, res) => {
       assert.deepStrictEqual(res, undefined);
       assert.strictEqual(err.message,
         'No terminal method was specified in the request.');
@@ -71,7 +71,7 @@ const all_tests = (collection) => {
   });
 
   it('unknown method', (done) => {
-    utils.stream_test({requestId: 2, options: {fake: []}}, (err, res) => {
+    utils.streamTest({requestId: 2, options: {fake: []}}, (err, res) => {
       assert.deepStrictEqual(res, undefined);
       assert.strictEqual(err.message, 'No method to handle option "fake".');
       done();
@@ -102,7 +102,7 @@ const all_tests = (collection) => {
         throw new Error(msg.error);
       } else if (result.synced) {
         utils.remove_horizon_listener(3);
-        utils.close_horizon_conn();
+        utils.closeHorizonConn();
         utils.table(collection).insert({}).run(utils.rdbConn())
          .then(() => done());
       }
@@ -121,10 +121,10 @@ const all_tests = (collection) => {
           field_name: 'id',
           query: [],
         },
-      }), () => (utils.close_horizon_conn(), done()));
+      }), () => (utils.closeHorizonConn(), done()));
   });
 };
 
-const suite = (collection) => describe('Protocol', () => all_tests(collection));
+const suite = (collection) => describe('Protocol', () => allTests(collection));
 
 module.exports = {suite};

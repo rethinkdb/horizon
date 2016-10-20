@@ -9,6 +9,7 @@ class Collection {
     this.context = context;
     this.name = name;
     this.table = r.db(db).table(name); // This is the ReQL Table object
+    this.autoCreateIndex = autoCreateIndex;
     this._tables = new Map(); // A Map of Horizon Table objects
     this._registered = false; // Whether the `hz_collections` table thinks this exists
     this._waiters = [];

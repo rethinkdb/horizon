@@ -5,25 +5,25 @@ const utils = require('./utils');
 const assert = require('assert');
 const crypto = require('crypto');
 
-const all_tests = (collection) => {
-  beforeEach('clear collection', () => utils.clear_collection(collection));
+const allTests = (collection) => {
+  beforeEach('clear collection', () => utils.clearCollection(collection));
   beforeEach('authenticate', (done) => utils.horizon_token_auth('admin', done));
 
   // Launch simultaneous queries that depend on a non-existent collection, then
   // verify that only one table exists for that collection.
   it('collection create race on read', (done) => {
     const query_count = 5;
-    const rand_collection = crypto.randomBytes(8).toString('hex');
+    const randCollection = crypto.randomBytes(8).toString('hex');
 
     let finished = 0;
     for (let i = 0; i < query_count; ++i) {
-      utils.stream_test(
-        {requestId: i, options: {collection: [rand_collection], fetch: []}},
+      utils.streamTest(
+        {requestId: i, options: {collection: [randCollection], fetch: []}},
         (err, res) => {
           assert.ifError(err);
           assert.strictEqual(res.length, 0);
           if (++finished === query_count) {
-            utils.table(rand_collection).count().run(utils.rdbConn()).then((count) => {
+            utils.table(randCollection).count().run(utils.rdbConn()).then((count) => {
               assert.strictEqual(count, 0);
               done();
             }).catch(done);
@@ -36,15 +36,15 @@ const all_tests = (collection) => {
   // is different for a read or a write when the table is unavailable.
   it('collection create race on write', (done) => {
     const query_count = 5;
-    const rand_collection = crypto.randomBytes(8).toString('hex');
+    const randCollection = crypto.randomBytes(8).toString('hex');
 
     let finished = 0;
     for (let i = 0; i < query_count; ++i) {
-      utils.stream_test(
+      utils.streamTest(
         {
           requestId: i,
           options: {
-            collection: [rand_collection],
+            collection: [randCollection],
             insert: [{}],
           },
         },
@@ -52,7 +52,7 @@ const all_tests = (collection) => {
           assert.ifError(err);
           assert.strictEqual(res.length, 1);
           if (++finished === query_count) {
-            utils.table(rand_collection).count().run(utils.rdbConn()).then((count) => {
+            utils.table(randCollection).count().run(utils.rdbConn()).then((count) => {
               assert.strictEqual(count, query_count);
               done();
             }).catch(done);
@@ -71,7 +71,7 @@ const all_tests = (collection) => {
     utils.table(collection).indexStatus().count().run(conn).then((old_count) => {
       let finished = 0;
       for (let i = 0; i < query_count; ++i) {
-        utils.stream_test(
+        utils.streamTest(
           {
             requestId: i,
             options: {
@@ -95,6 +95,6 @@ const all_tests = (collection) => {
   });
 };
 
-const suite = (collection) => describe('Prereqs', () => all_tests(collection));
+const suite = (collection) => describe('Prereqs', () => allTests(collection));
 
 module.exports = {suite};

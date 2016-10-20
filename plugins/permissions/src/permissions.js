@@ -354,12 +354,12 @@ module.exports = {
     const userCache = new UserCache(options, context);
     context[options.name] = {
       userCache,
-      authCb: (clientCtx) => {
-        clientCtx[userSub] = userCache.subscribe(clientCtx.user.id);
+      authCb: (clientContext) => {
+        clientContext[userSub] = userCache.subscribe(clientContext.user.id);
       },
-      disconnectCb: (clientCtx) => {
-        if (clientCtx[userSub]) {
-          clientCtx[userSub].close();
+      disconnectCb: (clientContext) => {
+        if (clientContext[userSub]) {
+          clientContext[userSub].close();
         }
       },
     };
@@ -374,11 +374,11 @@ module.exports = {
             hz_permissions: {
               type: 'prereq',
               handler: (req, res, next) => {
-                if (!req.clientCtx[userSub]) {
+                if (!req.clientContext[userSub]) {
                   next(new Error('Client connection is not authenticated.'));
                 } else {
                   // RSI: test timeout behavior - anecdotal evidence points to 'broken'
-                  req.clientCtx[userSub].getValidatePromise(req).then((validate) => {
+                  req.clientContext[userSub].getValidatePromise(req).then((validate) => {
                     req.setParameter(validate);
                     next();
                   }).catch(next);

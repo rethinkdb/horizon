@@ -307,10 +307,13 @@ const runApplyCommand = (options) => {
     schema = parse_schema(schema_toml);
 
     if (options.start_rethinkdb) {
-      return start_rdb_server({quiet: !options.debug}).then((server) => {
-        rdb_server = server;
+      rdb_server = start_rdb_server();
+      if (options.debug) {
+        rdb_server.on('log', (level, message) => logger[level](message));
+      }
+      return rdb_server.ready().then(() => {
         options.rdb_host = 'localhost';
-        options.rdb_port = server.driver_port;
+        options.rdb_port = rdb_server.driver_port;
       });
     }
   }).then(() =>

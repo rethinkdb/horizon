@@ -135,7 +135,7 @@ class HorizonBaseRouter extends EventEmitter {
           this.server.removeMethod(m);
         }
         if (active.plugin.deactivate) {
-          return active.plugin.deactivate(this.context, active.options,
+          return active.plugin.deactivate(this.server.context, active.options,
                                           reason || 'Removed from PluginRouter.');
         }
       });

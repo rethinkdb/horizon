@@ -1,7 +1,5 @@
 'use strict';
 
-require('source-map-support').install();
-
 const {request: requestSchema} = require('@horizon/server/src/schema');
 const utils = require('./utils');
 

@@ -12,7 +12,7 @@ function fetch(context) {
     } else if (!permissions) {
       next(new Error('"fetch" requires permissions to run'));
     } else {
-      reads.makeReadReql(req).then((reql) =>
+      reads.makeReadReql(context, req).then((reql) =>
         reql.run(context.horizon.conn(), reqlOptions)
       ).then((result) => {
         if (result !== null && result.constructor.name === 'Cursor') {

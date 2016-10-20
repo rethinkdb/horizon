@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 'use strict';
 
-require('source-map-support').install();
-
 Error.stackTraceLimit = Infinity;
 
 const HorizonServer = require('@horizon/server');
@@ -27,9 +25,9 @@ const crypto = require('crypto');
 
 const argparse = require('argparse');
 
-const data_dir = path.resolve(__dirname, 'rethinkdb_data_test');
-const test_dist_dir = path.resolve(__dirname, '../../client/dist');
-const examples_dir = path.resolve(__dirname, '../../examples');
+const dataDir = path.resolve(__dirname, 'rethinkdb_data_test');
+const testDistDir = path.resolve(__dirname, '../../client/dist');
+const examplesDir = path.resolve(__dirname, '../../examples');
 
 const parser = new argparse.ArgumentParser();
 parser.addArgument(['--port', '-p'],
@@ -85,7 +83,7 @@ const npm_cmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 // Run the client build
 const build_proc = child_process.spawn(npm_cmd, ['run', 'dev'],
-                                      {cwd: test_dist_dir});
+                                      {cwd: testDistDir});
 
 build_proc.on('exit', () => process.exit(1));
 process.on('exit', () => build_proc.kill('SIGTERM'));
@@ -120,55 +118,55 @@ build_proc.stderr.on('data', (data) => {
 // Launch HTTP server with horizon that will serve the test files
 const httpServers = options.bind.map((host) =>
   new http.Server((req, res) => {
-    const req_path = url.parse(req.url).pathname;
-    if (req_path.indexOf('/examples/') === 0) {
-      serveFile(path.resolve(examples_dir,
-                             req_path.replace(/^[/]examples[/]/, '')), res);
+    const reqPath = url.parse(req.url).pathname;
+    if (reqPath.indexOf('/examples/') === 0) {
+      serveFile(path.resolve(examplesDir,
+                             reqPath.replace(/^[/]examples[/]/, '')), res);
     } else {
       if (!clientReady) {
         res.writeHead(503, {'Content-Type': 'text/plain'});
         res.end('Initial client build is ongoing, try again in a few seconds.');
       } else {
-        serveFile(path.resolve(test_dist_dir,
-                               req_path.replace(/^[/]/, '')), res);
+        serveFile(path.resolve(testDistDir,
+                               reqPath.replace(/^[/]/, '')), res);
       }
     }
   }));
 
 // Determine the local IP addresses to tell `rethinkdb` to bind on
-new Promise((resolve) => {
-  let outstanding = options.bind.length;
-  const res = new Set();
-  const add_results = (err, addrs) => {
-    assert.ifError(err);
-    addrs.forEach((addr) => {
-      // Filter out link-local addresses since node doesn't tell us the scope-id
-      if (addr.address.indexOf('fe80') !== 0) { res.add(addr.address); }
-    });
-    outstanding -= 1;
-    if (outstanding === 0) { resolve(res); }
-  };
-
-  options.bind.forEach((host) => {
-    dns.lookup(host, {all: true}, add_results);
-  });
-}).then((local_addresses) => {
+Promise.all(
+  options.bind.map((host) =>
+    new Promise((resolve, reject) =>
+      dns.lookup(host, {all: true}, (err, addrs) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(addrs);
+        }
+      })))
+).then((addrs) =>
+  new Set([].concat(...addrs)
+    .map((info) => info.address)
+    .filter((addr) => !addr.includes('fe80')))
+).then((localAddresses) => {
+  console.log(`${JSON.stringify(Array.from(localAddresses))}`);
   // Launch rethinkdb - once we know the port we can attach horizon to the http server
   if (!options.keep) {
-    rm_sync_recursive(data_dir);
+    rm_sync_recursive(dataDir);
   }
 
   console.log('starting rethinkdb');
-
-  return start_rdb_server({bind: local_addresses, dataDir: data_dir});
-}).then((server) => {
-  assert.notStrictEqual(server.driver_port, undefined);
-  console.log(`RethinkDB server listening for clients on port ${server.driver_port}.`);
-  console.log(`RethinkDB server listening for HTTP on port ${server.http_port}.`);
+  const rdbServer = start_rdb_server({bind: Array.from(localAddresses), dataDir});
+  rdbServer.on('log', (level, msg) => console.log(`RethinkDB ${level}: ${msg}`));
+  return rdbServer.ready();
+}).then((rdbServer) => {
+  assert.notStrictEqual(rdbServer.driver_port, undefined);
+  console.log(`RethinkDB server listening for clients on port ${rdbServer.driver_port}.`);
+  console.log(`RethinkDB server listening for HTTP on port ${rdbServer.http_port}.`);
   console.log('starting horizon');
 
   const hzRouter = new HorizonBaseRouter(httpServers, {
-    rdbPort: server.driver_port,
+    rdbPort: rdbServer.driver_port,
     projectName: 'hz_test',
     auth: {
       allowUnauthenticated: true,
@@ -191,23 +189,24 @@ new Promise((resolve) => {
 
   hzRouter.once('ready', () => {
     // Capture requests to `horizon.js` and `horizon.js.map` before the horizon server
-    console.log('starting http servers');
+    console.log('plugins ready, adding handlers for HTTP traffic');
     httpServers.forEach((serv, i) => {
       const extantListeners = serv.listeners('request').slice(0);
       serv.removeAllListeners('request');
       serv.on('request', (req, res) => {
-        const req_path = url.parse(req.url).pathname;
-        if (req_path === '/horizon/horizon.js' ||
-            req_path === '/horizon/horizon.js.map') {
-          serveFile(path.resolve(test_dist_dir, req_path.replace('/horizon/', '')),
-                    res);
+        const reqPath = url.parse(req.url).pathname;
+        if (reqPath === '/horizon/horizon.js' ||
+            reqPath === '/horizon/horizon.js.map') {
+          serveFile(path.resolve(testDistDir, reqPath.replace('/horizon/', '')), res);
         } else {
           extantListeners.forEach((l) => l.call(serv, req, res));
         }
       });
 
-      serv.listen(options.port, options.bind[i],
-                  () => console.log(`HTTP server listening on ${options.bind[i]}:${options.port}.`));
+      serv.listen(options.port,
+                  options.bind[i],
+                  () => console.log('HTTP server listening on ' +
+                                    `${options.bind[i]}:${options.port}.`));
     });
   });
 }).catch((err) => {

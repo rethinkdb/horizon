@@ -181,17 +181,12 @@ class Server {
               throw new Error('No connection to the database.');
             }
 
-            const client = new ClientConnection(
-              socket,
-              this.context.horizon.auth,
-              this._requestHandler,
-              this.context.horizon.events
-            );
+            const client = new ClientConnection(this.context, socket, this._requestHandler);
             this._clients.add(client);
-            this.context.horizon.events.emit('connect', client.context);
+            this.context.horizon.events.emit('connect', client.clientContext);
             socket.once('close', () => {
               this._clients.delete(client);
-              this.context.horizon.events.emit('disconnect', client.context);
+              this.context.horizon.events.emit('disconnect', client.clientContext);
             });
           } catch (err) {
             this.context.horizon.events.emit('log', 'error',

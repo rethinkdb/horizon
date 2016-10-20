@@ -5,8 +5,8 @@ const jsonpatch = require('jsonpatch');
 
 // Mock Response object for use by tests
 class MockResponse extends Response {
-  constructor() {
-    super((obj) => {
+  constructor(events, done) {
+    super(events, (obj) => {
       if (obj.patch) {
         jsonpatch.apply_patch(this._value, obj.patch);
       }

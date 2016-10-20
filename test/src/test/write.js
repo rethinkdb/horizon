@@ -22,24 +22,24 @@ const conflict_id = [3];
 const new_ids = [4, 5, 6];
 const conflict_ids = [2, 3, 4];
 
-const without_version = (item) => {
-  const res = Object.assign({ }, item);
+const withoutVersion = (item) => {
+  const res = Object.assign({}, item);
   delete res[hzv];
   return res;
 };
 
-const compare_write_response = (actual, expected) => {
-  assert.deepStrictEqual(actual.map(without_version), expected);
+const compareWriteResponse = (actual, expected) => {
+  assert.deepStrictEqual(actual.map(withoutVersion), expected);
 };
 
-const check_collection_data = (actual, expected) => {
+const checkCollectionData = (actual, expected) => {
   // TODO: make sure that versions increment properly
-  assert.deepStrictEqual(actual.map(without_version),
-                         expected.map(without_version));
+  assert.deepStrictEqual(actual.map(withoutVersion),
+                         expected.map(withoutVersion));
 };
 
 // TODO: verify through reql that rows have been inserted/removed
-const all_tests = (collection) => {
+const allTests = (collection) => {
   const new_row_from_id = (id) => ({id, new_field: 'a'});
   const merged_row_from_id = (id) => {
     if (id >= 4) { return new_row_from_id(id); }
@@ -51,10 +51,10 @@ const all_tests = (collection) => {
     options: Object.assign({}, options || {}, {collection: [collection], [type]: data}),
   });
 
-  const check_collection = (expected, done) => {
+  const checkCollection = (expected, done) => {
     utils.table(collection).orderBy({index: 'id'}).coerceTo('array')
       .run(utils.rdbConn()).then((res) => {
-        check_collection_data(res, expected);
+        checkCollectionData(res, expected);
         done();
       }).catch((err) => done(err));
   };
@@ -80,22 +80,22 @@ const all_tests = (collection) => {
     combine_sort_data(old_data, new_data,
       () => null, (row, map) => map.set(row.id, row));
 
-  beforeEach('Clear collection', () => utils.clear_collection(collection));
+  beforeEach('Clear collection', () => utils.clearCollection(collection));
 
   describe('Basic writes', () => {
     beforeEach('Authenticate', (done) => utils.horizon_token_auth('admin', done));
-    beforeEach('Populate collection', () => utils.populate_collection(collection, original_data));
+    beforeEach('Populate collection', () => utils.populateCollection(collection, original_data));
 
     const request_from_ids = (type, ids) => make_request(type, ids.map(new_row_from_id));
 
     describe('Store', () => {
       const test_case = (ids, done) => {
-        utils.stream_test(request_from_ids('store', ids), (err, res) => {
+        utils.streamTest(request_from_ids('store', ids), (err, res) => {
           const expected = ids.map((id) => ({id}));
           assert.ifError(err);
-          compare_write_response(res, expected);
+          compareWriteResponse(res, expected);
           const new_data = ids.map(new_row_from_id);
-          check_collection(union_sort_data(original_data, new_data), done);
+          checkCollection(union_sort_data(original_data, new_data), done);
         });
       };
 
@@ -107,14 +107,14 @@ const all_tests = (collection) => {
 
     describe('Replace', () => {
       const test_case = (ids, done) => {
-        utils.stream_test(request_from_ids('replace', ids), (err, res) => {
+        utils.streamTest(request_from_ids('replace', ids), (err, res) => {
           const expected = ids.map((id) =>
             (id < original_data.length ? {id} : {error: 'The document was missing.'})
           );
           assert.ifError(err);
-          compare_write_response(res, expected);
+          compareWriteResponse(res, expected);
           const new_data = ids.map(new_row_from_id);
-          check_collection(replace_sort_data(original_data, new_data), done);
+          checkCollection(replace_sort_data(original_data, new_data), done);
         });
       };
 
@@ -126,12 +126,12 @@ const all_tests = (collection) => {
 
     describe('Upsert', () => {
       const test_case = (ids, done) => {
-        utils.stream_test(request_from_ids('upsert', ids), (err, res) => {
+        utils.streamTest(request_from_ids('upsert', ids), (err, res) => {
           const expected = ids.map((id) => ({id}));
           assert.ifError(err);
-          compare_write_response(res, expected);
+          compareWriteResponse(res, expected);
           const new_data = ids.map(merged_row_from_id);
-          check_collection(union_sort_data(original_data, new_data), done);
+          checkCollection(union_sort_data(original_data, new_data), done);
         });
       };
 
@@ -143,14 +143,14 @@ const all_tests = (collection) => {
 
     describe('Update', () => {
       const test_case = (ids, done) => {
-        utils.stream_test(request_from_ids('update', ids), (err, res) => {
+        utils.streamTest(request_from_ids('update', ids), (err, res) => {
           const expected = ids.map((id) =>
             (id < original_data.length ? {id} : {error: 'The document was missing.'})
           );
           assert.ifError(err);
-          compare_write_response(res, expected);
+          compareWriteResponse(res, expected);
           const new_data = ids.map(merged_row_from_id);
-          check_collection(replace_sort_data(original_data, new_data), done);
+          checkCollection(replace_sort_data(original_data, new_data), done);
         });
       };
 
@@ -166,15 +166,15 @@ const all_tests = (collection) => {
           (row, map) => map.set(row.id, row), () => null);
 
       const test_case = (ids, done) => {
-        utils.stream_test(request_from_ids('insert', ids), (err, res) => {
+        utils.streamTest(request_from_ids('insert', ids), (err, res) => {
           const expected = ids.map((id) =>
             (id >= original_data.length ? {id} : {error: 'The document already exists.'})
           );
 
           assert.ifError(err);
-          compare_write_response(res, expected);
+          compareWriteResponse(res, expected);
           const new_data = ids.map(new_row_from_id);
-          check_collection(add_sort_data(original_data, new_data), done);
+          checkCollection(add_sort_data(original_data, new_data), done);
         });
       };
 
@@ -192,12 +192,12 @@ const all_tests = (collection) => {
           (row, map) => map.delete(row.id));
 
       const test_case = (ids, done) => {
-        utils.stream_test(request_from_ids('remove', ids), (err, res) => {
+        utils.streamTest(request_from_ids('remove', ids), (err, res) => {
           const expected = ids.map((id) => ({id}));
           assert.ifError(err);
-          compare_write_response(res, expected);
+          compareWriteResponse(res, expected);
           const deleted_data = ids.map(new_row_from_id);
-          check_collection(remove_sort_data(original_data, deleted_data), done);
+          checkCollection(remove_sort_data(original_data, deleted_data), done);
         });
       };
 
@@ -212,26 +212,26 @@ const all_tests = (collection) => {
     beforeEach('Authenticate', (done) => utils.horizon_token_auth('admin', done));
 
     const test_data = [{id: 'versioned', [hzv]: 11, foo: 'bar'}];
-    beforeEach('Populate collection', () => utils.populate_collection(collection, test_data));
+    beforeEach('Populate collection', () => utils.populateCollection(collection, test_data));
 
     describe('Store', () => {
       const request = (row) => make_request('store', [row]);
 
       it('correct version', (done) => {
-        utils.stream_test(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
+        utils.streamTest(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
           assert.ifError(err);
           const expected = [{id: 'versioned', [hzv]: 12}];
           assert.deepStrictEqual(res, expected);
-          check_collection([{id: 'versioned', [hzv]: 12, value: 1}], done);
+          checkCollection([{id: 'versioned', [hzv]: 12, value: 1}], done);
         });
       });
 
       it('incorrect version', (done) => {
-        utils.stream_test(request({id: 'versioned', value: 2, [hzv]: 5}), (err, res) => {
+        utils.streamTest(request({id: 'versioned', value: 2, [hzv]: 5}), (err, res) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done);
+          checkCollection(test_data, done);
         });
       });
     });
@@ -240,20 +240,20 @@ const all_tests = (collection) => {
       const request = (row) => make_request('replace', [row]);
 
       it('correct version', (done) => {
-        utils.stream_test(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
+        utils.streamTest(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
           assert.ifError(err);
           const expected = [{id: 'versioned', [hzv]: 12}];
           assert.deepStrictEqual(res, expected);
-          check_collection([{id: 'versioned', [hzv]: 12, value: 1}], done);
+          checkCollection([{id: 'versioned', [hzv]: 12, value: 1}], done);
         });
       });
 
       it('incorrect version', (done) => {
-        utils.stream_test(request({id: 'versioned', value: 2, [hzv]: 5}), (err, res) => {
+        utils.streamTest(request({id: 'versioned', value: 2, [hzv]: 5}), (err, res) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done);
+          checkCollection(test_data, done);
         });
       });
     });
@@ -262,20 +262,20 @@ const all_tests = (collection) => {
       const request = (row) => make_request('upsert', [row]);
 
       it('correct version', (done) => {
-        utils.stream_test(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
+        utils.streamTest(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
           assert.ifError(err);
           const expected = [{id: 'versioned', [hzv]: 12}];
           assert.deepStrictEqual(res, expected);
-          check_collection([{id: 'versioned', [hzv]: 12, value: 1, foo: 'bar'}], done);
+          checkCollection([{id: 'versioned', [hzv]: 12, value: 1, foo: 'bar'}], done);
         });
       });
 
       it('incorrect version', (done) => {
-        utils.stream_test(request({id: 'versioned', value: 2, [hzv]: 5}), (err, res) => {
+        utils.streamTest(request({id: 'versioned', value: 2, [hzv]: 5}), (err, res) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done);
+          checkCollection(test_data, done);
         });
       });
     });
@@ -284,20 +284,20 @@ const all_tests = (collection) => {
       const request = (row) => make_request('update', [row]);
 
       it('correct version', (done) => {
-        utils.stream_test(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
+        utils.streamTest(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
           assert.ifError(err);
           const expected = [{id: 'versioned', [hzv]: 12}];
           assert.deepStrictEqual(res, expected);
-          check_collection([{id: 'versioned', [hzv]: 12, value: 1, foo: 'bar'}], done);
+          checkCollection([{id: 'versioned', [hzv]: 12, value: 1, foo: 'bar'}], done);
         });
       });
 
       it('incorrect version', (done) => {
-        utils.stream_test(request({id: 'versioned', value: 2, [hzv]: 5}), (err, res) => {
+        utils.streamTest(request({id: 'versioned', value: 2, [hzv]: 5}), (err, res) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done);
+          checkCollection(test_data, done);
         });
       });
     });
@@ -306,20 +306,20 @@ const all_tests = (collection) => {
       const request = (row) => make_request('remove', [row]);
 
       it('correct version', (done) => {
-        utils.stream_test(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
+        utils.streamTest(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
           assert.ifError(err);
           const expected = [{id: 'versioned', [hzv]: 11}];
           assert.deepStrictEqual(res, expected);
-          check_collection([], done);
+          checkCollection([], done);
         });
       });
 
       it('incorrect version', (done) => {
-        utils.stream_test(request({id: 'versioned', value: 2, [hzv]: 5}), (err, res) => {
+        utils.streamTest(request({id: 'versioned', value: 2, [hzv]: 5}), (err, res) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done);
+          checkCollection(test_data, done);
         });
       });
     });
@@ -329,26 +329,26 @@ const all_tests = (collection) => {
     beforeEach('Authenticate', (done) => utils.horizon_token_auth('admin', done));
 
     const test_data = [{id: 'versionless', foo: 'bar'}];
-    beforeEach('Populate collection', () => utils.populate_collection(collection, test_data));
+    beforeEach('Populate collection', () => utils.populateCollection(collection, test_data));
 
     describe('Store', () => {
       const request = (row) => make_request('store', [row]);
 
       it('unspecified version', (done) => {
-        utils.stream_test(request({id: 'versionless', value: 3}), (err, res) => {
+        utils.streamTest(request({id: 'versionless', value: 3}), (err, res) => {
           assert.ifError(err);
           const expected = [{id: 'versionless', [hzv]: 0}];
           assert.deepStrictEqual(res, expected);
-          check_collection([{id: 'versionless', [hzv]: 0, value: 3}], done);
+          checkCollection([{id: 'versionless', [hzv]: 0, value: 3}], done);
         });
       });
 
       it('specified version', (done) => {
-        utils.stream_test(request({id: 'versionless', value: 4, [hzv]: 5}), (err, res) => {
+        utils.streamTest(request({id: 'versionless', value: 4, [hzv]: 5}), (err, res) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done);
+          checkCollection(test_data, done);
         });
       });
     });
@@ -357,20 +357,20 @@ const all_tests = (collection) => {
       const request = (row) => make_request('replace', [row]);
 
       it('unspecified version', (done) => {
-        utils.stream_test(request({id: 'versionless', value: 3}), (err, res) => {
+        utils.streamTest(request({id: 'versionless', value: 3}), (err, res) => {
           assert.ifError(err);
           const expected = [{id: 'versionless', [hzv]: 0}];
           assert.deepStrictEqual(res, expected);
-          check_collection([{id: 'versionless', [hzv]: 0, value: 3}], done);
+          checkCollection([{id: 'versionless', [hzv]: 0, value: 3}], done);
         });
       });
 
       it('specified version', (done) => {
-        utils.stream_test(request({id: 'versionless', value: 4, [hzv]: 5}), (err, res) => {
+        utils.streamTest(request({id: 'versionless', value: 4, [hzv]: 5}), (err, res) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done);
+          checkCollection(test_data, done);
         });
       });
     });
@@ -379,20 +379,20 @@ const all_tests = (collection) => {
       const request = (row) => make_request('upsert', [row]);
 
       it('unspecified version', (done) => {
-        utils.stream_test(request({id: 'versionless', value: 3}), (err, res) => {
+        utils.streamTest(request({id: 'versionless', value: 3}), (err, res) => {
           assert.ifError(err);
           const expected = [{id: 'versionless', [hzv]: 0}];
           assert.deepStrictEqual(res, expected);
-          check_collection([{id: 'versionless', [hzv]: 0, value: 3, foo: 'bar'}], done);
+          checkCollection([{id: 'versionless', [hzv]: 0, value: 3, foo: 'bar'}], done);
         });
       });
 
       it('specified version', (done) => {
-        utils.stream_test(request({id: 'versionless', value: 4, [hzv]: 5}), (err, res) => {
+        utils.streamTest(request({id: 'versionless', value: 4, [hzv]: 5}), (err, res) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done);
+          checkCollection(test_data, done);
         });
       });
     });
@@ -401,20 +401,20 @@ const all_tests = (collection) => {
       const request = (row) => make_request('update', [row]);
 
       it('unspecified version', (done) => {
-        utils.stream_test(request({id: 'versionless', value: 3}), (err, res) => {
+        utils.streamTest(request({id: 'versionless', value: 3}), (err, res) => {
           assert.ifError(err);
           const expected = [{id: 'versionless', [hzv]: 0}];
           assert.deepStrictEqual(res, expected);
-          check_collection([{id: 'versionless', [hzv]: 0, value: 3, foo: 'bar'}], done);
+          checkCollection([{id: 'versionless', [hzv]: 0, value: 3, foo: 'bar'}], done);
         });
       });
 
       it('specified version', (done) => {
-        utils.stream_test(request({id: 'versionless', value: 4, [hzv]: 5}), (err, res) => {
+        utils.streamTest(request({id: 'versionless', value: 4, [hzv]: 5}), (err, res) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done);
+          checkCollection(test_data, done);
         });
       });
     });
@@ -423,20 +423,20 @@ const all_tests = (collection) => {
       const request = (row) => make_request('remove', [row]);
 
       it('unspecified version', (done) => {
-        utils.stream_test(request({id: 'versionless', value: 3}), (err, res) => {
+        utils.streamTest(request({id: 'versionless', value: 3}), (err, res) => {
           assert.ifError(err);
           const expected = [{id: 'versionless'}];
           assert.deepStrictEqual(res, expected);
-          check_collection([], done);
+          checkCollection([], done);
         });
       });
 
       it('specified version', (done) => {
-        utils.stream_test(request({id: 'versionless', value: 4, [hzv]: 5}), (err, res) => {
+        utils.streamTest(request({id: 'versionless', value: 4, [hzv]: 5}), (err, res) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          check_collection(test_data, done);
+          checkCollection(test_data, done);
         });
       });
     });
@@ -495,73 +495,73 @@ const all_tests = (collection) => {
 
     describe('Existing Row', () => {
       const test_data = [{id: 0, value: 0}];
-      beforeEach('Populate collection', () => utils.populate_collection(collection, test_data));
+      beforeEach('Populate collection', () => utils.populateCollection(collection, test_data));
 
       it('Store', (done) => {
-        utils.stream_test(make_request('store', writes), (err, res) => {
+        utils.streamTest(make_request('store', writes), (err, res) => {
           assert.ifError(err);
           const latest_write = check_and_get_latest_write(res);
-          check_collection([Object.assign({[hzv]: 2}, latest_write)], done);
+          checkCollection([Object.assign({[hzv]: 2}, latest_write)], done);
         });
       });
 
       it('Replace', (done) => {
-        utils.stream_test(make_request('replace', writes), (err, res) => {
+        utils.streamTest(make_request('replace', writes), (err, res) => {
           assert.ifError(err);
           const latest_write = check_and_get_latest_write(res);
-          check_collection([Object.assign({[hzv]: 2}, latest_write)], done);
+          checkCollection([Object.assign({[hzv]: 2}, latest_write)], done);
         });
       });
 
       it('Upsert', (done) => {
-        utils.stream_test(make_request('upsert', writes), (err, res) => {
+        utils.streamTest(make_request('upsert', writes), (err, res) => {
           assert.ifError(err);
           check_and_get_latest_write(res);
-          check_collection([{id: 0, value: 0, a: 1, b: 2, c: 3, [hzv]: 2}], done);
+          checkCollection([{id: 0, value: 0, a: 1, b: 2, c: 3, [hzv]: 2}], done);
         });
       });
 
       it('Update', (done) => {
-        utils.stream_test(make_request('update', writes), (err, res) => {
+        utils.streamTest(make_request('update', writes), (err, res) => {
           assert.ifError(err);
           check_and_get_latest_write(res);
-          check_collection([{id: 0, value: 0, a: 1, b: 2, c: 3, [hzv]: 2}], done);
+          checkCollection([{id: 0, value: 0, a: 1, b: 2, c: 3, [hzv]: 2}], done);
         });
       });
 
       it('Remove', (done) => {
-        utils.stream_test(make_request('remove', writes), (err, res) => {
+        utils.streamTest(make_request('remove', writes), (err, res) => {
           assert.ifError(err);
           assert.deepStrictEqual(res.map((x) => x[hzv]).sort(), [undefined, undefined, undefined]);
           assert.deepStrictEqual(res.map((x) => x.id), [0, 0, 0]);
-          check_collection([], done);
+          checkCollection([], done);
         });
       });
     });
 
     describe('New Row', () => {
       it('Insert', (done) => {
-        utils.stream_test(make_request('insert', writes), (err, res) => {
+        utils.streamTest(make_request('insert', writes), (err, res) => {
           assert.ifError(err);
           const success_write = check_one_successful_write(res, 'The document already exists.');
-          check_collection([Object.assign({[hzv]: 0}, success_write)], done);
+          checkCollection([Object.assign({[hzv]: 0}, success_write)], done);
         });
       });
 
       it('Store', (done) => {
-        utils.stream_test(make_request('store', writes), (err, res) => {
+        utils.streamTest(make_request('store', writes), (err, res) => {
           assert.ifError(err);
           const latest_write = check_and_get_latest_write(res);
-          check_collection([Object.assign({[hzv]: 2}, latest_write)], done);
+          checkCollection([Object.assign({[hzv]: 2}, latest_write)], done);
         });
       });
 
       it('Upsert', (done) => {
-        utils.stream_test(make_request('upsert', writes), (err, res) => {
+        utils.streamTest(make_request('upsert', writes), (err, res) => {
           assert.ifError(err);
           assert.deepStrictEqual(res.map((x) => x[hzv]).sort(), [0, 1, 2]);
           assert.deepStrictEqual(res.map((x) => x.id), [0, 0, 0]);
-          check_collection([{id: 0, a: 1, b: 2, c: 3, [hzv]: 2}], done);
+          checkCollection([{id: 0, a: 1, b: 2, c: 3, [hzv]: 2}], done);
         });
       });
     });
@@ -573,43 +573,43 @@ const all_tests = (collection) => {
     describe('Zero Timeout', () => {
       const timeout = {timeout: [0]};
       const test_data = [{id: 0, value: 0}];
-      beforeEach('Populate collection', () => utils.populate_collection(collection, test_data));
+      beforeEach('Populate collection', () => utils.populateCollection(collection, test_data));
 
       it('Store', (done) => {
-        utils.stream_test(make_request('store', writes, timeout), (err, res) => {
+        utils.streamTest(make_request('store', writes, timeout), (err, res) => {
           assert.ifError(err);
           const success_write = check_one_successful_write(res, 'Operation timed out.');
-          check_collection([Object.assign({[hzv]: 0}, success_write)], done);
+          checkCollection([Object.assign({[hzv]: 0}, success_write)], done);
         });
       });
 
       it('Replace', (done) => {
-        utils.stream_test(make_request('replace', writes, timeout), (err, res) => {
+        utils.streamTest(make_request('replace', writes, timeout), (err, res) => {
           assert.ifError(err);
           const success_write = check_one_successful_write(res, 'Operation timed out.');
-          check_collection([Object.assign({[hzv]: 0}, success_write)], done);
+          checkCollection([Object.assign({[hzv]: 0}, success_write)], done);
         });
       });
 
       it('Upsert', (done) => {
-        utils.stream_test(make_request('upsert', writes, timeout), (err, res) => {
+        utils.streamTest(make_request('upsert', writes, timeout), (err, res) => {
           assert.ifError(err);
           const success_write = check_one_successful_write(res, 'Operation timed out.');
-          check_collection([Object.assign({[hzv]: 0}, test_data[0], success_write)], done);
+          checkCollection([Object.assign({[hzv]: 0}, test_data[0], success_write)], done);
         });
       });
 
       it('Update', (done) => {
-        utils.stream_test(make_request('update', writes, timeout), (err, res) => {
+        utils.streamTest(make_request('update', writes, timeout), (err, res) => {
           assert.ifError(err);
           const success_write = check_one_successful_write(res, 'Operation timed out.');
-          check_collection([Object.assign({[hzv]: 0}, test_data[0], success_write)], done);
+          checkCollection([Object.assign({[hzv]: 0}, test_data[0], success_write)], done);
         });
       });
     });
   });
 };
 
-const suite = (collection) => describe('Write', () => all_tests(collection));
+const suite = (collection) => describe('Write', () => allTests(collection));
 
 module.exports = {suite};

@@ -149,7 +149,7 @@ function setup() {
     // start rethinkdb server if necessary
     if (this.options.start_rethinkdb) {
       green(' ├── Starting RethinkDB server');
-      return start_rdb_server({quiet: true}).then((server) => {
+      return start_rdb_server().ready().then((server) => {
         this.rdb_server = server;
         this.options.rdb_host = 'localhost';
         this.options.rdb_port = server.driver_port;

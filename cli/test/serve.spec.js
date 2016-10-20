@@ -30,15 +30,12 @@ describe('hz serve', () => {
   const rdb_data_dir = `${tmpdir()}/horizon-test-${process.pid}`;
   let rdb_server;
 
-  before('start rethinkdb', () =>
-    start_rdb_server({
-      quiet: true,
-      dataDir: rdb_data_dir,
-    }).then((server) => {
-      rdb_server = server;
+  before('start rethinkdb', () => {
+    rdb_server = start_rdb_server({dataDir: rdb_data_dir});
+    return rdb_server.ready().then(() => {
       serve_args.push(`--connect=localhost:${rdb_server.driver_port}`);
-    })
-  );
+    });
+  });
 
   // Run schema apply with a blank schema
   before('initialize rethinkdb', () => {

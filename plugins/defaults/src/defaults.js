@@ -85,8 +85,8 @@ module.exports = {
       );
       if (plugin.activate.length < 3) {
         promise.then(() => ready(plugin.name))
-        .then(() => console.log(`subplugin ${plugin.name} ready`));
       }
+      promise.then(() => console.log(`subplugin ${plugin.name} ready`));
       return promise;
     });
 

@@ -57,14 +57,10 @@ describe('hz schema', () => {
   const rdb_data_dir = `${tmpdir()}/horizon-test-${process.pid}`;
   let rdb_conn, rdb_server;
 
-  before('start rethinkdb', () =>
-    start_rdb_server({
-      quiet: true,
-      dataDir: rdb_data_dir,
-    }).then((server) => {
-      rdb_server = server;
-    })
-  );
+  before('start rethinkdb', () => {
+    rdb_server = start_rdb_server({dataDir: rdb_data_dir});
+    return rdb_server.ready()
+  });
 
   after('stop rethinkdb', () => rdb_server && rdb_server.close());
   after('delete rethinkdb data directory', () => rm_sync_recursive(rdb_data_dir));

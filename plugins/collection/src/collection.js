@@ -50,7 +50,6 @@ module.exports = {
 
     return new Promise((resolve) => {
       context[options.name].subscribe({onUnready, onReady: () => {
-        console.log('hz_collection ready');
         resolve({
           methods: {
             collection: {

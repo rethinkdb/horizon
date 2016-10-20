@@ -5,15 +5,15 @@ const utils = require('./utils');
 const assert = require('assert');
 
 // TODO: ensure each row is present in the results
-const all_tests = (collection) => {
+const allTests = (collection) => {
   const num_rows = 10;
 
-  before('Clear collection', () => utils.clear_collection(collection));
-  before('Populate collection', () => utils.populate_collection(collection, num_rows));
+  before('Clear collection', () => utils.clearCollection(collection));
+  before('Populate collection', () => utils.populateCollection(collection, num_rows));
   beforeEach('Authenticate client', (done) => utils.horizon_token_auth('admin', done));
 
   it('collection scan.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -29,7 +29,7 @@ const all_tests = (collection) => {
   });
 
   it('collection scan order.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -46,7 +46,7 @@ const all_tests = (collection) => {
   });
 
   it('collection scan limit.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -63,7 +63,7 @@ const all_tests = (collection) => {
   });
 
   it('collection scan order limit.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -81,7 +81,7 @@ const all_tests = (collection) => {
   });
 
   it('collection scan above.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -98,7 +98,7 @@ const all_tests = (collection) => {
   });
 
   it('collection scan below.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -115,7 +115,7 @@ const all_tests = (collection) => {
   });
 
   it('collection scan above below.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -133,7 +133,7 @@ const all_tests = (collection) => {
   });
 
   it('find.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -150,7 +150,7 @@ const all_tests = (collection) => {
   });
 
   it('find missing.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -167,7 +167,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -184,7 +184,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll order.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -202,7 +202,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll limit.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -220,7 +220,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll order limit.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -239,7 +239,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll above.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -257,7 +257,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll below.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -275,7 +275,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll above below.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -294,7 +294,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll order above.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -313,7 +313,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll order below.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -332,7 +332,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll order above below.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -354,7 +354,7 @@ const all_tests = (collection) => {
   // These tests are impossible to represent in the schema (as far as I can tell),
   // so the test for this functionality must be at the integration level.
   it('findAll "above" field not in "order".', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -372,7 +372,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll "above" field not first in "order".', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -390,7 +390,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll "below" field not in "order".', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -408,7 +408,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll "below" field not first in "order".', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -426,7 +426,7 @@ const all_tests = (collection) => {
   });
 
   it('findAll "above" and "below" on different fields.', (done) => {
-    utils.stream_test(
+    utils.streamTest(
       {
         requestId: 0,
         options: {
@@ -444,6 +444,6 @@ const all_tests = (collection) => {
   });
 };
 
-const suite = (collection) => describe('Fetch', () => all_tests(collection));
+const suite = (collection) => describe('Fetch', () => allTests(collection));
 
 module.exports = {suite};

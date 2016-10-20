@@ -386,16 +386,18 @@ const run = (args, interruptor) => {
     http_servers = servers;
 
     if (opts.start_rethinkdb) {
-      return start_rdb_server().then((server) => {
-        rdb_server = server;
-
+      rdb_server = start_rdb_server();
+      if (options.debug) {
+        rdb_server.on('log', (level, message) => logger[level](message));
+      }
+      return rdb_server.ready().then(() => {
         // Don't need to check for host, always localhost.
         opts.rdb_host = 'localhost';
-        opts.rdb_port = server.driver_port;
+        opts.rdb_port = rdb_server.driver_port;
 
         console.log('RethinkDB');
-        console.log(`   ├── Admin interface: http://localhost:${server.http_port}`);
-        console.log(`   └── Drivers can connect to port ${server.driver_port}`);
+        console.log(`   ├── Admin interface: http://localhost:${rdb_server.http_port}`);
+        console.log(`   └── Drivers can connect to port ${rdb_server.driver_port}`);
       });
     }
   }).then(() => {

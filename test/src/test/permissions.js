@@ -7,7 +7,7 @@ const assert = require('assert');
 const r = require('rethinkdb');
 
 const userId = 3;
-const userRow = { id: userId, groups: ['default'] };
+const userRow = {id: userId, groups: ['default']};
 
 // Permit all rows
 const permitted_validator = `
@@ -34,7 +34,7 @@ const user_permitted_validator = `
 }
 `;
 
-const all_tests = (collection) => {
+const allTests = (collection) => {
   describe('Validation', () => {
     const table_data = [];
     for (let i = 0; i < 10; ++i) {
@@ -58,7 +58,7 @@ const all_tests = (collection) => {
         // TODO: this seems a bit racy - no guarantee that horizon will be up-to-date
         // Construct request and send on websocket
         const options = Object.assign({collection: [collection]}, rawOptions);
-        utils.stream_test({requestId: 1, options: options}, (err, res) => {
+        utils.streamTest({requestId: 1, options: options}, (err, res) => {
           if (err) {
             err.results = res;
             reject(err);
@@ -330,6 +330,6 @@ const all_tests = (collection) => {
   });
 };
 
-const suite = (collection) => describe('Permissions', () => all_tests(collection));
+const suite = (collection) => describe('Permissions', () => allTests(collection));
 
 module.exports = {suite};

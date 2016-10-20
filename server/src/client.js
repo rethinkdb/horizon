@@ -8,15 +8,14 @@ const Joi = require('joi');
 const websocket = require('ws');
 
 class ClientConnection {
-  constructor(socket,
-              auth,
-              requestHandlerCb,
-              events) {
+  constructor(serverContext,
+              socket,
+              requestHandlerCb) {
+    this.serverContext = serverContext;
+    this.events = serverContext.horizon.events;
     this.socket = socket;
-    this.auth = auth;
     this.requestHandlerCb = requestHandlerCb;
-    this.events = events;
-    this.context = { };
+    this.clientContext = { };
     this.responses = new Map();
 
     this.events.emit('log', 'debug', 'ClientConnection established.');
@@ -92,8 +91,8 @@ class ClientConnection {
     }
 
     const requestId = request.requestId;
-    this.auth.handshake(request).then((res) => {
-      this.context.user = res.payload;
+    this.serverContext.horizon.auth.handshake(request).then((res) => {
+      this.clientContext.user = res.payload;
       this.sendMessage(requestId, {
         token: res.token,
         id: res.payload.id,
@@ -101,7 +100,7 @@ class ClientConnection {
       });
       this.socket.on('message', (msg) =>
         this.errorWrapSocket(() => this.handleRequest(msg)));
-      this.events.emit('auth', this.context);
+      this.events.emit('auth', this.clientContext);
     }).catch((err) => {
       this.events.emit('log', 'debug', `Error during client handshake: ${err.stack}`);
       this.close({requestId, error: `${err}`, errorCode: 0});
@@ -123,8 +122,8 @@ class ClientConnection {
       return this.close({error: `Received duplicate requestId: ${requestId}`});
     }
 
-    const request = Request.init(rawRequest, this.context);
-    const response = new Response((obj) => this.sendMessage(requestId, obj));
+    const request = Request.init(rawRequest, this.clientContext);
+    const response = new Response(this.events, (obj) => this.sendMessage(requestId, obj));
 
     this.responses.set(requestId, response);
     response.complete.then(() =>

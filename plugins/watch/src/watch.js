@@ -40,7 +40,7 @@ function watch(context) {
       next(new Error('"watch" requires permissions to run'));
     } else {
       const limited = req.getParameter('limit') !== undefined;
-      reads.makeReadReql(req).then((reql) =>
+      reads.makeReadReql(context, req).then((reql) =>
         reql.changes({
           includeInitial: true,
           includeStates: true,

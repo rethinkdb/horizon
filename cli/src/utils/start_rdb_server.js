@@ -15,16 +15,15 @@ const defaultDatadir = 'rethinkdb_data';
 
 const infoLevelLog = (msg) => /^Running/.test(msg) || /^Listening/.test(msg);
 
-class RethinkdbServer {
+class RethinkdbServer extends EventEmitter {
   constructor(options) {
+    super();
     const quiet = Boolean(options.quiet);
     const bind = options.bind || ['127.0.0.1'];
     const dataDir = options.dataDir || defaultDatadir;
     const driverPort = options.rdbPort;
     const httpPort = options.rdbHttpPort;
     const cacheSize = options.cacheSize || 200;
-
-    this.events = new EventEmitter();
 
     // Check if `rethinkdb` in PATH
     if (!hasbinSync('rethinkdb')) {
@@ -57,7 +56,7 @@ class RethinkdbServer {
 
       process.on('exit', () => {
         if (this.proc.exitCode === null) {
-          this.events.emit('log', 'error', 'Unclean shutdown - killing RethinkDB child process');
+          this.emit('log', 'error', 'Unclean shutdown - killing RethinkDB child process');
           this.proc.kill('SIGKILL');
         }
       });
@@ -73,9 +72,9 @@ class RethinkdbServer {
       each_line_in_pipe(this.proc.stdout, (line) => {
         if (!quiet) {
           if (infoLevelLog(line)) {
-            this.events.emit('log', 'info', line);
+            this.emit('log', 'info', line);
           } else {
-            this.events.emit('log', 'debug', line);
+            this.emit('log', 'debug', line);
           }
         }
         if (this.driver_port === undefined) {
@@ -97,7 +96,7 @@ class RethinkdbServer {
       });
 
       each_line_in_pipe(this.proc.stderr, (line) =>
-                        this.events.emit('log', 'error', line));
+                        this.emit('log', 'error', line));
     });
   }
 
@@ -139,5 +138,5 @@ class RethinkdbServer {
 // driverPort: port number for rethinkdb driver connections. Auto-assigned by default.
 // httpPort: port number for webui. Auto-assigned by default.
 // cacheSize: cacheSize to give to rethinkdb in MB. Default 200.
-module.exports = (options) => new RethinkdbServer(options || { }).ready();
+module.exports = (options) => new RethinkdbServer(options || { });
 module.exports.r = r;
