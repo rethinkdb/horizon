@@ -28,12 +28,12 @@ const valid_project_data = {
 
 describe('hz serve', () => {
   const rdb_data_dir = `${tmpdir()}/horizon-test-${process.pid}`;
-  let rdb_server;
+  let rdbServer;
 
   before('start rethinkdb', () => {
-    rdb_server = start_rdb_server({dataDir: rdb_data_dir});
-    return rdb_server.ready().then(() => {
-      serve_args.push(`--connect=localhost:${rdb_server.driver_port}`);
+    rdbServer = start_rdb_server({dataDir: rdb_data_dir});
+    return rdbServer.ready().then(() => {
+      serve_args.push(`--connect=localhost:${rdbServer.driverPort}`);
     });
   });
 
@@ -41,12 +41,12 @@ describe('hz serve', () => {
   before('initialize rethinkdb', () => {
     mockFs({ 'schema.toml': '' });
     return schema.run([ 'apply', 'schema.toml',
-                        `--connect=localhost:${rdb_server.driver_port}`,
+                        `--connect=localhost:${rdbServer.driverPort}`,
                         `--project-name=${project_name}` ])
       .then(() => mockFs.restore());
   });
 
-  after('stop rethinkdb', () => rdb_server && rdb_server.close());
+  after('stop rethinkdb', () => rdbServer && rdbServer.close());
   after('delete rethinkdb data directory', () => rm_sync_recursive(rdb_data_dir));
 
   afterEach('restore mockfs', () => mockFs.restore());

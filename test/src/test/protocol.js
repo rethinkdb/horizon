@@ -7,7 +7,7 @@ const assert = require('assert');
 const jsonpatch = require('jsonpatch');
 
 const allTests = (collection) => {
-  beforeEach('Authenticate client', (done) => utils.horizon_token_auth('admin', done));
+  beforeEach('Authenticate client', (done) => utils.horizonTokenAuth('admin', done));
 
   it('unparseable', (done) => {
     const conn = utils.horizonConn();
@@ -34,7 +34,7 @@ const allTests = (collection) => {
   it('keepalive', (done) => {
     utils.horizonConn().send(JSON.stringify({requestId: 0, type: 'keepalive'}));
     
-    utils.add_horizon_listener(0, (msg) => {
+    utils.addHorizonListener(0, (msg) => {
       assert.deepStrictEqual(msg, {state: 'complete', requestId: 0});
       done();
     });
@@ -47,7 +47,7 @@ const allTests = (collection) => {
     // There is no response for an endRequest, so just run a dummy keepalive roundtrip
     conn.send(JSON.stringify({requestId: 0, type: 'keepalive'}));
     
-    utils.add_horizon_listener(0, (msg) => {
+    utils.addHorizonListener(0, (msg) => {
       assert.deepStrictEqual(msg, {state: 'complete', requestId: 0});
       done();
     });
@@ -56,7 +56,7 @@ const allTests = (collection) => {
   it('no options', (done) => {
     utils.streamTest({requestId: 1}, (err, res) => {
       assert.deepStrictEqual(res, undefined);
-      utils.check_error(err, '"options" is required');
+      utils.checkError(err, '"options" is required');
       done();
     });
   });
@@ -93,15 +93,15 @@ const allTests = (collection) => {
       }));
     
     let result = {};
-    utils.add_horizon_listener(3, (msg) => {
+    utils.addHorizonListener(3, (msg) => {
       if (msg.patch !== undefined) {
         result = jsonpatch.apply_patch(result, msg.patch);
       }
       if (msg.error !== undefined) {
-        utils.remove_horizon_listener(3);
+        utils.removeHorizonListener(3);
         throw new Error(msg.error);
       } else if (result.synced) {
-        utils.remove_horizon_listener(3);
+        utils.removeHorizonListener(3);
         utils.closeHorizonConn();
         utils.table(collection).insert({}).run(utils.rdbConn())
          .then(() => done());

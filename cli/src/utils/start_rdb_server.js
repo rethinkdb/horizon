@@ -46,11 +46,11 @@ class RethinkdbServer extends EventEmitter {
 
     this.proc = spawn('stdbuf', args);
 
-    this.ready_promise = new Promise((resolve, reject) => {
+    this.readyPromise = new Promise((resolve, reject) => {
       this.proc.once('error', reject);
-      this.proc.once('exit', (exit_code) => {
-        if (exit_code !== 0) {
-          reject(new Error(`RethinkDB process terminated with error code ${exit_code}.`));
+      this.proc.once('exit', (exitCode) => {
+        if (exitCode !== 0) {
+          reject(new Error(`RethinkDB process terminated with error code ${exitCode}.`));
         }
       });
 
@@ -61,10 +61,10 @@ class RethinkdbServer extends EventEmitter {
         }
       });
 
-      const maybe_resolve = () => {
+      const maybeResolve = () => {
         // Once we have both ports determined, callback with all settings.
-        if (this.http_port !== undefined &&
-            this.driver_port !== undefined) {
+        if (this.httpPort !== undefined &&
+            this.driverPort !== undefined) {
           resolve(this);
         }
       };
@@ -77,20 +77,20 @@ class RethinkdbServer extends EventEmitter {
             this.emit('log', 'debug', line);
           }
         }
-        if (this.driver_port === undefined) {
+        if (this.driverPort === undefined) {
           const matches = line.match(
               /^Listening for client driver connections on port (\d+)$/);
           if (matches !== null && matches.length === 2) {
-            this.driver_port = parseInt(matches[1]);
-            maybe_resolve();
+            this.driverPort = parseInt(matches[1]);
+            maybeResolve();
           }
         }
-        if (this.http_port === undefined) {
+        if (this.httpPort === undefined) {
           const matches = line.match(
               /^Listening for administrative HTTP connections on port (\d+)$/);
           if (matches !== null && matches.length === 2) {
-            this.http_port = parseInt(matches[1]);
-            maybe_resolve();
+            this.httpPort = parseInt(matches[1]);
+            maybeResolve();
           }
         }
       });
@@ -101,13 +101,13 @@ class RethinkdbServer extends EventEmitter {
   }
 
   ready() {
-    return this.ready_promise;
+    return this.readyPromise;
   }
 
   // This is only used by tests - cli commands use a more generic method as
   // the database may be launched elsewhere.
   connect() {
-    return r.connect({host: 'localhost', port: this.driver_port});
+    return r.connect({host: 'localhost', port: this.driverPort});
   }
 
   close() {

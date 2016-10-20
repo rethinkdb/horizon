@@ -55,19 +55,19 @@ const fs_with_schema = (schema) => {
 
 describe('hz schema', () => {
   const rdb_data_dir = `${tmpdir()}/horizon-test-${process.pid}`;
-  let rdb_conn, rdb_server;
+  let rdbConn, rdbServer;
 
   before('start rethinkdb', () => {
-    rdb_server = start_rdb_server({dataDir: rdb_data_dir});
-    return rdb_server.ready()
+    rdbServer = start_rdb_server({dataDir: rdb_data_dir});
+    return rdbServer.ready()
   });
 
-  after('stop rethinkdb', () => rdb_server && rdb_server.close());
+  after('stop rethinkdb', () => rdbServer && rdbServer.close());
   after('delete rethinkdb data directory', () => rm_sync_recursive(rdb_data_dir));
 
   before('connect to rethinkdb', () =>
-    rdb_server.connect().then((conn) => {
-      rdb_conn = conn;
+    rdbServer.connect().then((conn) => {
+      rdbConn = conn;
     })
   );
 
@@ -81,7 +81,7 @@ describe('hz schema', () => {
         start_rethinkdb: false,
         schema_file: '.hz/schema.toml',
         project_name,
-        connect: `localhost:${rdb_server.driver_port}`,
+        connect: `localhost:${rdbServer.driverPort}`,
       }));
     });
 
@@ -90,14 +90,14 @@ describe('hz schema', () => {
         r.dbList().contains(project_name),
         r.dbDrop(project_name),
         null
-      ).run(rdb_conn)
+      ).run(rdbConn)
     );
 
     it('renames previous schema.toml if it already exists', () =>
       runSaveCommand({
         start_rethinkdb: false,
         rdb_host: 'localhost',
-        rdb_port: rdb_server.driver_port,
+        rdb_port: rdbServer.driverPort,
         out_file: '.hz/schema.toml',
         project_name,
       }).then(() =>
@@ -109,7 +109,7 @@ describe('hz schema', () => {
       runSaveCommand({
         start_rethinkdb: false,
         rdb_host: 'localhost',
-        rdb_port: rdb_server.driver_port,
+        rdb_port: rdbServer.driverPort,
         out_file: 'out.toml',
         project_name,
       }).then(() =>
@@ -124,13 +124,13 @@ describe('hz schema', () => {
         r.dbList().contains(project_name),
         r.dbDrop(project_name),
         null
-      ).run(rdb_conn)
+      ).run(rdbConn)
     );
 
     it('applies v1.x schema to rdb from schema.toml', () => {
       fs_with_schema(v1_schema);
       const config = processApplyConfig({
-        connect: `localhost:${rdb_server.driver_port}`,
+        connect: `localhost:${rdbServer.driverPort}`,
         schema_file: '.hz/schema.toml',
         start_rethinkdb: false,
         update: true,
@@ -143,11 +143,11 @@ describe('hz schema', () => {
       // Apply settings into RethinkDB
       return runApplyCommand(config).then(() =>
         // Check that the project database exists
-        r.dbList().contains(project_name).run(rdb_conn)
+        r.dbList().contains(project_name).run(rdbConn)
       ).then((res) =>
         assert(res, `${project_name} database is missing.`)
       ).then(() =>
-        r.db(project_name).table('test_messages').indexList().run(rdb_conn)
+        r.db(project_name).table('test_messages').indexList().run(rdbConn)
       ).then((indexes) => {
         // Check that the expected indexes exist on the expected table
         assert(indexes.indexOf('hz_[["datetime"]]') !== -1, '"datetime" index is missing');
@@ -156,7 +156,7 @@ describe('hz schema', () => {
 
     it('applies v2.x schema to rdb from schema.toml', () => {
       const config = processApplyConfig({
-        connect: `localhost:${rdb_server.driver_port}`,
+        connect: `localhost:${rdbServer.driverPort}`,
         schema_file: '.hz/schema.toml',
         start_rethinkdb: false,
         update: true,
@@ -169,11 +169,11 @@ describe('hz schema', () => {
       // Apply settings into RethinkDB
       return runApplyCommand(config).then(() =>
         // Check that the project database exists
-        r.dbList().contains(project_name).run(rdb_conn)
+        r.dbList().contains(project_name).run(rdbConn)
       ).then((res) =>
         assert(res, `${project_name} database is missing.`)
       ).then(() =>
-        r.db(project_name).table('test_messages').indexList().run(rdb_conn)
+        r.db(project_name).table('test_messages').indexList().run(rdbConn)
       ).then((indexes) => {
         // Check that the expected indexes exist on the expected table
         assert(indexes.indexOf('hz_[["datetime"]]') !== -1, '"datetime" index is missing');

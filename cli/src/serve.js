@@ -350,7 +350,7 @@ const start_horizon_server = (http_servers, opts) =>
 
 // `interruptor` is meant for use by tests to stop the server without relying on SIGINT
 const run = (args, interruptor) => {
-  let opts, http_servers, hz_server, rdb_server;
+  let opts, http_servers, hz_server, rdbServer;
   const old_log_level = logger.level;
 
   const cleanup = () => {
@@ -358,7 +358,7 @@ const run = (args, interruptor) => {
 
     return Promise.all([
       hz_server ? hz_server.close() : Promise.resolve(),
-      rdb_server ? rdb_server.close() : Promise.resolve(),
+      rdbServer ? rdbServer.close() : Promise.resolve(),
       http_servers ? Promise.all(http_servers.map((s) =>
         new Promise((resolve) => s.close(resolve)))) : Promise.resolve(),
     ]);
@@ -386,18 +386,18 @@ const run = (args, interruptor) => {
     http_servers = servers;
 
     if (opts.start_rethinkdb) {
-      rdb_server = start_rdb_server();
+      rdbServer = start_rdb_server();
       if (options.debug) {
-        rdb_server.on('log', (level, message) => logger[level](message));
+        rdbServer.on('log', (level, message) => logger[level](message));
       }
-      return rdb_server.ready().then(() => {
+      return rdbServer.ready().then(() => {
         // Don't need to check for host, always localhost.
         opts.rdb_host = 'localhost';
-        opts.rdb_port = rdb_server.driver_port;
+        opts.rdb_port = rdbServer.driverPort;
 
         console.log('RethinkDB');
-        console.log(`   ├── Admin interface: http://localhost:${rdb_server.http_port}`);
-        console.log(`   └── Drivers can connect to port ${rdb_server.driver_port}`);
+        console.log(`   ├── Admin interface: http://localhost:${rdbServer.httpPort}`);
+        console.log(`   └── Drivers can connect to port ${rdbServer.driverPort}`);
       });
     }
   }).then(() => {

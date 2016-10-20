@@ -280,14 +280,14 @@ const schema_to_toml = (collections, groups) => {
 };
 
 const runApplyCommand = (options) => {
-  let conn, schema, rdb_server;
+  let conn, schema, rdbServer;
   let obsolete_collections = [];
   const db = options.project_name;
 
   const cleanup = () =>
     Promise.all([
       conn ? conn.close() : Promise.resolve(),
-      rdb_server ? rdb_server.close() : Promise.resolve(),
+      rdbServer ? rdbServer.close() : Promise.resolve(),
     ]);
 
   interrupt.on_interrupt(() => cleanup());
@@ -307,13 +307,13 @@ const runApplyCommand = (options) => {
     schema = parse_schema(schema_toml);
 
     if (options.start_rethinkdb) {
-      rdb_server = start_rdb_server();
+      rdbServer = start_rdb_server();
       if (options.debug) {
-        rdb_server.on('log', (level, message) => logger[level](message));
+        rdbServer.on('log', (level, message) => logger[level](message));
       }
-      return rdb_server.ready().then(() => {
+      return rdbServer.ready().then(() => {
         options.rdb_host = 'localhost';
-        options.rdb_port = rdb_server.driver_port;
+        options.rdb_port = rdbServer.driverPort;
       });
     }
   }).then(() =>
@@ -484,13 +484,13 @@ const file_exists = (filename) => {
 };
 
 const runSaveCommand = (options) => {
-  let conn, rdb_server;
+  let conn, rdbServer;
   const db = options.project_name;
 
   const cleanup = () =>
     Promise.all([
       conn ? conn.close() : Promise.resolve(),
-      rdb_server ? rdb_server.close() : Promise.resolve(),
+      rdbServer ? rdbServer.close() : Promise.resolve(),
     ]);
 
   interrupt.on_interrupt(() => cleanup());
@@ -502,9 +502,9 @@ const runSaveCommand = (options) => {
   }).then(() => {
     if (options.start_rethinkdb) {
       return start_rdb_server({quiet: !options.debug}).then((server) => {
-        rdb_server = server;
+        rdbServer = server;
         options.rdb_host = 'localhost';
-        options.rdb_port = server.driver_port;
+        options.rdb_port = server.driverPort;
       });
     }
   }).then(() =>

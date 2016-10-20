@@ -10,7 +10,7 @@ const userId = 3;
 const userRow = {id: userId, groups: ['default']};
 
 // Permit all rows
-const permitted_validator = `
+const permittedValidator = `
 (userRow) => {
   if (!userRow) { throw new Error('Validator was not passed a user row.'); }
   return true;
@@ -18,7 +18,7 @@ const permitted_validator = `
 `;
 
 // Forbid all rows
-const forbidden_validator = `
+const forbiddenValidator = `
 (userRow) => {
   if (!userRow) { throw new Error('Validator was not passed a user row.'); }
   return false;
@@ -26,7 +26,7 @@ const forbidden_validator = `
 `;
 
 // Permit a row when the user's id is the last digit of the row's id
-const user_permitted_validator = `
+const userPermittedValidator = `
 (userRow, a, b) => {
   if (!userRow) { throw new Error('Validator was not passed a user row.'); }
   const value = (a && a.id) || (b && b.id);
@@ -36,19 +36,19 @@ const user_permitted_validator = `
 
 const allTests = (collection) => {
   describe('Validation', () => {
-    const table_data = [];
+    const tableData = [];
     for (let i = 0; i < 10; ++i) {
-      table_data.push({id: i});
+      tableData.push({id: i});
     }
 
     beforeEach('Clear test table', () =>
       r.table(collection).delete().run(utils.rdbConn()));
     beforeEach('Populate test table', () =>
-      r.table(collection).insert(table_data).run(utils.rdbConn()));
+      r.table(collection).insert(tableData).run(utils.rdbConn()));
     before('Create user row', () =>
       r.table('users').insert(userRow).run(utils.rdbConn()));
 
-    beforeEach('Authenticate', (done) => utils.horizon_token_auth(userId, done));
+    beforeEach('Authenticate', (done) => utils.horizonTokenAuth(userId, done));
 
     const run = (rawOptions, validator) => new Promise((resolve, reject) => {
       // Write group row into database
@@ -71,13 +71,13 @@ const allTests = (collection) => {
 
     describe('fetch', () => {
       it('permitted', () =>
-        run({order: [['id'], 'ascending'], fetch: []}, permitted_validator).then((res) => {
-          assert.deepStrictEqual(res, table_data);
+        run({order: [['id'], 'ascending'], fetch: []}, permittedValidator).then((res) => {
+          assert.deepStrictEqual(res, tableData);
         }));
 
       it('half-permitted', () =>
         run({order: [['id'], 'ascending'], above: [{id: 3}, 'closed'], fetch: []},
-            user_permitted_validator).then(() => {
+            userPermittedValidator).then(() => {
               assert(false, 'Read should not have been permitted.');
             }).catch((err) => {
               assert.strictEqual(err.message, 'Operation not permitted.');
@@ -88,7 +88,7 @@ const allTests = (collection) => {
             }));
 
       it('forbidden', () =>
-        run({fetch: []}, forbidden_validator).then(() => {
+        run({fetch: []}, forbiddenValidator).then(() => {
           assert(false, 'Read should not have been permitted.');
         }).catch((err) => {
           assert.strictEqual(err.message, 'Operation not permitted.');
@@ -107,7 +107,7 @@ const allTests = (collection) => {
 
       it('half-permitted', () =>
         run({order: [['id'], 'ascending'], above: [{id: 3}, 'closed'], limit: [3], watch: []},
-            user_permitted_validator).then(() => {
+            userPermittedValidator).then(() => {
               assert(false, 'Read should not have been permitted.');
             }).catch((err) => {
               assert.strictEqual(err.message, 'Operation not permitted.');
@@ -116,7 +116,7 @@ const allTests = (collection) => {
             }));
 
       it('forbidden', () =>
-        run({watch: []}, forbidden_validator).then(() => {
+        run({watch: []}, forbiddenValidator).then(() => {
           assert(false, 'Read should not have been permitted.');
         }).catch((err) => {
           assert.strictEqual(err.message, 'Operation not permitted.');
@@ -126,7 +126,7 @@ const allTests = (collection) => {
 
     describe('insert', () => {
       it('permitted', () =>
-        run({insert: [{id: 11}]}, permitted_validator).then((res) => {
+        run({insert: [{id: 11}]}, permittedValidator).then((res) => {
           assert.strictEqual(res.length, 1);
           assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 11);
@@ -135,7 +135,7 @@ const allTests = (collection) => {
         }));
 
       it('permitted based on context', () =>
-        run({insert: [{id: 13}]}, user_permitted_validator).then((res) => {
+        run({insert: [{id: 13}]}, userPermittedValidator).then((res) => {
           assert.strictEqual(res.length, 1);
           assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 13);
@@ -144,14 +144,14 @@ const allTests = (collection) => {
         }));
 
       it('forbidden', () =>
-        run({insert: [{id: 11}]}, forbidden_validator).then((res) => {
+        run({insert: [{id: 11}]}, forbiddenValidator).then((res) => {
           assert.deepStrictEqual(res, [{error: 'Operation not permitted.'}]);
           return r.table(collection).get(11).ne(null)
             .branch(r.error('write went through'), null).run(utils.rdbConn());
         }));
 
       it('forbidden based on context', () =>
-        run({insert: [{id: 11}]}, user_permitted_validator).then((res) => {
+        run({insert: [{id: 11}]}, userPermittedValidator).then((res) => {
           assert.deepStrictEqual(res, [{error: 'Operation not permitted.'}]);
           return r.table(collection).get(11).ne(null)
             .branch(r.error('write went through'), null).run(utils.rdbConn());
@@ -160,7 +160,7 @@ const allTests = (collection) => {
 
     describe('store', () => {
       it('permitted', () =>
-        run({store: [{id: 11}]}, permitted_validator).then((res) => {
+        run({store: [{id: 11}]}, permittedValidator).then((res) => {
           assert.strictEqual(res.length, 1);
           assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 11);
@@ -169,7 +169,7 @@ const allTests = (collection) => {
         }));
 
       it('permitted based on context', () =>
-        run({store: [{id: 13}]}, user_permitted_validator).then((res) => {
+        run({store: [{id: 13}]}, userPermittedValidator).then((res) => {
           assert.strictEqual(res.length, 1);
           assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 13);
@@ -178,14 +178,14 @@ const allTests = (collection) => {
         }));
 
       it('forbidden', () =>
-        run({store: [{id: 11}]}, forbidden_validator).then((res) => {
+        run({store: [{id: 11}]}, forbiddenValidator).then((res) => {
           assert.deepStrictEqual(res, [{error: 'Operation not permitted.'}]);
           return r.table(collection).get(11).ne(null)
             .branch(r.error('write went through'), null).run(utils.rdbConn());
         }));
 
       it('forbidden based on context', () =>
-        run({store: [{id: 11}]}, user_permitted_validator).then((res) => {
+        run({store: [{id: 11}]}, userPermittedValidator).then((res) => {
           assert.deepStrictEqual(res, [{error: 'Operation not permitted.'}]);
           return r.table(collection).get(11).ne(null)
             .branch(r.error('write went through'), null).run(utils.rdbConn());
@@ -194,7 +194,7 @@ const allTests = (collection) => {
 
     describe('upsert', () => {
       it('permitted', () =>
-        run({upsert: [{id: 11}]}, permitted_validator).then((res) => {
+        run({upsert: [{id: 11}]}, permittedValidator).then((res) => {
           assert.strictEqual(res.length, 1);
           assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 11);
@@ -203,7 +203,7 @@ const allTests = (collection) => {
         }));
 
       it('permitted based on context', () =>
-        run({upsert: [{id: 13}]}, user_permitted_validator).then((res) => {
+        run({upsert: [{id: 13}]}, userPermittedValidator).then((res) => {
           assert.strictEqual(res.length, 1);
           assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 13);
@@ -212,14 +212,14 @@ const allTests = (collection) => {
         }));
 
       it('forbidden', () =>
-        run({upsert: [{id: 11}]}, forbidden_validator).then((res) => {
+        run({upsert: [{id: 11}]}, forbiddenValidator).then((res) => {
           assert.deepStrictEqual(res, [{error: 'Operation not permitted.'}]);
           return r.table(collection).get(11).ne(null)
             .branch(r.error('write went through'), null).run(utils.rdbConn());
         }));
 
       it('forbidden based on context', () =>
-        run({upsert: [{id: 11}]}, user_permitted_validator).then((res) => {
+        run({upsert: [{id: 11}]}, userPermittedValidator).then((res) => {
           assert.deepStrictEqual(res, [{error: 'Operation not permitted.'}]);
           return r.table(collection).get(11).ne(null)
             .branch(r.error('write went through'), null).run(utils.rdbConn());
@@ -228,7 +228,7 @@ const allTests = (collection) => {
 
     describe('update', () => {
       it('permitted', () =>
-        run({update: [{id: 1, value: 5}]}, permitted_validator).then((res) => {
+        run({update: [{id: 1, value: 5}]}, permittedValidator).then((res) => {
           assert.strictEqual(res.length, 1);
           assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 1);
@@ -237,7 +237,7 @@ const allTests = (collection) => {
         }));
 
       it('permitted based on context', () =>
-        run({update: [{id: 3, value: 5}]}, user_permitted_validator).then((res) => {
+        run({update: [{id: 3, value: 5}]}, userPermittedValidator).then((res) => {
           assert.strictEqual(res.length, 1);
           assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 3);
@@ -246,14 +246,14 @@ const allTests = (collection) => {
         }));
 
       it('forbidden', () =>
-        run({update: [{id: 1, value: 5}]}, forbidden_validator).then((res) => {
+        run({update: [{id: 1, value: 5}]}, forbiddenValidator).then((res) => {
           assert.deepStrictEqual(res, [{error: 'Operation not permitted.'}]);
           return r.table(collection).get(1).hasFields('value')
             .branch(r.error('write went through'), null).run(utils.rdbConn());
         }));
 
       it('forbidden based on context', () =>
-        run({update: [{id: 1, value: 5}]}, user_permitted_validator).then((res) => {
+        run({update: [{id: 1, value: 5}]}, userPermittedValidator).then((res) => {
           assert.deepStrictEqual(res, [{error: 'Operation not permitted.'}]);
           return r.table(collection).get(1).hasFields('value')
             .branch(r.error('write went through'), null).run(utils.rdbConn());
@@ -262,7 +262,7 @@ const allTests = (collection) => {
 
     describe('replace', () => {
       it('permitted', () =>
-        run({replace: [{id: 1, value: 5}]}, permitted_validator).then((res) => {
+        run({replace: [{id: 1, value: 5}]}, permittedValidator).then((res) => {
           assert.strictEqual(res.length, 1);
           assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 1);
@@ -271,7 +271,7 @@ const allTests = (collection) => {
         }));
 
       it('permitted based on context', () =>
-        run({replace: [{id: 3, value: 5}]}, user_permitted_validator).then((res) => {
+        run({replace: [{id: 3, value: 5}]}, userPermittedValidator).then((res) => {
           assert.strictEqual(res.length, 1);
           assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 3);
@@ -280,14 +280,14 @@ const allTests = (collection) => {
         }));
 
       it('forbidden', () =>
-        run({replace: [{id: 1, value: 5}]}, forbidden_validator).then((res) => {
+        run({replace: [{id: 1, value: 5}]}, forbiddenValidator).then((res) => {
           assert.deepStrictEqual(res, [{error: 'Operation not permitted.'}]);
           return r.table(collection).get(1).hasFields('value')
             .branch(r.error('write went through'), null).run(utils.rdbConn());
         }));
 
       it('forbidden based on context', () =>
-        run({replace: [{id: 1, value: 5}]}, user_permitted_validator).then((res) => {
+        run({replace: [{id: 1, value: 5}]}, userPermittedValidator).then((res) => {
           assert.deepStrictEqual(res, [{error: 'Operation not permitted.'}]);
           return r.table(collection).get(1).hasFields('value')
             .branch(r.error('write went through'), null).run(utils.rdbConn());
@@ -296,7 +296,7 @@ const allTests = (collection) => {
 
     describe('remove', () => {
       it('permitted', () =>
-        run({remove: [{id: 1}]}, permitted_validator).then((res) => {
+        run({remove: [{id: 1}]}, permittedValidator).then((res) => {
           assert.strictEqual(res.length, 1);
           assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 1);
@@ -305,7 +305,7 @@ const allTests = (collection) => {
         }));
 
       it('permitted based on context', () =>
-        run({remove: [{id: 3}]}, user_permitted_validator).then((res) => {
+        run({remove: [{id: 3}]}, userPermittedValidator).then((res) => {
           assert.strictEqual(res.length, 1);
           assert.strictEqual(res[0].error, undefined);
           assert.strictEqual(res[0].id, 3);
@@ -314,14 +314,14 @@ const allTests = (collection) => {
         }));
 
       it('forbidden', () =>
-        run({remove: [{id: 1}]}, forbidden_validator).then((res) => {
+        run({remove: [{id: 1}]}, forbiddenValidator).then((res) => {
           assert.deepStrictEqual(res, [{error: 'Operation not permitted.'}]);
           return r.table(collection).get(1).eq(null)
             .branch(r.error('write went through'), null).run(utils.rdbConn());
         }));
 
       it('forbidden based on context', () =>
-        run({remove: [{id: 1}]}, user_permitted_validator).then((res) => {
+        run({remove: [{id: 1}]}, userPermittedValidator).then((res) => {
           assert.deepStrictEqual(res, [{error: 'Operation not permitted.'}]);
           return r.table(collection).get(1).eq(null)
             .branch(r.error('write went through'), null).run(utils.rdbConn());

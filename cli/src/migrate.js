@@ -150,9 +150,9 @@ function setup() {
     if (this.options.start_rethinkdb) {
       green(' ├── Starting RethinkDB server');
       return start_rdb_server().ready().then((server) => {
-        this.rdb_server = server;
+        this.rdbServer = server;
         this.options.rdb_host = 'localhost';
-        this.options.rdb_port = server.driver_port;
+        this.options.rdb_port = server.driverPort;
       });
     }
   }).then(() => {
@@ -179,9 +179,9 @@ function teardown() {
     }
   }).then(() => {
     // shut down the rethinkdb server if we started it
-    if (this.rdb_server) {
+    if (this.rdbServer) {
       green(' └── Shutting down rethinkdb server');
-      return this.rdb_server.close();
+      return this.rdbServer.close();
     }
   });
 }

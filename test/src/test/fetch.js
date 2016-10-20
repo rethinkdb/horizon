@@ -6,11 +6,11 @@ const assert = require('assert');
 
 // TODO: ensure each row is present in the results
 const allTests = (collection) => {
-  const num_rows = 10;
+  const numRows = 10;
 
   before('Clear collection', () => utils.clearCollection(collection));
-  before('Populate collection', () => utils.populateCollection(collection, num_rows));
-  beforeEach('Authenticate client', (done) => utils.horizon_token_auth('admin', done));
+  before('Populate collection', () => utils.populateCollection(collection, numRows));
+  beforeEach('Authenticate client', (done) => utils.horizonTokenAuth('admin', done));
 
   it('collection scan.', (done) => {
     utils.streamTest(
@@ -23,7 +23,7 @@ const allTests = (collection) => {
       },
       (err, res) => {
         assert.ifError(err);
-        assert.strictEqual(res.length, num_rows);
+        assert.strictEqual(res.length, numRows);
         done();
       });
   });
@@ -40,7 +40,7 @@ const allTests = (collection) => {
       },
       (err, res) => {
         assert.ifError(err);
-        assert.strictEqual(res.length, num_rows);
+        assert.strictEqual(res.length, numRows);
         done();
       });
   });
@@ -366,7 +366,7 @@ const allTests = (collection) => {
         },
       },
       (err) => {
-        utils.check_error(err, '"above" must be on the same field as the first in "order"');
+        utils.checkError(err, '"above" must be on the same field as the first in "order"');
         done();
       });
   });
@@ -384,7 +384,7 @@ const allTests = (collection) => {
         },
       },
       (err) => {
-        utils.check_error(err, '"above" must be on the same field as the first in "order"');
+        utils.checkError(err, '"above" must be on the same field as the first in "order"');
         done();
       });
   });
@@ -402,7 +402,7 @@ const allTests = (collection) => {
         },
       },
       (err) => {
-        utils.check_error(err, '"below" must be on the same field as the first in "order"');
+        utils.checkError(err, '"below" must be on the same field as the first in "order"');
         done();
       });
   });
@@ -420,7 +420,7 @@ const allTests = (collection) => {
         },
       },
       (err) => {
-        utils.check_error(err, '"below" must be on the same field as the first in "order"');
+        utils.checkError(err, '"below" must be on the same field as the first in "order"');
         done();
       });
   });
@@ -438,7 +438,7 @@ const allTests = (collection) => {
         },
       },
       (err) => {
-        utils.check_error(err, '"below" must be on the same field as "above"');
+        utils.checkError(err, '"below" must be on the same field as "above"');
         done();
       });
   });

@@ -10,17 +10,17 @@ const hzv = pluginUtils.writes.versionField;
 const invalidatedMsg = pluginUtils.writes.invalidatedMsg;
 
 // Before each test, ids [0, 4) will be present in the collection
-const original_data = [
-  {id: 0, old_field: [], [hzv]: 0},
-  {id: 1, old_field: [], [hzv]: 0},
-  {id: 2, old_field: [], [hzv]: 0},
-  {id: 3, old_field: [], [hzv]: 0},
+const originalData = [
+  {id: 0, oldField: [], [hzv]: 0},
+  {id: 1, oldField: [], [hzv]: 0},
+  {id: 2, oldField: [], [hzv]: 0},
+  {id: 3, oldField: [], [hzv]: 0},
 ];
 
-const new_id = [4];
-const conflict_id = [3];
-const new_ids = [4, 5, 6];
-const conflict_ids = [2, 3, 4];
+const newId = [4];
+const conflictId = [3];
+const newIds = [4, 5, 6];
+const conflictIds = [2, 3, 4];
 
 const withoutVersion = (item) => {
   const res = Object.assign({}, item);
@@ -40,13 +40,13 @@ const checkCollectionData = (actual, expected) => {
 
 // TODO: verify through reql that rows have been inserted/removed
 const allTests = (collection) => {
-  const new_row_from_id = (id) => ({id, new_field: 'a'});
-  const merged_row_from_id = (id) => {
-    if (id >= 4) { return new_row_from_id(id); }
-    return {id, new_field: 'a', old_field: []};
+  const newRowFromId = (id) => ({id, newField: 'a'});
+  const mergedRowFromId = (id) => {
+    if (id >= 4) { return newRowFromId(id); }
+    return {id, newField: 'a', oldField: []};
   };
 
-  const make_request = (type, data, options) => ({
+  const makeRequest = (type, data, options) => ({
     requestId: crypto.randomBytes(4).readUInt32BE(),
     options: Object.assign({}, options || {}, {collection: [collection], [type]: data}),
   });
@@ -59,163 +59,163 @@ const allTests = (collection) => {
       }).catch((err) => done(err));
   };
 
-  const combine_sort_data = (old_data, new_data, on_new, on_conflict) => {
+  const combineSortData = (oldData, newData, onNew, onConflict) => {
     const map = new Map();
-    old_data.forEach((row) => map.set(row.id, row));
-    new_data.forEach((row) => {
+    oldData.forEach((row) => map.set(row.id, row));
+    newData.forEach((row) => {
       if (map.has(row.id)) {
-        on_conflict(row, map);
+        onConflict(row, map);
       } else {
-        on_new(row, map);
+        onNew(row, map);
       }
     });
     return Array.from(map.values()).sort((a, b) => a.id - b.id);
   };
 
-  const union_sort_data = (old_data, new_data) =>
-    combine_sort_data(old_data, new_data,
+  const unionSortData = (oldData, newData) =>
+    combineSortData(oldData, newData,
       (row, map) => map.set(row.id, row), (row, map) => map.set(row.id, row));
 
-  const replace_sort_data = (old_data, new_data) =>
-    combine_sort_data(old_data, new_data,
+  const replaceSortData = (oldData, newData) =>
+    combineSortData(oldData, newData,
       () => null, (row, map) => map.set(row.id, row));
 
   beforeEach('Clear collection', () => utils.clearCollection(collection));
 
   describe('Basic writes', () => {
-    beforeEach('Authenticate', (done) => utils.horizon_token_auth('admin', done));
-    beforeEach('Populate collection', () => utils.populateCollection(collection, original_data));
+    beforeEach('Authenticate', (done) => utils.horizonTokenAuth('admin', done));
+    beforeEach('Populate collection', () => utils.populateCollection(collection, originalData));
 
-    const request_from_ids = (type, ids) => make_request(type, ids.map(new_row_from_id));
+    const requestFromIds = (type, ids) => makeRequest(type, ids.map(newRowFromId));
 
     describe('Store', () => {
-      const test_case = (ids, done) => {
-        utils.streamTest(request_from_ids('store', ids), (err, res) => {
+      const testCase = (ids, done) => {
+        utils.streamTest(requestFromIds('store', ids), (err, res) => {
           const expected = ids.map((id) => ({id}));
           assert.ifError(err);
           compareWriteResponse(res, expected);
-          const new_data = ids.map(new_row_from_id);
-          checkCollection(union_sort_data(original_data, new_data), done);
+          const newData = ids.map(newRowFromId);
+          checkCollection(unionSortData(originalData, newData), done);
         });
       };
 
-      it('new', (done) => test_case(new_id, done));
-      it('conflict', (done) => test_case(conflict_id, done));
-      it('batch new', (done) => test_case(new_ids, done));
-      it('batch conflict', (done) => test_case(conflict_ids, done));
+      it('new', (done) => testCase(newId, done));
+      it('conflict', (done) => testCase(conflictId, done));
+      it('batch new', (done) => testCase(newIds, done));
+      it('batch conflict', (done) => testCase(conflictIds, done));
     });
 
     describe('Replace', () => {
-      const test_case = (ids, done) => {
-        utils.streamTest(request_from_ids('replace', ids), (err, res) => {
+      const testCase = (ids, done) => {
+        utils.streamTest(requestFromIds('replace', ids), (err, res) => {
           const expected = ids.map((id) =>
-            (id < original_data.length ? {id} : {error: 'The document was missing.'})
+            (id < originalData.length ? {id} : {error: 'The document was missing.'})
           );
           assert.ifError(err);
           compareWriteResponse(res, expected);
-          const new_data = ids.map(new_row_from_id);
-          checkCollection(replace_sort_data(original_data, new_data), done);
+          const newData = ids.map(newRowFromId);
+          checkCollection(replaceSortData(originalData, newData), done);
         });
       };
 
-      it('new', (done) => test_case(new_id, done));
-      it('conflict', (done) => test_case(conflict_id, done));
-      it('batch new', (done) => test_case(new_ids, done));
-      it('batch conflict', (done) => test_case(conflict_ids, done));
+      it('new', (done) => testCase(newId, done));
+      it('conflict', (done) => testCase(conflictId, done));
+      it('batch new', (done) => testCase(newIds, done));
+      it('batch conflict', (done) => testCase(conflictIds, done));
     });
 
     describe('Upsert', () => {
-      const test_case = (ids, done) => {
-        utils.streamTest(request_from_ids('upsert', ids), (err, res) => {
+      const testCase = (ids, done) => {
+        utils.streamTest(requestFromIds('upsert', ids), (err, res) => {
           const expected = ids.map((id) => ({id}));
           assert.ifError(err);
           compareWriteResponse(res, expected);
-          const new_data = ids.map(merged_row_from_id);
-          checkCollection(union_sort_data(original_data, new_data), done);
+          const newData = ids.map(mergedRowFromId);
+          checkCollection(unionSortData(originalData, newData), done);
         });
       };
 
-      it('new', (done) => test_case(new_id, done));
-      it('conflict', (done) => test_case(conflict_id, done));
-      it('batch new', (done) => test_case(new_ids, done));
-      it('batch conflict', (done) => test_case(conflict_ids, done));
+      it('new', (done) => testCase(newId, done));
+      it('conflict', (done) => testCase(conflictId, done));
+      it('batch new', (done) => testCase(newIds, done));
+      it('batch conflict', (done) => testCase(conflictIds, done));
     });
 
     describe('Update', () => {
-      const test_case = (ids, done) => {
-        utils.streamTest(request_from_ids('update', ids), (err, res) => {
+      const testCase = (ids, done) => {
+        utils.streamTest(requestFromIds('update', ids), (err, res) => {
           const expected = ids.map((id) =>
-            (id < original_data.length ? {id} : {error: 'The document was missing.'})
+            (id < originalData.length ? {id} : {error: 'The document was missing.'})
           );
           assert.ifError(err);
           compareWriteResponse(res, expected);
-          const new_data = ids.map(merged_row_from_id);
-          checkCollection(replace_sort_data(original_data, new_data), done);
+          const newData = ids.map(mergedRowFromId);
+          checkCollection(replaceSortData(originalData, newData), done);
         });
       };
 
-      it('new', (done) => test_case(new_id, done));
-      it('conflict', (done) => test_case(conflict_id, done));
-      it('batch new', (done) => test_case(new_ids, done));
-      it('batch conflict', (done) => test_case(conflict_ids, done));
+      it('new', (done) => testCase(newId, done));
+      it('conflict', (done) => testCase(conflictId, done));
+      it('batch new', (done) => testCase(newIds, done));
+      it('batch conflict', (done) => testCase(conflictIds, done));
     });
 
     describe('Insert', () => {
-      const add_sort_data = (old_data, new_data) =>
-        combine_sort_data(old_data, new_data,
+      const addSortData = (oldData, newData) =>
+        combineSortData(oldData, newData,
           (row, map) => map.set(row.id, row), () => null);
 
-      const test_case = (ids, done) => {
-        utils.streamTest(request_from_ids('insert', ids), (err, res) => {
+      const testCase = (ids, done) => {
+        utils.streamTest(requestFromIds('insert', ids), (err, res) => {
           const expected = ids.map((id) =>
-            (id >= original_data.length ? {id} : {error: 'The document already exists.'})
+            (id >= originalData.length ? {id} : {error: 'The document already exists.'})
           );
 
           assert.ifError(err);
           compareWriteResponse(res, expected);
-          const new_data = ids.map(new_row_from_id);
-          checkCollection(add_sort_data(original_data, new_data), done);
+          const newData = ids.map(newRowFromId);
+          checkCollection(addSortData(originalData, newData), done);
         });
       };
 
-      it('new', (done) => test_case(new_id, done));
-      it('conflict', (done) => test_case(conflict_id, done));
-      it('batch new', (done) => test_case(new_ids, done));
-      it('batch conflict', (done) => test_case(conflict_ids, done));
+      it('new', (done) => testCase(newId, done));
+      it('conflict', (done) => testCase(conflictId, done));
+      it('batch new', (done) => testCase(newIds, done));
+      it('batch conflict', (done) => testCase(conflictIds, done));
     });
 
     describe('Remove', () => {
-      // `old_data` and `new_data` may overlap, but each cannot contain duplicates
-      const remove_sort_data = (old_data, new_data) =>
-        combine_sort_data(old_data, new_data,
+      // `oldData` and `newData` may overlap, but each cannot contain duplicates
+      const removeSortData = (oldData, newData) =>
+        combineSortData(oldData, newData,
           () => null,
           (row, map) => map.delete(row.id));
 
-      const test_case = (ids, done) => {
-        utils.streamTest(request_from_ids('remove', ids), (err, res) => {
+      const testCase = (ids, done) => {
+        utils.streamTest(requestFromIds('remove', ids), (err, res) => {
           const expected = ids.map((id) => ({id}));
           assert.ifError(err);
           compareWriteResponse(res, expected);
-          const deleted_data = ids.map(new_row_from_id);
-          checkCollection(remove_sort_data(original_data, deleted_data), done);
+          const deletedData = ids.map(newRowFromId);
+          checkCollection(removeSortData(originalData, deletedData), done);
         });
       };
 
-      it('new', (done) => test_case(new_id, done));
-      it('conflict', (done) => test_case(conflict_id, done));
-      it('batch new', (done) => test_case(new_ids, done));
-      it('batch conflict', (done) => test_case(conflict_ids, done));
+      it('new', (done) => testCase(newId, done));
+      it('conflict', (done) => testCase(conflictId, done));
+      it('batch new', (done) => testCase(newIds, done));
+      it('batch conflict', (done) => testCase(conflictIds, done));
     });
   });
 
   describe('Versioned', () => {
-    beforeEach('Authenticate', (done) => utils.horizon_token_auth('admin', done));
+    beforeEach('Authenticate', (done) => utils.horizonTokenAuth('admin', done));
 
-    const test_data = [{id: 'versioned', [hzv]: 11, foo: 'bar'}];
-    beforeEach('Populate collection', () => utils.populateCollection(collection, test_data));
+    const testData = [{id: 'versioned', [hzv]: 11, foo: 'bar'}];
+    beforeEach('Populate collection', () => utils.populateCollection(collection, testData));
 
     describe('Store', () => {
-      const request = (row) => make_request('store', [row]);
+      const request = (row) => makeRequest('store', [row]);
 
       it('correct version', (done) => {
         utils.streamTest(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
@@ -231,13 +231,13 @@ const allTests = (collection) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          checkCollection(test_data, done);
+          checkCollection(testData, done);
         });
       });
     });
 
     describe('Replace', () => {
-      const request = (row) => make_request('replace', [row]);
+      const request = (row) => makeRequest('replace', [row]);
 
       it('correct version', (done) => {
         utils.streamTest(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
@@ -253,13 +253,13 @@ const allTests = (collection) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          checkCollection(test_data, done);
+          checkCollection(testData, done);
         });
       });
     });
 
     describe('Upsert', () => {
-      const request = (row) => make_request('upsert', [row]);
+      const request = (row) => makeRequest('upsert', [row]);
 
       it('correct version', (done) => {
         utils.streamTest(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
@@ -275,13 +275,13 @@ const allTests = (collection) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          checkCollection(test_data, done);
+          checkCollection(testData, done);
         });
       });
     });
 
     describe('Update', () => {
-      const request = (row) => make_request('update', [row]);
+      const request = (row) => makeRequest('update', [row]);
 
       it('correct version', (done) => {
         utils.streamTest(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
@@ -297,13 +297,13 @@ const allTests = (collection) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          checkCollection(test_data, done);
+          checkCollection(testData, done);
         });
       });
     });
 
     describe('Remove', () => {
-      const request = (row) => make_request('remove', [row]);
+      const request = (row) => makeRequest('remove', [row]);
 
       it('correct version', (done) => {
         utils.streamTest(request({id: 'versioned', value: 1, [hzv]: 11}), (err, res) => {
@@ -319,20 +319,20 @@ const allTests = (collection) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          checkCollection(test_data, done);
+          checkCollection(testData, done);
         });
       });
     });
   });
 
   describe('Versionless', () => {
-    beforeEach('Authenticate', (done) => utils.horizon_token_auth('admin', done));
+    beforeEach('Authenticate', (done) => utils.horizonTokenAuth('admin', done));
 
-    const test_data = [{id: 'versionless', foo: 'bar'}];
-    beforeEach('Populate collection', () => utils.populateCollection(collection, test_data));
+    const testData = [{id: 'versionless', foo: 'bar'}];
+    beforeEach('Populate collection', () => utils.populateCollection(collection, testData));
 
     describe('Store', () => {
-      const request = (row) => make_request('store', [row]);
+      const request = (row) => makeRequest('store', [row]);
 
       it('unspecified version', (done) => {
         utils.streamTest(request({id: 'versionless', value: 3}), (err, res) => {
@@ -348,13 +348,13 @@ const allTests = (collection) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          checkCollection(test_data, done);
+          checkCollection(testData, done);
         });
       });
     });
 
     describe('Replace', () => {
-      const request = (row) => make_request('replace', [row]);
+      const request = (row) => makeRequest('replace', [row]);
 
       it('unspecified version', (done) => {
         utils.streamTest(request({id: 'versionless', value: 3}), (err, res) => {
@@ -370,13 +370,13 @@ const allTests = (collection) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          checkCollection(test_data, done);
+          checkCollection(testData, done);
         });
       });
     });
 
     describe('Upsert', () => {
-      const request = (row) => make_request('upsert', [row]);
+      const request = (row) => makeRequest('upsert', [row]);
 
       it('unspecified version', (done) => {
         utils.streamTest(request({id: 'versionless', value: 3}), (err, res) => {
@@ -392,13 +392,13 @@ const allTests = (collection) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          checkCollection(test_data, done);
+          checkCollection(testData, done);
         });
       });
     });
 
     describe('Update', () => {
-      const request = (row) => make_request('update', [row]);
+      const request = (row) => makeRequest('update', [row]);
 
       it('unspecified version', (done) => {
         utils.streamTest(request({id: 'versionless', value: 3}), (err, res) => {
@@ -414,13 +414,13 @@ const allTests = (collection) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          checkCollection(test_data, done);
+          checkCollection(testData, done);
         });
       });
     });
 
     describe('Remove', () => {
-      const request = (row) => make_request('remove', [row]);
+      const request = (row) => makeRequest('remove', [row]);
 
       it('unspecified version', (done) => {
         utils.streamTest(request({id: 'versionless', value: 3}), (err, res) => {
@@ -436,7 +436,7 @@ const allTests = (collection) => {
           assert.ifError(err);
           const expected = [{error: invalidatedMsg}];
           assert.deepStrictEqual(res, expected);
-          checkCollection(test_data, done);
+          checkCollection(testData, done);
         });
       });
     });
@@ -447,10 +447,10 @@ const allTests = (collection) => {
   // write will make it through each loop, although it is undefined in which order
   // the writes occur.
   describe('Retry', () => {
-    beforeEach('Authenticate', (done) => utils.horizon_unauthenticated_auth(done));
+    beforeEach('Authenticate', (done) => utils.horizonUnauthenticatedAuth(done));
 
     // Set a catch-all rule for the 'default' group so we can have a validator
-    before('Set rules', (done) => utils.set_group({
+    before('Set rules', (done) => utils.setGroup({
       id: 'default',
       rules: {
         dummy: {
@@ -466,71 +466,71 @@ const allTests = (collection) => {
       {id: 0, c: 3},
     ];
 
-    const by_version = (a, b) => a[hzv] - b[hzv];
-    const check_and_get_latest_write = (res) => {
-      const latest_index = res.findIndex((x) => x[hzv] === 2);
-      assert(latest_index !== -1);
-      res.sort(by_version);
+    const byVersion = (a, b) => a[hzv] - b[hzv];
+    const checkAndGetLatestWrite = (res) => {
+      const latestIndex = res.findIndex((x) => x[hzv] === 2);
+      assert(latestIndex !== -1);
+      res.sort(byVersion);
       assert.deepStrictEqual(res, [{id: 0, [hzv]: 0},
                                     {id: 0, [hzv]: 1},
                                     {id: 0, [hzv]: 2}]);
-      return writes[latest_index];
+      return writes[latestIndex];
     };
 
     // For some tests, we expect exactly one write to succeed and the others
     // to fail.  Which write succeeds is not guaranteed to be deterministic,
     // so we return the successful write data.
-    const check_one_successful_write = (res, error) => {
-      const success_index = res.findIndex((x) => x.error === undefined);
-      assert(success_index !== -1);
+    const checkOneSuccessfulWrite = (res, error) => {
+      const successIndex = res.findIndex((x) => x.error === undefined);
+      assert(successIndex !== -1);
       for (let i = 0; i < res.length; ++i) {
-        if (i === success_index) {
+        if (i === successIndex) {
           assert.deepStrictEqual(res[i], {id: 0, [hzv]: 0});
         } else {
           assert.deepStrictEqual(res[i], {error});
         }
       }
-      return writes[success_index];
+      return writes[successIndex];
     };
 
     describe('Existing Row', () => {
-      const test_data = [{id: 0, value: 0}];
-      beforeEach('Populate collection', () => utils.populateCollection(collection, test_data));
+      const testData = [{id: 0, value: 0}];
+      beforeEach('Populate collection', () => utils.populateCollection(collection, testData));
 
       it('Store', (done) => {
-        utils.streamTest(make_request('store', writes), (err, res) => {
+        utils.streamTest(makeRequest('store', writes), (err, res) => {
           assert.ifError(err);
-          const latest_write = check_and_get_latest_write(res);
-          checkCollection([Object.assign({[hzv]: 2}, latest_write)], done);
+          const latestWrite = checkAndGetLatestWrite(res);
+          checkCollection([Object.assign({[hzv]: 2}, latestWrite)], done);
         });
       });
 
       it('Replace', (done) => {
-        utils.streamTest(make_request('replace', writes), (err, res) => {
+        utils.streamTest(makeRequest('replace', writes), (err, res) => {
           assert.ifError(err);
-          const latest_write = check_and_get_latest_write(res);
-          checkCollection([Object.assign({[hzv]: 2}, latest_write)], done);
+          const latestWrite = checkAndGetLatestWrite(res);
+          checkCollection([Object.assign({[hzv]: 2}, latestWrite)], done);
         });
       });
 
       it('Upsert', (done) => {
-        utils.streamTest(make_request('upsert', writes), (err, res) => {
+        utils.streamTest(makeRequest('upsert', writes), (err, res) => {
           assert.ifError(err);
-          check_and_get_latest_write(res);
+          checkAndGetLatestWrite(res);
           checkCollection([{id: 0, value: 0, a: 1, b: 2, c: 3, [hzv]: 2}], done);
         });
       });
 
       it('Update', (done) => {
-        utils.streamTest(make_request('update', writes), (err, res) => {
+        utils.streamTest(makeRequest('update', writes), (err, res) => {
           assert.ifError(err);
-          check_and_get_latest_write(res);
+          checkAndGetLatestWrite(res);
           checkCollection([{id: 0, value: 0, a: 1, b: 2, c: 3, [hzv]: 2}], done);
         });
       });
 
       it('Remove', (done) => {
-        utils.streamTest(make_request('remove', writes), (err, res) => {
+        utils.streamTest(makeRequest('remove', writes), (err, res) => {
           assert.ifError(err);
           assert.deepStrictEqual(res.map((x) => x[hzv]).sort(), [undefined, undefined, undefined]);
           assert.deepStrictEqual(res.map((x) => x.id), [0, 0, 0]);
@@ -541,23 +541,23 @@ const allTests = (collection) => {
 
     describe('New Row', () => {
       it('Insert', (done) => {
-        utils.streamTest(make_request('insert', writes), (err, res) => {
+        utils.streamTest(makeRequest('insert', writes), (err, res) => {
           assert.ifError(err);
-          const success_write = check_one_successful_write(res, 'The document already exists.');
-          checkCollection([Object.assign({[hzv]: 0}, success_write)], done);
+          const successWrite = checkOneSuccessfulWrite(res, 'The document already exists.');
+          checkCollection([Object.assign({[hzv]: 0}, successWrite)], done);
         });
       });
 
       it('Store', (done) => {
-        utils.streamTest(make_request('store', writes), (err, res) => {
+        utils.streamTest(makeRequest('store', writes), (err, res) => {
           assert.ifError(err);
-          const latest_write = check_and_get_latest_write(res);
-          checkCollection([Object.assign({[hzv]: 2}, latest_write)], done);
+          const latestWrite = checkAndGetLatestWrite(res);
+          checkCollection([Object.assign({[hzv]: 2}, latestWrite)], done);
         });
       });
 
       it('Upsert', (done) => {
-        utils.streamTest(make_request('upsert', writes), (err, res) => {
+        utils.streamTest(makeRequest('upsert', writes), (err, res) => {
           assert.ifError(err);
           assert.deepStrictEqual(res.map((x) => x[hzv]).sort(), [0, 1, 2]);
           assert.deepStrictEqual(res.map((x) => x.id), [0, 0, 0]);
@@ -572,38 +572,38 @@ const allTests = (collection) => {
     // timeout of zero, so the other rows should immediately error.
     describe('Zero Timeout', () => {
       const timeout = {timeout: [0]};
-      const test_data = [{id: 0, value: 0}];
-      beforeEach('Populate collection', () => utils.populateCollection(collection, test_data));
+      const testData = [{id: 0, value: 0}];
+      beforeEach('Populate collection', () => utils.populateCollection(collection, testData));
 
       it('Store', (done) => {
-        utils.streamTest(make_request('store', writes, timeout), (err, res) => {
+        utils.streamTest(makeRequest('store', writes, timeout), (err, res) => {
           assert.ifError(err);
-          const success_write = check_one_successful_write(res, 'Operation timed out.');
-          checkCollection([Object.assign({[hzv]: 0}, success_write)], done);
+          const successWrite = checkOneSuccessfulWrite(res, 'Operation timed out.');
+          checkCollection([Object.assign({[hzv]: 0}, successWrite)], done);
         });
       });
 
       it('Replace', (done) => {
-        utils.streamTest(make_request('replace', writes, timeout), (err, res) => {
+        utils.streamTest(makeRequest('replace', writes, timeout), (err, res) => {
           assert.ifError(err);
-          const success_write = check_one_successful_write(res, 'Operation timed out.');
-          checkCollection([Object.assign({[hzv]: 0}, success_write)], done);
+          const successWrite = checkOneSuccessfulWrite(res, 'Operation timed out.');
+          checkCollection([Object.assign({[hzv]: 0}, successWrite)], done);
         });
       });
 
       it('Upsert', (done) => {
-        utils.streamTest(make_request('upsert', writes, timeout), (err, res) => {
+        utils.streamTest(makeRequest('upsert', writes, timeout), (err, res) => {
           assert.ifError(err);
-          const success_write = check_one_successful_write(res, 'Operation timed out.');
-          checkCollection([Object.assign({[hzv]: 0}, test_data[0], success_write)], done);
+          const successWrite = checkOneSuccessfulWrite(res, 'Operation timed out.');
+          checkCollection([Object.assign({[hzv]: 0}, testData[0], successWrite)], done);
         });
       });
 
       it('Update', (done) => {
-        utils.streamTest(make_request('update', writes, timeout), (err, res) => {
+        utils.streamTest(makeRequest('update', writes, timeout), (err, res) => {
           assert.ifError(err);
-          const success_write = check_one_successful_write(res, 'Operation timed out.');
-          checkCollection([Object.assign({[hzv]: 0}, test_data[0], success_write)], done);
+          const successWrite = checkOneSuccessfulWrite(res, 'Operation timed out.');
+          checkCollection([Object.assign({[hzv]: 0}, testData[0], successWrite)], done);
         });
       });
     });
