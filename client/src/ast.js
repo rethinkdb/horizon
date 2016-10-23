@@ -68,7 +68,7 @@ export class TermBase {
                        `${JSON.stringify(this.query.below[1])})`
     }
     if (this._query.limit) {
-      string += '.limit(this._query.limit))'
+      string += `.limit(${JSON.stringify(this._query.limit)})`
     }
     return string
   }
