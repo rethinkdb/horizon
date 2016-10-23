@@ -8,16 +8,16 @@ export class TermBase {
   }
 }
 
-export function addOption(name, isTerminal) {
-  if (isTerminal) {
+export function addOption(name, type) {
+  if (type === 'terminal') {
     TermBase.prototype[name] = function (...args) {
       const newOptions = Object.assign({[name]: args}, this[optionsSymbol])
-      return new TermBase(newOptions, this[sendSymbol])
+      return this[sendSymbol](newOptions)
     }
   } else {
     TermBase.prototype[name] = function (...args) {
       const newOptions = Object.assign({[name]: args}, this[optionsSymbol])
-      return this[sendSymbol](newOptions)
+      return new TermBase(newOptions, this[sendSymbol])
     }
   }
 }

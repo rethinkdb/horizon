@@ -35,6 +35,16 @@ const clientSourceMap = lazyLoadSource(`${clientSourcePath}.map`);
 const clientSourceCore = lazyLoadSource(clientSourceCorePath);
 const clientSourceCoreMap = lazyLoadSource(`${clientSourceCorePath}.map`);
 
+function makeCapabilitiesCode(capabilities) {
+  return `
+;{
+  let capabilities = ${JSON.stringify(capabilities)};
+  Object.keys(capabilities).forEach(function (key) {
+    Horizon.addOption(key, capabilities[key].type);
+  });
+};`;
+}
+
 class Server {
   constructor(httpServers, options) {
     this.events = new EventEmitter();
@@ -263,7 +273,7 @@ class Server {
     if (!this._capabilities) {
       this._capabilities = {};
       for (const key in this._methods) {
-        this._capabilities[key] = {type: this._methods[key]};
+        this._capabilities[key] = {type: this._methods[key].type};
       }
     }
     return this._capabilities;
@@ -271,13 +281,7 @@ class Server {
 
   applyCapabilitiesCode() {
     if (!this._applyCapabilitiesCode) {
-      this._applyCapabilitiesCode =
-        `;{
-           let capabilities = ${JSON.stringify(this.capabilities())};
-           Object.keys(capabilities).forEach(function (key) {
-             Horizon.addOption(key, capabilities[key].type);
-           });
-         };`;
+      this._applyCapabilitiesCode = makeCapabilitiesCode(this.capabilities());
     }
     return this._applyCapabilitiesCode;
   }

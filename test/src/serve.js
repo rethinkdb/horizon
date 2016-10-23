@@ -26,8 +26,8 @@ const crypto = require('crypto');
 const argparse = require('argparse');
 
 const dataDir = path.resolve(__dirname, 'rethinkdb_data_test');
-const testDistDir = path.resolve(__dirname, '../../client/dist');
-const examplesDir = path.resolve(__dirname, '../../examples');
+const rootDir = path.resolve(__dirname, '../..');
+const clientDistDir = path.resolve(rootDir, 'client/dist');
 
 const parser = new argparse.ArgumentParser();
 parser.addArgument(['--port', '-p'],
@@ -53,28 +53,33 @@ if (options.bind.indexOf('all') !== -1) { options.bind = ['0.0.0.0']; }
 process.on('SIGINT', () => process.exit(0));
 process.on('SIGTERM', () => process.exit(0));
 
-const serveFile = (filePath, res) => {
-  fs.access(filePath, fs.R_OK | fs.F_OK, (exists) => {
-    if (exists) {
-      res.writeHead(404, {'Content-Type': 'text/plain'});
-      res.end(`File "${filePath}" not found\n`);
+function readFile(filePath) {
+  return new Promise((resolve, reject) =>
+    fs.access(filePath, fs.R_OK | fs.F_OK, (exists) => {
+      if (exists) {
+        reject(new Error(`File "${filePath}" not found.`));
+      } else {
+        fs.readFile(filePath, 'binary',
+          (err, file) => (err ? reject(err) : resolve(file)));
+      }
+    })
+  );
+}
+
+function serveFile(filePath, res) {
+  console.log(`serving file ${filePath}`);
+  readFile(filePath).then((data) => {
+    if (filePath.endsWith('.js')) {
+      res.writeHead(200, {'Content-Type': 'application/javascript'});
+    } else if (filePath.endsWith('.html')) {
+      res.writeHead(200, {'Content-Type': 'text/html'});
     } else {
-      fs.readFile(filePath, 'binary', (err, file) => {
-        if (err) {
-          res.writeHead(500, {'Content-Type': 'text/plain'});
-          res.end(`${err}\n`);
-        } else {
-          if (filePath.endsWith('.js')) {
-            res.writeHead(200, {'Content-Type': 'application/javascript'});
-          } else if (filePath.endsWith('.html')) {
-            res.writeHead(200, {'Content-Type': 'text/html'});
-          } else {
-            res.writeHead(200);
-          }
-          res.end(file, 'binary');
-        }
-      });
+      res.writeHead(200);
     }
+    res.end(data, 'binary');
+  }).catch((err) => {
+    res.writeHead(404, {'Content-Type': 'text/plain'});
+    res.end(`${err}\n`);
   });
 };
 
@@ -82,8 +87,7 @@ const serveFile = (filePath, res) => {
 const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 // Run the client build
-const buildProc = child_process.spawn(npmCmd, ['run', 'dev'],
-                                      {cwd: testDistDir});
+const buildProc = child_process.spawn(npmCmd, ['run', 'dev'], {cwd: clientDistDir});
 
 buildProc.on('exit', () => process.exit(1));
 process.on('exit', () => buildProc.kill('SIGTERM'));
@@ -118,18 +122,13 @@ buildProc.stderr.on('data', (data) => {
 // Launch HTTP server with horizon that will serve the test files
 const httpServers = options.bind.map((host) =>
   new http.Server((req, res) => {
-    const reqPath = url.parse(req.url).pathname;
-    if (reqPath.indexOf('/examples/') === 0) {
-      serveFile(path.resolve(examplesDir,
-                             reqPath.replace(/^[/]examples[/]/, '')), res);
+    const reqPath = url.parse(req.url).pathname.replace(/^\//, '');
+    console.log(`request with path ${reqPath}`);
+    if (reqPath === 'test' || reqPath === 'test/') {
+      res.writeHead(302, {Location: '/client/dist/test.html'});
+      res.end();
     } else {
-      if (!clientReady) {
-        res.writeHead(503, {'Content-Type': 'text/plain'});
-        res.end('Initial client build is ongoing, try again in a few seconds.');
-      } else {
-        serveFile(path.resolve(testDistDir,
-                               reqPath.replace(/^[/]/, '')), res);
-      }
+      serveFile(path.resolve(rootDir, reqPath), res);
     }
   }));
 
@@ -195,9 +194,23 @@ Promise.all(
       serv.removeAllListeners('request');
       serv.on('request', (req, res) => {
         const reqPath = url.parse(req.url).pathname;
-        if (reqPath === '/horizon/horizon.js' ||
-            reqPath === '/horizon/horizon.js.map') {
-          serveFile(path.resolve(testDistDir, reqPath.replace('/horizon/', '')), res);
+        console.log(`Serving path ${reqPath}`);
+        if (reqPath.match(/^\/horizon\/[^\/]+\.js$/)) {
+          console.log(`Serving modified code`);
+          if (!clientReady) {
+            res.writeHead(503, {'Content-Type': 'text/plain'});
+            res.end('Initial client build is ongoing, try again in a few seconds.\n');
+          } else {
+            readFile(path.resolve(clientDistDir, reqPath.replace('/horizon/', ''))).then((data) => {
+              res.writeHead(200, {'Content-Type': 'application/javascript'});
+              res.end(data + hzRouter.server.applyCapabilitiesCode(), 'binary');
+            }).catch((err) => {
+              res.writeHead(404, {'Content-Type': 'text/plain'});
+              res.end(`${err}\n`);
+            });
+          }
+        } else if (reqPath.match(/^\/horizon\/[^\/]+\.js\.map$/)) {
+          serveFile(path.resolve(clientDistDir, reqPath.replace('/horizon/', '')), res);
         } else {
           extantListeners.forEach((l) => l.call(serv, req, res));
         }

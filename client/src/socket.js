@@ -86,7 +86,7 @@ export class HorizonSocket extends WebSocketSubject {
 
     this.keepalive = Observable
       .timer(keepalive * 1000, keepalive * 1000)
-      .map(n => this.makeRequest({ type: 'keepalive' }).subscribe())
+      .map(n => this.makeRequest(null, 'keepalive').subscribe())
       .publish()
 
     // This is used to emit status changes that others can hook into.
@@ -151,7 +151,8 @@ export class HorizonSocket extends WebSocketSubject {
   // * Send `end_subscription` when observable is unsubscribed
   makeRequest(options, type) {
     const requestId = this.requestCounter++
-    const req = {message: {requestId, options}, data: {}}
+    const req = {message: {requestId}, data: {}}
+    if (options) { req.message.options = options }
     if (type) { req.message.type = type }
 
     return super.multiplex(
@@ -174,9 +175,9 @@ export class HorizonSocket extends WebSocketSubject {
   // * Completes when `state: complete` is received
   // * Reference counts subscriptions
   hzRequest(options) {
-    const end = AsyncSubject()
+    const end = new AsyncSubject()
     return this.sendHandshake().ignoreElements()
-      .concat(this.makeRequest(rawRequest))
+      .concat(this.makeRequest(options))
       .concatMap((response) => {
         if (response.error) {
           throw new Error(response.error)
