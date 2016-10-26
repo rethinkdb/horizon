@@ -35,7 +35,7 @@ const allTests = (collection) => {
     utils.horizonConn().send(JSON.stringify({requestId: 0, type: 'keepalive'}));
     
     utils.addHorizonListener(0, (msg) => {
-      assert.deepStrictEqual(msg, {state: 'complete', requestId: 0});
+      assert.deepStrictEqual(msg, {complete: true, requestId: 0});
       done();
     });
   });
@@ -48,7 +48,7 @@ const allTests = (collection) => {
     conn.send(JSON.stringify({requestId: 0, type: 'keepalive'}));
     
     utils.addHorizonListener(0, (msg) => {
-      assert.deepStrictEqual(msg, {state: 'complete', requestId: 0});
+      assert.deepStrictEqual(msg, {complete: true, requestId: 0});
       done();
     });
   });

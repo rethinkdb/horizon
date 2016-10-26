@@ -67,7 +67,6 @@ function readFile(filePath) {
 }
 
 function serveFile(filePath, res) {
-  console.log(`serving file ${filePath}`);
   readFile(filePath).then((data) => {
     if (filePath.endsWith('.js')) {
       res.writeHead(200, {'Content-Type': 'application/javascript'});
@@ -123,7 +122,6 @@ buildProc.stderr.on('data', (data) => {
 const httpServers = options.bind.map((host) =>
   new http.Server((req, res) => {
     const reqPath = url.parse(req.url).pathname.replace(/^\//, '');
-    console.log(`request with path ${reqPath}`);
     if (reqPath === 'test' || reqPath === 'test/') {
       res.writeHead(302, {Location: '/client/dist/test.html'});
       res.end();
@@ -148,7 +146,6 @@ Promise.all(
     .map((info) => info.address)
     .filter((addr) => !addr.includes('fe80')))
 ).then((localAddresses) => {
-  console.log(`${JSON.stringify(Array.from(localAddresses))}`);
   // Launch rethinkdb - once we know the port we can attach horizon to the http server
   if (!options.keep) {
     rm_sync_recursive(dataDir);
@@ -194,9 +191,7 @@ Promise.all(
       serv.removeAllListeners('request');
       serv.on('request', (req, res) => {
         const reqPath = url.parse(req.url).pathname;
-        console.log(`Serving path ${reqPath}`);
         if (reqPath.match(/^\/horizon\/[^\/]+\.js$/)) {
-          console.log(`Serving modified code`);
           if (!clientReady) {
             res.writeHead(503, {'Content-Type': 'text/plain'});
             res.end('Initial client build is ongoing, try again in a few seconds.\n');

@@ -6,8 +6,6 @@ function find(req, res, next) {
   const args = req.options.find;
   if (args.length !== 1) {
     next(new Error(`"find" expected 1 argument but found ${args.length}.`));
-  } else if (!isObject(args[0])) {
-    next(new Error('First argument to "find" must be an object.'));
   } else if (req.options.findAll ||
              req.options.limit ||
              req.options.order ||
@@ -16,7 +14,11 @@ function find(req, res, next) {
     next(new Error('"find" cannot be used with ' +
                    '"findAll", "limit", "order", "above", or "below"'));
   } else {
-    req.setParameter(args[0]);
+    let predicate = args[0];
+    if (!isObject(predicate)) {
+      predicate = {id: predicate};
+    }
+    req.setParameter(predicate);
     next();
   }
 }

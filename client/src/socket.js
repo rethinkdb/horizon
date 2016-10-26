@@ -1,4 +1,5 @@
 import { AsyncSubject } from 'rxjs/AsyncSubject'
+import { Subject } from 'rxjs/Subject'
 import { BehaviorSubject } from 'rxjs/BehaviorSubject'
 import { WebSocketSubject } from 'rxjs/observable/dom/WebSocketSubject'
 import { Observable } from 'rxjs/Observable'
@@ -97,10 +98,9 @@ export class HorizonSocket extends WebSocketSubject {
     // A map from requestId to an object with metadata about the
     // request. Eventually, this should allow re-sending requests when
     // reconnecting.
-    this.activeRequests = new Map()
+    this.requests = new Map()
     this._output.subscribe({
-      // This emits if the entire socket errors (usually due to
-      // failure to connect)
+      next: (response) => this.handleResponse(response),
       error: () => this.status.next(STATUS_ERROR),
     })
   }
@@ -135,36 +135,42 @@ export class HorizonSocket extends WebSocketSubject {
     return this.handshake
   }
 
-  endRequest(requestId) {
-    return () => {
-      const req = this.activeRequests.get(requestId)
-      if (req) {
-        this.activeRequests.delete(requestId)
-        return { requestId, type: 'endRequest' }
-      }
-    }
-  }
-
   // Incorporates shared logic between the inital handshake request and
   // all subsequent requests.
   // * Generates a request id and filters by it
   // * Send `end_subscription` when observable is unsubscribed
   makeRequest(options, type) {
     const requestId = this.requestCounter++
-    const req = {message: {requestId}, data: {}}
+    const req = {
+      message: {requestId},
+      data: {},
+      subject: new Subject(),
+    }
+
     if (options) { req.message.options = options }
     if (type) { req.message.type = type }
 
-    return super.multiplex(
-        () => {
-          this.activeRequests.set(requestId, req)
-          return req.message
-        },
-        this.endRequest(requestId),
-        (response) => {
-          return response.requestId === requestId
-        }
-    );
+    this.requests.set(requestId, req)
+    this.next(JSON.stringify(req.message))
+    return req.subject
+  }
+
+  cleanupRequest(requestId) {
+    const req = this.requests.get(requestId)
+    if (req) {
+      this.requests.delete(requestId)
+      req.subject.complete()
+    }
+  }
+
+  handleResponse(message) {
+    const req = this.requests.get(message.requestId)
+    if (req) {
+      req.subject.next(message)
+      if (message.complete) {
+        this.cleanupRequest(message.requestId)
+      }
+    }
   }
 
   // Wrapper around the makeRequest with the following additional
@@ -175,24 +181,18 @@ export class HorizonSocket extends WebSocketSubject {
   // * Completes when `state: complete` is received
   // * Reference counts subscriptions
   hzRequest(options) {
-    const end = new AsyncSubject()
+    let req
     return this.sendHandshake().ignoreElements()
-      .concat(this.makeRequest(options))
+      .concat(() => (req = this.makeRequest(options)))
       .concatMap((response) => {
         if (response.error) {
           throw new Error(response.error)
         }
-        if (response.complete) {
-          this.endRequest(response.requestId)
-          end.complete()
-          return
-        }
 
-        const req = this.activeRequests.get(response.requestId)
         if (response.patch) {
           req.data = jsonpatch.apply_patch(req.data, response.patch)
         }
-        if (req.data && Boolean(req.data.synced)) {
+        if (Boolean(req.data.synced)) {
           switch (req.data.type) {
           case 'value':
             return [req.data.val]
@@ -204,7 +204,24 @@ export class HorizonSocket extends WebSocketSubject {
         }
         return []
       })
-      .takeUntil(end)
+      /* or...
+      .map((response) => {
+        if (response.error) {
+          throw new Error(response.error)
+        }
+
+        if (response.patch) {
+          req.data = jsonpatch.apply_patch(req.data, response.patch)
+        }
+        return req.data;
+      })
+      .filter((data) => Boolean(data.synced))
+      .map((data) => {
+        if (data.type === 'value') { return data.val }
+        if (data.type === 'set') { return Object.values(data.val) }
+        throw new Error(`Unrecognized data type: ${data.type}.`)
+      })
+      */
       .share()
   }
 }

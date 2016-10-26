@@ -38,18 +38,17 @@ class Response {
   }
 
   end(patchOrError) {
-    this[events].emit('log', 'debug', `Ending request with ${patchOrError}`);
     if (!this[completed]) {
       this[completed] = true;
       if (patchOrError instanceof Error) {
         this[reject](patchOrError);
       } else {
         if (Array.isArray(patchOrError)) {
-          this[send]({state: 'complete', patch: patchOrError});
+          this[send]({complete: true, patch: patchOrError});
         } else if (patchOrError) {
-          this[send]({state: 'complete', patch: [patchOrError]});
+          this[send]({complete: true, patch: [patchOrError]});
         } else {
-          this[send]({state: 'complete'});
+          this[send]({complete: true});
         }
         this[resolve]();
       }

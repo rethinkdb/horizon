@@ -298,7 +298,7 @@ function streamTest(req, cb) {
     if (msg.error !== undefined) {
       removeHorizonListener(req.requestId);
       cb(new Error(msg.error), convertResult(result));
-    } else if (msg.state === 'complete') {
+    } else if (msg.complete) {
       const res = result.val || (result.type === 'set' ? new Set() : []);
       removeHorizonListener(req.requestId);
       assert(result.synced);

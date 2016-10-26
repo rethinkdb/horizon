@@ -11,7 +11,7 @@ export function removeAllDataObs(collection) {
   // Read all elements from the collection
   return collection.fetch() // all documents in the collection
     .do()
-    .mergeMap(docs => collection.removeAll(docs))
+    .mergeMap(docs => collection.remove(...docs))
     .mergeMapTo(collection.fetch())
     .do(remaining => assert.deepEqual([], remaining))
 }

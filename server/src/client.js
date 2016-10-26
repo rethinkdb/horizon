@@ -94,6 +94,7 @@ class ClientConnection {
     this.serverContext.horizon.auth.handshake(request).then((res) => {
       this.clientContext.user = res.payload;
       this.sendMessage(requestId, {
+        complete: true,
         token: res.token,
         id: res.payload.id,
         provider: res.payload.provider,
@@ -103,7 +104,7 @@ class ClientConnection {
       this.events.emit('auth', this.clientContext);
     }).catch((err) => {
       this.events.emit('log', 'debug', `Error during client handshake: ${err.stack}`);
-      this.close({requestId, error: `${err}`, errorCode: 0});
+      this.close({requestId, error: `${err}`, errorCode: 0, complete: true});
     });
   }
 
@@ -114,7 +115,7 @@ class ClientConnection {
 
     const requestId = rawRequest.requestId;
     if (rawRequest.type === 'keepalive') {
-      return this.sendMessage(requestId, {state: 'complete'});
+      return this.sendMessage(requestId, {complete: true});
     } else if (rawRequest.type === 'endRequest') {
       // there is no response for endRequest
       return this.removeResponse(requestId);

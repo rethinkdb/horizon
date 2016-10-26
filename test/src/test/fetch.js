@@ -144,7 +144,7 @@ const allTests = (collection) => {
       },
       (err, res) => {
         assert.ifError(err);
-        assert.strictEqual(res.length, 1);
+        assert.deepStrictEqual(res, {id: 4, value: 0});
         done();
       });
   });
@@ -161,7 +161,7 @@ const allTests = (collection) => {
       },
       (err, res) => {
         assert.ifError(err);
-        assert.deepStrictEqual(res, []);
+        assert.deepStrictEqual(res, undefined);
         done();
       });
   });
