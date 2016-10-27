@@ -20,11 +20,10 @@ const PROTOCOL_VERSION = 'rethinkdb-horizon-v1'
 
 // When the socket is not connected
 const STATUS_DISCONNECTED = { type: 'disconnected' }
-// After the websocket is opened but before handshake is completed
-const STATUS_CONNECTED = { type: 'connected' }
 // After the websocket is opened and handshake is completed
 const STATUS_READY = { type: 'ready' }
 // After unconnected, maybe before or after connected. Any socket level error
+// TODO: is this necessary?  this should not last long - may become DISCONNECTED shortly after?
 const STATUS_ERROR = { type: 'error' }
 
 class ProtocolError extends Error {
@@ -53,23 +52,17 @@ export class HorizonSocket {
       protocol: PROTOCOL_VERSION,
       WebSocketCtor,
       resultSelector: (msg) => deserialize(JSON.parse(msg.data)),
-      openObserver: {
-        next: () => {
-          this.status.next(STATUS_CONNECTED)
-          this.sendHandshake(tokenStorage)
-        }
-      },
     })
 
     // This is used to emit status changes that others can hook into.
+    this.tokenStorage = tokenStorage;
     this.status = new BehaviorSubject()
     this.reinitialize()
 
     // TODO: only run the timer while connected
     const keepalive = Observable.timer(keepaliveSec * 1000, keepaliveSec * 1000)
       .map(() => {
-        if (this.status.value === STATUS_READY ||
-            this.status.value === STATUS_CONNECTED) {
+        if (this.status.value === STATUS_READY) {
           this.makeRequest(null, 'keepalive').subscribe()
         }
       })
@@ -87,8 +80,8 @@ export class HorizonSocket {
         next: (response) => this.handleResponse(response),
         error: (err) => onError(err),
       })
-      this.subscription.add(() => console.log(`socket subscription teardown, _output: ${this.socket._output}, observers: ${this.socket._output && this.socket._output.observers && this.socket._output.observers.length}`))
       this.subscription.add(() => this.reinitialize())
+      this.sendHandshake(this.tokenStorage)
     }
   }
 
@@ -111,7 +104,8 @@ export class HorizonSocket {
   }
 
   sendHandshake(tokenStorage) {
-    this.makeRequest(tokenStorage.handshake(), 'handshake').subscribe({
+    const req = this.makeRequest(tokenStorage.handshake(), 'handshake');
+    req.subject.subscribe({
       next: (message) => {
         if (message.error) {
           this.handshake.error(new ProtocolError(message.error, message.errorCode))
@@ -152,9 +146,8 @@ export class HorizonSocket {
     if (type) { req.message.type = type }
 
     this.requests.set(requestId, req)
-    console.log(`sending message: ${req.message}`)
     this.send(req.message)
-    return req.subject
+    return req
   }
 
   cleanupRequest(requestId) {
@@ -183,10 +176,9 @@ export class HorizonSocket {
   // * Completes when `state: complete` is received
   // * Reference counts subscriptions
   hzRequest(options) {
-    let req
-    return this.handshake.ignoreElements()
-      .concat(() => (req = this.makeRequest(options)))
-      .concatMap((response) => {
+    this.connect() // Make sure we are connected.  TODO: lazily disconnect if no activity?
+    const req = this.makeRequest(options);
+    return req.subject.concatMap((response) => {
         if (response.error) {
           throw new ProtocolError(response.error, response.errorCode)
         }
