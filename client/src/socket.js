@@ -68,6 +68,7 @@ export class HorizonSocket extends WebSocketSubject {
       WebSocketCtor,
       openObserver: {
         next: () => {
+          this.status.next(STATUS_CONNECTED)
           this.subscribe({
             next: (response) => this.handleResponse(response),
             error: (err) => {
@@ -80,12 +81,8 @@ export class HorizonSocket extends WebSocketSubject {
       },
       closingObserver: {
         next: () => {
-          this.handshake = new AsyncSubject()
-          if (this._handshakeSub) {
-            this._handshakeSub.unsubscribe()
-            this._handshakeSub = null
-          }
           this.status.next(STATUS_DISCONNECTED)
+          this.handshake = new AsyncSubject()
         },
       },
     })
@@ -100,9 +97,14 @@ export class HorizonSocket extends WebSocketSubject {
 
     this.keepalive = Observable
       .timer(keepalive * 1000, keepalive * 1000)
-      .map((n) => this.makeRequest(null, 'keepalive').subscribe())
-      .publish()
+      .map(() => {
+          if (this.status.value === STATUS_READY ||
+              this.status.value === STATUS_CONNECTED) {
+            this.makeRequest(null, 'keepalive').subscribe()
+          })
+      .subscribe()
     this.requestCounter = 0
+
     // A map from requestId to an object with metadata about the
     // request. Eventually, this should allow re-sending requests when
     // reconnecting.
@@ -110,7 +112,7 @@ export class HorizonSocket extends WebSocketSubject {
   }
 
   sendHandshake(handshakeMaker) {
-    this._handshakeSub = this.makeRequest(handshakeMaker(), 'handshake')
+    this.makeRequest(handshakeMaker(), 'handshake')
       .subscribe({
         next: (n) => {
           if (n.error) {
@@ -127,10 +129,6 @@ export class HorizonSocket extends WebSocketSubject {
           this.handshake.error(e)
         },
       })
-
-    // Start the keepalive and make sure it's
-    // killed when the handshake is cleaned up
-    this._handshakeSub.add(this.keepalive.connect())
   }
 
   // Incorporates shared logic between the inital handshake request and
