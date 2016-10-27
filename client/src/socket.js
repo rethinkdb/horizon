@@ -67,10 +67,20 @@ export class HorizonSocket extends WebSocketSubject {
       protocol: PROTOCOL_VERSION,
       WebSocketCtor,
       openObserver: {
-        next: () => this.sendHandshake(),
-      },
-      closeObserver: {
         next: () => {
+          this.subscribe({
+            next: (response) => this.handleResponse(response),
+            error: (err) => {
+              console.log(`Socket error: ${JSON.stringify(err)}`)
+              this.status.next(STATUS_ERROR)
+            },
+          })
+          this.sendHandshake(handshakeMaker)
+        },
+      },
+      closingObserver: {
+        next: () => {
+          this.handshake = new AsyncSubject()
           if (this._handshakeSub) {
             this._handshakeSub.unsubscribe()
             this._handshakeSub = null
@@ -79,60 +89,48 @@ export class HorizonSocket extends WebSocketSubject {
         },
       },
     })
+
+    // This is used to emit status changes that others can hook into.
+    this.status = new BehaviorSubject(STATUS_UNCONNECTED)
+
     // Completes or errors based on handshake success. Buffers
     // handshake response for later subscribers (like a Promise)
     this.handshake = new AsyncSubject()
-    this._handshakeMaker = handshakeMaker
     this._handshakeSub = null
 
     this.keepalive = Observable
       .timer(keepalive * 1000, keepalive * 1000)
-      .map(n => this.makeRequest(null, 'keepalive').subscribe())
+      .map((n) => this.makeRequest(null, 'keepalive').subscribe())
       .publish()
-
-    // This is used to emit status changes that others can hook into.
-    this.status = new BehaviorSubject(STATUS_UNCONNECTED)
-    // Keep track of subscribers so we's can decide when to
-    // unsubscribe.
     this.requestCounter = 0
     // A map from requestId to an object with metadata about the
     // request. Eventually, this should allow re-sending requests when
     // reconnecting.
     this.requests = new Map()
-    this._output.subscribe({
-      next: (response) => this.handleResponse(response),
-      error: () => this.status.next(STATUS_ERROR),
-    })
   }
 
-  // This is a trimmed-down version of multiplex that only listens for
-  // the handshake requestId. It also starts the keepalive observable
-  // and cleans up after it when the handshake is cleaned up.
-  sendHandshake() {
-    if (!this._handshakeSub) {
-      this._handshakeSub = this.makeRequest(this._handshakeMaker(), 'handshake')
-        .subscribe({
-          next: n => {
-            if (n.error) {
-              this.status.next(STATUS_ERROR)
-              this.handshake.error(new ProtocolError(n.error, n.errorCode))
-            } else {
-              this.status.next(STATUS_READY)
-              this.handshake.next(n)
-              this.handshake.complete()
-            }
-          },
-          error: e => {
+  sendHandshake(handshakeMaker) {
+    this._handshakeSub = this.makeRequest(handshakeMaker(), 'handshake')
+      .subscribe({
+        next: (n) => {
+          if (n.error) {
             this.status.next(STATUS_ERROR)
-            this.handshake.error(e)
-          },
-        })
+            this.handshake.error(new ProtocolError(n.error, n.errorCode))
+          } else {
+            this.status.next(STATUS_READY)
+            this.handshake.next(n)
+            this.handshake.complete()
+          }
+        },
+        error: (e) => {
+          this.status.next(STATUS_ERROR)
+          this.handshake.error(e)
+        },
+      })
 
-      // Start the keepalive and make sure it's
-      // killed when the handshake is cleaned up
-      this._handshakeSub.add(this.keepalive.connect())
-    }
-    return this.handshake
+    // Start the keepalive and make sure it's
+    // killed when the handshake is cleaned up
+    this._handshakeSub.add(this.keepalive.connect())
   }
 
   // Incorporates shared logic between the inital handshake request and
@@ -151,7 +149,7 @@ export class HorizonSocket extends WebSocketSubject {
     if (type) { req.message.type = type }
 
     this.requests.set(requestId, req)
-    this.next(JSON.stringify(req.message))
+    this.next(req.message)
     return req.subject
   }
 
@@ -182,7 +180,7 @@ export class HorizonSocket extends WebSocketSubject {
   // * Reference counts subscriptions
   hzRequest(options) {
     let req
-    return this.sendHandshake().ignoreElements()
+    return this.handshake.ignoreElements()
       .concat(() => (req = this.makeRequest(options)))
       .concatMap((response) => {
         if (response.error) {
@@ -190,6 +188,8 @@ export class HorizonSocket extends WebSocketSubject {
         }
 
         if (response.patch) {
+          // TODO: are there any cases where it is a problem that we
+          // have already 'deserialized' the data before applying the patch?
           req.data = jsonpatch.apply_patch(req.data, response.patch)
         }
         if (Boolean(req.data.synced)) {
@@ -213,7 +213,7 @@ export class HorizonSocket extends WebSocketSubject {
         if (response.patch) {
           req.data = jsonpatch.apply_patch(req.data, response.patch)
         }
-        return req.data;
+        return req.data
       })
       .filter((data) => Boolean(data.synced))
       .map((data) => {

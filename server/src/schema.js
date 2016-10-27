@@ -43,12 +43,12 @@ const method = Joi.object({
 // The Horizon protocol handshake message
 const handshake = Joi.object().keys({
   requestId: Joi.number().required(),
-  type: Joi.only('handshake'),
+  type: Joi.only('handshake').required(),
   options: Joi.object().keys({
     method: Joi.only('token', 'anonymous', 'unauthenticated').required(),
     token: Joi.string().required()
       .when('method', {is: Joi.not('token').required(), then: Joi.forbidden()}),
-  }),
+  }).required(),
 }).unknown(false);
 
 // Every Horizon protocol request (following the handshake)
