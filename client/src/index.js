@@ -33,25 +33,9 @@ function Horizon({
   const url = `ws${secure ? 's' : ''}:\/\/${host}\/${path}`
   const socket = new HorizonSocket({
     url,
-    handshakeMaker: () => tokenStorage.handshake(),
+    tokenStorage,
     keepalive,
     WebSocketCtor,
-  })
-
-  // Store whatever token we get back from the server when we get a
-  // handshake response
-  socket.handshake.subscribe({
-    next(handshake) {
-      if (authType !== 'unauthenticated') {
-        tokenStorage.set(handshake.token)
-      }
-    },
-    error(err) {
-      if (/JsonWebTokenError|TokenExpiredError/.test(err.message)) {
-        console.error('Horizon: clearing token storage since auth failed')
-        tokenStorage.remove()
-      }
-    },
   })
 
   const request = new TermBase({}, sendRequest)
@@ -63,27 +47,26 @@ function Horizon({
     return request.collection(name);
   }
 
+  // Convenience function to access the current user's row
+  // TODO: this will fail rather unfriendlyly if not connected/handshook
+  horizon.currentUser = () => {
+    const userId = socket.handshake.value.id;
+    return request.collection('users').find(userId)
+  }
+
   horizon.request = request;
 
-  horizon.currentUser = () =>
-    new UserDataTerm(horizon, socket.handshake, socket)
-
-  horizon.disconnect = () => {
-    socket.complete()
-  }
-
-  // Dummy subscription to force it to connect to the
-  // server. Optionally provide an error handling function if the
-  // socket experiences an error.
+  // Force the socket to connect without any pending requests
+  // Optionally provide an error handling function if the socket experiences an error.
   // Note: Users of the Observable interface shouldn't need this
-  horizon.connect = (
-    onError = err => { console.error(`Received an error: ${err}`) }
-  ) => {
-    socket.subscribe(
-      () => {},
-      onError
-    )
-  }
+  horizon.connect = (onError = (err) => console.error(`Horizon socket error: ${err}`)) =>
+    socket.connect(onError)
+
+  // Note: this only works as long as there are no extra observers on the socket
+  horizon.disconnect = () => socket.disconnect()
+
+  // RSI: remove this - for debugging purposes
+  horizon.socket = socket;
 
   // Either subscribe to status updates, or return an observable with
   // the current status and all subsequent status changes.
@@ -104,7 +87,7 @@ function Horizon({
   horizon.utensils = {
     sendRequest,
     tokenStorage,
-    handshake: socket.handshake,
+    handshake: () => socket.handshake,
   }
   Object.freeze(horizon.utensils)
 
@@ -112,7 +95,7 @@ function Horizon({
   horizon._root = `http${(secure) ? 's' : ''}://${host}`
   horizon._horizonPath = `${horizon._root}/${path}`
   horizon.authEndpoint = authEndpoint
-  horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
+  horizon.hasAuthToken = () => tokenStorage.hasAuthToken()
   horizon.aggregate = aggregate
   horizon.model = model
 

@@ -18,14 +18,14 @@ import { serialize, deserialize } from './serialization.js'
 
 const PROTOCOL_VERSION = 'rethinkdb-horizon-v1'
 
-// Before connecting the first time
-const STATUS_UNCONNECTED = { type: 'unconnected' }
+// When the socket is not connected
+const STATUS_DISCONNECTED = { type: 'disconnected' }
+// After the websocket is opened but before handshake is completed
+const STATUS_CONNECTED = { type: 'connected' }
 // After the websocket is opened and handshake is completed
 const STATUS_READY = { type: 'ready' }
 // After unconnected, maybe before or after connected. Any socket level error
 const STATUS_ERROR = { type: 'error' }
-// Occurs when the socket closes
-const STATUS_DISCONNECTED = { type: 'disconnected' }
 
 class ProtocolError extends Error {
   constructor(msg, errorCode) {
@@ -41,69 +41,39 @@ class ProtocolError extends Error {
 // Wraps native websockets with a Subject, which is both an Subscriber
 // and an Observable (it is bi-directional after all!). This version
 // is based on the rxjs.observable.dom.WebSocketSubject implementation.
-export class HorizonSocket extends WebSocketSubject {
-  // Deserializes a message from a string. Overrides the version
-  // implemented in WebSocketSubject
-  resultSelector(e) {
-    return deserialize(JSON.parse(e.data))
-  }
-
-  // We're overriding the next defined in AnonymousSubject so we
-  // always serialize the value. When this is called a message will be
-  // sent over the socket to the server.
-  next(value) {
-    const request = JSON.stringify(serialize(value))
-    super.next(request)
-  }
-
+export class HorizonSocket {
   constructor({
     url,              // Full url to connect to
-    handshakeMaker, // function that returns handshake to emit
-    keepalive = 60,   // seconds between keepalive messages
+    tokenStorage, // function that returns handshake to emit
+    keepaliveSec = 60,   // seconds between keepalive messages
     WebSocketCtor = WebSocket,    // optionally provide a WebSocket constructor
   } = {}) {
-    super({
+    this.socket = new WebSocketSubject({
       url,
       protocol: PROTOCOL_VERSION,
       WebSocketCtor,
+      resultSelector: (msg) => deserialize(JSON.parse(msg.data)),
       openObserver: {
         next: () => {
           this.status.next(STATUS_CONNECTED)
-          this.subscribe({
-            next: (response) => this.handleResponse(response),
-            error: (err) => {
-              console.log(`Socket error: ${JSON.stringify(err)}`)
-              this.status.next(STATUS_ERROR)
-            },
-          })
-          this.sendHandshake(handshakeMaker)
-        },
-      },
-      closingObserver: {
-        next: () => {
-          this.status.next(STATUS_DISCONNECTED)
-          this.handshake = new AsyncSubject()
-        },
+          this.sendHandshake(tokenStorage)
+        }
       },
     })
 
     // This is used to emit status changes that others can hook into.
-    this.status = new BehaviorSubject(STATUS_UNCONNECTED)
+    this.status = new BehaviorSubject()
+    this.reinitialize()
 
-    // Completes or errors based on handshake success. Buffers
-    // handshake response for later subscribers (like a Promise)
-    this.handshake = new AsyncSubject()
-    this._handshakeSub = null
-
-    this.keepalive = Observable
-      .timer(keepalive * 1000, keepalive * 1000)
+    // TODO: only run the timer while connected
+    const keepalive = Observable.timer(keepaliveSec * 1000, keepaliveSec * 1000)
       .map(() => {
-          if (this.status.value === STATUS_READY ||
-              this.status.value === STATUS_CONNECTED) {
-            this.makeRequest(null, 'keepalive').subscribe()
-          })
+        if (this.status.value === STATUS_READY ||
+            this.status.value === STATUS_CONNECTED) {
+          this.makeRequest(null, 'keepalive').subscribe()
+        }
+      })
       .subscribe()
-    this.requestCounter = 0
 
     // A map from requestId to an object with metadata about the
     // request. Eventually, this should allow re-sending requests when
@@ -111,24 +81,59 @@ export class HorizonSocket extends WebSocketSubject {
     this.requests = new Map()
   }
 
-  sendHandshake(handshakeMaker) {
-    this.makeRequest(handshakeMaker(), 'handshake')
-      .subscribe({
-        next: (n) => {
-          if (n.error) {
-            this.status.next(STATUS_ERROR)
-            this.handshake.error(new ProtocolError(n.error, n.errorCode))
-          } else {
-            this.status.next(STATUS_READY)
-            this.handshake.next(n)
-            this.handshake.complete()
-          }
-        },
-        error: (e) => {
-          this.status.next(STATUS_ERROR)
-          this.handshake.error(e)
-        },
+  connect(onError) {
+    if (!this.subscription) {
+      this.subscription = this.socket.subscribe({
+        next: (response) => this.handleResponse(response),
+        error: (err) => onError(err),
       })
+      this.subscription.add(() => console.log(`socket subscription teardown, _output: ${this.socket._output}, observers: ${this.socket._output && this.socket._output.observers && this.socket._output.observers.length}`))
+      this.subscription.add(() => this.reinitialize())
+    }
+  }
+
+  disconnect() {
+    if (this.subscription) {
+      this.subscription.unsubscribe()
+    }
+  }
+
+  reinitialize() {
+    this.requestCounter = 0 // TODO: make sure we reassign requestIds when resuming requests
+    this.subscription = null
+    this.handshake = new AsyncSubject()
+    this.status.next(STATUS_DISCONNECTED)
+  }
+
+  send(value) {
+    const request = JSON.stringify(serialize(value))
+    this.socket.next(request)
+  }
+
+  sendHandshake(tokenStorage) {
+    this.makeRequest(tokenStorage.handshake(), 'handshake').subscribe({
+      next: (message) => {
+        if (message.error) {
+          this.handshake.error(new ProtocolError(message.error, message.errorCode))
+          this.status.next(STATUS_ERROR)
+          if (message.error.includes('JsonWebTokenError') ||
+              message.error.includes('TokenExpiredError')) {
+            tokenStorage.remove()
+          }
+        } else {
+          this.handshake.next(message)
+          this.handshake.complete()
+          this.status.next(STATUS_READY)
+          if (message.token) {
+            tokenStorage.set(message.token)
+          }
+        }
+      },
+      error: (err) => {
+        this.handshake.error(err)
+        this.status.next(STATUS_ERROR)
+      },
+    })
   }
 
   // Incorporates shared logic between the inital handshake request and
@@ -147,7 +152,8 @@ export class HorizonSocket extends WebSocketSubject {
     if (type) { req.message.type = type }
 
     this.requests.set(requestId, req)
-    this.next(req.message)
+    console.log(`sending message: ${req.message}`)
+    this.send(req.message)
     return req.subject
   }
 
@@ -182,7 +188,7 @@ export class HorizonSocket extends WebSocketSubject {
       .concat(() => (req = this.makeRequest(options)))
       .concatMap((response) => {
         if (response.error) {
-          throw new Error(response.error)
+          throw new ProtocolError(response.error, response.errorCode)
         }
 
         if (response.patch) {
