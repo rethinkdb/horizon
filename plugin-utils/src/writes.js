@@ -49,7 +49,7 @@ function retryLoop(originalRows,
   const iterate = (rowDataArg, responseData) => {
     let rowData = rowDataArg;
     if (rowData.length === 0) {
-      return responseData;
+      return Promise.resolve(responseData);
     } else if (!firstAttempt && deadline) {
       if (Date.now() > deadline.getTime()) {
         responseData.forEach((data, index) => {
@@ -57,7 +57,7 @@ function retryLoop(originalRows,
             responseData[index] = new Error(timeoutMsg);
           }
         });
-        return responseData;
+        return Promise.resolve(responseData);
       }
     }
 
@@ -135,9 +135,15 @@ function retryLoop(originalRows,
     });
   };
 
-  return iterate(originalRows.map((row, index) => ({row, index, version: row[hzv]})),
-                 Array(originalRows.length).fill(null))
-    .then(makeWriteResponse);
+  return iterate(
+    originalRows.map((row, index) => ({row, index, version: row[hzv]})),
+    originalRows.map((row) => {
+      if (typeof row !== 'object' || row == null || Array.isArray(row)) {
+        return new Error('Row to be written must be an object');
+      }
+      return row;
+    })
+  ).then(makeWriteResponse);
 }
 
 function validateOldRowOptional(validator, original, oldRow, newRow) {

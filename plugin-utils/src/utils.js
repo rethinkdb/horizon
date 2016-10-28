@@ -46,6 +46,19 @@ function isObject(x) {
   return typeof x === 'object' && !Array.isArray(x) && x !== null;
 }
 
+// false if object (unless reql_type is 'time' or 'binary', or is null or array)
+// recurse on arrays
+// true otherwise
+function isValidIndex(x) {
+	if (typeof x === 'object') {
+		if (Array.isArray(x)) {
+			return x.every((item) => isValidIndex(item));
+		}
+		return x === null || x.$reql_type$;
+  }
+	return true;
+}
+
 const reqlOptions = {
   timeFormat: 'raw',
   binaryFormat: 'raw',
@@ -55,6 +68,7 @@ module.exports = {
   rethinkdbVersionCheck,
   remakeError,
   isObject,
+  isValidIndex,
   reqlOptions,
   reads: require('./reads'),
   writes: require('./writes'),

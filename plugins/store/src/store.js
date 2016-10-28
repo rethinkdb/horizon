@@ -11,9 +11,9 @@ function store(context) {
     const permissions = req.getParameter('hz_permissions');
 
     if (!collection) {
-      throw new Error('No collection given for insert operation.');
+      next(new Error('No collection given for insert operation.'));
     } else if (!permissions) {
-      throw new Error('No permissions given for insert operation.');
+      next(new Error('No permissions given for insert operation.'));
     }
 
     writes.retryLoop(req.options.store, permissions, timeout,

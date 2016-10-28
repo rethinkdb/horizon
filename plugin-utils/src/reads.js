@@ -46,16 +46,6 @@ function isSameField(a, b) {
   return true;
 }
 
-// RSI: not needed?
-// Returns true if the expected field is in the array of fields
-// function hasField(fields, expected) {
-//   for (let i = 0; i < fields.length; ++i) {
-//     if (isSameField(fields[i], expected)) {
-//       return true;
-//     }
-//   }
-// }
-
 function makeFindReql(collection, find) {
   return collection.getMatchingIndex(objectToFields(find), []).then((index) => {
     let value = index.fields.map((field) => guaranteeObjectField(find, field));

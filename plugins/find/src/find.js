@@ -1,6 +1,6 @@
 'use strict';
 
-const {isObject} = require('@horizon/plugin-utils');
+const {isObject, isValidIndex} = require('@horizon/plugin-utils');
 
 function find(req, res, next) {
   const args = req.options.find;
@@ -15,11 +15,15 @@ function find(req, res, next) {
                    '"findAll", "limit", "order", "above", or "below"'));
   } else {
     let predicate = args[0];
-    if (!isObject(predicate)) {
-      predicate = {id: predicate};
+    if (isObject(predicate)) {
+      req.setParameter(predicate);
+      next();
+    } else if (isValidIndex(predicate)) {
+      req.setParameter({id: predicate});
+      next();
+    } else {
+      next(new Error('"find" argument is not an object or valid index value.'));
     }
-    req.setParameter(predicate);
-    next();
   }
 }
 
