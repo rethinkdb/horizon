@@ -38,7 +38,6 @@ import orderLimitSubSuite from './orderLimitSub'
 import aggregateSuite from './aggregate'
 import aggregateSubSuite from './aggregateSub'
 
-import unitUtilsSuite from './unit/utilsTest'
 import unitAuthSuite from './unit/auth'
 import unitAstSuite from './unit/ast'
 
@@ -166,7 +165,6 @@ describe('Core API tests', () => {
 
   describe('Unit tests', () => {
     describe('Auth', unitAuthSuite)
-    describe('Utils', unitUtilsSuite)
     describe('AST', unitAstSuite)
   })
 }) // Core API tests

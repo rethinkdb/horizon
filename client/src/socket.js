@@ -105,7 +105,7 @@ export class HorizonSocket {
 
   sendHandshake(tokenStorage) {
     const req = this.makeRequest(tokenStorage.handshake(), 'handshake');
-    req.subject.subscribe({
+    req.observable.subscribe({
       next: (message) => {
         if (message.error) {
           this.handshake.error(new ProtocolError(message.error, message.errorCode))
@@ -140,13 +140,22 @@ export class HorizonSocket {
       message: {requestId},
       data: {},
       subject: new Subject(),
+      observable: new Observable((subscriber) => {
+        if (this.requests.has(requestId)) {
+          console.error(`internal horizon request subscribed to twice, stack: ${new Error().stack}`);
+        }
+
+        // TODO: this probably behaves poorly if the connection goes down between creating and subscription
+        this.requests.set(requestId, req)
+        this.send(req.message)
+
+        req.subject.subscribe(subscriber);
+        return () => this.cleanupRequest(requestId);
+      }),
     }
 
     if (options) { req.message.options = options }
     if (type) { req.message.type = type }
-
-    this.requests.set(requestId, req)
-    this.send(req.message)
     return req
   }
 
@@ -178,7 +187,7 @@ export class HorizonSocket {
   hzRequest(options) {
     this.connect() // Make sure we are connected.  TODO: lazily disconnect if no activity?
     const req = this.makeRequest(options);
-    return req.subject.concatMap((response) => {
+    return req.observable.concatMap((response) => {
         if (response.error) {
           throw new ProtocolError(response.error, response.errorCode)
         }

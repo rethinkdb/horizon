@@ -51,7 +51,8 @@ function fetch(context) {
                 }
               }
             }
-            if (req.options.find) {
+            console.log(`Got array fetch result: ${JSON.stringify(result)}, isFind: ${isFind}`);
+            if (isFind) {
               res.end(makeAtomPatch(result[0], true));
             } else {
               res.end(makeAtomPatch(result, true));
