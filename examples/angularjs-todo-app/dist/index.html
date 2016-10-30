@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+
+    <head>
+        <meta charset="UTF-8">
+        <script src="/horizon/horizon.js"></script>
+        <link rel="stylesheet" href="node_modules/todomvc-app-css/index.css">
+        <link rel="stylesheet" href="node_modules/todomvc-common/base.css">
+    </head>
+
+    <body ng-app="todomvc">
+        <section class="todoapp" ng-controller="TodoCtrl as Todo">
+            <header class="header">
+                <h1>todos</h1>
+                <form ng-submit="Todo.addTask()">
+                    <input class="new-todo" placeholder="What needs to be done?" ng-model="Todo.taskTitle" autofocus>
+                </form>
+            </header>
+            <section class="main" ng-show="Todo.tasks.length">
+                <input class="toggle-all" type="checkbox" ng-checked="Todo.allCompleted" ng-click="Todo.toggleAll(Todo.tasks)">
+                <label for="toggle-all">Mark all as complete</label>
+                <ul class="todo-list">
+                    <li ng-repeat="task in Todo.tasks" ng-class="{completed: task.completed, editing: task.id == Todo.editedTask.id}">
+                        <div class="view">
+                            <input class="toggle" type="checkbox" ng-model="task.completed" ng-change="Todo.toggleCompleted(task)">
+                            <label ng-dblclick="Todo.editTask(task)">{{task.title}}</label>
+                            <button class="destroy" ng-click="Todo.removeTask(task)"></button>
+                        </div>
+                        <form ng-submit="Todo.editTaskSave(task)">
+                            <input type="text" id="{{task.id}}" class="edit" ng-model="task.title" ng-blur="Todo.editTaskCancel(task)">
+                        </form>
+                    </li>
+                </ul>
+            </section>
+            <footer class="footer" ng-show="Todo.tasks.length">
+                <span class="todo-count"><strong>{{Todo.remainingCount}}</strong>
+                    <ng-pluralize count="Todo.remainingCount" when="{ one: 'item left', other: 'items left' }"></ng-pluralize>
+                </span>
+                <!-- <ul class="filters">
+                    <li>
+                        <a class="selected" href="#/">All</a>
+                    </li>
+                    <li>
+                        <a href="#/active">Active</a>
+                    </li>
+                    <li>
+                        <a href="#/completed">Completed</a>
+                    </li>
+                </ul> -->
+                <button class="clear-completed" ng-click="Todo.removeCompletedTasks()" ng-show="Todo.completedCount">Clear completed</button>
+            </footer>
+        </section>
+        <footer class="info">
+            <p>Double-click to edit a todo</p>
+            <p>Created by <a href="https://github.com/endetti">endetti</a></p>
+            <p>Part of <a href="http://todomvc.com">TodoMVC</a></p>
+        </footer>
+        <script src="node_modules/todomvc-common/base.js"></script>
+        <script src="node_modules/angular/angular.js"></script>
+        <!-- <script src="node_modules/angular-route/angular-route.js"></script> -->
+        <script src="js/app.js"></script>
+        <script src="js/services/TodoStorage.js"></script>
+        <script src="js/services/Horizon.js"></script>
+        <script src="js/controllers/TodoController.js"></script>
+    </body>
+
+</html>

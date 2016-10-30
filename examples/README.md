@@ -14,12 +14,14 @@ We decided it was important to leverage Horizon alongside all your normal app fu
 And finally, we've created a few example applications to help you get started with Horizon. In each directory
 you will find a `dist` folder which will have all the files needed to serve the example application. In some of the
 TodoMVC examples, you will find a `package.json` inside the `dist` directory, and you will need to run `npm install` for
-some of their dependencies. 
+some of their dependencies.
 
 If you have any questions just ask on [Slack](http://slack.rethinkdb.com) or [Twitter](https://twitter.com/rethinkdb)!
 
-## CycleJS
+## AngularJS
+* [AngularJS Todo App](/examples/angularjs-todo-app)
 
+## CycleJS
 * [CycleJS Chat App](/examples/cyclejs-chat-app)
 
 ## React
