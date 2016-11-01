@@ -5,10 +5,14 @@
         .module('todomvc')
         .controller('TodoCtrl', TodoCtrl);
 
-    TodoCtrl.$inject = ['TodoStorage', '$filter', '$q'];
+    TodoCtrl.$inject = ['$filter', '$q'];
 
-    function TodoCtrl(TodoStorage, $filter, $q) {
+    function TodoCtrl($filter, $q) {
+        const hz = new Horizon();
+        const Tasks = hz("todomvc_tasks");
+
         self = this;
+        self.allCompleted = false;
 
         self.addTask = addTask;
         self.removeTask = removeTask;
@@ -19,12 +23,10 @@
         self.toggleAll = toggleAll;
         self.removeCompletedTasks = removeCompletedTasks;
 
-        self.allCompleted = false;
-
         init();
 
         function init() {
-            TodoStorage.watch().subscribe(function (tasks) {
+            Tasks.order("date", "ascending").watch().subscribe(function (tasks) {
                 var defer = $q.defer();
 
                 defer.resolve(tasks);
@@ -41,19 +43,17 @@
         function addTask() {
             if (!self.taskTitle) return;
 
-            var task = {
+            Tasks.store({
                 title: self.taskTitle.trim(),
                 completed: false,
                 date: new Date()
-            }
+            });
 
             self.taskTitle = '';
-
-            TodoStorage.store(task);
         }
 
         function removeTask(task) {
-            TodoStorage.remove(task);
+            Tasks.remove(task);
         }
 
         function editTask(task) {
@@ -65,9 +65,7 @@
         function editTaskSave(task) {
             self.editedTask = null;
 
-            delete task["$$hashKey"];
-
-            TodoStorage.update(task);
+            Tasks.update(task);
         }
 
         function editTaskCancel(task) {
@@ -76,27 +74,23 @@
         }
 
         function toggleCompleted(task) {
-            delete task["$$hashKey"];
-
-            TodoStorage.update(task);
+            Tasks.update(task);
         }
 
-        function toggleAll(tasks) {
-            tasks.forEach(function (task) {
-                delete task["$$hashKey"];
-
+        function toggleAll() {
+            self.tasks.forEach(function (task) {
                 task.completed = !self.allCompleted;
             });
 
-            toggleCompleted(tasks);
+            toggleCompleted(self.tasks);
         }
 
         function removeCompletedTasks() {
-            self.tasks.forEach(function (task) {
-                if (task.completed === true) {
-                    TodoStorage.remove(task);
-                }
+            var completed = self.tasks.filter(function (task) {
+                return task.completed === true;
             });
+
+            Tasks.remove(completed);
         }
     };
 })();

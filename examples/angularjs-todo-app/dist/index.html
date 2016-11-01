@@ -6,9 +6,10 @@
         <script src="/horizon/horizon.js"></script>
         <link rel="stylesheet" href="node_modules/todomvc-app-css/index.css">
         <link rel="stylesheet" href="node_modules/todomvc-common/base.css">
+        <link rel="stylesheet" href="css/style.css">
     </head>
 
-    <body ng-app="todomvc">
+    <body ng-app="todomvc" ng-cloak>
         <section class="todoapp" ng-controller="TodoCtrl as Todo">
             <header class="header">
                 <h1>todos</h1>
@@ -17,10 +18,10 @@
                 </form>
             </header>
             <section class="main" ng-show="Todo.tasks.length">
-                <input class="toggle-all" type="checkbox" ng-checked="Todo.allCompleted" ng-click="Todo.toggleAll(Todo.tasks)">
+                <input class="toggle-all" type="checkbox" ng-checked="Todo.allCompleted" ng-click="Todo.toggleAll()">
                 <label for="toggle-all">Mark all as complete</label>
                 <ul class="todo-list">
-                    <li ng-repeat="task in Todo.tasks" ng-class="{completed: task.completed, editing: task.id == Todo.editedTask.id}">
+                    <li ng-repeat="task in Todo.tasks track by task.id" ng-class="{completed: task.completed, editing: task.id == Todo.editedTask.id}">
                         <div class="view">
                             <input class="toggle" type="checkbox" ng-model="task.completed" ng-change="Todo.toggleCompleted(task)">
                             <label ng-dblclick="Todo.editTask(task)">{{task.title}}</label>
@@ -36,17 +37,6 @@
                 <span class="todo-count"><strong>{{Todo.remainingCount}}</strong>
                     <ng-pluralize count="Todo.remainingCount" when="{ one: 'item left', other: 'items left' }"></ng-pluralize>
                 </span>
-                <!-- <ul class="filters">
-                    <li>
-                        <a class="selected" href="#/">All</a>
-                    </li>
-                    <li>
-                        <a href="#/active">Active</a>
-                    </li>
-                    <li>
-                        <a href="#/completed">Completed</a>
-                    </li>
-                </ul> -->
                 <button class="clear-completed" ng-click="Todo.removeCompletedTasks()" ng-show="Todo.completedCount">Clear completed</button>
             </footer>
         </section>
@@ -57,10 +47,7 @@
         </footer>
         <script src="node_modules/todomvc-common/base.js"></script>
         <script src="node_modules/angular/angular.js"></script>
-        <!-- <script src="node_modules/angular-route/angular-route.js"></script> -->
         <script src="js/app.js"></script>
-        <script src="js/services/TodoStorage.js"></script>
-        <script src="js/services/Horizon.js"></script>
         <script src="js/controllers/TodoController.js"></script>
     </body>
 

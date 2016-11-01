@@ -1,4 +1,1 @@
-angular.module('todomvc', [])
-    .run(function (Horizon) {
-        Horizon.connect();
-    });
+angular.module('todomvc', []);
