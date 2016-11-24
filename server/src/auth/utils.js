@@ -109,17 +109,20 @@ const oauth2 = (raw_options) => {
   const self_url = (host, path) =>
     url.format({ protocol: 'https', host: host, pathname: path });
 
-  const make_success_url = (horizon_token) =>
-    url.format(extend_url_query(horizon._auth._success_redirect, { horizon_token }));
+  const make_success_url = (horizon_token, custom_redirect_uri) =>
+    url.format(extend_url_query(custom_redirect_uri ? 
+        url.parse(custom_redirect_uri) : 
+        horizon._auth._success_redirect, { horizon_token }));
 
   const make_failure_url = (horizon_error) =>
     url.format(extend_url_query(horizon._auth._failure_redirect, { horizon_error }));
 
   horizon.add_http_handler(provider, (req, res) => {
     const request_url = url.parse(req.url, true);
-    const return_url = self_url(req.headers.host, request_url.pathname);
+    const return_url = self_url(req.headers.host, request_url.pathname)+request_url.search;
     const code = request_url.query && request_url.query.code;
     const error = request_url.query && request_url.query.error;
+    const custom_redirect_uri = request_url.query && request_url.query.redirect_uri;
 
     logger.debug(`oauth request: ${JSON.stringify(request_url)}`);
     if (error) {
@@ -179,7 +182,7 @@ const oauth2 = (raw_options) => {
                   clear_nonce(res, horizon._name);
                   do_redirect(res, err3 ?
                     make_failure_url('invalid user') :
-                    make_success_url(jwt.token));
+                    make_success_url(jwt.token,custom_redirect_uri));
                 });
               }
             });
