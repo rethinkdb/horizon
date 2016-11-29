@@ -72,6 +72,8 @@ class Server {
     this._max_connections = opts.max_connections;
     this._permissions_enabled = opts.permissions;
     this._auth_methods = { };
+    this._custom_auth = opts.custom_auth;
+    this._auth_modules = new Map();
     this._request_handlers = new Map();
     this._http_handlers = new Map();
     this._ws_servers = [ ];
@@ -167,6 +169,10 @@ class Server {
       this._interrupt(err);
       throw err;
     }
+  }
+  
+  registerAuthModule(module_name, cbs){
+    this._auth_modules.set(module_name, cbs)
   }
 
   add_request_handler(request_name, endpoint) {

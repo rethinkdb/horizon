@@ -23,10 +23,41 @@ class Client {
 
     this._socket.on('error', (error) =>
       this.handle_websocket_error(error));
-
+    
+    this._custom = this._server._auth_modules;
+        
     // The first message should always be the handshake
-    this._socket.once('message', (data) =>
-      this.error_wrap_socket(() => this.handle_handshake(data)));
+    // if custom_auth is enabled pass the handshake to those instead
+    if(this._server._custom_auth){
+      
+      this._custom.forEach((x) => {
+        x(this)
+      })
+      /*
+      this._socket.once('message', (data) => {
+        this.error_wrap_socket(() => {
+          this._custom.forEach((x) => {
+            console.log('message passed to custom ')
+            x(this, data, this._auth._jwt)
+          })
+        })
+        
+        
+        
+      })
+      
+      */
+        
+    }else{
+      this._socket.once('message', (data) => {
+        this.error_wrap_socket(() => {
+          console.log('the initial message', data)
+          this.handle_handshake(data)
+        })
+      })
+        
+          
+    }
 
     if (server._max_connections !== null && server._reql_conn._clients.size >= server._max_connections) {
       this.close({ request_id: null, error: 'Max connections limit reached.', error_code: 0 });
@@ -61,6 +92,20 @@ class Client {
   }
 
   parse_request(data, schema) {
+
+    // not pretty right now, just to allow accessing this from the server in a simple way
+    switch (schema){
+      case 'request':
+        schema = schemas.request
+        break;
+      case 'handshake':
+        schema = schemas.handshake
+        break;
+      default:
+        break;
+    }
+    
+     
     let request;
     try {
       request = JSON.parse(data);
@@ -106,9 +151,14 @@ class Client {
         if (!responded) {
           responded = true;
           const info = { token: res.token, id: res.payload.id, provider: res.payload.provider };
-          this.send_response(request, info);
-          this._socket.on('message', (msg) =>
-            this.error_wrap_socket(() => this.handle_request(msg)));
+          //this.send_response(request, info);
+          this._socket.on('message', (msg) => {
+            this.error_wrap_socket(() => {
+              console.log('the second message')
+              this.handle_request(msg)
+            })
+          })
+
         }
       };
       this.user_info = res.payload;
@@ -120,9 +170,9 @@ class Client {
             if (!change.new_val) {
               throw new Error('User account has been deleted.');
             }
-            Object.assign(this.user_info, change.new_val);
-            this._requests.forEach((req) => req.evaluate_rules());
-            finish_handshake();
+            //Object.assign(this.user_info, change.new_val);
+            //this._requests.forEach((req) => req.evaluate_rules());
+            //finish_handshake();
           }).then(() => {
             throw new Error('User account feed has been lost.');
           });
@@ -146,6 +196,7 @@ class Client {
     if (raw_request === undefined) {
       return;
     } else if (raw_request.type === 'end_subscription') {
+      console.log('should end subscription')
       return this.remove_request(raw_request); // there is no response for end_subscription
     } else if (raw_request.type === 'keepalive') {
       return this.send_response(raw_request, { state: 'complete' });
