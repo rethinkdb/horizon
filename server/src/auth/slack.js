@@ -11,6 +11,7 @@ const options_schema = Joi.object().keys({
   path: Joi.string().required(),
   id: Joi.string().required(),
   secret: Joi.string().required(),
+  team: Joi.array().single().optional(),
 }).unknown(false);
 
 function slack(horizon, raw_options) {
@@ -19,7 +20,9 @@ function slack(horizon, raw_options) {
   const client_secret = options.secret;
   const provider = options.path;
   const scope = options && options.scope || 'identify';
-  const team = options && options.team || '';
+  const team = Array.from(options.team).map(function(item) {
+    return `https://${item.toLowerCase()}.slack.com/`;
+  });
 
   const oauth_options = {
     horizon,
@@ -36,7 +39,7 @@ function slack(horizon, raw_options) {
         redirect_uri,
         state,
         scope,
-        team,
+        team: team[0],
       },
     });
 
@@ -66,7 +69,7 @@ function slack(horizon, raw_options) {
       },
     });
 
-  oauth_options.extract_id = (user_info) => user_info && user_info.user_id;
+  oauth_options.extract_id = (user_info) => user_info && team.indexOf(user_info.url) !== -1 && user_info.user_id;
 
   auth_utils.oauth2(oauth_options);
 }

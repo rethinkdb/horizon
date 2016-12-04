@@ -17,6 +17,7 @@ const defaultSecure = typeof window !== 'undefined' && window.location &&
 
 function Horizon({
   host = defaultHost,
+  company = null,
   secure = defaultSecure,
   path = 'horizon',
   lazyWrites = false,
@@ -114,11 +115,27 @@ function Horizon({
 
   return horizon
 
+  function transform(object) {
+    object.companyId = company
+  }
+
   // Sends a horizon protocol request to the server, and pulls the data
   // portion of the response out.
   function sendRequest(type, options) {
     // Both remove and removeAll use the type 'remove' in the protocol
     const normalizedType = type === 'removeAll' ? 'remove' : type
+    if (options.collection !== 'user') {
+      // TODO: Remove this when it's implement server sided
+      if (Array.isArray(options.data)) {
+        options.data.forEach(transform)
+      }
+      if (Array.isArray(options.find)) {
+        options.find.forEach(transform)
+      }
+      if (Array.isArray(options.find_all)) {
+        options.find_all.forEach(transform)
+      }
+    }
     return socket
       .hzRequest({ type: normalizedType, options }) // send the raw request
       .takeWhile(resp => resp.state !== 'complete')
