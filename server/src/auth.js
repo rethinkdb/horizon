@@ -56,6 +56,7 @@ class Auth {
     this._new_user_group = options.new_user_group;
     this._allow_anonymous = options.allow_anonymous;
     this._allow_unauthenticated = options.allow_unauthenticated;
+    this._secure = options.secure;
 
     this._parent = server;
   }

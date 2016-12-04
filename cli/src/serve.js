@@ -340,6 +340,7 @@ const start_horizon_server = (http_servers, opts) =>
     project_name: opts.project_name,
     access_control_allow_origin: opts.access_control_allow_origin,
     auth: {
+      secure: opts.secure,
       token_secret: opts.token_secret,
       allow_unauthenticated: opts.allow_unauthenticated,
       allow_anonymous: opts.allow_anonymous,
@@ -377,8 +378,8 @@ const run = (args, interruptor) => {
     logger.level = opts.debug ? 'debug' : 'warn';
 
     if (!opts.secure && opts.auth && Array.from(Object.keys(opts.auth)).length > 0) {
-      logger.warn('Authentication requires that the server be accessible via HTTPS. ' +
-                  'Either specify "secure=true" or use a reverse proxy.');
+      logger.warn('Authentication should only be used with a server accessible via ' +
+                  'HTTPS. Either specify "secure=true" or use a reverse proxy.');
     }
 
     change_to_project_dir(opts.project_path);

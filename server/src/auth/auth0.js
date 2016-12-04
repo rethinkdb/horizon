@@ -22,9 +22,6 @@ function auth0(horizon, raw_options) {
   const client_secret = options.secret;
   const host = options.host;
 
-  const self_url = (self_host, path) =>
-    url.format({ protocol: 'https', host: self_host, pathname: path });
-
   const make_acquire_url = (state, redirect_uri) =>
     url.format({ protocol: 'https',
                  host: host,
