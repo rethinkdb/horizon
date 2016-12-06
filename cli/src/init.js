@@ -18,7 +18,7 @@ const makeIndexHTML = (projectName) => `\
     <script>
       var horizon = Horizon();
       horizon.onReady(function() {
-        document.querySelector('h1').innerHTML = '${projectName} works!'
+        document.querySelector('h1').innerHTML = '🌅 ${projectName} works! 🌄'
       });
       horizon.connect();
     </script>
