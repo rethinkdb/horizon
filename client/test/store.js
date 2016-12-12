@@ -3,11 +3,11 @@ import 'rxjs/add/operator/mergeMapTo'
 import 'rxjs/add/operator/mergeMap'
 import 'rxjs/add/operator/toArray'
 
-import { assertCompletes,
-         assertThrows,
-         assertErrors,
-         compareWithoutVersion,
-         compareSetsWithoutVersion } from './utils'
+import {assertCompletes,
+        assertThrows,
+        assertErrors,
+        compareWithoutVersion,
+        compareSetsWithoutVersion} from './utils'
 
 export default function storeSuite(getData) {
   return () => {
@@ -20,22 +20,22 @@ export default function storeSuite(getData) {
   // The `store` command stores documents in the database, and overwrites
   // them if they already exist.
   it('creates or replaces a document', assertCompletes(() =>
-      data.store({ id: 1, a: 1, b: 1 })
+      data.store({id: 1, a: 1, b: 1})
       // The promise should return an array with an ID of the inserted
       // document.
-      .do(res => compareWithoutVersion(res, { id: 1 }))
+      .do(res => compareWithoutVersion(res, [{id: 1}]))
       // Let's make sure we get back the document that we put in.
       .mergeMapTo(data.find(1).fetch())
       // Check that we get back what we put in.
-      .do(res => compareWithoutVersion(res, { id: 1, a: 1, b: 1 }))
+      .do(res => compareWithoutVersion(res, {id: 1, a: 1, b: 1}))
       // Let's overwrite the document now
-      .mergeMapTo(data.store({ id: 1, c: 1 }))
+      .mergeMapTo(data.store({id: 1, c: 1}))
       // We should have gotten the ID back again
-      .do(res => compareWithoutVersion(res, { id: 1 }))
+      .do(res => compareWithoutVersion(res, [{id: 1}]))
       // Make sure `store` overwrote the original document
       .mergeMapTo(data.find(1).fetch())
       // Check that we get back what we put in.
-      .do(res => compareWithoutVersion(res, { id: 1, c: 1 }))
+      .do(res => compareWithoutVersion(res, {id: 1, c: 1}))
   ))
 
   // If we store a document without an ID, the ID is generated for us.
@@ -44,7 +44,7 @@ export default function storeSuite(getData) {
   it('generates ids for documents without them', assertCompletes(() => {
     let new_id
 
-    return data.store({ a: 1, b: 1 }).toArray()
+    return data.store({a: 1, b: 1})
       .do(res => {
         // The promise should return an array with an ID of the
         // inserted document.
@@ -56,15 +56,15 @@ export default function storeSuite(getData) {
       // Let's make sure we get back the document that we put in.
       .mergeMap(() => data.find(new_id).fetch())
       // Check that we get back what we put in.
-      .do(res => compareWithoutVersion({ id: new_id, a: 1, b: 1 }, res))
+      .do(res => compareWithoutVersion({id: new_id, a: 1, b: 1}, res))
       // Let's overwrite the document now
-      .mergeMap(() => data.store({ id: new_id, c: 1 }))
+      .mergeMap(() => data.store({id: new_id, c: 1}))
       // We should have gotten the ID back again
-      .do(res => assert.deepEqual(new_id, res.id))
+      .do(res => compareWithoutVersion(res, [{id: new_id}]))
       // Make sure `store` overwrote the original document
       .mergeMap(() => data.find(new_id).fetch())
       // Check that we get back what we put in.
-      .do(res => compareWithoutVersion({ id: new_id, c: 1 }, res))
+      .do(res => compareWithoutVersion({id: new_id, c: 1}, res))
   }))
 
   // Storing `null` is an error.
@@ -90,7 +90,7 @@ export default function storeSuite(getData) {
   it('allows storing multiple documents in one call', assertCompletes(() => {
     let new_id_0, new_id_1
 
-    return data.store([ {}, { a: 1 }, { id: 1, a: 1 } ])
+    return data.store([ {}, {a: 1}, {id: 1, a: 1} ])
       .toArray()
       .do(res => {
         // The promise should return an array with the IDs of the documents
@@ -109,23 +109,23 @@ export default function storeSuite(getData) {
                .fetch())
       // We're supposed to get an array of documents we put in
       .do(res => compareSetsWithoutVersion(res, [
-        { id: new_id_0 },
-        { id: new_id_1, a: 1 },
-        { id: 1, a: 1 },
+        {id: new_id_0},
+        {id: new_id_1, a: 1},
+        {id: 1, a: 1},
       ]))
   }))
 
   // If any operation in a batch store fails, everything is reported as a
   // failure. Note that we're storing `null` below, which is a failure.
   it('fails if any operation in a batch fails', assertErrors(() =>
-    data.store([ { a: 1 }, null, { id: 1, a: 1 } ]),
+    data.store([{a: 1}, null, {id: 1, a: 1}]),
     /must be an object/
   ))
 
   // Storing an empty batch of documents is ok, and returns an empty
   // array.
   it('allows storing empty batches', assertCompletes(() =>
-    data.store([]).toArray()
+    data.store([])
       .do(res => {
         // The promise should return an array with the IDs of the documents
         // in order, including the generated IDS.
@@ -136,8 +136,8 @@ export default function storeSuite(getData) {
 
   it('stores date objects and retrieves them again', assertCompletes(() => {
     const originalDate = new Date()
-    return data.store({ date: originalDate }).toArray()
-      .mergeMap(id => data.find(id[0]).fetch())
+    return data.store({date: originalDate})
+      .mergeMap(res => data.find(res[0]).fetch())
       .do(result => assert.deepEqual(originalDate, result.date))
   }))
 }}

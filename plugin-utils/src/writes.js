@@ -14,12 +14,7 @@ function applyVersion(r, row, newVersion) {
   return row.merge(r.object(hzv, newVersion));
 }
 
-function makeAtomResponse(data) {
-  const val = data instanceof Error ? {error: item.message} : data;
-  return {op: 'replace', path: '', value: {type: 'value', synced: true, val: data}};
-}
-
-function makeBatchResponse(data) {
+function makeResponse(data) {
   data.forEach((item, index) => {
     if (item instanceof Error) {
       data[index] = {error: item.message};
@@ -139,23 +134,16 @@ function retryLoop(originalRows,
       return iterate(retryRows, responseData, deadline);
     });
   };
-  
-  const actualRows = originalRows.length === 1 && Array.isArray(originalRows[0]) ?
-    originalRows[0] : originalRows;
 
   return iterate(
-    actualRows.map((row, index) => ({row, index, version: row[hzv]})),
-    actualRows.map((row) => {
+    originalRows.map((row, index) => ({row, index, version: row[hzv]})),
+    originalRows.map((row) => {
       if (typeof row !== 'object' || row == null || Array.isArray(row)) {
         return new Error('Row to be written must be an object');
       }
       return row;
     })
-  ).then((results) => {
-    // If we were passed a single row (not in an array), the response should be similar
-    return originalRows.length === 1 && !Array.isArray(originalRows[0]) ?
-      makeAtomResponse(results[0]) : makeBatchResponse(results);
-  });
+  ).then(makeResponse);
 }
 
 function validateOldRowOptional(validator, original, oldRow, newRow) {

@@ -27,8 +27,6 @@ const commands = {
   version: versionCommand,
   'create-cert': createCertCommand,
   'make-token': makeTokenCommand,
-  schema: schemaCommand,
-  migrate: migrateCommand,
 };
 
 const programName = path.basename(process.argv[1]);

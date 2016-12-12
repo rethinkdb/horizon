@@ -69,6 +69,7 @@ class ReliableInit extends Reliable {
       } else {
         return r.dbList().contains(db).run(conn).then((hasDb) => {
           if (!hasDb) {
+            // RSI: schema-apply needs to be a plugin
             throw new Error(`The database ${db} does not exist.  ` +
                             'Run `hz schema apply` to initialize the database, ' +
                             'then start the Horizon server.');
@@ -82,6 +83,7 @@ class ReliableInit extends Reliable {
         .forEach((table) => r.db(db).table(table).wait({timeout: 30})).run(conn);
     }).then(() => {
       this.checkAttempt(attempt);
+      // RSI: this should probably be in the 'permissions' plugin
       events.emit('log', 'debug', 'adding admin user');
       return Promise.all([
         r.db(db).table('users').get('admin')

@@ -18,7 +18,6 @@ const infoLevelLog = (msg) => /^Running/.test(msg) || /^Listening/.test(msg);
 class RethinkdbServer extends EventEmitter {
   constructor(options) {
     super();
-    const quiet = Boolean(options.quiet);
     const bind = options.bind || ['127.0.0.1'];
     const dataDir = options.dataDir || defaultDatadir;
     const driverPort = options.rdbPort;
@@ -70,12 +69,10 @@ class RethinkdbServer extends EventEmitter {
       };
 
       each_line_in_pipe(this.proc.stdout, (line) => {
-        if (!quiet) {
-          if (infoLevelLog(line)) {
-            this.emit('log', 'info', line);
-          } else {
-            this.emit('log', 'debug', line);
-          }
+        if (infoLevelLog(line)) {
+          this.emit('log', 'info', line);
+        } else {
+          this.emit('log', 'debug', line);
         }
         if (this.driverPort === undefined) {
           const matches = line.match(
@@ -132,7 +129,6 @@ class RethinkdbServer extends EventEmitter {
 
 // start_rdb_server
 // Options:
-// quiet: boolean, suppresses rethinkdb log messages
 // bind: array of ip addresses to bind to, or 'all'
 // dataDir: name of rethinkdb data directory. Defaults to `rethinkdb_data`
 // driverPort: port number for rethinkdb driver connections. Auto-assigned by default.
