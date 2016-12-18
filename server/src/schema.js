@@ -14,7 +14,7 @@ const server = Joi.object({
   rdbPassword: Joi.string().allow(null),
   rdbTimeout: Joi.number().allow(null),
 
-  auth: Joi.object().default({ }),
+  auth: Joi.object().default({}),
 }).unknown(false);
 
 // Options for Auth object construction
@@ -29,7 +29,8 @@ const auth = Joi.object({
   createNewUsers: Joi.boolean().default(true),
   newUserGroup: Joi.string().default('authenticated'),
 
-  allowAnonymous: Joi.boolean().default(false),
+  allowAnonymous: Joi.boolean().default(false)
+    .when('createNewUsers', {is: false, then: Joi.only(false).optional()}),
   allowUnauthenticated: Joi.boolean().default(false),
 }).unknown(false);
 

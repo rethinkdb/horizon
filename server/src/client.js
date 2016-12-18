@@ -15,7 +15,7 @@ class ClientConnection {
     this.events = serverContext.horizon.events;
     this.socket = socket;
     this.requestHandlerCb = requestHandlerCb;
-    this.clientContext = { };
+    this.clientContext = {};
     this.responses = new Map();
 
     this.events.emit('log', 'debug', 'ClientConnection established.');

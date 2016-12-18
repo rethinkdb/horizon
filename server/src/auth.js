@@ -39,6 +39,10 @@ class Auth {
     this.tokens = tokens(this.options);
     this.successUrl = url.parse(this.options.successRedirect);
     this.failureUrl = url.parse(this.options.failureRedirect);
+
+    if (this.options.allowAnonymous && !this.options.createNewUsers) {
+      throw new Error('Cannot allow anonymous users without new user creation.');
+    }
   }
 
   handshake(request) {
@@ -63,28 +67,11 @@ class Auth {
     });
   }
 
-  // Can't use objects in primary keys, so convert those to JSON in the db (deterministically)
-  authKey(provider, info) {
-    if (info === null || Array.isArray(info) || typeof info !== 'object') {
-      return [provider, info];
-    } else {
-      const r = this.context.horizon.r;
-      return [provider, r.expr(info).toJSON()];
-    }
-  }
-
-  newUserRow(id) {
-    return {
-      id,
-      groups: ['default', this.options.newUserGroup],
-    };
-  }
-
   // TODO: maybe we should write something into the user data to track open sessions/tokens
   generate(provider, info) {
     const r = this.context.horizon.r;
     return Promise.resolve().then(() => {
-      const key = this.authKey(provider, info);
+      const key = this._authKey(provider, info);
       const db = r.db(this.context.horizon.options.projectName);
 
       const insert = (table, row) =>
@@ -98,7 +85,7 @@ class Auth {
 
       if (this.options.createNewUsers) {
         query = insert('hz_users_auth', {id: key, user_id: r.uuid()})
-          .do((authUser) => insert('users', this.newUserRow(authUser('user_id'))));
+          .do((authUser) => insert('users', this._newUserRow(authUser('user_id'))));
       }
 
       return query.run(this.context.horizon.conn());
@@ -111,6 +98,23 @@ class Auth {
         `Failed user lookup or creation: ${err}`);
       throw new Error('User lookup or creation in database failed.');
     });
+  }
+
+  // Can't use objects in primary keys, so convert those to JSON in the db (deterministically)
+  _authKey(provider, info) {
+    if (info === null || Array.isArray(info) || typeof info !== 'object') {
+      return [provider, info];
+    } else {
+      const r = this.context.horizon.r;
+      return [provider, r.expr(info).toJSON()];
+    }
+  }
+
+  _newUserRow(id) {
+    return {
+      id,
+      groups: ['default', this.options.newUserGroup],
+    };
   }
 }
 
