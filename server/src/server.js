@@ -58,8 +58,8 @@ class Server {
 
     this.context = {
       horizon: {
-        options: Joi.attempt(options || {}, schema.server),
         events: this.events,
+        options: Joi.attempt(options || {}, schema.server),
         protocol: protocolName,
         r,
       },
