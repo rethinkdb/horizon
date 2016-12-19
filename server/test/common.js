@@ -44,7 +44,7 @@ function makeContext(options) {
     createNewUsers: true,
     newUserGroup: 'fooGroup',
     allowAnonymous: true,
-    allowUnauthenticated: true
+    allowUnauthenticated: true,
   }, (options && options.auth) || {});
 
   const serverOptions = Object.assign({
@@ -58,8 +58,8 @@ function makeContext(options) {
       r,
       conn: () => rdbConn,
       events: new EventEmitter(),
-      options: serverOptions
-    }
+      options: serverOptions,
+    },
   };
 }
 
@@ -68,7 +68,10 @@ function addUser(provider, id) {
   return r.uuid().do((userId) =>
     r.expr([
       usersTable.insert({id: userId, groups: ['default', 'authenticated']}),
-      usersAuthTable.insert({id: [provider, id], user_id: userId}),
+      usersAuthTable.insert({
+        id: [provider, id],
+        user_id: userId, // eslint-disable-line camelcase
+      }),
     ]).do(() => userId)
   ).run(rdbConn);
 }

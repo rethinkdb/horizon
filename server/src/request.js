@@ -7,6 +7,10 @@ const currentMethod = Symbol('currentMethod');
 
 class Request {
   constructor(request, method) {
+    if (typeof method !== 'string') {
+      throw new Error('Request method must be a string.');
+    }
+
     this.requestId = request.requestId;
     this.options = request.options;
     this.clientContext = request.clientContext;
@@ -25,7 +29,7 @@ class Request {
   }
 }
 
-Request.init = function (request, clientContext) {
+Request.init = function(request, clientContext) {
   Object.freeze(request.options);
   request[parameters] = {};
   request.clientContext = clientContext;

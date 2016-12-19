@@ -1,3 +1,5 @@
+'use strict';
+
 const Auth = require('../src/auth');
 const common = require('./common');
 
@@ -26,7 +28,7 @@ describe('Auth', () => {
   function tokenTests(getToken) {
     it('returns the same payload as the token', () =>
       getToken().then((token) => {
-        const payload = jwt.decode(token.token, secretKey, {algorithms: ['HS512']})
+        const payload = jwt.decode(token.token, secretKey, {algorithms: ['HS512']});
         assert.deepStrictEqual(token.payload.id, payload.id);
         assert.deepStrictEqual(token.payload.provider, payload.provider);
       })
@@ -37,7 +39,7 @@ describe('Auth', () => {
         jwt.verify(token.token, secretKey, {algorithms: ['HS512']})
       )
     );
-  };
+  }
 
   function generatedTokenTests(getToken, provider) {
     it('sets the token expiration time', () =>
@@ -79,7 +81,7 @@ describe('Auth', () => {
       });
 
       it('rejects token signed with the wrong key', () => {
-        const token = jwt.sign({}, 'fake', {algorithm: 'HS512'}); 
+        const token = jwt.sign({}, 'fake', {algorithm: 'HS512'});
         return getToken(context(), token).then(
           () => assert(false),
           (err) => assert.strictEqual(err.message, 'invalid signature')
@@ -168,7 +170,7 @@ describe('Auth', () => {
     const provider = 'unittest';
     const generate = (id) => new Auth(context()).generate(provider, id);
     const generateAndCheck = (id) =>
-      generate(id).then((token) => {
+      generate(id).then(() => {
         const ids = [];
         return Promise.all([
           usersTable.coerceTo('array').run(conn()).then((rows) => {
@@ -182,7 +184,7 @@ describe('Auth', () => {
         ]).then(() => {
           assert.strictEqual(ids.length, 2);
           assert.deepStrictEqual(ids[0], ids[1]);
-        })
+        });
       });
 
     before(() => common.startRethinkdb());
@@ -209,7 +211,6 @@ describe('Auth', () => {
       const existingUser = 'existing';
       return common.addUser('unittest', existingUser).then((id) =>
         generate(existingUser).then((token) => {
-          const payload = jwt.decode(token.token, secretKey, {algorithms: ['HS512']});
           assert.strictEqual(token.payload.id, id);
         })
       );

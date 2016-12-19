@@ -84,7 +84,7 @@ class Auth {
                     .default(r.error('User not found and new user creation is disabled.'));
 
       if (this.options.createNewUsers) {
-        query = insert('hz_users_auth', {id: key, user_id: r.uuid()})
+        query = insert('hz_users_auth', {id: key, user_id: r.uuid()}) // eslint-disable-line camelcase
           .do((authUser) => insert('users', this._newUserRow(authUser('user_id'))));
       }
 

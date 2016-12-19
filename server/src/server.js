@@ -127,8 +127,8 @@ class Server {
         } else {
           requirements[o] = true;
         }
-        for (const r of m.requires) {
-          requirements[r] = true;
+        for (const requirement of m.requires) {
+          requirements[requirement] = true;
         }
       }
 
@@ -246,10 +246,10 @@ class Server {
       for (const m in this._methods) {
         const reqs = this._methods[m].requires;
         topo.add(m, reqs);
-        for (const r of reqs) {
-          if (!this._methods[r]) {
+        for (const req of reqs) {
+          if (!this._methods[req]) {
             throw new Error(
-              `Missing method "${r}", which is required by method "${m}".`);
+              `Missing method "${req}", which is required by method "${m}".`);
           }
         }
       }
