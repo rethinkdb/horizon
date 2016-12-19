@@ -1,7 +1,7 @@
 'use strict';
 
 const Auth = require('./auth');
-const ClientConnection = require('./client');
+const ClientConnection = require('./client_connection');
 const {ReliableConn} = require('./reliable');
 const schema = require('./schema');
 const Request = require('./request');
