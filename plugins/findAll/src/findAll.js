@@ -20,7 +20,7 @@ function findAll(req, res, next) {
       }
     });
 
-    if (invalidArg !== undefined) {
+    if (invalidArg === undefined) {
       req.setParameter(predicate);
       next();
     } else {
