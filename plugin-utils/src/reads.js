@@ -54,7 +54,10 @@ function makeFindReql(collection, find) {
       value = value[0];
     }
 
-    return collection.table.getAll(value, {index: index.name}).limit(1);
+    return collection.table
+      .between(value, value, {index: index.name, rightBound: 'closed'})
+      .orderBy({index: index.name})
+      .limit(1);
   });
 }
 
