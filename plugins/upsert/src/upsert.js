@@ -11,9 +11,9 @@ function upsert(context) {
     const permissions = req.getParameter('hz_permissions');
 
     if (!collection) {
-      throw new Error('No collection given for insert operation.');
+      throw new Error('No collection given for upsert operation.');
     } else if (!permissions) {
-      throw new Error('No permissions given for insert operation.');
+      throw new Error('No permissions given for upsert operation.');
     }
 
     writes.retryLoop(req.options.upsert, permissions, timeout,

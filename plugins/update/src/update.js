@@ -11,9 +11,9 @@ function update(context) {
     const permissions = req.getParameter('hz_permissions');
 
     if (!collection) {
-      throw new Error('No collection given for insert operation.');
+      throw new Error('No collection given for update operation.');
     } else if (!permissions) {
-      throw new Error('No permissions given for insert operation.');
+      throw new Error('No permissions given for update operation.');
     }
 
     writes.retryLoop(req.options.update, permissions, timeout,

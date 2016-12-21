@@ -3,6 +3,7 @@
 const {reqlOptions, reads} = require('@horizon/plugin-utils');
 
 function makeAtomPatch(val, synced) {
+  console.log(`makeAtomPatch called: ${new Error().stack}, val: ${val}`);
   return {op: 'replace', path: '', value: {type: 'value', synced, val}};
 }
 
@@ -53,7 +54,7 @@ function fetch(context) {
             }
             console.log(`Got array fetch result: ${JSON.stringify(result)}, isFind: ${isFind}`);
             if (isFind) {
-              res.end(makeAtomPatch(result[0], true));
+              res.end(makeAtomPatch(result.length > 0 ? result[0] : null, true));
             } else {
               res.end(makeAtomPatch(result, true));
             }

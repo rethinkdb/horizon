@@ -12,6 +12,7 @@ const defaultMethods = {
   limit: require('@horizon-plugins/limit'),
   order: require('@horizon-plugins/order'),
   remove: require('@horizon-plugins/remove'),
+  removeAll: require('@horizon-plugins/removeAll'),
   replace: require('@horizon-plugins/replace'),
   store: require('@horizon-plugins/store'),
   timeout: require('@horizon-plugins/timeout'),

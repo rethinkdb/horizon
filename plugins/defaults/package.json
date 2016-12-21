@@ -33,6 +33,7 @@
     "@horizon-plugins/permissions": "1.x",
     "@horizon-plugins/permit-all": "1.x",
     "@horizon-plugins/remove": "1.x",
+    "@horizon-plugins/removeAll": "1.x",
     "@horizon-plugins/replace": "1.x",
     "@horizon-plugins/store": "1.x",
     "@horizon-plugins/timeout": "1.x",

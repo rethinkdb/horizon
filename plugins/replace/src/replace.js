@@ -11,9 +11,9 @@ function replace(context) {
     const permissions = req.getParameter('hz_permissions');
 
     if (!collection) {
-      throw new Error('No collection given for insert operation.');
+      throw new Error('No collection given for replace operation.');
     } else if (!permissions) {
-      throw new Error('No permissions given for insert operation.');
+      throw new Error('No permissions given for replace operation.');
     }
 
     writes.retryLoop(req.options.replace, permissions, timeout,

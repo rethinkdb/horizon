@@ -14,13 +14,15 @@ function applyVersion(r, row, newVersion) {
   return row.merge(r.object(hzv, newVersion));
 }
 
-function makeResponse(data) {
+function makeResponse(data, isBatch) {
   data.forEach((item, index) => {
     if (item instanceof Error) {
       data[index] = {error: item.message};
     }
   });
-  return {op: 'replace', path: '', value: {type: 'value', synced: true, val: data}};
+
+  const val = isBatch ? data : data[0];
+  return {op: 'replace', path: '', value: {type: 'value', synced: true, val}};
 }
 
 // This function returns a Promise that resolves to an array of responses -
@@ -131,19 +133,41 @@ function retryLoop(originalRows,
 
       // Recurse, after which it will decide if there is more work to be done
       firstAttempt = false;
-      return iterate(retryRows, responseData, deadline);
+      return iterate(retryRows, responseData);
     });
   };
 
+  // Original rows must be an array of one object or one array of objects
+  // TODO: would be nice to make this just an array of objects, but would like
+  // to preserve backwards compatibility with the client side
+  if (!Array.isArray(originalRows) || originalRows.length != 1) {
+    throw new Error('Writes must be given a single object or an array of objects.');
+  }
+
+
+  let isBatch = Array.isArray(originalRows[0]);
+  let normalizedRows;
+  if (isBatch) {
+    normalizedRows = originalRows[0];
+  } else {
+    normalizedRows = [originalRows[0]];
+  }
+
+  const responseData = [];
+  normalizedRows = normalizedRows.filter((row) => {
+    if (typeof row !== 'object' || row == null || Array.isArray(row)) {
+      responseData.push(new Error('Row to be written must be an object.'));
+      return false;
+    } else {
+      responseData.push(null);
+      return true;
+    }
+  });
+
   return iterate(
-    originalRows.map((row, index) => ({row, index, version: row[hzv]})),
-    originalRows.map((row) => {
-      if (typeof row !== 'object' || row == null || Array.isArray(row)) {
-        return new Error('Row to be written must be an object');
-      }
-      return row;
-    })
-  ).then(makeResponse);
+    normalizedRows.map((row, index) => ({row, index, version: row[hzv]})),
+    responseData
+  ).then((data) => makeResponse(data, isBatch));
 }
 
 function validateOldRowOptional(validator, original, oldRow, newRow) {
@@ -182,6 +206,56 @@ function validateOldRowRequired(validator, original, oldRow, newRow) {
   }
 }
 
+// Since we provide both `remove` and `removeAll`, make this common
+function removeCommon(data, req, context, reqlOptions) {
+  const r = context.horizon.r;
+  const timeout = req.getParameter('timeout');
+  const collection = req.getParameter('collection');
+  const permissions = req.getParameter('hz_permissions');
+
+  if (!collection) {
+    throw new Error('No collection given for remove operation.');
+  } else if (!permissions) {
+    throw new Error('No permissions given for remove operation.');
+  }
+
+  return retryLoop(data, permissions, timeout,
+    (rows) => // pre-validation, all rows
+      r.expr(rows.map((row) => row.id))
+        .map((id) => collection.table.get(id))
+        .run(context.horizon.conn(), reqlOptions),
+    (validator, row, info) =>
+      validateOldRowRequired(validator, row, info, null),
+    (rows) => // write to database, all valid rows
+      r.expr(rows).do((rowData) =>
+        rowData.forEach((info) =>
+          collection.table.get(info('id')).replace((row) =>
+              r.branch(// The row may have been deleted between the get and now
+                       row.eq(null),
+                       null,
+
+                       // The row may have been changed between the get and now
+                       r.and(info.hasFields(hzv),
+                             row(hzv).default(-1).ne(info(hzv))),
+                       r.error(invalidatedMsg),
+
+                       // Otherwise, we can safely remove the row
+                       null),
+
+              {returnChanges: 'always'}))
+          // Pretend like we deleted rows that didn't exist
+          .do((writeRes) =>
+            writeRes.merge({changes:
+              r.range(rowData.count()).map((index) =>
+                r.branch(writeRes('changes')(index)('old_val').eq(null),
+                         writeRes('changes')(index).merge(
+                           {old_val: {id: rowData(index)('id')}}),
+                         writeRes('changes')(index))).coerceTo('array'),
+            })))
+        .run(context.horizon.conn(), reqlOptions)
+  );
+}
+
 module.exports = {
   invalidatedMsg,
   missingMsg,
@@ -191,5 +265,6 @@ module.exports = {
   retryLoop,
   validateOldRowRequired,
   validateOldRowOptional,
+  removeCommon,
   versionField: hzv,
 };
