@@ -15,7 +15,10 @@ function removeAll(context) {
     );
 
     writes.removeCommon([rows], req, context, reqlOptions)
-      .then((patch) => res.end(patch)).catch(next);
+      .then((patches) => {
+        patches.map((patch) => res.write(patch));
+        res.end();
+      }).catch(next);
   };
 }
 

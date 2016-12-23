@@ -28,7 +28,10 @@ function insert(context) {
           .insert(rows.map((row) => writes.applyVersion(r, r.expr(row), 0)),
                   {returnChanges: 'always'})
           .run(context.horizon.conn(), reqlOptions)
-    ).then((patch) => res.end(patch)).catch(next);
+    ).then((patches) => {
+      patches.map((patch) => res.write(patch));
+      res.end();
+    }).catch(next);
   };
 }
 

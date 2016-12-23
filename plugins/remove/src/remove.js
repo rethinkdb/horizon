@@ -13,7 +13,10 @@ function remove(context) {
       req.options.remove[0] : {id: req.options.remove[0]};
 
     writes.removeCommon([row], req, context, reqlOptions)
-      .then((patch) => res.end(patch)).catch(next);
+      .then((patches) => {
+        patches.map((patch) => res.write(patch));
+        res.end();
+      }).catch(next);
   };
 }
 

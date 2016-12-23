@@ -196,15 +196,21 @@ export class HorizonSocket {
           // TODO: are there any cases where it is a problem that we
           // have already 'deserialized' the data before applying the patch?
           req.data = jsonpatch.apply_patch(req.data, response.patch)
-        }
-        if (Boolean(req.data.synced)) {
-          switch (req.data.type) {
-          case 'value':
-            return [req.data.val]
-          case 'set':
-            return [Object.values(req.data.val)]
-          default:
-            throw new Error(`Unrecognized data type: ${data.type}.`)
+
+          // TODO: we may want to apply patches one at a time, check for
+          // synced, and append any events.  The workaround for plugins
+          // to get this behavior is to send a separate message per event.
+          // But if we're doing things this way, why do we need synced?
+
+          if (Boolean(req.data.synced)) {
+            switch (req.data.type) {
+            case 'value':
+              return [req.data.val]
+            case 'set':
+              return [Object.values(req.data.val)]
+            default:
+              throw new Error(`Unrecognized data type: ${data.type}.`)
+            }
           }
         }
         return []

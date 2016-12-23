@@ -3,6 +3,14 @@
 const {reqlOptions, reads} = require('@horizon/plugin-utils');
 const hash = require('object-hash');
 
+function makePointPatch(change) {
+  if (change.new_offset != null) {
+    return {op: 'replace', path: '/val', value: change.new_val};
+  } else {
+    return {op: 'replace', path: '/val', value: null};
+  }
+}
+
 function makeArrayPatch(change) {
   const patch = [];
   if (change.old_offset != null) {
@@ -39,7 +47,8 @@ function watch(context) {
     } else if (!permissions) {
       next(new Error('"watch" requires permissions to run'));
     } else {
-      const limited = req.getParameter('limit') !== undefined;
+      const isFind = req.getParameter('find') !== undefined;
+      const limited = isFind || (req.getParameter('limit') !== undefined);
       reads.makeReadReql(context, req).then((reql) =>
         reql.changes({
           includeInitial: true,
@@ -53,9 +62,10 @@ function watch(context) {
         // TODO: reuse cursor batches
         return feed.eachAsync((item) => {
           if (item.state === 'initializing') {
+            const val = isFind ? null : (limited ? [] : {});
             res.write({op: 'replace', path: '',
                        value: {type: limited ? 'value' : 'set',
-                               synced: false, val: limited ? [] : {}}});
+                               synced: false, val}});
           } else if (item.state === 'ready') {
             res.write({op: 'replace', path: '/synced', value: true});
           } else {
@@ -66,7 +76,13 @@ function watch(context) {
                 throw new Error('Operation not permitted.');
               }
             }
-            res.write(limited ? makeArrayPatch(item) : makeSetPatch(item));
+            if (isFind) {
+              res.write(makePointPatch(item));
+            } else if (limited) {
+              res.write(makeArrayPatch(item));
+            } else {
+              res.write(makeSetPatch(item));
+            }
           }
         });
       }).then(() => res.end()).catch(next);

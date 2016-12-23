@@ -3,7 +3,6 @@
 const {reqlOptions, reads} = require('@horizon/plugin-utils');
 
 function makeAtomPatch(val, synced) {
-  console.log(`makeAtomPatch called: ${new Error().stack}, val: ${val}`);
   return {op: 'replace', path: '', value: {type: 'value', synced, val}};
 }
 

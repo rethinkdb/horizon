@@ -14,15 +14,25 @@ function applyVersion(r, row, newVersion) {
   return row.merge(r.object(hzv, newVersion));
 }
 
-function makeResponse(data, isBatch) {
-  data.forEach((item, index) => {
+// Note, most of this bullshit is to maintain compatibility with pre-3.0, where
+// each item in a write batch was emitted as a separate value, rather than emitting
+// a single array.
+function makeResponse(data) {
+  const makePatch = (val, index) => {
+    if (index == 0) {
+      return {op: 'replace', path: '', value: {type: 'value', synced: true, val}};
+    } else {
+      return {op: 'replace', path: '/val', value: val};
+    }
+  };
+
+  return data.map((item, index) => {
     if (item instanceof Error) {
-      data[index] = {error: item.message};
+      return makePatch({error: item.message}, index);
+    } else {
+      return makePatch(item, index);
     }
   });
-
-  const val = isBatch ? data : data[0];
-  return {op: 'replace', path: '', value: {type: 'value', synced: true, val}};
 }
 
 // This function returns a Promise that resolves to an array of responses -
@@ -145,9 +155,8 @@ function retryLoop(originalRows,
   }
 
 
-  let isBatch = Array.isArray(originalRows[0]);
   let normalizedRows;
-  if (isBatch) {
+  if (Array.isArray(originalRows[0])) {
     normalizedRows = originalRows[0];
   } else {
     normalizedRows = [originalRows[0]];
@@ -167,7 +176,7 @@ function retryLoop(originalRows,
   return iterate(
     normalizedRows.map((row, index) => ({row, index, version: row[hzv]})),
     responseData
-  ).then((data) => makeResponse(data, isBatch));
+  ).then((data) => makeResponse(data));
 }
 
 function validateOldRowOptional(validator, original, oldRow, newRow) {
