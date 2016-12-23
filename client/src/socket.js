@@ -63,7 +63,7 @@ export class HorizonSocket {
     const keepalive = Observable.timer(keepaliveSec * 1000, keepaliveSec * 1000)
       .map(() => {
         if (this.status.value === STATUS_READY) {
-          this.makeRequest(null, 'keepalive').subscribe()
+          this.makeRequest(null, 'keepalive').observable.subscribe()
         }
       })
       .subscribe()
@@ -202,7 +202,7 @@ export class HorizonSocket {
           case 'value':
             return [req.data.val]
           case 'set':
-            return [Object.values(data.val)]
+            return [Object.values(req.data.val)]
           default:
             throw new Error(`Unrecognized data type: ${data.type}.`)
           }
