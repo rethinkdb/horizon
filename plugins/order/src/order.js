@@ -20,7 +20,7 @@ function order(req, res, next) {
                    'an array of strings or arrays of strings.'));
   } else if (args.length === 2 &&
              (args[1] !== 'ascending' && args[1] !== 'descending')) {
-    next(new Error('Second argument to "order" must be "ascending" or "descending"'));
+    next(new Error('Second argument to "order" must be "ascending" or "descending".'));
   } else {
     req.setParameter({
       fields: Array.isArray(args[0]) ?

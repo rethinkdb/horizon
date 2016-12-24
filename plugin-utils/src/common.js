@@ -54,7 +54,7 @@ function isValidIndex(x) {
     if (Array.isArray(x)) {
       return x.every((item) => isValidIndex(item));
     }
-    return x === null || x.$reql_type$;
+    return x !== null && x.$reql_type$;
   }
   return true;
 }

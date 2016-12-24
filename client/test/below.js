@@ -2,7 +2,6 @@ import 'rxjs/add/operator/do'
 import 'rxjs/add/operator/toArray'
 
 import {assertCompletes,
-        assertThrows,
         assertErrors,
         compareWithoutVersion} from './utils'
 
@@ -98,41 +97,41 @@ export default function belowSuite(getData) {
   // Passing multiple keys to `below` isn't legal
   it('errors if it receives multiple keys', assertErrors(() =>
     data.order(['a', 'id']).below({a: 20, id: 20}).fetch(),
-    /"find" is required/
+    /Object argument to "below" must have exactly one field./
   ))
 
   // Nor is passing a field that isn't specified in `order`
   it(`errors if it receives a field that wasn't passed to the order term`,
      assertErrors(() =>
     data.order(['a', 'id']).below({b: 20}).fetch(),
-    /"below" must be on the same field as the first in "order"/
+    /"below" must be on the same field as the first in "order"./
   ))
 
   // If chaining `below/above`, they must be passed the same key
   it('must be passed the same key as the above term', assertErrors(() =>
     data.below({a: 100}).above({b: 0}).fetch(),
-    /"below" must be on the same field as the first in "order"/
+    /"below" must be on the same field as "above"./
   ))
 
   // Starting with `null` is not ok
-  it('throws if passed null', assertThrows(
-    'The 1st argument to below must be non-null',
-    () => data.below(null).fetch()
+  it('throws if passed null', assertErrors(
+    () => data.below(null).fetch(),
+    /First argument to "below" must be a string or object./
   ))
 
   // Empty value is not ok
-  it('throws if not given an argument', assertThrows(
-    'below must receive at least 1 argument.',
-    () => data.below().fetch()
+  it('throws if not given an argument', assertErrors(
+    () => data.below().fetch(),
+    /"below" expected 1 or 2 arguments but found 0./
   ))
 
   // Bad arguments are not ok
   it('errors if passed a non-string', assertErrors(() =>
     data.below(1).fetch(),
-    /"find" is required/
+    /First argument to "below" must be a string or object./
   ))
   it('errors if it receives a bound other than open or closed', assertErrors(() =>
     data.below({id: 1}, 1).fetch(),
-    /"find" is required/
+    /Second argument to "below" must be "open" or "closed"./
   ))
 }}

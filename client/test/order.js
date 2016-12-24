@@ -83,25 +83,25 @@ export default function orderSuite(getData, getTestData) {
 
   it(`errors if the 2nd argument isn't 'ascending' or 'descending'`,
      assertErrors(() => data.order('id', 'foo').fetch(),
-     /"find" is required/
+     /Second argument to "order" must be "ascending" or "descending"./
   ))
 
   // Passing no arguments, null, bad arguments, or too many arguments is
   // an error.
-  it('throws if it receives no arguments', assertThrows(
-    'order must receive at least 1 argument.',
-    () => data.order().fetch()
+  it('throws if it receives no arguments', assertErrors(
+    () => data.order().fetch(),
+    /"order" expected 1 or 2 arguments but found 0./
   ))
-  it('throws if it receives a null argument', assertThrows(
-    'The 1st argument to order must be non-null',
-    () => data.order(null).fetch()
+  it('throws if it receives a null argument', assertErrors(
+    () => data.order(null).fetch(),
+    /First argument to "order" must be an array or string./
   ))
-  it('throws if its first argument is null', assertThrows(
-    'The 1st argument to order must be non-null',
-    () => data.order(null, 'foo').fetch()
+  it('throws if its first argument is null', assertErrors(
+    () => data.order(null, 'foo').fetch(),
+    /First argument to "order" must be an array or string./
   ))
-  it('throws if it receives more than 2 arguments', assertThrows(
-    'order accepts at most 2 arguments.',
-    () => data.order('id', 'ascending', 1).fetch()
+  it('throws if it receives more than 2 arguments', assertErrors(
+    () => data.order('id', 'ascending', 1).fetch(),
+    /"order" expected 1 or 2 arguments but found 3./
   ))
 }}

@@ -69,10 +69,4 @@ export default function chainingSuite(getData) {
         {id: 3, a: 20, b: 2},
       ]))
   ))
-
-  // Can't chain off vararg `findAll`
-  it('throws if order is chained off a multi-arg findAll', assertThrows(
-    'order cannot be called on the current query',
-    () => data.findAll({a: 20}, {a: 50}).order('id').fetch()
-  ))
 }}

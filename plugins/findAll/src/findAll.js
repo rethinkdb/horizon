@@ -9,22 +9,26 @@ function findAll(req, res, next) {
   } else if (req.options.find) {
     next(new Error('"findAll" cannot be used with "find"'));
   } else {
-    let invalidArg;
+    let err;
     const predicate = args.map((item, index) => {
       if (isObject(item)) {
-        return item;
+        if (Object.keys(item).length === 0) {
+          err = `"findAll" argument ${index} object must have at least 1 field.`;
+        } else {
+          return item;
+        }
       } else if (isValidIndex(item)) {
         return {id: item}
       } else {
-        invalidArg = index;
+        err = `"findAll" argument ${index} is not an object or valid index value.`;
       }
     });
 
-    if (invalidArg === undefined) {
+    if (err) {
+      next(new Error(err));
+    } else {
       req.setParameter(predicate);
       next();
-    } else {
-      next(new Error(`"findAll" argument ${invalidArg} is not an object or valid index value.`));
     }
   }
 }

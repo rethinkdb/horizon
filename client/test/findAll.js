@@ -63,21 +63,21 @@ export default function findAllSuite(getData) {
 
   // Looking for `null` is an error since secondary index values cannot be
   // `null` in RethinkDB.
-  it('throws an error when null is passed', assertThrows(
-    'The 1st argument to findAll must be non-null',
-    () => data.findAll(null).fetch()
+  it('throws an error when null is passed', assertErrors(
+    () => data.findAll(null).fetch(),
+    /"findAll" argument 0 is not an object or valid index value./
   ))
 
   // No args is ok, because people will be using `apply`
-  it('throws an error when passed no arguments', assertThrows(
-    'findAll must receive at least 1 argument.',
-    () => data.findAll().fetch()
+  it('throws an error when passed no arguments', assertErrors(
+    () => data.findAll().fetch(),
+    /"findAll" expected 1 or more arguments but found 0./
   ))
 
   // Looking for an empty object is also an error
   it('errors when an empty object is passed', assertErrors(() =>
     data.findAll({}).fetch(),
-    /"find" is required/
+    /"findAll" argument 0 object must have at least 1 field./
   ))
 
   // `findAll` lets us look for multiple documents. Let's try it on a primary
@@ -110,14 +110,14 @@ export default function findAllSuite(getData) {
   ))
 
   // When one thing fails, everything fails.
-  it('throws an error if any argument is null', assertThrows(
-    'The 2nd argument to findAll must be non-null',
-    () => data.findAll(1, null, 2).fetch()
+  it('throws an error if any argument is null', assertErrors(
+    () => data.findAll(1, null, 2).fetch(),
+    /"findAll" argument 1 is not an object or valid index value./
   ))
 
   // Let's try it again with an empty object.
   it('errors if any argument passed is an empty object', assertErrors(() =>
     data.findAll(1, {}, {a: 20}).fetch(),
-    /"find" is required/
+    /"findAll" argument 1 object must have at least 1 field./
   ))
 }}

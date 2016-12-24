@@ -177,7 +177,7 @@ function makeReadReql(context, req) {
         if (order || above) {
           if (!isSameField(below.field, orderFields[0])) {
             throw new Error('"below" must be on the same field as ' +
-                            (order ? 'the first in "order"' : '"above"'));
+                            (order ? 'the first in "order".' : '"above".'));
           }
         } else {
           orderFields.push(below.field);

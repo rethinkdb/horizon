@@ -16,8 +16,12 @@ function find(req, res, next) {
   } else {
     let predicate = args[0];
     if (isObject(predicate)) {
-      req.setParameter(predicate);
-      next();
+      if (Object.keys(predicate).length === 0) {
+        next(new Error('"find" object must have at least 1 field.'));
+      } else {
+        req.setParameter(predicate);
+        next();
+      }
     } else if (isValidIndex(predicate)) {
       req.setParameter({id: predicate});
       next();

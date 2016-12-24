@@ -98,41 +98,41 @@ export default function aboveSuite(getData) {
   // Passing multiple keys to `above` isn't legal
   it('errors if multiple keys are passed', assertErrors(() =>
     data.order(['a', 'id']).above({a: 20, id: 20}).fetch(),
-    /"find" is required/
+    /Object argument to "above" must have exactly one field./
   ))
 
   // Nor is passing a field that isn't specified in `order`
   it(`errors if the field passed isn't in the order term`, assertErrors(() =>
     data.order(['a', 'id']).above({b: 20}).fetch(),
-    /"above" must be on the same field as the first in "order"/
+    /"above" must be on the same field as the first in "order"./
   ))
 
   // If chaining `above/below`, they must be passed the same key
   it(`errors if it doesn't receive the same key as the below term`,
      assertErrors(() =>
     data.above({b: 0}).below({a: 100}).fetch(),
-    /"below" must be on the same field as the first in "order"/
+    /"below" must be on the same field as "above"./
   ))
 
   // Starting with `null` is not ok
-  it('throws if it is passed null', assertThrows(
-    'The 1st argument to above must be non-null',
-    () => data.above(null).fetch()
+  it('throws if it is passed null', assertErrors(
+    () => data.above(null).fetch(),
+    /First argument to "above" must be a string or object./
   ))
 
   // Empty value is not ok
-  it('throws if it does not receive an argument', assertThrows(
-    'above must receive at least 1 argument.',
-    () => data.above().fetch()
+  it('throws if it does not receive an argument', assertErrors(
+    () => data.above().fetch(),
+    /"above" expected 1 or 2 arguments but found 0./
   ))
 
   // Bad arguments are not ok
   it('errors if it receives a non-string argument', assertErrors(() =>
     data.above(1).fetch(),
-    /"find" is required/
+    /First argument to "above" must be a string or object./
   ))
   it('errors if it receives more than one argument', assertErrors(() =>
     data.above({id: 1}, 1).fetch(),
-    /"find" is required/
+    /Second argument to "above" must be "open" or "closed"./
   ))
 }}

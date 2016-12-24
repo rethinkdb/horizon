@@ -35,26 +35,26 @@ export default function findSuite(getData) {
 
   // Looking for `null` is an error. RethinkDB doesn't allow secondary
   // index values to be `null`.
-  it('throws an error if called with null', assertThrows(
-    'The argument to find must be non-null',
-    () => data.find(null).fetch()
+  it('throws an error if called with null', assertErrors(
+    () => data.find(null).fetch(),
+    /"find" argument is not an object or valid index value./
   ))
 
   // Looking for `undefined` is also an error.
-  it('throws an error if called with undefined', assertThrows(
-    'The 1st argument to find must be defined',
-    () => data.find(undefined).fetch()
+  it('throws an error if called with undefined', assertErrors(
+    () => data.find(undefined).fetch(),
+    /"find" argument is not an object or valid index value./
   ))
 
-  it('throws an error if no arguments are passed', assertThrows(
-    'find must receive exactly 1 argument',
-    () => data.find().fetch()
+  it('throws an error if no arguments are passed', assertErrors(
+    () => data.find().fetch(),
+    /"find" expected 1 argument but found 0./
   ))
 
   // The document passed to `find` can't be empty
   it('errors if the document passed is empty', assertErrors(() =>
     data.find({}).fetch(),
-    /must have at least 1 children/
+    /"find" object must have at least 1 field./
   ))
 
   // We can also `find` by a different (indexed!) field. In that case,
@@ -93,15 +93,15 @@ export default function findSuite(getData) {
   ))
 
   // In this case there is no matching document
-  it(`wont return anything if documents dont match`, assertCompletes(() =>
+  it('wont return anything if documents dont match', assertCompletes(() =>
     data.find({a: 20, c: 100}).fetch()
       .do(res => assert.equal(res, null))
   ))
 
   // Passing multiple arguments to find should return a nice error
-  it('throws an error if multiple arguments are passed', assertThrows(
-    'find must receive exactly 1 argument',
-    () => data.find(1, {id: 1}).fetch()
+  it('throws an error if multiple arguments are passed', assertErrors(
+    () => data.find(1, {id: 1}).fetch(),
+    /"find" expected 1 argument but found 2./
   ))
 
 

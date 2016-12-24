@@ -8,7 +8,7 @@ function above(req, res, next) {
   if (args.length < 1 || args.length > 2) {
     next(new Error(`"above" expected 1 or 2 arguments but found ${args.length}.`));
   } else if (args.length === 2 && (args[1] !== 'open' && args[1] !== 'closed')) {
-    next(new Error('Second argument to "above" must be "open" or "closed"'));
+    next(new Error('Second argument to "above" must be "open" or "closed".'));
   } else {
     const bound = args.length === 1 ? 'open' : args[1];
     if (isObject(args[0])) {
