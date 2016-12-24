@@ -1,4 +1,4 @@
-import { TokenStorage, FakeStorage } from '../../src/auth'
+import {TokenStorage, FakeStorage} from '../../src/auth'
 
 export default function unitAuthSuite() {
   describe('TokenStorage', () => {

@@ -1,10 +1,10 @@
 import 'rxjs/add/operator/do'
 import 'rxjs/add/operator/toArray'
 
-import { assertCompletes,
-         assertThrows,
-         assertErrors,
-         compareWithoutVersion } from './utils'
+import {assertCompletes,
+        assertThrows,
+        assertErrors,
+        compareWithoutVersion} from './utils'
 
 import cloneDeep from 'lodash.clonedeep'
 import sortBy from 'lodash.sortby'
@@ -40,9 +40,9 @@ export default function orderSuite(getData, getTestData) {
   it('can order results by a field other than id', assertCompletes(() =>
     data.order('b').fetch()
       .do(res => compareWithoutVersion(res.slice(0, 3), [
-        { id: 2, a: 20, b: 1 },
-        { id: 3, a: 20, b: 2 },
-        { id: 4, a: 20, b: 3 },
+        {id: 2, a: 20, b: 1},
+        {id: 3, a: 20, b: 2},
+        {id: 4, a: 20, b: 3},
       ]))
   ))
 
@@ -50,9 +50,9 @@ export default function orderSuite(getData, getTestData) {
   it('can order results by another field in descending order', assertCompletes(() =>
     data.order('b', 'descending').fetch()
       .do(res => compareWithoutVersion(res.slice(0, 3), [
-        { id: 4, a: 20, b: 3 },
-        { id: 3, a: 20, b: 2 },
-        { id: 2, a: 20, b: 1 },
+        {id: 4, a: 20, b: 3},
+        {id: 3, a: 20, b: 2},
+        {id: 2, a: 20, b: 1},
       ]))
   ))
 
@@ -64,14 +64,14 @@ export default function orderSuite(getData, getTestData) {
 
   // We can pass multiple fields to `order` to disambiguate.
   it('can order by multiple fields', assertCompletes(() =>
-    data.order([ 'a', 'id' ]).fetch()
-      .do(res => compareWithoutVersion(res, sortBy(testData, [ 'a', 'id' ])))
+    data.order(['a', 'id']).fetch()
+      .do(res => compareWithoutVersion(res, sortBy(testData, ['a', 'id'])))
   ))
 
   // We can pass multiple fields to `order` to disambiguate. Let's do it in
   // descending order.
   it('can order by multiple fields descending', assertCompletes(() =>
-    data.order([ 'a', 'id' ], 'descending').fetch()
+    data.order(['a', 'id'], 'descending').fetch()
       .do(res => compareWithoutVersion(res, sortBy(testData, ['a', 'id']).reverse()))
   ))
 

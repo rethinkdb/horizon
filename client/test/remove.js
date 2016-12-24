@@ -5,22 +5,22 @@ import 'rxjs/add/operator/concat'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/ignoreElements'
 
-import { assertCompletes,
-         assertThrows,
-         assertErrors,
-         removeAllData,
-         compareWithoutVersion,
-         compareSetsWithoutVersion } from './utils'
+import {assertCompletes,
+        assertThrows,
+        assertErrors,
+        removeAllData,
+        compareWithoutVersion,
+        compareSetsWithoutVersion} from './utils'
 
 export default function removeSuite(getData) {
   return () => {
   let data
   const testData = [
-    { id: 1, a: 1 },
-    { id: 2, a: 2 },
-    { id: 3, a: 3 },
-    { id: 'do_not_remove_1' },
-    { id: 'do_not_remove_2' },
+    {id: 1, a: 1},
+    {id: 2, a: 2},
+    {id: 3, a: 3},
+    {id: 'do_not_remove_1'},
+    {id: 'do_not_remove_2'},
   ]
 
   before(() => {
@@ -42,7 +42,7 @@ export default function removeSuite(getData) {
 
   it('removes a document when passed an id', assertCompletes(() =>
     data.remove(1)
-      .do(res => compareWithoutVersion(res, { id: 1 }))
+      .do(res => compareWithoutVersion(res, {id: 1}))
       // Let's make sure the removed document isn't there
       .mergeMapTo(data.find(1).fetch())
       // Let's make sure the removed document isn't there
@@ -50,8 +50,8 @@ export default function removeSuite(getData) {
   ))
 
   it('removes a document with an id field', assertCompletes(() =>
-    data.remove({ id: 2 })
-      .do(res => compareWithoutVersion(res, { id: 2 }))
+    data.remove({id: 2})
+      .do(res => compareWithoutVersion(res, {id: 2}))
       // Let's make sure the removed document isn't there
       .mergeMapTo(data.find(2).fetch())
       // Let's make sure the removed document isn't there
@@ -59,24 +59,24 @@ export default function removeSuite(getData) {
   ))
 
   it(`removing a document that doesn't exist doesn't error`, assertCompletes(() =>
-    data.remove('abracadabra').do(res => assert.deepEqual(res, { id: 'abracadabra' }))
+    data.remove('abracadabra').do(res => assert.deepEqual(res, {id: 'abracadabra'}))
   ))
 
-  it('fails when called with no arguments', assertThrows(
-    'remove must receive exactly 1 argument',
-    () => data.remove()
+  it('fails when called with no arguments', assertErrors(
+    () => data.remove(),
+    /remove must be given a single object or id/
   ))
 
-  it('fails when called with null', assertThrows(
-    'The argument to remove must be non-null',
-    () => data.remove(null)
+  it('fails when called with null', assertErrors(
+    () => data.remove(null),
+    /Primary keys must be either a number, string, bool, pseudotype, or array/
   ))
 
   // Give an error if the user tries to use varargs (to help avoid
   // confusion)
-  it('fails when called with more than one argument', assertThrows(
-    'remove must receive exactly 1 argument',
-    () => data.remove(1, 2)
+  it('fails when called with more than one argument', assertErrors(
+    () => data.remove(1, 2),
+    /remove must be given a single object or id/
   ))
 
   // Check that the remaining documents are there
@@ -84,6 +84,6 @@ export default function removeSuite(getData) {
     data.fetch()
       .map(docs => docs.map(x => x.id))
       .do(res => assert.includeMembers(
-        res, [ 'do_not_remove_1', 'do_not_remove_2' ]))
+        res, ['do_not_remove_1', 'do_not_remove_2']))
   ))
 }}

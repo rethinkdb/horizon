@@ -5,23 +5,23 @@ import 'rxjs/add/operator/concat'
 import 'rxjs/add/operator/map'
 import 'rxjs/add/operator/ignoreElements'
 
-import { assertCompletes,
-         assertThrows,
-         assertErrors,
-         removeAllData,
-         compareWithoutVersion,
-         compareSetsWithoutVersion } from './utils'
+import {assertCompletes,
+        assertThrows,
+        assertErrors,
+        removeAllData,
+        compareWithoutVersion,
+        compareSetsWithoutVersion} from './utils'
 
 export default function removeAllSuite(getData) {
   return () => {
   let data
   const testData = [
-    { id: 1, a: 1 },
-    { id: 2, a: 2 },
-    { id: 3, a: 3 },
-    { id: 4, a: 4 },
-    { id: 'do_not_remove_1' },
-    { id: 'do_not_remove_2' },
+    {id: 1, a: 1},
+    {id: 2, a: 2},
+    {id: 3, a: 3},
+    {id: 4, a: 4},
+    {id: 'do_not_remove_1'},
+    {id: 'do_not_remove_2'},
   ]
 
   before(() => {
@@ -44,8 +44,8 @@ export default function removeAllSuite(getData) {
   // All right, let's remove a document. The promise resolves with no
   // arguments.
   it('removes documents when an array of ids is passed', assertCompletes(() =>
-    data.removeAll([ 1 ])
-      .do(res => compareWithoutVersion(res, { id: 1 }))
+    data.removeAll([1])
+      .do(res => compareWithoutVersion(res, {id: 1}))
       // Let's make sure the removed document isn't there
       .mergeMapTo(data.find(1).fetch())
       // Let's make sure the removed document isn't there
@@ -54,8 +54,8 @@ export default function removeAllSuite(getData) {
 
   // Passing an array of objects to `removeAll` is also ok.
   it('removes documents when array elements are objects', assertCompletes(() =>
-    data.removeAll([ { id: 2 } ])
-      .do(res => compareWithoutVersion(res, { id: 2 }))
+    data.removeAll([{id: 2}])
+      .do(res => compareWithoutVersion(res, {id: 2}))
       // Let's make sure the removed document isn't there
       .mergeMapTo(data.find(2).fetch())
       // Let's make sure the removed document isn't there
@@ -64,8 +64,8 @@ export default function removeAllSuite(getData) {
 
   // We can also remove multiple documents
   it('removes multiple documents by id or as objects', assertCompletes(() =>
-    data.removeAll([ 3, 50, { id: 4 } ]).toArray()
-      .do(res => compareWithoutVersion(res, [ { id: 3 }, { id: 50 }, { id: 4 } ]))
+    data.removeAll([3, 50, {id: 4}]).toArray()
+      .do(res => compareWithoutVersion(res, [{id: 3}, {id: 50}, {id: 4}]))
       // Let's make sure the removed document isn't there
       .mergeMapTo(data.findAll(3, 50, 4).fetch())
       // Let's make sure the removed document isn't there
@@ -74,8 +74,8 @@ export default function removeAllSuite(getData) {
 
   // Removing a missing document shouldn't generate an error.
   it('removes a non-existent document without error', assertCompletes(() =>
-    data.removeAll([ 'abracadabra' ])
-      .do(res => assert.deepEqual(res, { id: 'abracadabra' })),
+    data.removeAll(['abracadabra'])
+      .do(res => assert.deepEqual(res, {id: 'abracadabra'})),
     /document was missing/
   ))
 
@@ -87,7 +87,7 @@ export default function removeAllSuite(getData) {
 
   // But an array with a `null` is an error.
   it('errors when a null in an array is passed', assertErrors(() =>
-    data.removeAll([ null ]),
+    data.removeAll([null]),
     /must be an object/
   ))
 
@@ -98,7 +98,7 @@ export default function removeAllSuite(getData) {
   ))
   it('throws when more than one argument is passed', assertThrows(
     'removeAll must receive exactly 1 argument',
-    () => data.removeAll([ 1 ], 2)
+    () => data.removeAll([1], 2)
   ))
   it('throws when null is passed', assertThrows(
     'removeAll takes an array as an argument',
@@ -114,7 +114,7 @@ export default function removeAllSuite(getData) {
   ))
   it('throws when passed an object', assertThrows(
     'removeAll takes an array as an argument',
-    () => data.removeAll({ id: 1 })
+    () => data.removeAll({id: 1})
   ))
 
   // Check that the remaining documents are there
@@ -122,6 +122,6 @@ export default function removeAllSuite(getData) {
     data.fetch()
       .map(docs => docs.map(x => x.id))
       .do(res => assert.includeMembers(
-        res, [ 'do_not_remove_1', 'do_not_remove_2' ]))
+        res, ['do_not_remove_1', 'do_not_remove_2']))
   ))
 }}

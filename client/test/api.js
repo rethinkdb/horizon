@@ -3,9 +3,9 @@ import 'rxjs/add/operator/concat'
 import 'rxjs/add/operator/do'
 import 'rxjs/add/operator/toArray'
 
-import { assertCompletes,
-         removeAllData,
-         compareSetsWithoutVersion } from './utils'
+import {assertCompletes,
+        removeAllData,
+        compareSetsWithoutVersion} from './utils'
 
 import horizonObjectSuite from './horizonObject'
 
@@ -39,7 +39,6 @@ import aggregateSuite from './aggregate'
 import aggregateSubSuite from './aggregateSub'
 
 import unitAuthSuite from './unit/auth'
-import unitAstSuite from './unit/ast'
 
 // This test suite covers various edge cases in the Horizon client library API.
 // It does not cover correctness of the full system in various circumstances.
@@ -61,7 +60,7 @@ describe('Core API tests', () => {
   // Set up the horizon connection before running these tests.
   before(done => {
     Horizon.clearAuthTokens()
-    horizon = Horizon({ lazyWrites: true })
+    horizon = Horizon({lazyWrites: true})
     horizon.connect(err => done(err))
     horizon.onReady(() => {
       data = horizon('test_data')
@@ -103,12 +102,12 @@ describe('Core API tests', () => {
   // Test the lookup API
   describe('Fetch API', () => {
     const testData = [
-      { id: 1, a: 10 },
-      { id: 2, a: 20, b: 1 },
-      { id: 3, a: 20, b: 2 },
-      { id: 4, a: 20, b: 3 },
-      { id: 5, a: 60 },
-      { id: 6, a: 50 },
+      {id: 1, a: 10},
+      {id: 2, a: 20, b: 1},
+      {id: 3, a: 20, b: 2},
+      {id: 4, a: 20, b: 3},
+      {id: 5, a: 60},
+      {id: 6, a: 50},
     ]
 
     const getTestData = () => {
@@ -165,6 +164,5 @@ describe('Core API tests', () => {
 
   describe('Unit tests', () => {
     describe('Auth', unitAuthSuite)
-    describe('AST', unitAstSuite)
   })
 }) // Core API tests

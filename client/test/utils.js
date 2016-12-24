@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs/Observable'
+import {Observable} from 'rxjs/Observable'
 import 'rxjs/add/observable/empty'
 import 'rxjs/add/operator/toArray'
 import 'rxjs/add/operator/do'
@@ -108,18 +108,18 @@ export function observableInterleave(options) {
         return Observable.empty()
       }
     })
-    .do({ complete() { equality(expected, values) } })
+    .do({complete() { equality(expected, values) }})
 }
 
 const withoutVersion = function withoutVersion(value) {
   if (Array.isArray(value)) {
-    const modified = [ ]
+    const modified = []
     for (const item of value) {
       modified.push(withoutVersion(item))
     }
     return modified
   } else if (typeof value === 'object') {
-    const modified = Object.assign({ }, value)
+    const modified = Object.assign({}, value)
     delete modified['$hz_v$']
     return modified
   } else {

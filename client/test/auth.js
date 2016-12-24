@@ -39,7 +39,7 @@ export default function authSuite(getHorizon) {
       next(user) {
         assert.isObject(user)
         assert.isString(user.id)
-        assert.sameDeepMembers(user.groups, [ 'default', 'authenticated' ])
+        assert.sameDeepMembers(user.groups, ['default', 'authenticated'])
         asserted += 1
       },
       error(e) { done(e) },
@@ -56,12 +56,12 @@ export default function authSuite(getHorizon) {
   })
   it('write to the user object', done => {
     Horizon.clearAuthTokens()
-    const myHorizon = Horizon({ secure: false, lazyWrites: true, authType: 'anonymous' })
-    const new_groups = [ 'admin', 'superuser', 'default' ];
+    const myHorizon = Horizon({secure: false, lazyWrites: true, authType: 'anonymous'})
+    const new_groups = ['admin', 'superuser', 'default'];
     let asserted = 0
     myHorizon.currentUser().fetch()
       .mergeMap(user => myHorizon('users')
-                .update({ id: user.id, groups: [ 'admin', 'superuser', 'default' ] }))
+                .update({id: user.id, groups: ['admin', 'superuser', 'default']}))
       .mergeMapTo(myHorizon.currentUser().fetch()).subscribe({
         next(user) {
           assert.isObject(user)

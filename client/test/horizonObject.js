@@ -18,7 +18,7 @@ export default function horizonObjectSuite() {
     it('connects and can track its status', done => {
       let oneDone = doneWrap(done)
       Horizon.clearAuthTokens()
-      const horizon = Horizon({ secure: false })
+      const horizon = Horizon({secure: false})
       assert.isDefined(horizon)
       horizon.status(
         stat => {
@@ -52,9 +52,9 @@ export default function horizonObjectSuite() {
       assert.isDefined(horizon)
       horizon.status().take(3).toArray().subscribe(statuses => {
         const expected = [
-          { type: 'unconnected' },
-          { type: 'error' }, // socket
-          { type: 'disconnected' },
+          {type: 'unconnected'},
+          {type: 'error'}, // socket
+          {type: 'disconnected'},
         ]
         assert.deepEqual(expected, statuses)
         done()

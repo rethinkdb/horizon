@@ -1,6 +1,6 @@
 import 'rxjs/add/operator/concat'
 
-import { assertCompletes, observableInterleave } from './utils'
+import {assertCompletes, observableInterleave} from './utils'
 
 export default function findAllSubscriptionSuite(getData) {
   return () => {
@@ -15,12 +15,12 @@ export default function findAllSubscriptionSuite(getData) {
     observableInterleave({
       query: data.findAll(1).watch(),
       operations: [
-        data.store({ id: 1, a: 1 }),
+        data.store({id: 1, a: 1}),
         data.remove(1),
       ],
       expected: [
         [],
-        [ { id: 1, a: 1 } ],
+        [{id: 1, a: 1}],
         [],
       ],
     })
@@ -32,14 +32,14 @@ export default function findAllSubscriptionSuite(getData) {
     observableInterleave({
       query: data.findAll(1).watch(),
       operations: [
-        data.store({ id: 1, a: 1 }),
-        data.store({ id: 1, a: 2 }),
+        data.store({id: 1, a: 1}),
+        data.store({id: 1, a: 2}),
         data.remove(1),
       ],
       expected: [
         [],
-        [ { id: 1, a: 1 } ],
-        [ { id: 1, a: 2 } ],
+        [{id: 1, a: 1}],
+        [{id: 1, a: 2}],
         [],
       ],
     })
@@ -50,8 +50,8 @@ export default function findAllSubscriptionSuite(getData) {
     observableInterleave({
       query: data.findAll(1).watch(),
       operations: [
-        data.store({ id: 2, a: 1 })
-          .concat(data.store({ id: 2, a: 2 }))
+        data.store({id: 2, a: 1})
+          .concat(data.store({id: 2, a: 2}))
           .concat(data.remove(2)),
       ],
       expected: [
@@ -65,23 +65,23 @@ export default function findAllSubscriptionSuite(getData) {
     observableInterleave({
       query: data.findAll(1, 2).watch(),
       operations: [
-        data.store({ id: 1, a: 1 }),
-        data.store({ id: 2, a: 1 })
-          .concat(data.store({ id: 3, a: 1 })),
-        data.store({ id: 1, a: 2 }),
-        data.store({ id: 2, a: 2 })
-          .concat(data.store({ id: 3, a: 2 })),
+        data.store({id: 1, a: 1}),
+        data.store({id: 2, a: 1})
+          .concat(data.store({id: 3, a: 1})),
+        data.store({id: 1, a: 2}),
+        data.store({id: 2, a: 2})
+          .concat(data.store({id: 3, a: 2})),
         data.remove(1),
         data.remove(2)
           .concat(data.remove(3)),
       ],
       expected: [
         [],
-        [ { id: 1, a: 1 } ],
-        [ { id: 1, a: 1 }, { id: 2, a: 1 } ],
-        [ { id: 1, a: 2 }, { id: 2, a: 1 } ],
-        [ { id: 1, a: 2 }, { id: 2, a: 2 } ],
-        [ { id: 2, a: 2 } ],
+        [{id: 1, a: 1}],
+        [{id: 1, a: 1}, {id: 2, a: 1}],
+        [{id: 1, a: 2}, {id: 2, a: 1}],
+        [{id: 1, a: 2}, {id: 2, a: 2}],
+        [{id: 2, a: 2}],
         [],
       ],
     })
@@ -89,18 +89,18 @@ export default function findAllSubscriptionSuite(getData) {
 
   // Let's make sure initial vals works correctly
   it('properly handles initial values', assertCompletes(() =>
-    data.store([ { id: 1, a: 1 }, { id: 2, b: 1 } ]).concat(
+    data.store([{id: 1, a: 1}, {id: 2, b: 1}]).concat(
       observableInterleave({
         query: data.findAll(1, 2).watch(),
         operations: [
-          data.store({ id: 1, a: 2 }),
+          data.store({id: 1, a: 2}),
           data.remove(2),
           data.remove(1),
         ],
         expected: [
-          [ { id: 1, a: 1 }, { id: 2, b: 1 } ],
-          [ { id: 1, a: 2 }, { id: 2, b: 1 } ],
-          [ { id: 1, a: 2 } ],
+          [{id: 1, a: 1}, {id: 2, b: 1}],
+          [{id: 1, a: 2}, {id: 2, b: 1}],
+          [{id: 1, a: 2}],
           [],
         ],
       })

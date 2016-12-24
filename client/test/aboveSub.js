@@ -1,6 +1,6 @@
 import 'rxjs/add/operator/concat'
 
-import { assertCompletes, observableInterleave } from './utils'
+import {assertCompletes, observableInterleave} from './utils'
 
 export default function aboveSubscriptionSuite(getData) {
   return () => {
@@ -13,14 +13,14 @@ export default function aboveSubscriptionSuite(getData) {
   // Let's grab a specific document using 'above'
   it('can get a specific document', assertCompletes(() =>
     observableInterleave({
-      query: data.above({ id: 1 }).watch(),
+      query: data.above({id: 1}).watch(),
       operations: [
-        data.store({ id: 1, a: 1 }),
+        data.store({id: 1, a: 1}),
         data.remove(1),
       ],
       expected: [
         [],
-        [ { id: 1, a: 1 } ],
+        [{id: 1, a: 1}],
         [],
       ],
     })
@@ -32,14 +32,14 @@ export default function aboveSubscriptionSuite(getData) {
     observableInterleave({
       query: data.above({id: 1}).watch(),
       operations: [
-        data.store({ id: 1, a: 1 }),
-        data.store({ id: 1, a: 2 }),
+        data.store({id: 1, a: 1}),
+        data.store({id: 1, a: 2}),
         data.remove(1),
       ],
       expected: [
         [],
-        [ { id: 1, a: 1 } ],
-        [ { id: 1, a: 2 } ],
+        [{id: 1, a: 1}],
+        [{id: 1, a: 2}],
         [],
       ],
     })
@@ -50,15 +50,15 @@ export default function aboveSubscriptionSuite(getData) {
     observableInterleave({
       query: data.above({a: 0}, 'open').watch(),
       operations: [
-        data.store({ id: 1, a: 0 })
-          .concat(data.store({ id: 1, a: 1 })),
-        data.store({ id: 1, a: 2 }),
+        data.store({id: 1, a: 0})
+          .concat(data.store({id: 1, a: 1})),
+        data.store({id: 1, a: 2}),
         data.remove(1),
       ],
       expected: [
         [],
-        [ { id: 1, a: 1 } ],
-        [ { id: 1, a: 2 } ],
+        [{id: 1, a: 1}],
+        [{id: 1, a: 2}],
         [],
       ],
     })
@@ -67,17 +67,17 @@ export default function aboveSubscriptionSuite(getData) {
   // Let's make sure we don't see events that aren't ours
   it("doesn't see updates to documents outside its bound", assertCompletes(() =>
     observableInterleave({
-      query: data.above({ id: 3 }).watch(),
+      query: data.above({id: 3}).watch(),
       operations: [
-        data.store({ id: 2, a: 1 })
-          .concat(data.store({ id: 2, a: 2 }))
-          .concat(data.store({ id: 3, val: 'foo' }))
+        data.store({id: 2, a: 1})
+          .concat(data.store({id: 2, a: 2}))
+          .concat(data.store({id: 3, val: 'foo'}))
           .concat(data.remove(2)),
         data.remove(3),
       ],
       expected: [
         [],
-        [ { id: 3, val: 'foo' } ],
+        [{id: 3, val: 'foo'}],
         [],
       ],
     })
@@ -86,25 +86,25 @@ export default function aboveSubscriptionSuite(getData) {
   // Let's try subscribing to multiple IDs
   it('can subscribe to multiple ids', assertCompletes(() =>
     observableInterleave({
-      query: data.above({ id: 1 }).below({ id: 3 }, 'open').watch(),
+      query: data.above({id: 1}).below({id: 3}, 'open').watch(),
       operations: [
-        data.store({ id: 1, a: 1 }),
-        data.store({ id: 2, a: 1 })
-          .concat(data.store({ id: 3, a: 1 })),
-        data.store({ id: 1, a: 2 }),
-        data.store({ id: 2, a: 2 })
-          .concat(data.store({ id: 3, a: 2 })),
+        data.store({id: 1, a: 1}),
+        data.store({id: 2, a: 1})
+          .concat(data.store({id: 3, a: 1})),
+        data.store({id: 1, a: 2}),
+        data.store({id: 2, a: 2})
+          .concat(data.store({id: 3, a: 2})),
         data.remove(1),
         data.remove(2)
           .concat(data.remove(3)),
       ],
       expected: [
         [],
-        [ { id: 1, a: 1 } ],
-        [ { id: 1, a: 1 }, { id: 2, a: 1 } ],
-        [ { id: 1, a: 2 }, { id: 2, a: 1 } ],
-        [ { id: 1, a: 2 }, { id: 2, a: 2 } ],
-        [ { id: 2, a: 2 } ],
+        [{id: 1, a: 1}],
+        [{id: 1, a: 1}, {id: 2, a: 1}],
+        [{id: 1, a: 2}, {id: 2, a: 1}],
+        [{id: 1, a: 2}, {id: 2, a: 2}],
+        [{id: 2, a: 2}],
         [],
       ],
     })
@@ -112,16 +112,16 @@ export default function aboveSubscriptionSuite(getData) {
 
   // Let's make sure initial vals works correctly
   it('handles initial values correctly', assertCompletes(() =>
-    data.store({ id: 1, a: 1 }).concat(
+    data.store({id: 1, a: 1}).concat(
       observableInterleave({
-        query: data.above({ id: 1 }).watch(),
+        query: data.above({id: 1}).watch(),
         operations: [
-          data.store({ id: 1, a: 2 }),
+          data.store({id: 1, a: 2}),
           data.remove(1),
         ],
         expected: [
-          [ { id: 1, a: 1 } ],
-          [ { id: 1, a: 2 } ],
+          [{id: 1, a: 1}],
+          [{id: 1, a: 2}],
           [],
         ],
       })

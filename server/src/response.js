@@ -1,5 +1,7 @@
 'use strict';
 
+const r = require('rethinkdb');
+
 const events = Symbol('events');
 const send = Symbol('send');
 const resolve = Symbol('resolve');
@@ -16,10 +18,15 @@ class Response {
       this[reject] = _reject;
     }).catch((err) => {
       this[events].emit('log', 'debug', `Request failed with error: ${err.stack}`);
-      this[send]({
-        error: `${err.message}`,
-        errorCode: err.code || -1,
-      });
+      try {
+        const msg = (err instanceof r.Error.ReqlError) ? err.msg : err.message;
+        this[send]({
+          error: `${msg}`,
+          errorCode: err.code || -1,
+        });
+      } catch (err2) {
+        console.log(`error when sending error: ${err2}`);
+      }
       throw err;
     });
   }

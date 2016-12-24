@@ -1,5 +1,7 @@
 'use strict';
 
+const {reqlOptions, isObject} = require('./common');
+
 const assert = require('assert');
 
 const hzv = '$hz_v$';
@@ -18,6 +20,7 @@ function applyVersion(r, row, newVersion) {
 // each item in a write batch was emitted as a separate value, rather than emitting
 // a single array.
 function makeResponse(data) {
+  console.log(`write response data: ${JSON.stringify(data)}`);
   const makePatch = (val, index) => {
     if (index == 0) {
       return {op: 'replace', path: '', value: {type: 'value', synced: true, val}};
@@ -57,6 +60,7 @@ function retryLoop(originalRows,
                    preValidate,
                    validateRow,
                    doWrite) {
+  let isBatch;
   let firstAttempt = true;
   const iterate = (rowDataArg, responseData) => {
     let rowData = rowDataArg;
@@ -147,36 +151,32 @@ function retryLoop(originalRows,
     });
   };
 
-  // Original rows must be an array of one object or one array of objects
-  // TODO: would be nice to make this just an array of objects, but would like
-  // to preserve backwards compatibility with the client side
-  if (!Array.isArray(originalRows) || originalRows.length != 1) {
-    throw new Error('Writes must be given a single object or an array of objects.');
-  }
-
-
-  let normalizedRows;
-  if (Array.isArray(originalRows[0])) {
-    normalizedRows = originalRows[0];
-  } else {
-    normalizedRows = [originalRows[0]];
-  }
-
-  const responseData = [];
-  normalizedRows = normalizedRows.filter((row) => {
-    if (typeof row !== 'object' || row == null || Array.isArray(row)) {
-      responseData.push(new Error('Row to be written must be an object.'));
-      return false;
-    } else {
-      responseData.push(null);
-      return true;
+  return Promise.resolve().then(() => {
+    // Original rows must be an array of one object or one array of objects
+    // TODO: would be nice to make this just an array of objects, but would like
+    // to preserve backwards compatibility with the client side
+    if (!Array.isArray(originalRows) || originalRows.length != 1) {
+      throw new Error('Writes must be given a single object or an array of objects.');
     }
-  });
 
-  return iterate(
-    normalizedRows.map((row, index) => ({row, index, version: row[hzv]})),
-    responseData
-  ).then((data) => makeResponse(data));
+    isBatch = Array.isArray(originalRows[0]);
+    const normalizedRows = isBatch ? originalRows[0] : [originalRows[0]];
+    const responseData = normalizedRows.map((row) =>
+      (isObject(row) ? null : new Error('Row to be written must be an object.')));
+
+    // Filter out invalid rows
+    const rowsToWrite = normalizedRows.reduce((acc, row, index) =>
+      acc.concat(isObject(row) ? {row, index, version: row[hzv]} : [])
+    , []);
+
+    return iterate(rowsToWrite, responseData);
+  }).then((data) => {
+    // Compatibility - errored non-batch writes aren't emitted normally
+    if (!isBatch && (data[0] instanceof Error)) {
+      throw data[0];
+    }
+    return makeResponse(data);
+  });
 }
 
 function validateOldRowOptional(validator, original, oldRow, newRow) {
@@ -216,7 +216,7 @@ function validateOldRowRequired(validator, original, oldRow, newRow) {
 }
 
 // Since we provide both `remove` and `removeAll`, make this common
-function removeCommon(data, req, context, reqlOptions) {
+function removeCommon(data, req, context) {
   const r = context.horizon.r;
   const timeout = req.getParameter('timeout');
   const collection = req.getParameter('collection');

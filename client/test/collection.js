@@ -1,7 +1,7 @@
 import 'rxjs/add/operator/do'
 import 'rxjs/add/operator/toArray'
 
-import { assertCompletes, removeAllData, compareSetsWithoutVersion } from './utils'
+import {assertCompletes, removeAllData, compareSetsWithoutVersion} from './utils'
 
 export default function collectionSuite(getHorizon, getData, getTestData) {
   return () => {

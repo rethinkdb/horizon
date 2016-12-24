@@ -68,21 +68,21 @@ export default function storeSuite(getData) {
   }))
 
   // Storing `null` is an error.
-  it('fails if null is passed', assertThrows(
-    'The argument to store must be non-null',
-    () => data.store(null))
-  )
+  it('fails if null is passed', assertErrors(
+    () => data.store(null),
+    /Row to be written must be an object./
+  ))
 
   // Storing `undefined` is also an error.
-  it('fails if undefined is passed', assertThrows(
-    'The 1st argument to store must be defined',
-    () => data.store(undefined)
+  it('fails if undefined is passed', assertErrors(
+    () => data.store(undefined),
+    /Row to be written must be an object./
   ))
 
   // Storing nothing is an error
-  it('fails if no arguments are passed', assertThrows(
-    'store must receive exactly 1 argument',
-    () => data.store()
+  it('fails if no arguments are passed', assertErrors(
+    () => data.store(),
+    /Writes must be given a single object or an array of objects./
   ))
 
   // The `store` command allows storing multiple documents in one call.
@@ -90,7 +90,7 @@ export default function storeSuite(getData) {
   it('allows storing multiple documents in one call', assertCompletes(() => {
     let new_id_0, new_id_1
 
-    return data.store([ {}, {a: 1}, {id: 1, a: 1} ])
+    return data.store([{}, {a: 1}, {id: 1, a: 1}])
       .toArray()
       .do(res => {
         // The promise should return an array with the IDs of the documents
@@ -115,11 +115,13 @@ export default function storeSuite(getData) {
       ]))
   }))
 
-  // If any operation in a batch store fails, everything is reported as a
-  // failure. Note that we're storing `null` below, which is a failure.
-  it('fails if any operation in a batch fails', assertErrors(() =>
-    data.store([{a: 1}, null, {id: 1, a: 1}]),
-    /must be an object/
+  it('works if any operation in a batch fails', assertCompletes(() =>
+    data.store([{id: 0, a: 1}, null, {id: 1, a: 1}]).toArray()
+      .do(res => compareWithoutVersion(res, [
+          {id: 0},
+          {error: 'Row to be written must be an object.'},
+          {id: 1},
+        ]))
   ))
 
   // Storing an empty batch of documents is ok, and returns an empty
