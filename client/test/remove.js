@@ -69,7 +69,7 @@ export default function removeSuite(getData) {
 
   it('fails when called with null', assertErrors(
     () => data.remove(null),
-    /Primary keys must be either a number, string, bool, pseudotype, or array/
+    /Primary keys must be either a number, string, bool, pseudotype or array/
   ))
 
   // Give an error if the user tries to use varargs (to help avoid

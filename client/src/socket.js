@@ -188,51 +188,32 @@ export class HorizonSocket {
     this.connect() // Make sure we are connected.  TODO: lazily disconnect if no activity?
     const req = this.makeRequest(options);
     return req.observable.concatMap((response) => {
-        if (response.error) {
-          throw new ProtocolError(response.error, response.errorCode)
-        }
+      if (response.error) {
+        throw new ProtocolError(response.error, response.errorCode)
+      }
 
-        if (response.patch) {
-          // TODO: are there any cases where it is a problem that we
-          // have already 'deserialized' the data before applying the patch?
-          req.data = jsonpatch.apply_patch(req.data, response.patch)
+      if (response.patch) {
+        // TODO: are there any cases where it is a problem that we
+        // have already 'deserialized' the data before applying the patch?
+        req.data = jsonpatch.apply_patch(req.data, response.patch)
 
-          // TODO: we may want to apply patches one at a time, check for
-          // synced, and append any events.  The workaround for plugins
-          // to get this behavior is to send a separate message per event.
-          // But if we're doing things this way, why do we need synced?
+        // TODO: we may want to apply patches one at a time, check for
+        // synced, and append any events.  The workaround for plugins
+        // to get this behavior is to send a separate message per event.
+        // But if we're doing things this way, why do we need synced?
 
-          if (Boolean(req.data.synced)) {
-            switch (req.data.type) {
-            case 'value':
-              return [req.data.val]
-            case 'set':
-              return [Object.values(req.data.val)]
-            default:
-              throw new Error(`Unrecognized data type: ${data.type}.`)
-            }
+        if (Boolean(req.data.synced)) {
+          switch (req.data.type) {
+          case 'value':
+            return [req.data.val]
+          case 'set':
+            return [Object.values(req.data.val)]
+          default:
+            throw new Error(`Unrecognized data type: ${data.type}.`)
           }
         }
-        return []
-      })
-      /* or...
-      .map((response) => {
-        if (response.error) {
-          throw new Error(response.error)
-        }
-
-        if (response.patch) {
-          req.data = jsonpatch.apply_patch(req.data, response.patch)
-        }
-        return req.data
-      })
-      .filter((data) => Boolean(data.synced))
-      .map((data) => {
-        if (data.type === 'value') { return data.val }
-        if (data.type === 'set') { return Object.values(data.val) }
-        throw new Error(`Unrecognized data type: ${data.type}.`)
-      })
-      */
-      .share()
+      }
+      return []
+    }).share()
   }
 }

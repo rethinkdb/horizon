@@ -51,7 +51,6 @@ function fetch(context) {
                 }
               }
             }
-            console.log(`Got array fetch result: ${JSON.stringify(result)}, isFind: ${isFind}`);
             if (isFind) {
               res.end(makeAtomPatch(result.length > 0 ? result[0] : null, true));
             } else {

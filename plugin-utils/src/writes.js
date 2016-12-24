@@ -20,7 +20,6 @@ function applyVersion(r, row, newVersion) {
 // each item in a write batch was emitted as a separate value, rather than emitting
 // a single array.
 function makeResponse(data) {
-  console.log(`write response data: ${JSON.stringify(data)}`);
   const makePatch = (val, index) => {
     if (index == 0) {
       return {op: 'replace', path: '', value: {type: 'value', synced: true, val}};
@@ -131,12 +130,12 @@ function retryLoop(originalRows,
         const res = changes[index];
         if (res.error !== undefined) {
           if (res.error.indexOf('Duplicate primary key') === 0) {
-            responseData[data.index] = {error: 'The document already exists.'};
+            responseData[data.index] = new Error('The document already exists.');
           } else if (res.error.indexOf(invalidatedMsg) === 0 &&
                      data.version === undefined) {
             retryRows.push(data);
           } else {
-            responseData[data.index] = {error: res.error};
+            responseData[data.index] = new Error(res.error);
           }
         } else if (res.new_val === null) {
           responseData[data.index] = {id: res.old_val.id, [hzv]: res.old_val[hzv]};

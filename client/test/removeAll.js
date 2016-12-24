@@ -88,33 +88,33 @@ export default function removeAllSuite(getData) {
   // But an array with a `null` is an error.
   it('errors when a null in an array is passed', assertErrors(() =>
     data.removeAll([null]),
-    /must be an object/
+    /Primary keys must be either a number, string, bool, pseudotype or array/
   ))
 
   // Calling `removeAll` with anything but a single array is an error.
-  it('throws when no arguments are passed', assertThrows(
-    'removeAll takes an array as an argument',
-    () => data.removeAll()
+  it('throws when no arguments are passed', assertErrors(
+    () => data.removeAll(),
+    /removeAll must be given an array of objects or ids/
   ))
-  it('throws when more than one argument is passed', assertThrows(
-    'removeAll must receive exactly 1 argument',
-    () => data.removeAll([1], 2)
+  it('throws when more than one argument is passed', assertErrors(
+    () => data.removeAll([1], 2),
+    /removeAll must be given an array of objects or ids/
   ))
-  it('throws when null is passed', assertThrows(
-    'removeAll takes an array as an argument',
-    () => data.removeAll(null)
+  it('throws when null is passed', assertErrors(
+    () => data.removeAll(null),
+    /removeAll must be given an array of objects or ids/
   ))
-  it('throws when passed a number', assertThrows(
-    'removeAll takes an array as an argument',
-    () => data.removeAll(1)
+  it('throws when passed a number', assertErrors(
+    () => data.removeAll(1),
+    /removeAll must be given an array of objects or ids/
   ))
-  it('throws when passed a string', assertThrows(
-    'removeAll takes an array as an argument',
-    () => data.removeAll('1')
+  it('throws when passed a string', assertErrors(
+    () => data.removeAll('1'),
+    /removeAll must be given an array of objects or ids/
   ))
-  it('throws when passed an object', assertThrows(
-    'removeAll takes an array as an argument',
-    () => data.removeAll({id: 1})
+  it('throws when passed an object', assertErrors(
+    () => data.removeAll({id: 1}),
+    /removeAll must be given an array of objects or ids/
   ))
 
   // Check that the remaining documents are there
