@@ -187,15 +187,15 @@ export class HorizonSocket {
   hzRequest(options) {
     this.connect() // Make sure we are connected.  TODO: lazily disconnect if no activity?
     const req = this.makeRequest(options);
-    return req.observable.concatMap((response) => {
-      if (response.error) {
-        throw new ProtocolError(response.error, response.errorCode)
+    return this.handshake.ignoreElements().concat(req.observable).concatMap((res) => {
+      if (res.error) {
+        throw new ProtocolError(res.error, res.errorCode)
       }
 
-      if (response.patch) {
+      if (res.patch) {
         // TODO: are there any cases where it is a problem that we
         // have already 'deserialized' the data before applying the patch?
-        req.data = jsonpatch.apply_patch(req.data, response.patch)
+        req.data = jsonpatch.apply_patch(req.data, res.patch)
 
         // TODO: we may want to apply patches one at a time, check for
         // synced, and append any events.  The workaround for plugins

@@ -2,6 +2,7 @@ import Rx from 'rxjs/Rx'
 
 import {assertCompletes,
         removeAllDataObs,
+        compareSetsWithoutVersion,
         observableInterleave} from './utils'
 
 // Raises an exception if corresponding elements in an array don't
@@ -69,7 +70,7 @@ export default function aggregateSuite(getData, getHorizon) {
        ])).concat(observableInterleave({
          query,
          operations: [],
-         equality: arrayHasSameElements,
+         equality: compareSetsWithoutVersion,
          expected: [expected],
        }))
      })
@@ -84,7 +85,7 @@ export default function aggregateSuite(getData, getHorizon) {
     ]).concat(observableInterleave({
       query,
       operations: [],
-      equality: arrayHasSameElements,
+      equality: compareSetsWithoutVersion,
       expected: [expected],
     }))
   }))
@@ -138,7 +139,6 @@ export default function aggregateSuite(getData, getHorizon) {
     .concat(observableInterleave({
       query,
       operations: [],
-      equality: assert.deepEqual,
       expected: [expectedResult],
     }))
   }))
@@ -165,7 +165,6 @@ export default function aggregateSuite(getData, getHorizon) {
           d: Promise.resolve({id: 4, foo: false}),
         }).fetch(),
         operations: [],
-        equality: assert.deepEqual,
         expected: [expectedResult],
       }))
   }))
@@ -207,7 +206,6 @@ export default function aggregateSuite(getData, getHorizon) {
          .concat(observableInterleave({
            query,
            operations: [],
-           equality: assert.deepEqual,
            expected: [expectedResult],
          }))
      }
@@ -251,7 +249,6 @@ export default function aggregateSuite(getData, getHorizon) {
          .concat(observableInterleave({
            query: Model(1, 2, 3).fetch(),
            operations: [],
-           equality: assert.deepEqual,
            expected: [expectedResult],
          }))
   }))

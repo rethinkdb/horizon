@@ -48,10 +48,21 @@ function Horizon({
   }
 
   // Convenience function to access the current user's row
-  // TODO: this will fail rather unfriendlyly if not connected/handshook
+  // TODO: this is a terrible, terrible hack
   horizon.currentUser = () => {
-    const userId = socket.handshake.value.id;
-    return request.collection('users').find(userId)
+    function makeRequest(type) {
+      // User ID won't be available until we've connected
+      const userId = { toJSON: () => socket.handshake.value.id };
+      return socket.handshake.last().map((handshake) => {
+        if (handshake.id === null) {
+          throw new Error('Unauthenticated users have no user document.');
+        }
+      }).ignoreElements().concat(request.collection('users').find({id: userId})[type]());
+    }
+    return {
+      fetch: () => makeRequest('fetch'),
+      watch: () => makeRequest('watch'),
+    };
   }
 
   horizon.request = request;

@@ -2,6 +2,7 @@ import {Observable} from 'rxjs/Observable'
 
 import {assertCompletes,
         removeAllDataObs,
+        compareSetsWithoutVersion,
         observableInterleave} from './utils'
 
 export default function aggregateSubSuite(getData, getHorizon) {
@@ -58,9 +59,7 @@ export default function aggregateSubSuite(getData, getHorizon) {
       .take(1)
       .subscribe({
         next(x) {
-          for (let i = 0; i < x.length; i++) {
-            assert.sameDeepMembers(expected[i], x[i])
-          }
+          compareSetsWithoutVersion(expected, x)
         },
         error(err) {
           done(new Error(err))
@@ -79,8 +78,7 @@ export default function aggregateSubSuite(getData, getHorizon) {
       .concat(query.watch())
       .take(1)
       .do(x => {
-        assert.equal(x[0], 1)
-        assert.sameDeepMembers(x[1], expected[1])
+        compareSetsWithoutVersion(x, expected)
       })
   }))
 
@@ -99,7 +97,6 @@ export default function aggregateSubSuite(getData, getHorizon) {
     return observableInterleave({
       query,
       operations: [],
-      equality: assert.deepEqual,
       expected: [aggregate],
     })
   }))
@@ -133,7 +130,6 @@ export default function aggregateSubSuite(getData, getHorizon) {
     .concat(observableInterleave({
       query,
       operations: [],
-      equality: assert.deepEqual,
       expected: [expectedResult],
     }))
   }))
@@ -160,7 +156,6 @@ export default function aggregateSubSuite(getData, getHorizon) {
           d: Promise.resolve({id: 4, foo: false}),
         }).watch(),
         operations: [],
-        equality: assert.deepEqual,
         expected: [expectedResult],
       }))
   }))
@@ -202,7 +197,6 @@ export default function aggregateSubSuite(getData, getHorizon) {
          .concat(observableInterleave({
            query,
            operations: [],
-           equality: assert.deepEqual,
            expected: [expectedResult],
          }))
   }))
@@ -258,7 +252,6 @@ export default function aggregateSubSuite(getData, getHorizon) {
            operations: [
              hzB.upsert({id: 1, contents: 'something'}),
            ],
-           equality: assert.deepEqual,
            expected: [expectedResultA,
                       expectedResultB],
          }))

@@ -19,7 +19,7 @@ export default function authSuite(getHorizon) {
         throw new Error('Expected an error, got a document')
       },
       error(err) {
-        assert.equal(err.message, 'Unauthenticated users have no user document')
+        assert.equal(err.message, 'Unauthenticated users have no user document.')
         done()
       },
       complete() {

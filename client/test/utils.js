@@ -113,14 +113,13 @@ export function observableInterleave(options) {
 
 const withoutVersion = function withoutVersion(value) {
   if (Array.isArray(value)) {
-    const modified = []
-    for (const item of value) {
-      modified.push(withoutVersion(item))
-    }
-    return modified
+    return value.map(withoutVersion);
   } else if (typeof value === 'object') {
     const modified = Object.assign({}, value)
     delete modified['$hz_v$']
+    Object.keys(modified).forEach((k, v) => {
+      modified[k] = withoutVersion(modified[k]);
+    })
     return modified
   } else {
     return value
