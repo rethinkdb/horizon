@@ -24,8 +24,7 @@ function makeArrayPatch(change) {
 
 function makeSetPatch(change) {
   const patch = [];
-  const id = (change.old_val && change.old_val.id) ||
-             (change.new_val && change.new_val.id);
+  const id = change.old_val ? change.old_val.id : change.new_val.id;
   const path = `/val/${hash(id)}`;
   if (change.old_val && change.new_val) {
     patch.push({op: 'replace', path, value: change.new_val});

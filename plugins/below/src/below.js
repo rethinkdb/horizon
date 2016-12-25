@@ -10,7 +10,7 @@ function below(req, res, next) {
   } else if (args.length === 2 && (args[1] !== 'open' && args[1] !== 'closed')) {
     next(new Error('Second argument to "below" must be "open" or "closed".'));
   } else {
-    const bound = args.length === 1 ? 'closed' : args[1];
+    const bound = args.length === 1 ? 'open' : args[1];
     if (isObject(args[0])) {
       const fields = objectToFields(args[0]);
       if (fields.length !== 1) {
