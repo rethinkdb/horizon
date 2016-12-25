@@ -69,6 +69,35 @@ function getIndexValue(field, obj, bound, def) {
   return def;
 }
 
+function getBounds(r, obj, index, above, below) {
+  const optargs = {
+    index: index.name,
+    leftBound: above ? above.bound : 'closed',
+    rightBound: below ? below.bound : 'closed',
+  };
+
+  let defaultLeftBound = r.minval;
+  let defaultRightBound = r.maxval;
+
+  if (above && above.bound === 'open') { defaultLeftBound = r.maxval; }
+  if (below && below.bound === 'closed') { defaultRightBound = r.maxval; }
+
+  let leftValue = index.fields.map((field) =>
+    getIndexValue(field, obj, above && above.value, defaultLeftBound));
+  let rightValue = index.fields.map((field) =>
+    getIndexValue(field, obj, below && below.value, defaultRightBound));
+
+  if (index.name === 'id') {
+    leftValue = leftValue[0];
+    rightValue = rightValue[0];
+  }
+
+  if (leftValue === undefined) { leftValue = r.minval; }
+  if (rightValue === undefined) { rightValue = r.maxval; }
+
+  return [leftValue, rightValue, optargs];
+}
+
 function makeFindAllReql(context, collection, findAll,
                          fixedFields, above, below, descending) {
   const r = context.horizon.r;
@@ -77,67 +106,19 @@ function makeFindAllReql(context, collection, findAll,
     // RSI: make sure fuzzyFields and fixedFields overlap only in the correct spot
     // RSI: come up with some pathological tests that hit these sorts of cases
 
-    return collection.getMatchingIndex(fuzzyFields, fixedFields).then((index) => {
-      const optargs = {
-        index: index.name,
-        leftBound: above ? above.bound : 'closed',
-        rightBound: below ? below.bound : 'closed',
-      };
-
-      let defaultLeftBound = r.minval;
-      let defaultRightBound = r.maxval;
-
-      if (above && above.bound === 'open') { defaultLeftBound = r.maxval; }
-      if (below && below.bound === 'closed') { defaultRightBound = r.maxval; }
-
-      let leftValue = index.fields.map((field) =>
-        getIndexValue(field, obj, above && above.value, defaultLeftBound));
-      let rightValue = index.fields.map((field) =>
-        getIndexValue(field, obj, below && below.value, defaultRightBound));
-
-      if (index.name === 'id') {
-        leftValue = leftValue[0];
-        rightValue = rightValue[0];
-      }
-
-      return collection.table
+    return collection.getMatchingIndex(fuzzyFields, fixedFields).then((index) =>
+      collection.table
         .orderBy({index: descending ? r.desc(index.name) : index.name})
-        .between(leftValue || r.minval, rightValue || r.maxval, optargs);
-    });
+        .between(...getBounds(r, obj, index, above, below)));
   })).then((subqueries) => r.union(...subqueries));
 }
 
 function makeTableScanReql(context, collection, fixedFields, above, below, descending) {
   const r = context.horizon.r;
-  return collection.getMatchingIndex([], fixedFields).then((index) => {
-    let leftValue, rightValue;
-    const optargs = {index: index.name};
-
-    if (above) {
-      const defaultLeftBound = above.bound === 'closed' ? r.minval : r.maxval;
-      leftValue = index.fields.map((field) =>
-        getIndexValue(field, {}, above.value, defaultLeftBound));
-      optargs.leftBound = above.bound;
-    }
-    if (below) {
-      const defaultRightBound = below.bound === 'closed' ? r.maxval : r.minval;
-      rightValue = index.fields.map((field) =>
-        getIndexValue(field, {}, below.value, defaultRightBound));
-      optargs.rightBound = below.bound;
-    }
-
-    if (index.name === 'id') {
-      if (leftValue) { leftValue = leftValue[0]; }
-      if (rightValue) { rightValue = rightValue[0]; }
-    }
-
-    const reqlIndex = descending ? r.desc(index.name) : index.name;
-    let reql = collection.table.orderBy({index: reqlIndex});
-    if (leftValue || rightValue) {
-      reql = reql.between(leftValue || r.minval, rightValue || r.maxval, optargs);
-    }
-    return reql;
-  });
+  return collection.getMatchingIndex([], fixedFields).then((index) =>
+    collection.table
+      .orderBy({index: descending ? r.desc(index.name) : index.name})
+      .between(...getBounds(r, {}, index, above, below)));
 }
 
 function makeReadReql(context, req) {
