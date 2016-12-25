@@ -63,12 +63,6 @@ export default function aboveSuite(getData) {
       })
   ))
 
-  // `above` can't include any keys that are in `findAll`
-  it('errors when it contains any keys from the findAll term', assertErrors(() =>
-    data.findAll({a: 20}).above({a: 3}).fetch(),
-    /"a" cannot be used in "order", "above", or "below" when finding by that field/
-  ))
-
   // Let's try it on a non-primary key
   it('can be used on a non-primary key', assertCompletes(() =>
     data.order(['a', 'id']).above({a: 20}).fetch()

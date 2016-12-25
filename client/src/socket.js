@@ -78,7 +78,11 @@ export class HorizonSocket {
     if (!this.subscription) {
       this.subscription = this.socket.subscribe({
         next: (response) => this.handleResponse(response),
-        error: (err) => onError(err),
+        error: (err) => {
+          // TODO: put errors on all requests?  they'll probably be 'completed' soon anyway
+          this.status.next(STATUS_ERROR)
+          onError(err)
+        },
       })
       this.subscription.add(() => this.reinitialize())
       this.sendHandshake(this.tokenStorage)
@@ -123,9 +127,10 @@ export class HorizonSocket {
           }
         }
       },
-      error: (err) => {
-        this.handshake.error(err)
-        this.status.next(STATUS_ERROR)
+      complete: () => {
+        if (!this.handshake.hasCompleted) {
+          this.handshake.error('Socket closed before handshake completed.')
+        }
       },
     })
   }

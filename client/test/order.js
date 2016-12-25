@@ -75,12 +75,6 @@ export default function orderSuite(getData, getTestData) {
       .do(res => compareWithoutVersion(res, sortBy(testData, ['a', 'id']).reverse()))
   ))
 
-  // `order` cannot accept any keys that are present in `findAll`
-  it('cannot accept any keys that are present in findAll', assertErrors(() =>
-    data.findAll({id: 1}).order('id').fetch(),
-    /"id" cannot be used in "order", "above", or "below" when finding by that field/
-  ))
-
   it(`errors if the 2nd argument isn't 'ascending' or 'descending'`,
      assertErrors(() => data.order('id', 'foo').fetch(),
      /Second argument to "order" must be "ascending" or "descending"./

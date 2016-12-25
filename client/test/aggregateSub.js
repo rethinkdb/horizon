@@ -59,7 +59,9 @@ export default function aggregateSubSuite(getData, getHorizon) {
       .take(1)
       .subscribe({
         next(x) {
-          compareSetsWithoutVersion(expected, x)
+          assert.equal(expected.length, x.length);
+          x.forEach((item, index) =>
+            compareSetsWithoutVersion(expected[index], item));
         },
         error(err) {
           done(new Error(err))
@@ -78,7 +80,9 @@ export default function aggregateSubSuite(getData, getHorizon) {
       .concat(query.watch())
       .take(1)
       .do(x => {
-        compareSetsWithoutVersion(x, expected)
+        assert.equal(expected.length, x.length)
+        assert.equal(expected[0], x[0])
+        compareSetsWithoutVersion(expected[1], x[1]);
       })
   }))
 

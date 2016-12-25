@@ -52,7 +52,7 @@ export default function horizonObjectSuite() {
       assert.isDefined(horizon)
       horizon.status().take(3).toArray().subscribe(statuses => {
         const expected = [
-          {type: 'unconnected'},
+          {type: 'disconnected'},
           {type: 'error'}, // socket
           {type: 'disconnected'},
         ]

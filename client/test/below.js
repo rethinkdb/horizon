@@ -65,12 +65,6 @@ export default function belowSuite(getData) {
       })
   ))
 
-  // `below` can't include any keys that are in `findAll`
-  it('cannot include any keys that are passed to findAll', assertErrors(() =>
-    data.findAll({a: 20}).below({a: 3}).fetch(),
-    /"a" cannot be used in "order", "above", or "below" when finding by that field/
-  ))
-
   // Let's try it on a non-primary index
   it('can bound a non-primary index', assertCompletes(() =>
     data.order(['a', 'id']).below({a: 20}).fetch()
