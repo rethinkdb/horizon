@@ -23,15 +23,15 @@ function github(horizon, rawOptions) {
 
   oauthOptions.makeAcquireUrl = (state, redirect_uri) =>
     url.format({protocol: 'https',
-                 host: 'github.com',
-                 pathname: '/login/oauth/authorize',
-                 query: {client_id, redirect_uri, state}});
+                host: 'github.com',
+                pathname: '/login/oauth/authorize',
+                query: {client_id, redirect_uri, state}});
 
   oauthOptions.makeTokenRequest = (code, redirect_uri) => {
     const req = https.request({method: 'POST',
-                                host: 'github.com',
-                                path: '/login/oauth/access_token',
-                                headers: {accept: 'application/json'}});
+                               host: 'github.com',
+                               path: '/login/oauth/access_token',
+                               headers: {accept: 'application/json'}});
 
     req.write(querystring.stringify({code, client_id, client_secret, redirect_uri}));
 

@@ -208,6 +208,18 @@ class UserCache {
           assert(this.groupsUnreadyAt === null);
           this.groupsUnreadyAt = new Date();
         },
+        onError: (err) => {
+          let message;
+          if (err.message.match(/does not exist/)) {
+            message = 'metadata is not initialized.';
+          } else if (err instanceof r.Error.ReqlError) {
+            message = err.msg;
+          } else {
+            message = err.message;
+          }
+          this.context.horizon.events.emit('log', 'error',
+            `${options.name} plugin could not read groups: ${message}`);
+        },
         onChange: (change) => {
           const id = change.old_val ? change.old_val.id : change.new_val.id;
           if (this.groupsUnreadyAt !== null) {
@@ -371,7 +383,7 @@ module.exports = {
       userCache.groupCfeed.subscribe({onUnready, onReady: () => {
         resolve({
           methods: {
-            hz_permissions: {
+            hz_permissions: { // eslint-disable-line camelcase
               type: 'prereq',
               handler: (req, res, next) => {
                 if (!req.clientContext[userSub]) {

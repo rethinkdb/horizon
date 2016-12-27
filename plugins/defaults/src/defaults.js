@@ -38,6 +38,7 @@ const defaultPermissions = {
 module.exports = {
   name: 'hz_defaults',
   activate: (context, options, onReady, onUnready) => {
+    const events = context.horizon.events;
     const subplugins = (options.methods || Object.keys(defaultMethods)).map((name) => {
       const plugin = defaultMethods[name];
       if (!plugin) {
@@ -73,9 +74,14 @@ module.exports = {
       }
       readyPlugins.delete(name);
     }
+    function readyStr() {
+      return `(${readyPlugins.size}/${subplugins.length})`;
+    }
 
     const promises = subplugins.map((plugin) => {
-      console.log(`starting subplugin ${plugin.name}`);
+      events.emit('log', 'info',
+        `${options.name} subplugin activating ${readyStr()}: ${plugin.name}`);
+
       const promise = Promise.resolve().then(() =>
         // Activate each plugin with their default name rather than the
         // name of the defaults plugin
@@ -84,10 +90,14 @@ module.exports = {
                         () => ready(plugin.name),
                         () => unready(plugin.name))
       );
+
       if (plugin.activate.length < 3) {
-        promise.then(() => ready(plugin.name))
+        promise.then(() => ready(plugin.name));
       }
-      promise.then(() => console.log(`subplugin ${plugin.name} ready`));
+
+      promise.then(() =>
+        events.emit('log', 'info',
+          `${options.name} subplugin ready ${readyStr()}: ${plugin.name}`));
       return promise;
     });
 

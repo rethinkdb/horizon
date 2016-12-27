@@ -21,7 +21,7 @@ function applyVersion(r, row, newVersion) {
 // a single array.
 function makeResponse(data) {
   const makePatch = (val, index) => {
-    if (index == 0) {
+    if (index === 0) {
       return {op: 'replace', path: '', value: {type: 'value', synced: true, val}};
     } else {
       return {op: 'replace', path: '/val', value: val};
@@ -154,7 +154,7 @@ function retryLoop(originalRows,
     // Original rows must be an array of one object or one array of objects
     // TODO: would be nice to make this just an array of objects, but would like
     // to preserve backwards compatibility with the client side
-    if (!Array.isArray(originalRows) || originalRows.length != 1) {
+    if (!Array.isArray(originalRows) || originalRows.length !== 1) {
       throw new Error('Writes must be given a single object or an array of objects.');
     }
 
@@ -257,6 +257,7 @@ function removeCommon(data, req, context) {
               r.range(rowData.count()).map((index) =>
                 r.branch(writeRes('changes')(index)('old_val').eq(null),
                          writeRes('changes')(index).merge(
+                           // eslint-disable-next-line camelcase
                            {old_val: {id: rowData(index)('id')}}),
                          writeRes('changes')(index))).coerceTo('array'),
             })))

@@ -40,6 +40,11 @@ class Auth {
     this.successUrl = url.parse(this.options.successRedirect);
     this.failureUrl = url.parse(this.options.failureRedirect);
 
+    const r = this.context.horizon.r;
+    const projectName = this.context.horizon.options.projectName;
+    this.usersTable = r.db(projectName).table('users');
+    this.usersAuthTable = r.db(projectName).table('hz_users_auth');
+
     if (this.options.allowAnonymous && !this.options.createNewUsers) {
       throw new Error('Cannot allow anonymous users without new user creation.');
     }
@@ -68,29 +73,33 @@ class Auth {
   }
 
   // TODO: maybe we should write something into the user data to track open sessions/tokens
-  generate(provider, info) {
+  // Gets or creates an account linked with an auth provider account
+  generate(provider, providerId, data) {
     const r = this.context.horizon.r;
     return Promise.resolve().then(() => {
-      const key = this._authKey(provider, info);
-      const db = r.db(this.context.horizon.options.projectName);
+      const key = this._authKey(provider, providerId);
 
-      const insert = (table, row) =>
-        db.table(table)
-          .insert(row, {conflict: 'error', returnChanges: 'always'})
-          .bracket('changes')(0)('new_val');
-
-      let query = db.table('users')
-                    .get(db.table('hz_users_auth').get(key)('user_id'))
-                    .default(r.error('User not found and new user creation is disabled.'));
+      let query = this.usersTable.get(this.usersAuthTable.get(key)('user_id'));
 
       if (this.options.createNewUsers) {
-        query = insert('hz_users_auth', {id: key, user_id: r.uuid()}) // eslint-disable-line camelcase
-          .do((authUser) => insert('users', this._newUserRow(authUser('user_id'))));
+        query = query.default(() =>
+          r.uuid().do((id) =>
+            // eslint-disable-next-line camelcase
+            this.usersAuthTable.insert({id: key, user_id: id, data})
+              .do((res) =>
+                r.branch(res('errors').ne(0), r.error(res('first_error')),
+                  this.usersTable.insert(this._newUserRow(id, data || {}))))
+              .do(() => id)
+          )
+        );
+      } else {
+        query = query.default(
+          r.error('User not found and new user creation is disabled.'));
       }
 
       return query.run(this.context.horizon.conn());
-    }).then((user) =>
-      this.tokens.sign({id: user.id, provider})
+    }).then((userId) =>
+      this.tokens.sign({id: userId, provider})
     ).catch((err) => {
       // TODO: if we got a `Duplicate primary key` error, it was likely a race condition
       // and we should succeed if we try again.
@@ -100,19 +109,25 @@ class Auth {
     });
   }
 
+  // TODO: add a function to connect an auth provider account with an existing account
+  // connect(provider, providerId, data, userId)
+
   // Can't use objects in primary keys, so convert those to JSON in the db (deterministically)
-  _authKey(provider, info) {
-    if (info === null || Array.isArray(info) || typeof info !== 'object') {
-      return [provider, info];
+  _authKey(provider, providerId) {
+    if (providerId === null ||
+        Array.isArray(providerId) ||
+        typeof providerId !== 'object') {
+      return [provider, providerId];
     } else {
       const r = this.context.horizon.r;
-      return [provider, r.expr(info).toJSON()];
+      return [provider, r.expr(providerId).toJSON()];
     }
   }
 
-  _newUserRow(id) {
+  _newUserRow(id, data) {
     return {
       id,
+      data,
       groups: ['default', this.options.newUserGroup],
     };
   }

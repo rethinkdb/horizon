@@ -14,7 +14,7 @@ function find(req, res, next) {
     next(new Error('"find" cannot be used with ' +
                    '"findAll", "limit", "order", "above", or "below"'));
   } else {
-    let predicate = args[0];
+    const predicate = args[0];
     if (isObject(predicate)) {
       if (Object.keys(predicate).length === 0) {
         next(new Error('"find" object must have at least 1 field.'));

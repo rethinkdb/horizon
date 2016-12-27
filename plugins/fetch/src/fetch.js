@@ -21,7 +21,7 @@ function fetch(context) {
         // In the case of 'find', we only want one result rather than an array
         // with just one element - force the reql result to be an array so we
         // don't have to unpack a single item from a cursor.
-        let reql = isFind ? rawReql.coerceTo('array') : rawReql;
+        const reql = isFind ? rawReql.coerceTo('array') : rawReql;
         return reql.run(context.horizon.conn(), reqlOptions);
       }).then((result) => {
         if (result !== null && result.constructor.name === 'Cursor') {

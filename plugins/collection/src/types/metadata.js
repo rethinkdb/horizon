@@ -46,12 +46,12 @@ class ReliableInit extends Reliable {
     const db = this.context.horizon.options.projectName;
     const events = this.context.horizon.events;
     Promise.resolve().then(() => {
-      this.checkAttempt(attempt)
+      this.checkAttempt(attempt);
       return r.db('rethinkdb').table('server_status')
-              .nth(0)('process')('version').run(conn)
+              .nth(0)('process')('version').run(conn);
     }).then((version) => {
       this.checkAttempt(attempt);
-      rethinkdbVersionCheck(version)
+      rethinkdbVersionCheck(version);
       events.emit('log', 'debug', 'checking for old metadata version');
       const oldMetadataDb = `${db}_internal`;
       return r.dbList().contains(oldMetadataDb).run(conn).then((hasOldDb) => {
@@ -104,6 +104,7 @@ class ReliableInit extends Reliable {
             r.branch(oldRow.eq(null),
               {
                 id: 'admin',
+                // eslint-disable-next-line camelcase
                 rules: {carte_blanche: {template: 'any()'}},
               },
               oldRow),

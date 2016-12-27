@@ -18,7 +18,7 @@ function findAll(req, res, next) {
           return item;
         }
       } else if (isValidIndex(item)) {
-        return {id: item}
+        return {id: item};
       } else {
         err = `"findAll" argument ${index} is not an object or valid index value.`;
       }

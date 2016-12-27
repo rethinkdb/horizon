@@ -142,7 +142,7 @@ class ReliableConn extends Reliable {
         conn.close();
       }
     }).catch((err) => {
-      this[events].emit('log', 'error', `Connection to database failed: ${err}`);
+      this.emit('onError', err);
       if (!this.closed) {
         setTimeout(() => this.connect(), 1000);
       }
@@ -205,7 +205,7 @@ class ReliableChangefeed extends Reliable {
             throw new Error(`cursor closed unexpectedly: ${res}`);
           });
         }).catch((err) => {
-          this[events].emit('log', 'debug', `Changefeed error (${this.reql}): ${err.stack}`);
+          this.emit('onError', err);
           if (this.ready) {
             this.emit('onUnready', err);
           }

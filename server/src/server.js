@@ -90,15 +90,20 @@ class Server {
     Object.freeze(this.context.horizon.options);
     Object.freeze(this.context.horizon);
 
-    this._clearClientsSubscription = this.context.horizon.reliableConn.subscribe({
+    this._connSubscription = this.context.horizon.reliableConn.subscribe({
       onReady: () => {
         this.context.horizon.events.emit('ready', this);
       },
       onUnready: (err) => {
+        // Disconnect any clients we have
         this.context.horizon.events.emit('unready', this, err);
-        const msg = (err && err.message) || 'Connection became unready.';
+        const msg = (err && err.message) || 'Connection to database is down.';
         this._clients.forEach((client) => client.close({error: msg}));
         this._clients.clear();
+      },
+      onError: (err) => {
+        this.events.emit('log', 'error',
+          `Connection to database down: ${err.message}.`);
       },
     });
 

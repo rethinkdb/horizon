@@ -45,14 +45,18 @@ class HorizonBaseRouter extends EventEmitter {
 
     // These are not used here, but may be utilized by subclassing routers
     this.routes = new Map([
-      ['/horizon.js', makeHandler('application/javascript',
-                                  () => this.server.clientSource())],
-      ['/horizon.js.map', makeHandler('application/json',
-                                      () => this.server.clientSourceMap())],
-      ['/horizon-core.js', makeHandler('application/javascript',
-                                       () => this.server.clientSourceCore())],
-      ['/horizon-core.js.map', makeHandler('application/json',
-                                           () => this.server.clientSourceCoreMap())],
+      ['/horizon.js',
+        makeHandler('application/javascript',
+          () => this.server.clientSource())],
+      ['/horizon.js.map',
+        makeHandler('application/json',
+          () => this.server.clientSourceMap())],
+      ['/horizon-core.js',
+        makeHandler('application/javascript',
+          () => this.server.clientSourceCore())],
+      ['/horizon-core.js.map',
+        makeHandler('application/json',
+          () => this.server.clientSourceCoreMap())],
     ]);
   }
 

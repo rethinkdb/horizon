@@ -2,7 +2,7 @@
 'use strict'
 
 const Hapi = require('hapi');
-const horizonRouter = require('@horizon/hapi-router');
+const HorizonRouter = require('@horizon/hapi-router');
 const horizonDefaultPlugins = require('@horizon-plugins/defaults');
 
 const server = new Hapi.Server();
@@ -13,10 +13,13 @@ server.start(() => {
 
 const httpServers = server.connections.map((c) => c.listener);
 
-const hzRouter = horizonRouter(httpServers, {auth: {tokenSecret: 'hunter2'}});
+const hzRouter = new HorizonRouter(httpServers, {auth: {tokenSecret: 'hunter2'}});
 hzRouter.add(horizonDefaultPlugins).then(() => {
   console.log('Horizon server ready.');
 });
+
+hzRouter.events.on('log', (level, msg) =>
+  console.log(`${level}: ${msg}`));
 
 server.route({
   method: '*',

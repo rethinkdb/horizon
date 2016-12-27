@@ -27,7 +27,7 @@ class HorizonHapiRouter extends HorizonBaseRouter {
       // Assume wildcard matching was used (and only for subroutes of this router)
       // TODO: this may break some stuff if users try to get fancy
       const subpath =
-        `/${request.paramArray[0] || ''}${request.paramArray[1] ? '/' : ''}`;
+        `/${request.paramsArray[0] || ''}${request.paramsArray[1] ? '/' : ''}`;
       const routeHandler = this.routes.get(subpath);
 
       if (routeHandler) {
