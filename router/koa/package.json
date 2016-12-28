@@ -21,10 +21,10 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
+    "@horizon/base-router": "1.x"
   },
   "peerDependencies": {
     "@horizon/server": "3.x",
-    "@horizon/base-router": "1.x",
     "koa": "1.x"
   },
   "devDependencies": {

@@ -17,8 +17,9 @@ class StaleAttemptError extends Error { }
 
 // RSI: fix all this shit.
 class ReliableInit extends Reliable {
-  constructor(context, autoCreateCollection) {
+  constructor(context, autoCreateCollection, log) {
     super(context);
+    this.log = log;
     this.context = context;
     this.autoCreateCollection = autoCreateCollection;
     this.connSubs = this.context.horizon.reliableConn.subscribe({
@@ -44,7 +45,6 @@ class ReliableInit extends Reliable {
   doInit(conn, attempt) {
     const r = this.context.horizon.r;
     const db = this.context.horizon.options.projectName;
-    const events = this.context.horizon.events;
     Promise.resolve().then(() => {
       this.checkAttempt(attempt);
       return r.db('rethinkdb').table('server_status')
@@ -52,7 +52,7 @@ class ReliableInit extends Reliable {
     }).then((version) => {
       this.checkAttempt(attempt);
       rethinkdbVersionCheck(version);
-      events.emit('log', 'debug', 'checking for old metadata version');
+      this.log('debug', 'checking for old metadata version');
       const oldMetadataDb = `${db}_internal`;
       return r.dbList().contains(oldMetadataDb).run(conn).then((hasOldDb) => {
         if (hasOldDb) {
@@ -63,7 +63,7 @@ class ReliableInit extends Reliable {
       });
     }).then(() => {
       this.checkAttempt(attempt);
-      events.emit('log', 'debug', 'checking for internal tables');
+      this.log('debug', 'checking for internal tables');
       if (this.autoCreateCollection) {
         return queries.initializeMetadata(this.context);
       } else {
@@ -78,13 +78,13 @@ class ReliableInit extends Reliable {
       }
     }).then(() => {
       this.checkAttempt(attempt);
-      events.emit('log', 'debug', 'waiting for internal tables');
+      this.log('debug', 'waiting for internal tables');
       return r.expr(['hz_collections', 'hz_users_auth', 'hz_groups', 'users'])
         .forEach((table) => r.db(db).table(table).wait({timeout: 30})).run(conn);
     }).then(() => {
       this.checkAttempt(attempt);
       // RSI: this should probably be in the 'permissions' plugin
-      events.emit('log', 'debug', 'adding admin user');
+      this.log('debug', 'adding admin user');
       return Promise.all([
         r.db(db).table('users').get('admin')
           .replace((oldRow) =>
@@ -116,11 +116,11 @@ class ReliableInit extends Reliable {
       ]);
     }).then(() => {
       this.checkAttempt(attempt);
-      events.emit('log', 'debug', 'metadata sync complete');
+      this.log('debug', 'metadata sync complete');
       this.emit('onReady');
     }).catch((err) => {
       if (!(err instanceof StaleAttemptError)) {
-        events.emit('log', 'error', `Metadata initialization failed: ${err.stack}`);
+        this.log('error', `Metadata initialization failed: ${err.stack}`);
         setTimeout(() => { this.doInit(conn, attempt); }, 1000);
       }
     });
@@ -134,19 +134,20 @@ class ReliableInit extends Reliable {
 }
 
 class ReliableMetadata extends Reliable {
-  constructor(context,
-              autoCreateCollection,
-              autoCreateIndex) {
+  constructor(context, options) {
     super(context);
     this.context = context;
-    this.autoCreateCollection = autoCreateCollection;
-    this.autoCreateIndex = autoCreateIndex;
+    this.autoCreateCollection = Boolean(options.autoCreateCollection);
+    this.autoCreateIndex = Boolean(options.autoCreateIndex);
     this.collections = new Map();
+
+    this.log = (lvl, msg) =>
+      this.context.horizon.events.emit('log', lvl, `${options.name} plugin: ${msg}`);
 
     const r = this.context.horizon.r;
     const db = this.context.horizon.options.projectName;
 
-    this.reliableInit = new ReliableInit(this.context, db, this.autoCreateCollection);
+    this.reliableInit = new ReliableInit(this.context, this.autoCreateCollection, this.log);
 
     // RSI: stop these from running until after ReliableInit?
     this.collectionChangefeed = new ReliableChangefeed(
@@ -166,7 +167,11 @@ class ReliableMetadata extends Reliable {
               let collection = this.collections.get(name);
               if (!collection) {
                 collection =
-                  new Collection(this.context, db, name, this.autoCreateIndex);
+                  new Collection(db, name,
+                                 this.autoCreateIndex,
+                                 this.context.horizon.conn,
+                                 this.log,
+                                 this.context.horizon.r);
                 this.collections.set(name, collection);
               }
               collection._register();
@@ -218,7 +223,11 @@ class ReliableMetadata extends Reliable {
               let collection = this.collections.get(name);
               if (!collection) {
                 collection =
-                  new Collection(this.context, db, name, this.autoCreateIndex);
+                  new Collection(db, name,
+                                 this.autoCreateIndex,
+                                 this.context.horizon.conn,
+                                 this.log,
+                                 this.context.horizon.r);
                 this.collections.set(name, collection);
               }
               collection._updateTable(tableId, change.new_val.indexes);
@@ -315,13 +324,17 @@ class ReliableMetadata extends Reliable {
       }
 
       const db = this.context.horizon.options.projectName;
-      collection = new Collection(this.context, db, name, this.autoCreateIndex);
+      collection = new Collection(db, name,
+                                  this.autoCreateIndex,
+                                  this.context.horizon.conn,
+                                  this.log,
+                                  this.context.horizon.r);
       this.collections.set(name, collection);
 
       return queries.createCollection(this.context, name);
     }).then((res) => {
       assert(!res.error, `Collection "${name}" creation failed: ${res.error}`);
-      this.context.horizon.events.emit('log', 'warn', `Collection created: "${name}"`);
+      this.log('warn', `collection created: "${name}"`);
       return new Promise((resolve, reject) =>
         collection._onReady((maybeErr) => {
           if (maybeErr instanceof Error) {

@@ -17,7 +17,7 @@ class HorizonHttpRouter extends HorizonBaseRouter {
       const next = (err) => {
         if (err) {
           res.statusCode = 500;
-          res.end(`${err}`);
+          res.end(`${err.stack}`);
         } else {
           res.statusCode = 404;
           res.end();
@@ -32,7 +32,11 @@ class HorizonHttpRouter extends HorizonBaseRouter {
         // TODO: this kills the performance?
         Object.setPrototypeOf(req, ExpressRequest);
         Object.setPrototypeOf(res, ExpressResponse);
-        routeHandler(req, res, next);
+        try {
+          routeHandler(req, res, next);
+        } catch (err) {
+          next(err);
+        }
       } else {
         next();
       }

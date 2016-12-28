@@ -4,7 +4,7 @@ const Joi = require('joi');
 
 // Options for Server object construction
 const server = Joi.object({
-  path: Joi.string().default('/horizon'),
+  path: Joi.string().regex(/[\/].*/).default('/horizon'),
 
   projectName: Joi.string().default('horizon'),
 

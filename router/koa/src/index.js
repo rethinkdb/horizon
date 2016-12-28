@@ -19,16 +19,16 @@ function HorizonKoaRouter(...serverOptions) {
     return baseRouter.close(...args);
   }
 
-  function *middleware(next, ctx) {
+  function *middleware(next) {
     if (!closed) {
-      const handler = baseRouter._handlerForPath(ctx.path);
+      const handler = baseRouter._handlerForPath(this.path);
       if (handler) {
-        handler(ctx.request, ctx.response);
+        handler(this.request, this.response);
         return;
       }
     }
 
-    yield* next();
+    yield next;
   }
 
   // RSI: do this stuff with prototypes and stuff, not explicitly

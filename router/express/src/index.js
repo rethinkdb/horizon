@@ -10,7 +10,9 @@ function HorizonExpressRouter(...serverOptions) {
 
   function initExpressRouter() {
     expressRouter = express.Router();
-    baseRouter.routes.forEach((handler, path) => expressRouter.use(path, handler));
+    baseRouter.routes.forEach((handler, path) => {
+      expressRouter.use(path, handler);
+    });
   }
 
   function add(...args) {
@@ -56,6 +58,7 @@ function HorizonExpressRouter(...serverOptions) {
   middleware.plugins = baseRouter.plugins;
   middleware.routes = baseRouter.routes;
 
+  initExpressRouter();
   return middleware;
 }
 

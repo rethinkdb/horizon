@@ -14,12 +14,11 @@ server.start(() => {
 const httpServers = server.connections.map((c) => c.listener);
 
 const hzRouter = new HorizonRouter(httpServers, {auth: {tokenSecret: 'hunter2'}});
+hzRouter.events.on('log', (level, msg) => console.log(`${level}: ${msg}`));
+
 hzRouter.add(horizonDefaultPlugins).then(() => {
   console.log('Horizon server ready.');
 });
-
-hzRouter.events.on('log', (level, msg) =>
-  console.log(`${level}: ${msg}`));
 
 server.route({
   method: '*',

@@ -21,9 +21,9 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
+    "@horizon/server": "3.x"
   },
   "peerDependencies": {
-    "@horizon/server": "3.x"
   },
   "devDependencies": {
     "eslint": "^3.1.0",

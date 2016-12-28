@@ -21,11 +21,11 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
+    "@horizon/base-router": "1.x",
     "express": "4.x"
   },
   "peerDependencies": {
-    "@horizon/server": "3.x",
-    "@horizon/base-router": "1.x"
+    "@horizon/server": "3.x"
   },
   "devDependencies": {
     "eslint": "^3.1.0",

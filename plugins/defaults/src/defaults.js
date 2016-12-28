@@ -74,13 +74,12 @@ module.exports = {
       }
       readyPlugins.delete(name);
     }
-    function readyStr() {
-      return `(${readyPlugins.size}/${subplugins.length})`;
-    }
+
+    const names = subplugins.map((p) => p.name);
+    events.emit('log', 'info',
+      `${options.name} activating subplugins: ${names.join(', ')}`);
 
     const promises = subplugins.map((plugin) => {
-      events.emit('log', 'info',
-        `${options.name} subplugin activating ${readyStr()}: ${plugin.name}`);
 
       const promise = Promise.resolve().then(() =>
         // Activate each plugin with their default name rather than the
@@ -96,8 +95,8 @@ module.exports = {
       }
 
       promise.then(() =>
-        events.emit('log', 'info',
-          `${options.name} subplugin ready ${readyStr()}: ${plugin.name}`));
+        events.emit('log', 'info', `${options.name} subplugin ready ` +
+          `(${readyPlugins.size}/${subplugins.length}): ${plugin.name}`));
       return promise;
     });
 

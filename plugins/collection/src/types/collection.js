@@ -3,10 +3,11 @@
 const Table = require('./table');
 
 class Collection {
-  constructor(context, db, name, autoCreateIndex) {
-    const r = context.horizon.r;
+  constructor(db, name, autoCreateIndex, conn, log, r) {
+    this.conn = conn;
+    this.log = log;
+    this.r = r;
 
-    this.context = context;
     this.name = name;
     this.table = r.db(db).table(name); // This is the ReQL Table object
     this.autoCreateIndex = autoCreateIndex;
@@ -29,7 +30,7 @@ class Collection {
     let table = this._tables.get(tableId);
     if (indexes) {
       if (!table) {
-        table = new Table(this.context, this.table);
+        table = new Table(this.table, this.conn, this.log, this.r);
         this._tables.set(tableId, table);
       }
       table.updateIndexes(indexes);

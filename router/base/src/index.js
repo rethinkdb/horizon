@@ -35,7 +35,7 @@ class HorizonBaseRouter extends EventEmitter {
     // Basic HTTP and Koa will only handle http requests under server.options.path
     // Hapi relies on being configured with a path wildcard (but only for subpaths
     //  of server.options.path)
-    this[pathPrefix] = `/${this.server.context.horizon.options.path}`;
+    this[pathPrefix] = this.server.context.horizon.options.path;
 
     const makeHandler = (mimeType, getData) => (req, res) => {
       res.head('Content-Type', mimeType);

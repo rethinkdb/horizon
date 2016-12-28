@@ -6,9 +6,10 @@ const {primaryIndexName, indexInfoToReql, indexInfoToName} = require('../indexes
 const assert = require('assert');
 
 class Table {
-  constructor(context, reqlTable) {
-    this.context = context;
-    this.events = context.horizon.events;
+  constructor(reqlTable, conn, log, r) {
+    this.r = r;
+    this.log = log;
+    this.conn = conn;
     this.table = reqlTable;
     this.indexes = new Map();
 
@@ -17,7 +18,7 @@ class Table {
 
     this.table
       .wait({waitFor: 'all_replicas_ready'})
-      .run(this.context.horizon.conn())
+      .run(this.conn())
       .then(() => {
         this._result = true;
         this._waiters.forEach((w) => w());
@@ -52,7 +53,7 @@ class Table {
   }
 
   updateIndexes(indexes) {
-    this.events.emit('log', 'debug', `${this.table} indexes changed, reevaluating`);
+    this.log('debug', `${this.table} indexes changed, reevaluating`);
 
     // Initialize the primary index, which won't show up in the changefeed
     indexes.push(primaryIndexName);
@@ -61,7 +62,7 @@ class Table {
     indexes.forEach((name) => {
       try {
         const oldIndex = this.indexes.get(name);
-        const newIndex = new Index(name, this.table, this.context);
+        const newIndex = new Index(name, this.table, this.conn, this.log);
         if (oldIndex) {
           // Steal any waiters from the old index
           newIndex._waiters = oldIndex._waiters;
@@ -69,13 +70,13 @@ class Table {
         }
         newIndexMap.set(name, newIndex);
       } catch (err) {
-        this.events.emit('log', 'warn', `${err}`);
+        this.log('warn', `${err}`);
       }
     });
 
     this.indexes.forEach((i) => i.close());
     this.indexes = newIndexMap;
-    this.events.emit('log', 'debug', `${this.table} indexes updated`);
+    this.log('debug', `${this.table} indexes updated`);
   }
 
   // TODO: support geo and multi indexes
@@ -87,7 +88,7 @@ class Table {
     const success = () => {
       // Create the Index object now so we don't try to create it again before the
       // feed notifies us of the index creation
-      const newIndex = new Index(indexName, this.table, this.context);
+      const newIndex = new Index(indexName, this.table, this.conn, this.log);
       // TODO: shouldn't this be done before we go async?
       this.indexes.set(indexName, newIndex);
       return newIndex.onReady(done);
@@ -95,10 +96,10 @@ class Table {
 
     this.table.indexCreate(indexName, indexInfoToReql(info),
                            {geo: info.geo, multi: (info.multi !== false)})
-      .run(this.context.horizon.conn())
+      .run(this.conn())
       .then(success)
       .catch((err) => {
-        if (err instanceof this.context.horizon.r.Error.ReqlError &&
+        if (err instanceof this.r.Error.ReqlError &&
             err.msg.indexOf('already exists') !== -1) {
           success();
         } else {

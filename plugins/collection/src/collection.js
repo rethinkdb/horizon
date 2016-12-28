@@ -43,10 +43,7 @@ function collection(metadata) {
 module.exports = {
   name: 'hz_collection',
   activate: (context, options, onReady, onUnready) => {
-    context[options.name] = new ReliableMetadata(
-      context,
-      Boolean(options.autoCreateCollection),
-      Boolean(options.autoCreateIndex));
+    context[options.name] = new ReliableMetadata(context, options);
 
     return new Promise((resolve) => {
       context[options.name].subscribe({onUnready, onReady: () => {
@@ -65,9 +62,7 @@ module.exports = {
   deactivate: (context, options) => {
     const metadata = context[options.name];
     delete context[options.name];
-    if (metadata) {
-      metadata.close();
-    }
+    return metadata && metadata.close();
   },
 };
 
