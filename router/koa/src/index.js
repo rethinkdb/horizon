@@ -23,7 +23,7 @@ function HorizonKoaRouter(...serverOptions) {
     if (!closed) {
       const handler = baseRouter._handlerForPath(this.path);
       if (handler) {
-        handler(this.request, this.response);
+        handler(this.request, this.response, next);
         return;
       }
     }

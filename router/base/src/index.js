@@ -38,7 +38,7 @@ class HorizonBaseRouter extends EventEmitter {
     this[pathPrefix] = this.server.context.horizon.options.path;
 
     const makeHandler = (mimeType, getData) => (req, res) => {
-      res.head('Content-Type', mimeType);
+      res.set('Content-Type', mimeType);
       res.send(getData());
       res.end();
     };

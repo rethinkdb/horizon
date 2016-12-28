@@ -3,15 +3,16 @@
 const HorizonBaseRouter = require('@horizon/base-router');
 
 const url = require('url');
-
-const ExpressRequest = require('express/lib/request');
-const ExpressResponse = require('express/lib/response');
+const express = require('express');
 
 const handler = Symbol('handler');
 
 class HorizonHttpRouter extends HorizonBaseRouter {
   constructor(...serverOptions) {
     super(...serverOptions);
+
+    // Make a dummy express app for the request/response objects
+    const app = express();
 
     this[handler] = (req, res) => {
       const next = (err) => {
@@ -29,9 +30,9 @@ class HorizonHttpRouter extends HorizonBaseRouter {
         req.res = res;
         res.req = req;
         req.next = next;
-        // TODO: this kills the performance?
-        Object.setPrototypeOf(req, ExpressRequest);
-        Object.setPrototypeOf(res, ExpressResponse);
+        // TODO: supposedly this kills the performance?
+        Object.setPrototypeOf(req, app.request);
+        Object.setPrototypeOf(res, app.response);
         try {
           routeHandler(req, res, next);
         } catch (err) {
