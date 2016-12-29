@@ -1,10 +1,14 @@
 'use strict';
 
 const HorizonBaseRouter = require('@horizon/base-router');
+const express = require('express');
 
 function HorizonKoaRouter(...serverOptions) {
   let closed = false;
   const baseRouter = new HorizonBaseRouter(...serverOptions);
+
+  // Make a dummy express app for the request/response objects
+  const app = express();
 
   function add(...args) {
     return baseRouter.add(...args);
@@ -22,8 +26,10 @@ function HorizonKoaRouter(...serverOptions) {
   function *middleware(next) {
     if (!closed) {
       const handler = baseRouter._handlerForPath(this.path);
+      const [req, res] =
+        baseRouter._makeReqRes(app, this.request.req, this.response.res, next);
       if (handler) {
-        handler(this.request, this.response, next);
+        handler(req, res, next);
         return;
       }
     }

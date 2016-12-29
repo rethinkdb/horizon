@@ -14,17 +14,19 @@ class HorizonHapiRouter extends HorizonBaseRouter {
     const expressApp = express();
 
     this[handler] = (request) => {
-      const req = request.raw.req;
-      const res = request.raw.res;
+      let req, res;
       const next = (err) => {
         if (err) {
-          res.statusCode = 500;
-          res.end(`${err}`);
+          res.status(500).send(`${err}`).end();
         } else {
-          res.statusCode = 404;
-          res.end();
+          res.sendStatus(404).end();
         }
       };
+
+      // RSI: hapi docs seem to indicate we shouldn't be fucking around with
+      //  raw request/response so much - this probably breaks major shit
+      // Hapi probably needs some notification when we're done for their callbacks
+      [req, res] = this._makeReqRes(app, request.raw.req, response.raw.res, next);
 
       // Assume wildcard matching was used (and only for subroutes of this router)
       // TODO: this may break some stuff if users try to get fancy
@@ -33,14 +35,6 @@ class HorizonHapiRouter extends HorizonBaseRouter {
       const routeHandler = this.routes.get(subpath);
 
       if (routeHandler) {
-        // RSI: hapi docs seem to indicate we shouldn't be fucking around with
-        //  raw request/response so much - this probably breaks major shit
-        req.res = res;
-        res.req = req;
-        req.next = next;
-        // TODO: this kills the performance?
-        Object.setPrototypeOf(req, expressApp.request);
-        Object.setPrototypeOf(res, expressApp.response);
         routeHandler(req, res, next);
       } else {
         next();

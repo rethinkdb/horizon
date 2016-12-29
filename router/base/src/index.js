@@ -177,6 +177,18 @@ class HorizonBaseRouter extends EventEmitter {
       return this.routes.get(subpath);
     }
   }
+
+  // Convert basic http request and response objects into something express-compatible
+  // TODO: I have little faith that this is the correct way to do things
+  _makeReqRes(app, req, res, next) {
+    req.res = res;
+    res.req = req;
+    req.next = next;
+    // TODO: supposedly this kills the performance?
+    Object.setPrototypeOf(req, app.request);
+    Object.setPrototypeOf(res, app.response);
+    return [req, res];
+  }
 }
 
 module.exports = HorizonBaseRouter;

@@ -14,25 +14,20 @@ class HorizonHttpRouter extends HorizonBaseRouter {
     // Make a dummy express app for the request/response objects
     const app = express();
 
-    this[handler] = (req, res) => {
+    this[handler] = (request, response) => {
+      let req, res;
       const next = (err) => {
         if (err) {
-          res.statusCode = 500;
-          res.end(`${err.stack}`);
+          res.status(500).send(`${err.stack}`).end();
         } else {
-          res.statusCode = 404;
-          res.end();
+          res.sendStatus(404).end();
         }
       };
 
+      [req, res] = this._makeReqRes(app, request, response, next);
+
       const routeHandler = this._handlerForPath(url.parse(req.url).pathname);
       if (routeHandler) {
-        req.res = res;
-        res.req = req;
-        req.next = next;
-        // TODO: supposedly this kills the performance?
-        Object.setPrototypeOf(req, app.request);
-        Object.setPrototypeOf(res, app.response);
         try {
           routeHandler(req, res, next);
         } catch (err) {
