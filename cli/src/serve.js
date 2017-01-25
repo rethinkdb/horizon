@@ -344,7 +344,7 @@ const start_horizon_server = (http_servers, opts) =>
     permissions: opts.permissions,
     project_name: opts.project_name,
     access_control_allow_origin: opts.access_control_allow_origin,
-    access_control_allow_headers: opts.access_control_allow_headers
+    access_control_allow_headers: opts.access_control_allow_headers,
     auth: {
       token_secret: opts.token_secret,
       allow_unauthenticated: opts.allow_unauthenticated,
