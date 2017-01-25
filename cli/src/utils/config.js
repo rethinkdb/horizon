@@ -151,7 +151,7 @@ ${configFilename}, causing it not be a valid TOML file.`,
   for (const field in fileConfig) {
     if (field === 'connect') {
       parse_connect(fileConfig.connect, config);
-    } else if (field === 'access_control_allow_headers') {
+    } else if (field === 'access_control_allow_headers' && fileConfig[field]) {
       config[field] = fileConfig[field].split(',').map((item) => item.trim());
     } else if (yes_no_options.indexOf(field) !== -1) {
       config[field] = parse_yes_no_option(fileConfig[field], field);
@@ -209,7 +209,7 @@ const read_from_env = () => {
 
       if (destVarName === 'connect') {
         parse_connect(value, config);
-      } else if (destVarName === 'access_control_allow_headers') {
+      } else if (destVarName === 'access_control_allow_headers' && value) {
         config[destVarName] = value.split(',').map((item) => item.trim());
       } else if (destVarName === 'bind') {
         config[destVarName] = value.split(',');
@@ -267,7 +267,7 @@ const read_from_flags = (parsed) => {
     } else if (key === 'connect' && parsed.connect != null) {
       // Normalize RethinkDB connection options
       parse_connect(parsed.connect, config);
-    } else if (key === 'access_control_allow_headers') {
+    } else if (key === 'access_control_allow_headers' && parsed[key]) {
       config[key] = parsed[key].split(',').map((item) => item.trim());
     } else if (yes_no_options.indexOf(key) !== -1 && parsed[key] != null) {
       // Simple 'yes' or 'no' (or 'true' or 'false') flags
