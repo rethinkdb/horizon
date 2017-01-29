@@ -1,3 +1,4 @@
+/* TODO: move somewhere else - this is only for tests
 'use strict';
 
 const Response = require('@horizon/server/src/response');
@@ -28,3 +29,4 @@ class MockResponse extends Response {
 }
 
 module.exports = {MockResponse};
+*/
