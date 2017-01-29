@@ -29,7 +29,6 @@
     "@horizon/base-router": "1.x"
   },
   "devDependencies": {
-    "@horizon/server": "3.x",
     "eslint": "^3.1.0",
     "istanbul": "^0.4.3",
     "mocha": "^2.5.3",

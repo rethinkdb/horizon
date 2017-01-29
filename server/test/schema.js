@@ -1,7 +1,11 @@
 'use strict';
 
-const {request: requestSchema} = require('@horizon/server/src/schema');
-const utils = require('./utils');
+const {request: requestSchema} = require('../src/schema');
+
+function checkError(err, msg) {
+  assert.notStrictEqual(err, null, 'Should have gotten an error.');
+  assert(err.message.indexOf(msg) !== -1, err.message);
+}
 
 const assert = require('assert');
 

@@ -37,26 +37,32 @@ link_dir () {
 
 link_dir client
 link_dir server "@horizon/client"
-link_dir cli "@horizon/server"
-link_dir router/base
 link_dir plugin-utils
+
+# Link all the routers - base links to the server, the rest link to base
+link_dir router/base "@horizon/server"
+
+pushd router
+router_names=($(ls -1d * | grep -v base))
+for router_name in "${router_names[@]}"; do
+  link_dir "$router_name" "@horizon/base-router"
+done
+popd
 
 # Link all the plugins - 'utils' must go first, and 'defaults' must go last
 pushd plugins
 plugin_names=($(ls -1d * | grep -v defaults))
 plugin_modules=()
 for plugin_name in "${plugin_names[@]}"; do
-  link_dir "$plugin_name" \
-           "@horizon/server" \
-	   "@horizon/plugin-utils" \
-	   "@horizon/client" \
-	   "@horizon/base-router"
+  link_dir "$plugin_name" "@horizon/plugin-utils"
   plugin_modules+=("@horizon-plugins/$plugin_name")
 done
 
 link_dir defaults ${plugin_modules[@]}
 popd
 
-link_dir test "@horizon-plugins/defaults" "@horizon/base-router" "@horizon/server" "horizon"
+link_dir cli "@horizon/express-router" "@horizon-plugins/defaults"
+
+link_dir test "@horizon-plugins/defaults" "@horizon/base-router" "@horizon/plugin-utils" "horizon"
 
 green "Dev environment ready"

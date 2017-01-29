@@ -1,3 +1,4 @@
+/* TODO: move auth out of server
 'use strict';
 
 const startRdbServer = require('horizon/src/utils/start_rdb_server');
@@ -96,3 +97,5 @@ module.exports = {
   usersTable,
   usersAuthTable,
 };
+
+*/

@@ -25,7 +25,6 @@
     "@horizon-plugins/defaults": "1.x",
     "@horizon/base-router": "1.x",
     "@horizon/plugin-utils": "1.x",
-    "@horizon/server": "3.x",
     "argparse": "^1.0.7",
     "horizon": "3.x",
     "jsonpatch": "^3.0.1",

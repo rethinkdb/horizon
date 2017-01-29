@@ -3,7 +3,6 @@
 
 Error.stackTraceLimit = Infinity;
 
-const HorizonServer = require('@horizon/server');
 const HorizonBaseRouter = require('@horizon/base-router');
 const plugins = require('@horizon-plugins/defaults');
 
