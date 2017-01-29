@@ -49,12 +49,12 @@ for router_name in "${router_names[@]}"; do
 done
 popd
 
-# Link all the plugins - 'utils' must go first, and 'defaults' must go last
+# Link all the plugins, 'defaults' must go last
 pushd plugins
 plugin_names=($(ls -1d * | grep -v defaults))
 plugin_modules=()
 for plugin_name in "${plugin_names[@]}"; do
-  link_dir "$plugin_name" "@horizon/plugin-utils"
+  link_dir "$plugin_name" "@horizon/plugin-utils" "@horizon/server"
   plugin_modules+=("@horizon-plugins/$plugin_name")
 done
 
