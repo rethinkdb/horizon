@@ -61,7 +61,7 @@ done
 link_dir defaults ${plugin_modules[@]}
 popd
 
-link_dir cli "@horizon/express-router" "@horizon-plugins/defaults"
+link_dir cli "@horizon/express-router" "@horizon-plugins/defaults" "@horizon/server" "@horizon/plugin-utils"
 
 link_dir test "@horizon-plugins/defaults" "@horizon/base-router" "@horizon/plugin-utils" "horizon"
 

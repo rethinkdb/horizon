@@ -24,6 +24,8 @@
   "homepage": "https://github.com/rethinkdb/horizon#readme",
   "dependencies": {
     "@horizon/express-router": "1.x",
+    "@horizon/plugin-utils": "1.x",
+    "@horizon/server": "3.x",
     "@horizon-plugins/defaults": "1.x",
     "argparse": "^1.0.3",
     "bluebird": "^3.4.1",
