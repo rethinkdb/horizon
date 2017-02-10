@@ -62,6 +62,15 @@ project_name = "${projectName}"
 
 
 ###############################################################################
+# Filter Options
+# WARNING: This option might have performance implications
+# 'enable_subscribe_validator_filter' will filter results failing validation from
+# the result set, instead of throwing an exception
+#------------------------------------------------------------------------------
+# enable_subscribe_validator_filter = false
+
+
+###############################################################################
 # Data Options
 # WARNING: these should probably not be enabled on a publically accessible
 # service.  Tables and indexes are not lightweight objects, and allowing them

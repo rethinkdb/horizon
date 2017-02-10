@@ -334,6 +334,7 @@ const processConfig = (parsed) => {
 
 const start_horizon_server = (http_servers, opts) =>
   new horizon_server.Server(http_servers, {
+    enable_subscribe_validator_filter: opts.enable_subscribe_validator_filter,
     auto_create_collection: opts.auto_create_collection,
     auto_create_index: opts.auto_create_index,
     permissions: opts.permissions,
