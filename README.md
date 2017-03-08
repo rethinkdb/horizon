@@ -95,16 +95,28 @@ onAddItem: function(e) {
 }
 
 // Listen to updates from other users
-init: function() {
-  this.fusion('todo-items')
-      .on('added', function(item) {
-        // add the item to the data model
-      })
-      .on('removed', function(item) {
-        // remove the item from the data model
-      })
+appInit: function() {
+  this.fusion('todo-items').subscribe({
+    onAdded: function(item) {
+      // add the item to the data model
+    },
+    onChanged: function(changed){
+      // changed is an object with properties 'new_val' and 'old_val'
+      // modify item in the data model
+    },
+    onRemoved: function(item){
+      // remove the item from the data model
+    }
+  });
 }
 ```
+
+### How do I get started? 
+
+We've written a few things to help you get started. We have our documentation with a quickstart guide as well as a few example applications written using Fusion.
+
+* [Check out our docs](https://github.com/rethinkdb/fusion/tree/master/client#docs)
+* [See Fusion in an example applications](https://github.com/rethinkdb/fusion/tree/master/examples)
 
 ### How is Fusion different from Firebase?
 
