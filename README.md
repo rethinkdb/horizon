@@ -1,6 +1,8 @@
 <img style="width:100%;" src="/github-banner.png">
 
 # [Horizon](https://horizon.io)
+
+[![Join the chat at https://gitter.im/rethinkdb/horizon](https://badges.gitter.im/rethinkdb/horizon.svg)](https://gitter.im/rethinkdb/horizon?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![CircleCI](https://circleci.com/gh/rethinkdb/horizon/tree/next.svg?style=svg)](https://circleci.com/gh/rethinkdb/horizon/tree/next)
 
 ## What is Horizon?
