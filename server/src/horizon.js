@@ -27,4 +27,5 @@ module.exports.auth = {
   slack: require('./auth/slack'),
   twitch: require('./auth/twitch'),
   twitter: require('./auth/twitter'),
+  adal: require('./auth/adal'),
 };

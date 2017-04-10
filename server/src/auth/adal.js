@@ -12,9 +12,11 @@ const options_schema = Joi.object().keys({
   path: Joi.string().required(),
   id: Joi.string().required(),
   secret: Joi.string().required(),
+  tenant: Joi.string().required(),
+  resource: Joi.string().required(),
 }).unknown(false);
 
-function google(horizon, raw_options) {
+function adal(horizon, raw_options) {
   const options = Joi.attempt(raw_options, options_schema);
   const client_id = options.id;
   const client_secret = options.secret;
@@ -25,18 +27,23 @@ function google(horizon, raw_options) {
   oauth_options.make_acquire_url = (state, redirect_uri) =>
     url.format({ protocol: 'https',
                  host: 'login.microsoftonline.com',
-                 pathname: '/SPIKES1BE.onmicrosoft.com/oauth2/authorize',
-                 query: { client_id, redirect_uri, state} });
+                 pathname: `/${options.tenant}/oauth2/authorize`,
+                 query: { client_id, redirect_uri, state, response_type: 'code', resource: options.resource, response_mode: 'query'},
+                 body: { response_type: 'code'} });
 
   oauth_options.make_token_request = (code, redirect_uri) => {
-    const req = https.request({ method: 'POST',
-                                host: 'login.microsoftonline.com',
-                                path: '/SPIKES1BE.onmicrosoft.com/oauth2/access_token',
-                                headers: { accept: 'application/json' } });
-
-    req.write(querystring.stringify({ code, client_id, client_secret, redirect_uri }));
-
-    return req;
+    const query_params = querystring.stringify({
+      code, client_id, client_secret, redirect_uri,
+      grant_type: 'authorization_code', resource: options.resource });
+    const path = `/${options.tenant}/oauth2/token`;
+    return https.request({ 
+      method: 'POST', 
+      host: 'login.microsoftonline.com', 
+      path: path, 
+      headers: { 'content-type': 'application/x-www-form-urlencoded' }, 
+      query: query_params,
+      body: querystring.parse(query_params) 
+    });
   };
 
   oauth_options.make_inspect_request = (access_token) => {
@@ -50,4 +57,4 @@ function google(horizon, raw_options) {
   auth_utils.oauth2(oauth_options);
 }
 
-module.exports = google;
+module.exports = adal;
