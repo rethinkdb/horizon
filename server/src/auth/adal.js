@@ -28,28 +28,36 @@ function adal(horizon, raw_options) {
     url.format({ protocol: 'https',
                  host: 'login.microsoftonline.com',
                  pathname: `/${options.tenant}/oauth2/authorize`,
-                 query: { client_id, redirect_uri, state, response_type: 'code', resource: options.resource, response_mode: 'query'},
+                 query: { client_id, redirect_uri, state, response_type: 'code', response_mode: 'query'},
                  body: { response_type: 'code'} });
+                 //query: { client_id, redirect_uri, state, response_type: 'code', resource: options.resource, response_mode: 'query'},
 
   oauth_options.make_token_request = (code, redirect_uri) => {
-    const query_params = querystring.stringify({
-      code, client_id, client_secret, redirect_uri,
-      grant_type: 'authorization_code', resource: options.resource });
+    const body_params = querystring.stringify({
+      grant_type: 'authorization_code', client_id, client_secret, redirect_uri, code, 
+       resource: options.resource });
     const path = `/${options.tenant}/oauth2/token`;
-    return https.request({ 
+    const req =  https.request({ 
       method: 'POST', 
+      port: 443,
       host: 'login.microsoftonline.com', 
       path: path, 
-      headers: { 'content-type': 'application/x-www-form-urlencoded' }, 
-      query: query_params,
-      body: querystring.parse(query_params) 
+      headers: { 
+        'content-type': 'application/x-www-form-urlencoded',
+        'Content-Length': body_params.length
+      }
     });
+
+    req.write(body_params);
+    return req;
   };
 
   oauth_options.make_inspect_request = (access_token) => {
-    logger.debug(`using access token: ${access_token}`);
-    const path = `/oauth2/v1/userinfo?${querystring.stringify({ access_token })}`;
-    return https.request({ host: 'www.googleapis.com', path });
+    //ISSUE: azure ad does not support this?
+    //Check twitter implementation for custom logon
+    var host = 'login.microsoftonline.com';
+    return https.request({ host, path: '/userinfo',
+                    headers: { Authorization: `Bearer ${access_token}` } });
   };
 
   oauth_options.extract_id = (user_info) => user_info && user_info.id;
