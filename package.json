@@ -17,7 +17,5 @@
     "url": "https://github.com/SpikesBE/horizon/issues"
   },
   "homepage": "https://github.com/SpikesBE/horizon#readme",
-  "dependencies": {
-    "server": "file:./server"
-  }
+  "dependencies": {}
 }
