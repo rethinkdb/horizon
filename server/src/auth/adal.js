@@ -25,24 +25,27 @@ function adal(horizon, raw_options) {
   const oauth_options = { horizon, provider };
 
   oauth_options.make_acquire_url = (state, redirect_uri) =>
-    url.format({ protocol: 'https',
-                 host: 'login.microsoftonline.com',
-                 pathname: `/${options.tenant}/oauth2/authorize`,
-                 query: { client_id, redirect_uri, state, response_type: 'code', response_mode: 'query'},
-                 body: { response_type: 'code'} });
-                 //query: { client_id, redirect_uri, state, response_type: 'code', resource: options.resource, response_mode: 'query'},
+    url.format({
+      protocol: 'https',
+      host: 'login.microsoftonline.com',
+      pathname: `/${options.tenant}/oauth2/authorize`,
+      query: { client_id, redirect_uri, state, response_type: 'code', response_mode: 'query' },
+      body: { response_type: 'code' }
+    });
+  //query: { client_id, redirect_uri, state, response_type: 'code', resource: options.resource, response_mode: 'query'},
 
   oauth_options.make_token_request = (code, redirect_uri) => {
     const body_params = querystring.stringify({
-      grant_type: 'authorization_code', client_id, client_secret, redirect_uri, code, 
-       resource: options.resource });
+      grant_type: 'authorization_code', client_id, client_secret, redirect_uri, code,
+      resource: options.resource
+    });
     const path = `/${options.tenant}/oauth2/token`;
-    const req =  https.request({ 
-      method: 'POST', 
+    const req = https.request({
+      method: 'POST',
       port: 443,
-      host: 'login.microsoftonline.com', 
-      path: path, 
-      headers: { 
+      host: 'login.microsoftonline.com',
+      path: path,
+      headers: {
         'content-type': 'application/x-www-form-urlencoded',
         'Content-Length': body_params.length
       }
@@ -52,12 +55,16 @@ function adal(horizon, raw_options) {
     return req;
   };
 
+  // issue on me object, access denied with valid token???
+  // temp fix by decoding in utils.js for adal
   oauth_options.make_inspect_request = (access_token) => {
     //ISSUE: azure ad does not support this?
     //Check twitter implementation for custom logon
-    var host = 'login.microsoftonline.com';
-    return https.request({ host, path: '/userinfo',
-                    headers: { Authorization: `Bearer ${access_token}` } });
+    var host = 'graph.microsoft.com';
+    return https.request({
+      host, path: '/v5.0/me',
+      headers: { Authorization: `Bearer ${access_token}` }
+    });
   };
 
   oauth_options.extract_id = (user_info) => user_info && user_info.id;

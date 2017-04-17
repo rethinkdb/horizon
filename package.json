@@ -7,9 +7,6 @@
     "example": "examples",
     "test": "test"
   },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SpikesBE/horizon.git"
@@ -19,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/SpikesBE/horizon/issues"
   },
-  "homepage": "https://github.com/SpikesBE/horizon#readme"
+  "homepage": "https://github.com/SpikesBE/horizon#readme",
+  "dependencies": {
+    "server": "file:./server"
+  }
 }
