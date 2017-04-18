@@ -8,6 +8,10 @@ There is also a small change in auth/utils.js where the user info for azure ad i
 The provider is called 'adal', but don't be misleaded by the name, it is not an implementation with the real [adal](https://github.com/AzureAD/azure-activedirectory-library-for-js) library.
 Please feel free to implement it with the adal library.
 
+When the horizon team is up and running again, we will create a pull request for these changes
+
+***Use this fork only for test purpose!!!***
+
 # [Horizon](https://horizon.io)
 [![CircleCI](https://circleci.com/gh/rethinkdb/horizon/tree/next.svg?style=svg)](https://circleci.com/gh/rethinkdb/horizon/tree/next)
 
