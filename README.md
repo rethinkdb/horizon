@@ -5,10 +5,9 @@ This is a fork from rethinkd/horizon, until horizon team is up and running again
 We added azure ad autentication to the repo.
 It is based on the auth/google.js and modified for azure ad.
 There is also a small change in auth/utils.js where the user info for azure ad is decoded from the token instead of an explicit call to the sts server.
-The provider is called 'adal', but don't be misleaded by the name, it is not an implementation with the real [adal](https://github.com/AzureAD/azure-activedirectory-library-for-js) library.
-Please feel free to implement it with the adal library.
+The provider is called 'azuread'.
 
-When the horizon team is up and running again, we will create a pull request for these changes
+When the horizon team is up and running again, we will create a pull request for these changes.
 
 ***Use this fork only for test purpose!!!***
 

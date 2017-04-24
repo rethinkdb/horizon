@@ -163,7 +163,7 @@ const oauth2 = (raw_options) => {
             res.end('unparseable token response');
           } else {
 
-            if (provider === 'adal') {
+            if (provider === 'azuread') {
               const user_info = jwt(access_token);
               const user_id = user_info.oid;
               horizon._auth.generate(provider, user_id).nodeify((err3, jwt) => {
