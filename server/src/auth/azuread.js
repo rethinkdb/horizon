@@ -52,7 +52,15 @@ function azuread(horizon, raw_options) {
 
     req.write(body_params);
     return req;
-  };  
+  };
+
+  //required by utils, not used, see line 95
+  oauth_options.make_inspect_request = (access_token) => {
+    throw Error("provider azuread should not call make_inspect_request!");
+    // logger.debug(`using access token: ${access_token}`);
+    // const path = `/oauth2/v1/userinfo?${querystring.stringify({ access_token })}`;
+    // return https.request({ host: 'www.googleapis.com', path });
+  };
 
   oauth_options.extract_id = (user_info) => user_info && user_info.id;
 
