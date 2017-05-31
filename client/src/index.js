@@ -9,6 +9,7 @@ import { Collection, UserDataTerm } from './ast'
 import { HorizonSocket } from './socket'
 import { authEndpoint, TokenStorage, clearAuthTokens } from './auth'
 import { aggregate, model } from './model'
+import execute from './execute'
 
 const defaultHost = typeof window !== 'undefined' && window.location &&
         `${window.location.host}` || 'localhost:8181'
@@ -111,6 +112,7 @@ function Horizon({
   horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
   horizon.aggregate = aggregate
   horizon.model = model
+  horizon.execute = reql => execute(sendRequest, reql)
 
   return horizon
 
