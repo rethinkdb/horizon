@@ -3,6 +3,8 @@
 const query = require('../schema/horizon_protocol').query;
 const check = require('../error.js').check;
 const reql_options = require('./common').reql_options;
+const rereql = require('./rereql');
+const blacklist = require('./blacklist');
 
 const Joi = require('joi');
 const r = require('rethinkdb');
@@ -21,7 +23,10 @@ const object_to_fields = (obj) =>
 const make_reql = (raw_request, metadata) => {
   const parsed = Joi.validate(raw_request.options, query);
   if (parsed.error !== null) { throw new Error(parsed.error.details[0].message); }
+
   const options = parsed.value;
+
+  if (options.reql) { return rereql(options.reql, blacklist); }
 
   const collection = metadata.collection(parsed.value.collection);
   let reql = collection.table;

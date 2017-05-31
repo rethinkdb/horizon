@@ -36,6 +36,9 @@ const read = Joi.alternatives().try(
       .when('find_all', { is: Joi.array().min(2).required(), then: Joi.forbidden() }),
 
     find_all: Joi.array().items(Joi.object().min(1).label('item').unknown(true)).min(1).optional(),
+  }).unknown(false),
+  Joi.object().keys({
+    reql: Joi.array().required(),
   }).unknown(false)
 );
 
