@@ -1,5 +1,16 @@
 <img style="width:100%;" src="/github-banner.png">
 
+# Side note for this fork
+This is a fork from rethinkd/horizon, until horizon team is up and running again.
+We added azure ad autentication to the repo.
+It is based on the auth/google.js and modified for azure ad.
+There is also a small change in auth/utils.js where the user info for azure ad is decoded from the token instead of an explicit call to the sts server.
+The provider is called 'azuread'.
+
+When the horizon team is up and running again, we will create a pull request for these changes.
+
+***Use this fork only for test purpose!!!***
+
 # [Horizon](https://horizon.io)
 [![CircleCI](https://circleci.com/gh/rethinkdb/horizon/tree/next.svg?style=svg)](https://circleci.com/gh/rethinkdb/horizon/tree/next)
 

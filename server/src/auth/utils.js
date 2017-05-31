@@ -6,6 +6,7 @@ const cookie = require('cookie');
 const crypto = require('crypto');
 const Joi = require('joi');
 const url = require('url');
+const jwt = require('jwt-decode');
 
 const do_redirect = (res, redirect_url) => {
   logger.debug(`Redirecting user to ${redirect_url}`);
@@ -34,7 +35,7 @@ const run_request = (req, cb) => {
     res.once('end', () => {
       if (res.statusCode !== 200) {
         cb(new Error(`Request returned status code: ${res.statusCode} ` +
-                     `(${res.statusMessage}): ${chunks.join('')}`));
+          `(${res.statusMessage}): ${chunks.join('')}`));
       } else {
         cb(null, chunks.join(''));
       }
@@ -70,13 +71,13 @@ const nonce_to_state = (nonce) =>
 
 const set_nonce = (res, name, nonce) =>
   res.setHeader('set-cookie',
-                cookie.serialize(nonce_cookie(name), nonce,
-                                 { maxAge: 3600, secure: true, httpOnly: true }));
+    cookie.serialize(nonce_cookie(name), nonce,
+      { maxAge: 3600, secure: true, httpOnly: true }));
 
 const clear_nonce = (res, name) =>
   res.setHeader('set-cookie',
-                cookie.serialize(nonce_cookie(name), 'invalid',
-                                 { maxAge: -1, secure: true, httpOnly: true }));
+    cookie.serialize(nonce_cookie(name), 'invalid',
+      { maxAge: -1, secure: true, httpOnly: true }));
 
 const get_nonce = (req, name) => {
   const field = nonce_cookie(name);
@@ -114,6 +115,7 @@ const oauth2 = (raw_options) => {
 
   const make_failure_url = (horizon_error) =>
     url.format(extend_url_query(horizon._auth._failure_redirect, { horizon_error }));
+
 
   horizon.add_http_handler(provider, (req, res) => {
     const request_url = url.parse(req.url, true);
@@ -160,8 +162,21 @@ const oauth2 = (raw_options) => {
             res.statusCode = 500;
             res.end('unparseable token response');
           } else {
-            // We have the user access token, get info on it so we can find the user
-            run_request(make_inspect_request(access_token), (err2, inner_body) => {
+
+            if (provider === 'azuread') {
+              const user_info = jwt(access_token);
+              const user_id = user_info.oid;
+              horizon._auth.generate(provider, user_id).nodeify((err3, jwt) => {
+                // Clear the nonce just so we aren't polluting clients' cookies
+                clear_nonce(res, horizon._name);
+                do_redirect(res, err3 ?
+                  make_failure_url('invalid user') :
+                  make_success_url(jwt.token));
+              });
+            }
+            else {
+              // We have the user access token, get info on it so we can find the user
+              //run_request(make_inspect_request(access_token), (err2, inner_body) => {
               const user_info = try_json_parse(inner_body);
               const user_id = user_info && extract_id(user_info);
 
@@ -182,7 +197,7 @@ const oauth2 = (raw_options) => {
                     make_success_url(jwt.token));
                 });
               }
-            });
+            }
           }
         });
       }

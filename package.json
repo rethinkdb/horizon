@@ -1,0 +1,21 @@
+{
+  "name": "horizon",
+  "version": "1.0.0",
+  "description": "<img style=\"width:100%;\" src=\"/github-banner.png\">",
+  "main": "index.js",
+  "directories": {
+    "example": "examples",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SpikesBE/horizon.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SpikesBE/horizon/issues"
+  },
+  "homepage": "https://github.com/SpikesBE/horizon#readme",
+  "dependencies": {}
+}
