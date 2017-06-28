@@ -23,21 +23,21 @@
   },
   "dependencies": {
     "@horizon/client": "2.0.0",
-    "bluebird": "^3.4.0",
-    "cookie": "^0.2.3",
-    "joi": "^8.0.4",
-    "jsonwebtoken": "^5.5.4",
-    "mime-types": "^2.0.4",
+    "bluebird": "^3.4.7",
+    "cookie": "^0.3.1",
+    "joi": "^10.1.0",
+    "jsonwebtoken": "^7.2.1",
+    "mime-types": "^2.1.13",
     "oauth": "^0.9.14",
-    "pem": "^1.8.1",
-    "rethinkdb": "^2.1.1",
-    "winston": "^2.1.0",
-    "ws": "^1.1.0"
+    "pem": "^1.9.4",
+    "rethinkdb": "^2.3.3",
+    "winston": "^2.3.0",
+    "ws": "^1.1.1"
   },
   "devDependencies": {
-    "eslint": "^2.3.0",
-    "istanbul": "^0.4.3",
-    "mocha": "^2.3.3",
-    "nodemon": "^1.8.1"
+    "eslint": "^3.12.2",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.2.0",
+    "nodemon": "^1.11.0"
   }
 }

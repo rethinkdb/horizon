@@ -10,7 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "horizon-server": "file:../../server",
-    "hapi": "^12.1.0"
+    "hapi": "^16.1.0"
   },
   "repository": {
     "type": "git",

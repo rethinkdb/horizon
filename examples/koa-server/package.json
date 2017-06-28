@@ -10,7 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "horizon-server": "file:../../server",
-    "koa": "^1.1.2"
+    "koa": "^1.2.4"
   },
   "repository": {
     "type": "git",
