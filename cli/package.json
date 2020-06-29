@@ -31,7 +31,7 @@
     "joi": "^8.0.5",
     "jsonwebtoken": "^5.5.4",
     "mime-types": "^2.0.4",
-    "open": "0.0.5",
+    "open": "7.0.4",
     "rethinkdb": "^2.1.1",
     "toml": "^2.3.0"
   },
