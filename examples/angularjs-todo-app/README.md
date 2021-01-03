@@ -1,11 +1,11 @@
 #TodoMVC
 
-A basic example of using [AngularJS](http://angularjs.org/) and [Horizon](http://horizon.io/) to create real-time TodoMVC app.
+A basic example of using [AngularJS](http://angularjs.org/) and Horizon to create real-time TodoMVC app.
 
 ## Prerequisites
 
 - [RethinkDB](https://www.rethinkdb.com/docs/install/) (The open-source database for the realtime web)
-- [Horizon](http://horizon.io/install/) (A realtime, open-source backend for JavaScript apps)
+- [Horizon](https://github.com/rethinkdb/horizon/) (A realtime, open-source backend for JavaScript apps)
 
 ## Installing
 
