@@ -1,6 +1,9 @@
 <img style="width:100%;" src="/github-banner.png">
 
-# [Horizon](https://horizon.io)
+# Horizon
+
+[Official Repository](https://github.com/rethinkdb/horizon)
+
 [![CircleCI](https://circleci.com/gh/rethinkdb/horizon/tree/next.svg?style=svg)](https://circleci.com/gh/rethinkdb/horizon/tree/next)
 
 ## What is Horizon?
@@ -73,8 +76,7 @@ We'd love for you to help us build Horizon. If you'd like to be a contributor,
 check out our [Contributing guide](/CONTRIBUTING.md).
 
 Also, to stay up-to-date on all Horizon related news and the community you should
-definitely [join us on Slack](http://slack.rethinkdb.com), [follow us on Twitter](https://twitter.com/horizonjs),
-and join our Horizon mailing list at [Horizon.io](https://horizon.io).
+definitely [join us on Slack](http://slack.rethinkdb.com) or [follow us on Twitter](https://twitter.com/horizonjs).
 
 ![](/assets/Lets-go.png)
 
