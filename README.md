@@ -4,8 +4,6 @@
 
 [Official Repository](https://github.com/rethinkdb/horizon)
 
-[![CircleCI](https://circleci.com/gh/rethinkdb/horizon/tree/next.svg?style=svg)](https://circleci.com/gh/rethinkdb/horizon/tree/next)
-
 ## What is Horizon?
 
 Horizon is an open-source developer platform for building sophisticated realtime
