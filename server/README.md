@@ -4,7 +4,7 @@ An extensible middleware server built on top of [RethinkDB](https://github.com/r
 
 ## Documentation
 
-Follow our documentation at [horizon.io/install](https://horizon.io/install) for instructions on installing Horizon.
+Follow our documentation at [samuelhughes.com/rethinkdb/horizon-docs/install.html](http://samuelhughes.com/rethinkdb/horizon-docs/install.html) for instructions on installing Horizon.
 
 ## Requirements
 The Horizon server requires some tools and libraries to be available before it
