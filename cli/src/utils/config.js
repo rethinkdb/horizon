@@ -34,6 +34,9 @@ const make_default_options = () => ({
   cert_file: './horizon-cert.pem',
   schema_file: null,
 
+  // Enable subscribe validator filtering instead of exception throwing
+  enable_subscribe_validator_filter: false,
+
   auto_create_collection: false,
   auto_create_index: false,
 
@@ -59,6 +62,7 @@ const yes_no_options = [ 'debug',
                          'secure',
                          'permissions',
                          'start_rethinkdb',
+                         'enable_subscribe_validator_filter',
                          'auto_create_index',
                          'auto_create_collection',
                          'allow_unauthenticated',
