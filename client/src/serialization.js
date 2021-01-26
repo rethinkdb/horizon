@@ -3,12 +3,22 @@ const PRIMITIVES = [
 
 function modifyObject(doc) {
   Object.keys(doc).forEach(key => {
-    doc[key] = deserialize(doc[key])
+    doc[key] = deserialize(doc[key], true)
   })
   return doc
 }
 
-export function deserialize(value) {
+class ProtocolError extends Error {
+  constructor(msg, errorCode) {
+    super(msg)
+    this.errorCode = errorCode
+  }
+  toString() {
+    return `${this.message} (Code: ${this.errorCode})`
+  }
+}
+
+export function deserialize(value, nested) {
   if (value == null) {
     return value
   } else if (PRIMITIVES.indexOf(typeof value) !== -1) {
@@ -19,6 +29,8 @@ export function deserialize(value) {
     const date = new Date()
     date.setTime(value.epoch_time * 1000)
     return date
+  } else if (value.error !== undefined && nested !== true) {
+    throw new ProtocolError(value.error, value.error_code)
   } else {
     return modifyObject(value)
   }

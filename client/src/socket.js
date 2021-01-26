@@ -25,16 +25,6 @@ const STATUS_ERROR = { type: 'error' }
 // Occurs when the socket closes
 const STATUS_DISCONNECTED = { type: 'disconnected' }
 
-class ProtocolError extends Error {
-  constructor(msg, errorCode) {
-    super(msg)
-    this.errorCode = errorCode
-  }
-  toString() {
-    return `${this.message} (Code: ${this.errorCode})`
-  }
-}
-
 
 // Wraps native websockets with a Subject, which is both an Subscriber
 // and an Observable (it is bi-directional after all!). This version
@@ -182,9 +172,6 @@ export class HorizonSocket extends WebSocketSubject {
     return this.sendHandshake().ignoreElements()
       .concat(this.makeRequest(rawRequest))
       .concatMap(resp => {
-        if (resp.error !== undefined) {
-          throw new ProtocolError(resp.error, resp.error_code)
-        }
         const data = resp.data || []
 
         if (resp.state !== undefined) {
