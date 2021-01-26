@@ -33,20 +33,20 @@ npm run test        | Run tests
 
 ### Getting Started
 
-[horizon.io/docs/getting-started](https://horizon.io/docs/getting-started/).
+[samuelhughes.com/rethinkdb/horizon-docs/docs/getting-started.html](http://samuelhughes.com/rethinkdb/horizon-docs/docs/getting-started.html)
 
 ### APIs
 
-* Horizon API - [horizon.io/api/horizon/](https://horizon.io/api/horizon/)
-* Collection API - [horizon.io/api/collection/](https://horizon.io/api/collection/)
+* Horizon API - [samuelhughes.com/rethinkdb/horizon-docs/api/horizon.html](http://samuelhughes.com/rethinkdb/horizon-docs/api/horizon.html)
+* Collection API - [samuelhughes.com/rethinkdb/horizon-docs/api/horizon.html](http://samuelhughes.com/rethinkdb/horizon-docs/api/horizon.html)
 
 ## Users and Groups
 
-[horizon.io/docs/users/](https://horizon.io/docs/users/)
+[samuelhughes.com/rethinkdb/horizon-docs/docs/users.html](http://samuelhughes.com/rethinkdb/horizon-docs/docs/users.html)
 
 ## Setting Permissions
 
-[horizon.io/docs/permissions/](http://horizon.io/docs/permissions/)
+[samuelhughes.com/rethinkdb/horizon-docs/docs/permissions.html](http://samuelhughes.com/rethinkdb/horizon-docs/docs/permissions.html)
 
 ### Clearing tokens
 
