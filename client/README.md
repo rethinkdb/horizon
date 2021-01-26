@@ -56,3 +56,7 @@ Sometimes you may wish to delete all authentication tokens from localStorage. Yo
 // Note the 'H'
 Horizon.clearAuthTokens()
 ```
+
+## Working with React Native
+
+React Native's packager will balk at the current `package.json` babel settings. The default settings in React Native will work perfectly fine for packaging the client library, so to make the packager work, simply remove the `babel` section in `package.json`. (You can do this by simply appending a underscore to the babel key).
