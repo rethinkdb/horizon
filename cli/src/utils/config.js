@@ -241,7 +241,6 @@ const read_from_flags = (parsed) => {
     config.start_rethinkdb = true;
     config.auto_create_collection = true;
     config.auto_create_index = true;
-    config.serve_static = 'dist';
     config._dev_flag_used = true;
 
     if (parsed.start_rethinkdb === null || parsed.start_rethinkdb === undefined) {
