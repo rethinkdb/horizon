@@ -27,7 +27,7 @@ A modern, Deno-native RethinkDB real-time server built with Web Standards.
 ### Using Deno
 
 ```typescript
-import { createServer } from 'https://raw.githubusercontent.com/afeldman/horizon/next/deno-server/src/mod.ts';
+import { createServer } from "https://raw.githubusercontent.com/afeldman/horizon/next/deno-server/src/mod.ts";
 ```
 
 ### Local Development
@@ -42,22 +42,22 @@ cd horizon/deno-server
 ### Minimal Server
 
 ```typescript
-import { createServer } from '@horizon/deno-server';
+import { createServer } from "@horizon/deno-server";
 
 const server = await createServer({
   port: 8181,
   rethinkdb: {
-    host: 'localhost',
+    host: "localhost",
     port: 28015,
-    db: 'horizon',
+    db: "horizon",
   },
   auth: {
-    tokenSecret: 'your-secret-key',
+    tokenSecret: "your-secret-key",
     allowAnonymous: true,
   },
 });
 
-console.log('Server running on port 8181');
+console.log("Server running on port 8181");
 ```
 
 Run with:
@@ -69,19 +69,19 @@ deno run --allow-net --allow-env --allow-read server.ts
 ### With Oak Framework
 
 ```typescript
-import { Application } from 'https://deno.land/x/oak/mod.ts';
-import { createServer } from '@horizon/deno-server';
+import { Application } from "https://deno.land/x/oak/mod.ts";
+import { createServer } from "@horizon/deno-server";
 
 const horizonServer = await createServer({
   port: 8182,
-  rethinkdb: { db: 'myapp' },
-  auth: { tokenSecret: 'secret', allowAnonymous: true },
+  rethinkdb: { db: "myapp" },
+  auth: { tokenSecret: "secret", allowAnonymous: true },
 });
 
 const app = new Application();
 
 app.use((ctx) => {
-  ctx.response.body = 'Oak + Horizon';
+  ctx.response.body = "Oak + Horizon";
 });
 
 await app.listen({ port: 8181 });
@@ -95,36 +95,38 @@ await app.listen({ port: 8181 });
 interface ServerConfig {
   /** HTTP server port (default: 8181) */
   port?: number;
-  
+
   /** Server hostname (default: 'localhost') */
   hostname?: string;
-  
+
   /** RethinkDB configuration */
   rethinkdb: {
-    host?: string;        // default: 'localhost'
-    port?: number;        // default: 28015
-    db?: string;          // default: 'horizon'
+    host?: string; // default: 'localhost'
+    port?: number; // default: 28015
+    db?: string; // default: 'horizon'
     user?: string;
     password?: string;
-    poolSize?: number;    // default: 10
+    poolSize?: number; // default: 10
     tls?: boolean;
   };
-  
+
   /** Authentication configuration */
   auth?: {
     tokenSecret: string;
-    tokenExpiration?: string;  // e.g., '24h', '7d'
+    tokenExpiration?: string; // e.g., '24h', '7d'
     allowAnonymous?: boolean;
     allowUnauthenticated?: boolean;
   };
-  
+
   /** Enable CORS */
-  cors?: boolean | {
-    origin?: string | string[];
-    methods?: string[];
-    credentials?: boolean;
-  };
-  
+  cors?:
+    | boolean
+    | {
+        origin?: string | string[];
+        methods?: string[];
+        credentials?: boolean;
+      };
+
   /** Static file directory */
   staticDir?: string;
 }
@@ -135,47 +137,55 @@ interface ServerConfig {
 ### Connect
 
 ```typescript
-const ws = new WebSocket('ws://localhost:8181');
+const ws = new WebSocket("ws://localhost:8181");
 ```
 
 ### Authentication
 
 ```typescript
-ws.send(JSON.stringify({
-  requestId: '1',
-  type: 'auth',
-  method: 'anonymous',  // or 'token', 'password'
-}));
+ws.send(
+  JSON.stringify({
+    requestId: "1",
+    type: "auth",
+    method: "anonymous", // or 'token', 'password'
+  })
+);
 ```
 
 ### Query
 
 ```typescript
-ws.send(JSON.stringify({
-  requestId: '2',
-  type: 'query',
-  query: { table: 'items', limit: 10 },
-}));
+ws.send(
+  JSON.stringify({
+    requestId: "2",
+    type: "query",
+    query: { table: "items", limit: 10 },
+  })
+);
 ```
 
 ### Subscribe (Changefeed)
 
 ```typescript
-ws.send(JSON.stringify({
-  requestId: '3',
-  type: 'subscribe',
-  query: { table: 'messages', orderBy: 'timestamp' },
-}));
+ws.send(
+  JSON.stringify({
+    requestId: "3",
+    type: "subscribe",
+    query: { table: "messages", orderBy: "timestamp" },
+  })
+);
 ```
 
 ### Unsubscribe
 
 ```typescript
-ws.send(JSON.stringify({
-  requestId: '4',
-  type: 'unsubscribe',
-  subscriptionId: '3',
-}));
+ws.send(
+  JSON.stringify({
+    requestId: "4",
+    type: "unsubscribe",
+    subscriptionId: "3",
+  })
+);
 ```
 
 ## 🌐 HTTP API
@@ -187,6 +197,7 @@ GET /horizon/health
 ```
 
 Response:
+
 ```json
 {
   "status": "ok",
@@ -207,6 +218,7 @@ Content-Type: application/json
 ```
 
 Response:
+
 ```json
 {
   "token": "eyJhbGc...",
@@ -255,15 +267,17 @@ See [deno-examples/](../deno-examples/) for complete examples:
 ### Key Differences
 
 1. **Import syntax**: Use `.ts` extensions
+
    ```typescript
    // ❌ Node.js
-   import horizon from '@horizon/server';
-   
+   import horizon from "@horizon/server";
+
    // ✅ Deno
-   import { createServer } from './mod.ts';
+   import { createServer } from "./mod.ts";
    ```
 
 2. **Permissions**: Explicitly grant access
+
    ```bash
    # Required flags
    --allow-net      # Network access
@@ -272,10 +286,11 @@ See [deno-examples/](../deno-examples/) for complete examples:
    ```
 
 3. **Configuration**: Simplified API
+
    ```typescript
    // ✅ Deno
    const server = await createServer(config);
-   
+
    // ❌ Old Node.js
    const server = Horizon(httpServer, options);
    ```
@@ -312,11 +327,11 @@ deno-server/
 
 ```typescript
 class HorizonServer {
-  constructor(config: ServerConfig)
-  async start(): Promise<void>
-  async stop(): Promise<void>
-  getDatabase(): Database
-  getAuth(): AuthManager
+  constructor(config: ServerConfig);
+  async start(): Promise<void>;
+  async stop(): Promise<void>;
+  getDatabase(): Database;
+  getAuth(): AuthManager;
 }
 ```
 
@@ -324,11 +339,11 @@ class HorizonServer {
 
 ```typescript
 class Database {
-  async connect(): Promise<void>
-  async disconnect(): Promise<void>
-  async query<T>(query: unknown): Promise<T[]>
-  async subscribe<T>(query: unknown, callback: Function): Promise<() => void>
-  getR(): typeof r  // RethinkDB query builder
+  async connect(): Promise<void>;
+  async disconnect(): Promise<void>;
+  async query<T>(query: unknown): Promise<T[]>;
+  async subscribe<T>(query: unknown, callback: Function): Promise<() => void>;
+  getR(): typeof r; // RethinkDB query builder
 }
 ```
 
@@ -336,11 +351,11 @@ class Database {
 
 ```typescript
 class AuthManager {
-  async init(): Promise<void>
-  async createToken(user: User): Promise<string>
-  async verifyToken(token: string): Promise<User | null>
-  async createAnonymousUser(db: Database): Promise<User>
-  allowAnonymous(): boolean
+  async init(): Promise<void>;
+  async createToken(user: User): Promise<string>;
+  async verifyToken(token: string): Promise<User | null>;
+  async createAnonymousUser(db: Database): Promise<User>;
+  allowAnonymous(): boolean;
 }
 ```
 
@@ -358,18 +373,19 @@ class AuthManager {
 
 ```typescript
 // main.ts
-import { createServer } from '@horizon/deno-server';
+import { createServer } from "@horizon/deno-server";
 
 await createServer({
-  port: 8000,  // Deno Deploy uses PORT env var
+  port: 8000, // Deno Deploy uses PORT env var
   rethinkdb: {
-    host: Deno.env.get('RETHINKDB_HOST'),
+    host: Deno.env.get("RETHINKDB_HOST"),
     // ... other config
   },
 });
 ```
 
 Deploy:
+
 ```bash
 deployctl deploy --project=my-project main.ts
 ```

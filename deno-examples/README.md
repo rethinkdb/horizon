@@ -4,11 +4,11 @@ Modern examples demonstrating Horizon server integration with popular Deno frame
 
 ## 🦕 Examples
 
-| Framework | Description | Status |
-|-----------|-------------|--------|
-| [Oak Server](./oak-server/) | Middleware framework inspired by Koa | ✅ Ready |
-| [Hono Server](./hono-server/) | Ultra-fast web framework | ✅ Ready |
-| Fresh App | Full-stack web framework | 🚧 Coming |
+| Framework                     | Description                          | Status    |
+| ----------------------------- | ------------------------------------ | --------- |
+| [Oak Server](./oak-server/)   | Middleware framework inspired by Koa | ✅ Ready  |
+| [Hono Server](./hono-server/) | Ultra-fast web framework             | ✅ Ready  |
+| Fresh App                     | Full-stack web framework             | 🚧 Coming |
 
 ## 🚀 Quick Start
 
@@ -22,15 +22,17 @@ deno task dev
 ## 🔧 Prerequisites
 
 1. **Deno** installed (1.38+)
+
    ```bash
    curl -fsSL https://deno.land/x/install/install.sh | sh
    ```
 
 2. **RethinkDB** running
+
    ```bash
    # Docker
    docker run -d -p 28015:28015 -p 8080:8080 rethinkdb
-   
+
    # Or locally
    rethinkdb
    ```
@@ -68,18 +70,18 @@ All examples implement:
 ## 🔌 Horizon Integration Pattern
 
 ```typescript
-import { createServer } from '../deno-server/src/mod.ts';
+import { createServer } from "../deno-server/src/mod.ts";
 
 // Create Horizon server
 const horizonServer = await createServer({
   port: 8182,
   rethinkdb: {
-    host: 'localhost',
+    host: "localhost",
     port: 28015,
-    db: 'myapp',
+    db: "myapp",
   },
   auth: {
-    tokenSecret: 'my-secret',
+    tokenSecret: "my-secret",
     allowAnonymous: true,
   },
   cors: true,
@@ -87,7 +89,7 @@ const horizonServer = await createServer({
 
 // Use in your framework
 const db = horizonServer.getDatabase();
-const data = await db.query(r.table('items'));
+const data = await db.query(r.table("items"));
 ```
 
 ## 📚 Learn More
