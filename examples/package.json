@@ -1,0 +1,32 @@
+{
+  "name": "@horizon-examples/root",
+  "version": "2.0.0",
+  "description": "Horizon examples - modernized with TypeScript",
+  "private": true,
+  "workspaces": [
+    "express-server",
+    "koa-server",
+    "hapi-server"
+  ],
+  "scripts": {
+    "install:all": "npm install && npm run install:examples",
+    "install:examples": "for dir in express-server koa-server hapi-server; do (cd $dir && npm install); done",
+    "lint": "eslint --config ../eslint.config.js .",
+    "lint:fix": "eslint --config ../eslint.config.js . --fix",
+    "test": "npm run test:express && npm run test:koa && npm run test:hapi",
+    "test:express": "cd express-server && npm test",
+    "test:koa": "cd koa-server && npm test",
+    "test:hapi": "cd hapi-server && npm test",
+    "clean": "find . -name node_modules -type d -prune -exec rm -rf {} \\; && find . -name dist -type d -prune -exec rm -rf {} \\;"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "typescript-eslint": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
