@@ -3,6 +3,7 @@
 ## ✅ Was wurde eingerichtet
 
 ### 1. ESLint 9 Flat Config
+
 - **Datei:** `eslint.config.js` (neue Flat Config Syntax)
 - **Alte .eslintrc.js:** Veraltet, wird nicht mehr verwendet
 - **Unterstützt:** JavaScript + TypeScript
@@ -19,14 +20,15 @@ export default [
   {
     rules: {
       // Deine Custom Rules
-    }
-  }
+    },
+  },
 ];
 ```
 
 ### 3. Dependencies
 
 Alle Module haben jetzt:
+
 - `@eslint/js@^9.0.0`
 - `eslint@^9.0.0`
 - `globals@^15.0.0`
@@ -62,6 +64,7 @@ echo "npx lint-staged" > .husky/pre-commit
 ```
 
 `.lintstagedrc.json`:
+
 ```json
 {
   "*.{js,ts}": ["eslint --fix", "git add"],
@@ -76,6 +79,7 @@ echo "npx lint-staged" > .husky/pre-commit
 ### Aktivierte Regeln
 
 #### Code Style
+
 - `arrow-body-style`: Arrow functions ohne unnötige Klammern
 - `comma-dangle`: Trailing commas in Multiline
 - `indent`: 2 Spaces
@@ -84,6 +88,7 @@ echo "npx lint-staged" > .husky/pre-commit
 - `semi`: Semicolons erforderlich
 
 #### Best Practices
+
 - `no-var`: Verwende let/const statt var
 - `prefer-const`: const für nicht-reassignierte Variablen
 - `prefer-arrow-callback`: Arrow functions bevorzugt
@@ -91,11 +96,13 @@ echo "npx lint-staged" > .husky/pre-commit
 - `no-eval`: eval() verboten
 
 #### TypeScript
+
 - `@typescript-eslint/no-explicit-any`: Warnung bei `any`
 - `@typescript-eslint/no-unused-vars`: Fehler bei unbenutzten Variablen
 - Ignoriere Variablen mit `_` Prefix (z.B. `_unused`)
 
 ### Disabled Rules
+
 - `no-console`: Erlaubt (für Server-Side Code)
 - `@typescript-eslint/explicit-function-return-type`: Optional
 
@@ -113,9 +120,9 @@ export default [
     rules: {
       // Überschreibe globale Regeln
       "max-len": ["error", { code: 120 }],
-      "@typescript-eslint/no-explicit-any": "off"
-    }
-  }
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 ];
 ```
 
@@ -125,13 +132,8 @@ export default [
 // eslint.config.js
 export default [
   {
-    ignores: [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/build/**",
-      "**/*.min.js"
-    ]
-  }
+    ignores: ["**/node_modules/**", "**/dist/**", "**/build/**", "**/*.min.js"],
+  },
 ];
 ```
 
@@ -172,6 +174,7 @@ npm install --save-dev eslint-plugin-NAME
 ESLint 9 verwendet Flat Config (`eslint.config.js`).
 
 **Migration:**
+
 ```bash
 # Alte Config löschen
 rm .eslintrc.js
@@ -217,6 +220,7 @@ jobs:
 ## 🎯 Best Practices
 
 ### 1. Lint oft
+
 ```bash
 # Watch-Mode (mit nodemon)
 nodemon --watch src --exec "npm run lint"
@@ -225,6 +229,7 @@ nodemon --watch src --exec "npm run lint"
 ### 2. Editor Integration
 
 #### VS Code
+
 ```json
 // .vscode/settings.json
 {
@@ -237,7 +242,9 @@ nodemon --watch src --exec "npm run lint"
 ```
 
 #### WebStorm
+
 Settings → Languages → JavaScript → Code Quality Tools → ESLint
+
 - ✅ Automatic ESLint configuration
 - ✅ Run eslint --fix on save
 
@@ -250,16 +257,16 @@ export default [
     files: ["src/**/*.ts"],
     rules: {
       "@typescript-eslint/no-explicit-any": "error", // Kein any!
-      "@typescript-eslint/explicit-function-return-type": "warn"
-    }
+      "@typescript-eslint/explicit-function-return-type": "warn",
+    },
   },
   {
     // Relaxed für Tests
     files: ["**/*.test.ts"],
     rules: {
-      "@typescript-eslint/no-explicit-any": "off"
-    }
-  }
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 ];
 ```
 
@@ -277,6 +284,7 @@ export default [
 ## 🎓 Common Fixes
 
 ### Fix: `any` Type
+
 ```typescript
 // ❌ Bad
 function process(data: any) { ... }
@@ -288,6 +296,7 @@ function process(data: unknown) { ... }
 ```
 
 ### Fix: Unused Variables
+
 ```typescript
 // ❌ Bad
 const result = api.call();
@@ -299,6 +308,7 @@ void api.call(); // Explizit ignorieren
 ```
 
 ### Fix: No Trailing Spaces
+
 ```bash
 # Auto-fix im ganzen Projekt
 npm run lint:fix

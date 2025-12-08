@@ -1,36 +1,132 @@
-# Community Examples
+# Horizon Examples
 
-Coming soon!
+This directory contains examples demonstrating how to use Horizon with various frameworks and setups.
 
-# Horizon Extension Examples
+## Server Framework Examples
 
-We decided it was important to leverage Horizon alongside all your normal app functions. Here are some basic examples of how one would extend your JS web framework of choice with Horizon:  [express](https://github.com/strongloop/express), [koa](https://github.com/koajs/koa), or [hapi](https://github.com/hapijs) frameworks with Horizon.
+Examples showing how to integrate Horizon with popular Node.js server frameworks:
 
-* [Horizon & Express](/examples/express-server)
-* [Horizon & Koa](/examples/koa-server)
-* [Horizon & Hapi](/examples/hapi-server)
+| Example                            | Status        | Description                         |
+| ---------------------------------- | ------------- | ----------------------------------- |
+| [Express Server](./express-server) | ✅ Modernized | Express 4 + Horizon with TypeScript |
+| [Koa Server](./koa-server)         | ✅ Modernized | Koa 2 + Horizon with TypeScript     |
+| [Hapi Server](./hapi-server)       | ✅ Modernized | Hapi 21 + Horizon with TypeScript   |
 
-# Horizon App Examples
-And finally, we've created a few example applications to help you get started with Horizon. In each directory
-you will find a `dist` folder which will have all the files needed to serve the example application. In some of the
-TodoMVC examples, you will find a `package.json` inside the `dist` directory, and you will need to run `npm install` for
-some of their dependencies.
+All server examples include:
 
-If you have any questions just ask on [Slack](http://slack.rethinkdb.com) or [Twitter](https://twitter.com/rethinkdb)!
+- TypeScript with strict mode
+- Modern async/await patterns
+- Health check endpoints
+- Graceful shutdown handling
+- Comprehensive documentation
 
-## AngularJS
-* [AngularJS Todo App](/examples/angularjs-todo-app)
+## Frontend Framework Examples
 
-## CycleJS
-* [CycleJS Chat App](/examples/cyclejs-chat-app)
+Real-time applications built with modern frontend frameworks:
 
-## React
-* [React Chat App](/examples/react-chat-app/)
-* [React Todo App](/examples/react-todo-app/)
+| Example                            | Status        | Description                          |
+| ---------------------------------- | ------------- | ------------------------------------ |
+| [React Chat App](./react-chat-app) | ✅ Modernized | React 18 + TypeScript + Vite         |
+| [Vue Chat App](./vue-chat-app)     | ✅ Modernized | Vue 3 + TypeScript + Composition API |
+| [React Todo App](./react-todo-app) | ⚠️ Legacy     | Needs modernization                  |
+| [Vue Todo App](./vue-todo-app)     | ⚠️ Legacy     | Needs modernization                  |
 
-## RiotJS
-* [RiotJS Chat App](/examples/riotjs-chat-app)
+Modernized examples feature:
 
-## Vuejs
-* [Vue.js Chat App](/examples/vue-chat-app/)
-* [Vue Todo App](/examples/vue-todo-app/)
+- Latest framework versions (React 18, Vue 3)
+- TypeScript for type safety
+- Vite for fast development
+- Modern component patterns (Hooks, Composition API)
+- Real-time data synchronization
+
+## Legacy Framework Examples
+
+These examples use older frameworks and may need updating or archiving:
+
+| Example                                | Status    | Notes                   |
+| -------------------------------------- | --------- | ----------------------- |
+| [AngularJS Todo](./angularjs-todo-app) | 📦 Legacy | AngularJS is deprecated |
+| [RiotJS Chat](./riotjs-chat-app)       | 📦 Legacy | RiotJS 2.x              |
+| [CycleJS Chat](./cyclejs-chat-app)     | 📦 Legacy | CycleJS                 |
+| [Auth App](./auth-app)                 | 📦 Legacy | Authentication example  |
+
+## Getting Started
+
+Each example has its own README with setup instructions. General steps:
+
+1. **Install dependencies**
+
+   ```bash
+   cd <example-name>
+   npm install
+   ```
+
+2. **Start Horizon server** (if needed)
+
+   ```bash
+   cd ../../server
+   npm run dev
+   ```
+
+3. **Run the example**
+   ```bash
+   npm run dev
+   ```
+
+## Modernization Standards
+
+Modernized examples follow these standards:
+
+### TypeScript
+
+- Strict mode enabled
+- Full type coverage
+- No implicit any
+
+### Build Tools
+
+- Vite for frontend apps (fast HMR, modern output)
+- TypeScript compiler for server apps
+- Source maps for debugging
+
+### Code Style
+
+- ESLint 9 with Flat Config
+- Modern syntax (async/await, optional chaining)
+- Functional components (React Hooks, Vue Composition API)
+
+### Documentation
+
+- Comprehensive README with examples
+- Architecture diagrams
+- Troubleshooting guides
+- API documentation
+
+## Contributing
+
+When adding new examples:
+
+1. Use TypeScript
+2. Follow the modernization standards above
+3. Include a comprehensive README
+4. Add tests if applicable
+5. Update this overview README
+
+## Ideas for Future Examples
+
+- [ ] Next.js with Horizon
+- [ ] Svelte with Horizon
+- [ ] React Native mobile app
+- [ ] Electron desktop app
+- [ ] WebSocket proxy example
+- [ ] GraphQL integration
+- [ ] Authentication flows (OAuth, JWT)
+- [ ] Multi-tenant applications
+- [ ] Real-time analytics dashboard
+- [ ] Collaborative editing (like Google Docs)
+
+## Learn More
+
+- [Horizon Documentation](https://horizon.io/docs/)
+- [RethinkDB Changefeeds](https://rethinkdb.com/docs/changefeeds/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
