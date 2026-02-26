@@ -5,7 +5,6 @@
 [Official Repository](https://github.com/rethinkdb/horizon)
 
 ## What is Horizon?
-
 Horizon is an open-source developer platform for building sophisticated realtime
 apps. It provides a complete backend that makes it dramatically simpler to
 build, deploy, manage, and scale engaging JavaScript web and mobile apps.
