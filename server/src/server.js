@@ -71,6 +71,7 @@ class Server {
     this._name = opts.project_name;
     this._max_connections = opts.max_connections;
     this._permissions_enabled = opts.permissions;
+    this._subscribe_validator_filter_enabled = opts.enable_subscribe_validator_filter;
     this._auth_methods = { };
     this._request_handlers = new Map();
     this._http_handlers = new Map();
@@ -84,6 +85,7 @@ class Server {
       this._reql_conn = new ReqlConnection(opts.rdb_host,
                                            opts.rdb_port,
                                            opts.project_name,
+                                           opts.enable_subscribe_validator_filter,
                                            opts.auto_create_collection,
                                            opts.auto_create_index,
                                            opts.rdb_user || null,

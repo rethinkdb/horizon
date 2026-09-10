@@ -10,6 +10,7 @@ const default_pass = '';
 
 class ReqlConnection {
   constructor(host, port, db,
+              enable_subscribe_validator_filter,
               auto_create_collection, auto_create_index,
               user, pass, connect_timeout,
               interruptor) {
@@ -22,6 +23,7 @@ class ReqlConnection {
       timeout: connect_timeout || null,
     };
 
+    this._subscribe_validator_filter_enabled = enable_subscribe_validator_filter;
     this._auto_create_collection = auto_create_collection;
     this._auto_create_index = auto_create_index;
     this._clients = new Set();
@@ -83,6 +85,7 @@ class ReqlConnection {
       return new Metadata(this._rdb_options.db,
                           conn,
                           this._clients,
+                          this._subscribe_validator_filter_enabled,
                           this._auto_create_collection,
                           this._auto_create_index).ready();
     }).then((metadata) => {

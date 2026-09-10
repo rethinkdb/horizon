@@ -46,11 +46,13 @@ class Metadata {
   constructor(project_name,
               conn,
               clients,
+              enable_subscribe_validator_filter,
               auto_create_collection,
               auto_create_index) {
     this._db = project_name;
     this._conn = conn;
     this._clients = clients;
+    this._subscribe_validator_filter_enabled = enable_subscribe_validator_filter;
     this._auto_create_collection = auto_create_collection;
     this._auto_create_index = auto_create_index;
     this._closed = false;

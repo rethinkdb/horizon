@@ -22,7 +22,11 @@ const run = (raw_request, context, ruleset, metadata, send, done) => {
           send({ state: 'synced' });
         } else if ((item.old_val && !ruleset.validate(context, item.old_val)) ||
                    (item.new_val && !ruleset.validate(context, item.new_val))) {
-          throw new Error('Operation not permitted.');
+          if (metadata._subscribe_validator_filter_enabled) {
+            console.log('Filtering record from result set')
+          } else {
+            throw new Error('Operation not permitted.');
+          }
         } else {
           send({ data: [ item ] });
         }

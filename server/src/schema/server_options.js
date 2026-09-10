@@ -7,6 +7,8 @@ const server = Joi.object({
   rdb_host: Joi.string().hostname().default('localhost'),
   rdb_port: Joi.number().greater(0).less(65536).default(28015),
 
+  enable_subscribe_validator_filter: Joi.boolean().default(false),
+
   auto_create_collection: Joi.boolean().default(false),
   auto_create_index: Joi.boolean().default(false),
 
