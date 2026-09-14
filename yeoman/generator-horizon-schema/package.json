@@ -1,0 +1,22 @@
+{
+  "name": "generator-horizon-schema",
+  "version": "0.1.0",
+  "description": "Horizon Rule Generator",
+  "main": "app/index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "keywords": [
+    "yeoman-generator",
+    "horizon"
+  ],
+  "preferGlobal": true,
+  "dependencies": {
+    "lodash": "^3.7.0",
+    "chalk": "^1.0.0",
+    "npm-check": "^3.2.10",
+    "yeoman-generator": "^0.19.2",
+    "yosay": "^1.0.2",
+    "prompt": "^1.0.0"
+  }
+}

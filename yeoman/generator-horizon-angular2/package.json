@@ -1,0 +1,27 @@
+{
+  "name": "generator-horizon-angular2",
+  "version": "0.1.0",
+  "description": "Horizon angular2 chat app generator",
+  "main": "app/index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "keywords": [
+    "yeoman-generator",
+    "angular yeoman",
+    "angular2 yeoman",
+    "angularjs",
+    "angular",
+    "angularjs2",
+    "angular2",
+    "es6"
+  ],
+  "preferGlobal": true,
+  "dependencies": {
+    "lodash": "^3.7.0",
+    "chalk": "^1.0.0",
+    "npm-check": "^3.2.10",
+    "yeoman-generator": "^0.19.2",
+    "yosay": "^1.0.2"
+  }
+}
