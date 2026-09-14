@@ -11,9 +11,9 @@ import { authEndpoint, TokenStorage, clearAuthTokens } from './auth'
 import { aggregate, model } from './model'
 
 const defaultHost = typeof window !== 'undefined' && window.location &&
-        `${window.location.host}` || 'localhost:8181'
+  `${window.location.host}` || 'localhost:8181'
 const defaultSecure = typeof window !== 'undefined' && window.location &&
-        window.location.protocol === 'https:' || false
+  window.location.protocol === 'https:' || false
 
 function Horizon({
   host = defaultHost,
@@ -109,6 +109,8 @@ function Horizon({
   horizon._horizonPath = `${horizon._root}/${path}`
   horizon.authEndpoint = authEndpoint
   horizon.hasAuthToken = tokenStorage.hasAuthToken.bind(tokenStorage)
+  horizon.getAuthToken = tokenStorage.get.bind(tokenStorage)
+  horizon.setAuthToken = tokenStorage.set.bind(tokenStorage)
   horizon.aggregate = aggregate
   horizon.model = model
 
