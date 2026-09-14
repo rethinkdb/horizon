@@ -1,0 +1,21 @@
+ <ActionBar title="Horizon {N} Chat">
+    </ActionBar>
+<GridLayout rows="*,auto">
+    <GridLayout>
+        <ListView [items]="messages">
+            <template let-item="item">
+            <GridLayout class="messages" columns="50,*,auto">
+                <Image height="50" width="50" [src]="item.avatar"></Image>
+                <Label textWrap="true" verticalAlignment="center" col="1" [text]="item.text"></Label>
+                <Label verticalAlignment="top" horizontalAlignment="right" col="2" [text]="item.timeStamp | fromNow"></Label>
+            </GridLayout>
+            </template>
+        </ListView>
+    </GridLayout>
+    
+    <GridLayout row="1" columns="*,auto">
+        <TextField hint="Enter message ....." row="1" [(ngModel)]="newMessage"></TextField>
+        <Button row="1" col="1" text="Send" (tap)="addMessage(newMessage)"></Button>
+    </GridLayout>
+    
+</GridLayout>

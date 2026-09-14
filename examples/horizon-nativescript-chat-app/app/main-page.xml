@@ -1,0 +1,24 @@
+<Page id="page" xmlns="http://schemas.nativescript.org/tns.xsd" navigatingTo="navigatingTo">
+  <ActionBar title="Horizon {N} Chat">
+  </ActionBar>
+  <GridLayout rows="*,auto">
+      <GridLayout>
+        <ListView items="{{ messages }}" id="list">
+            <ListView.itemTemplate>
+               <GridLayout class="messages" columns="50,*,auto">
+                  <Image height="50" width="50" src="{{ avatar }}"></Image>
+                  <Label textWrap="true" verticalAlignment="center" col="1" text="{{ text }}"></Label>
+                  <Label verticalAlignment="top" horizontalAlignment="right" col="2" text="{{ timeStamp | fromNow }}"></Label>
+              </GridLayout> 
+            </ListView.itemTemplate>
+        </ListView>
+      </GridLayout>
+      
+      <GridLayout row="1" columns="*,auto">
+          <TextField hint="Enter message ....." row="1" text="{{ newMessage }}"></TextField>
+          <Button row="1" col="1" text="Send" tap="{{ addMessage }}"></Button>
+      </GridLayout>
+      
+  </GridLayout>
+</Page>
+
