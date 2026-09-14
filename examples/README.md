@@ -1,3 +1,6 @@
+# For First-Time Developers
+See the [React Chat App](/examples/react-chat-app) which has step-by-step instructions to get it going.
+
 # Community Examples
 
 Coming soon!

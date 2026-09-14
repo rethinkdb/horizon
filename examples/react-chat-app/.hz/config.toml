@@ -1,0 +1,6 @@
+project_name = "react_chat_app"
+
+# You probably don't want these options on a public server...
+# But it makes the example app easier to run
+auto_create_collection = true
+auto_create_index = true
