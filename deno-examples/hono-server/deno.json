@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "dev": "deno run --watch --allow-net --allow-env --allow-read main.ts",
+    "start": "deno run --allow-net --allow-env --allow-read main.ts"
+  },
+  "imports": {
+    "@horizon/server": "../deno-server/src/mod.ts"
+  }
+}

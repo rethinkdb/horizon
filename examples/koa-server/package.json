@@ -1,16 +1,25 @@
 {
-  "name": "koa-horizon-example",
-  "version": "0.0.1",
-  "description": "Example of a horizon server within a koa server.",
-  "bin": "main.js",
+  "name": "@horizon-examples/koa-server",
+  "version": "2.0.0",
+  "description": "Example of a Horizon server within a Koa server (TypeScript)",
+  "bin": "dist/main.js",
   "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/main.ts",
+    "start": "node dist/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "RethinkDB",
   "license": "MIT",
   "dependencies": {
-    "horizon-server": "file:../../server",
-    "koa": "^1.1.2"
+    "@horizon/server": "file:../../server",
+    "koa": "^2.15.0"
+  },
+  "devDependencies": {
+    "@types/koa": "^2.14.0",
+    "@types/node": "^20.10.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   },
   "repository": {
     "type": "git",

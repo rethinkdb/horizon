@@ -1,0 +1,48 @@
+{
+  "name": "@horizon/deno-server",
+  "version": "3.0.0",
+  "exports": {
+    ".": "./src/mod.ts",
+    "./server": "./src/core/server.ts",
+    "./auth": "./src/auth/mod.ts"
+  },
+  "tasks": {
+    "dev": "deno run --watch --allow-net --allow-env --allow-read src/mod.ts",
+    "start": "deno run --allow-net --allow-env --allow-read src/mod.ts",
+    "test": "deno test --allow-net --allow-env --allow-read",
+    "check": "deno check src/**/*.ts",
+    "fmt": "deno fmt",
+    "lint": "deno lint"
+  },
+  "imports": {
+    "@std/http": "jsr:@std/http@^1.0.0",
+    "@std/async": "jsr:@std/async@^1.0.0",
+    "@std/log": "jsr:@std/log@^0.224.0",
+    "@std/crypto": "jsr:@std/crypto@^1.0.0",
+    "@std/encoding": "jsr:@std/encoding@^1.0.0",
+    "rethinkdb-ts": "npm:rethinkdb-ts@^2.4.9",
+    "djwt": "https://deno.land/x/djwt@v3.0.2/mod.ts"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "lib": ["deno.window", "deno.ns"]
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": true,
+    "proseWrap": "preserve"
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  }
+}
